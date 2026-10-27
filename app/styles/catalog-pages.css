@@ -312,3 +312,8 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pr
 /* Store filter: the logo is a fixed 22px mark and the name takes the rest (the first-span rule used to stretch the logo). Both themes. */
 .catalog-check > span.store-logo:first-of-type { flex: 0 0 22px; width: 22px; height: 22px; }
 .catalog-check > span.store-logo + span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
+/* A switch that cannot be turned on keeps its words readable (4.5:1): only the track is faded; the title turns muted and
+   the hint, which says why it is off, keeps its colour (impeccable detector, 27 October 2026). */
+.catalog-switch[data-disabled] :is(.catalog-switch-text, .catalog-count) { opacity: 1; }
+.catalog-switch[data-disabled] .catalog-switch-text b { color: var(--cat-muted); }

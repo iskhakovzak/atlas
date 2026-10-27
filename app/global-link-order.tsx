@@ -57,7 +57,7 @@ import { heroStores, storeBrands, storefrontUrl } from "@/lib/market/store-brand
 import { dealCopy } from "@/lib/market/deal-copy";
 import { StoreLogo } from "./store-logo";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
-import {isConfirmedVariantAvailable} from '@/lib/importer/variant-normalization';
+import {isOrderableVariant, isStockUnconfirmed} from '@/lib/importer/variant-normalization';
 import { optionStock } from "@/lib/market/link-order-stock";
 import { variantsForSourceColor, variantSourceUrl, variantGallery, variantDisplayPrices } from "@/lib/importer/link-selection";
 import { findNikeFootwearSizeRow, getNikeFootwearSizeRows, inferNikeFootwearSizeSystem } from "@/lib/market/nike-size-chart";
@@ -144,7 +144,7 @@ function Stepper({ value, max, label, k, onChange }: { value: number; max: numbe
 
 /** Options without a color/size matrix, as buttons the customer can pick several of. */
 function OptionChips({ variants, picked, k, onToggle, format }: { format:(value:number)=>string; variants: ProductVariant[]; picked: Record<string, number>; k: CalcCopy; onToggle: (item: ProductVariant) => void }) {
-  return <div className="variant-options lo-option-chips">{variants.map(item => <button type="button" key={item.label} aria-pressed={Boolean(picked[item.label])} disabled={!isConfirmedVariantAvailable(item)} onClick={() => onToggle(item)}>
+  return <div className="variant-options lo-option-chips">{variants.map(item => <button type="button" key={item.label} aria-pressed={Boolean(picked[item.label])} disabled={!isOrderableVariant(item)} onClick={() => onToggle(item)}>
     <span>{item.label}</span>{item.price!==undefined&&<small>{format(item.price)}</small>}{item.options?.length? <small>{item.options.map(o=>`${o.name}: ${o.value}`).join(" · ")}</small>:null}{item.quantity !== undefined && item.quantity <= 5 && <small className="lo-stock">{item.quantity ? k.stockLeft(item.quantity) : k.outOfStock}</small>}
   </button>)}</div>;
 }
@@ -490,7 +490,7 @@ export function GlobalLinkOrder() {
   }
   /** Toggle an option in the selection; the last one touched sets the price shown in the form. */
   function togglePick(item:ProductVariant){
-    if(!isConfirmedVariantAvailable(item))return;
+    if(!isOrderableVariant(item))return;
     setFormIssue("");
     setPicked(current=>{if(!manyMode)return current[item.label]&&Object.keys(current).length===1?current:{[item.label]:1};const next={...current};if(next[item.label])delete next[item.label];else next[item.label]=1;return next});
     applyVariantChoice(item);
@@ -678,7 +678,7 @@ export function GlobalLinkOrder() {
         const receivedPartialVariants=data.variants?.length?data.variants:linkFallbackOptions;
         const partialVariants=variantsForSourceColor(receivedPartialVariants,data.selectedVariantColor,data.sourceUrl??link,data.variantScope);
         const partialSelected=partialVariants.find(item=>item.id&&(item.id===data.selectedVariantId||item.id===data.sku));
-        setVariants(partialVariants.filter(isConfirmedVariantAvailable));
+        setVariants(partialVariants.filter(isOrderableVariant));
         setStoreSoldOut(optionStock(partialVariants)==='sold-out');
         setVariant(partialSelected?.label??(partialVariants.length===1?partialVariants[0].label:""));
         setPicked(partialVariants.length===1?{[partialVariants[0].label]:1}:{});
@@ -735,7 +735,7 @@ export function GlobalLinkOrder() {
       const importedVariants = variantsForSourceColor(allImportedVariants,data.selectedVariantColor,data.sourceUrl,data.variantScope);
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
       
-      const selectableVariants=safeVariants.filter(isConfirmedVariantAvailable).filter(item=>{const value=item.price??(data.variantScope==='group'?undefined:data.price);return typeof value==='number'&&Number.isFinite(value)&&value>0;});
+      const selectableVariants=safeVariants.filter(isOrderableVariant).filter(item=>{const value=item.price??(data.variantScope==='group'?undefined:data.price);return typeof value==='number'&&Number.isFinite(value)&&value>0;});
       setVariants(selectableVariants);
       // Every option the store lists at this link is sold out: said as such, not as a price still to come.
       setStoreSoldOut(optionStock(safeVariants)==='sold-out');
@@ -1041,7 +1041,7 @@ export function GlobalLinkOrder() {
   const fromSums = (() => {
     if (picks.length || variants.length < 2 || !orderable || checking) return null;
     const pool = variantsForColor.length ? variantsForColor : variants;
-    const cheapest = pool.filter(item => isConfirmedVariantAvailable(item) && item.quantity !== 0 && priceOf(item.label) > 0)
+    const cheapest = pool.filter(item => isOrderableVariant(item) && item.quantity !== 0 && priceOf(item.label) > 0)
       .sort((a, b) => priceOf(a.label) - priceOf(b.label))[0];
     const items = cheapest ? previewFor([[cheapest.label, 1]]) : [];
     return items.length ? sumQuotes(items.map(item => item.quote)) : null;
@@ -1109,7 +1109,10 @@ export function GlobalLinkOrder() {
   // stays in the step heading, the tooltip and the accessible name.
   const colourPrimaries = variantColors.map(color => describeSingleColorway(color).primary);
   const colourName = (color: string) => { const primary = describeSingleColorway(color).primary; return colourPrimaries.filter(value => value === primary).length === 1 ? primary : color.replace(/\//g, "/\u200b"); };
-  const colourOptions = <div className="variant-options">{variantColors.map(color=>{const options=variants.filter(v=>v.color===color),photo=colourPhotosDiffer?colourPhoto(color):undefined,stock=options.some(v=>v.available&&v.quantity!==0),colorPrices=variantDisplayPrices(options),priceText=colorPrices.length>0?sourceFormat(colorPrices[0])+(colorPrices.length>1?` – ${sourceFormat(colorPrices[colorPrices.length-1])}`:""):"";return <button type="button" key={color} title={color} aria-label={[color,priceText,stock?"":k.outOfStock].filter(Boolean).join(", ")} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{photo&&<img src={sizedImage(photo,120)} alt="" width={36} height={36} decoding="async" onError={event=>{retryOriginal(event.currentTarget,photo)}}/>}<span>{colourName(color)}</span>{priceText&&<small className="lo-colour-price">{priceText}</small>}{!stock&&<small>{k.outOfStock}</small>}</button>})}</div>;
+  // One price on every tile says nothing: when all colours cost the same, the tiles show only the name (the price
+  // stays in the button label and the total below; 27 October 2026).
+  const colourPricesSame = variantDisplayPrices(variants).length <= 1;
+  const colourOptions = <div className="variant-options">{variantColors.map(color=>{const options=variants.filter(v=>v.color===color),photo=colourPhotosDiffer?colourPhoto(color):undefined,stock=options.some(v=>v.available&&v.quantity!==0),colorPrices=variantDisplayPrices(options),priceText=colorPrices.length>0?sourceFormat(colorPrices[0])+(colorPrices.length>1?` – ${sourceFormat(colorPrices[colorPrices.length-1])}`:""):"";return <button type="button" key={color} title={color} aria-label={[color,priceText,stock?"":k.outOfStock].filter(Boolean).join(", ")} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{photo&&<img src={sizedImage(photo,120)} alt="" width={36} height={36} decoding="async" onError={event=>{retryOriginal(event.currentTarget,photo)}}/>}<span>{colourName(color)}</span>{priceText&&!colourPricesSame&&<small className="lo-colour-price">{priceText}</small>}{!stock&&<small>{k.outOfStock}</small>}</button>})}</div>;
   // The item data card: in the right column under the total, or, for a store Atlas does not read (the customer types
   // every field), under the item card across the wide left column. Rendered in one place only.
   const manualLayout = sourceCheckStatus === "manual";
@@ -1524,7 +1527,9 @@ export function GlobalLinkOrder() {
               </div>
               {checking
                 ? <p className="lo-store-price">{lc.storePrice}: <span className="lo-skel lo-skel-price" aria-hidden="true" /></p>
-                : sourceCheckStatus === "manual" && !(Number(amount) > 0) ? null : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}{sourceCheckStatus === "verified" && checkedTime && <small className="lo-checked">{" "}· {lc.checkedAt(checkedTime)}</small>}</p>}
+                : sourceCheckStatus === "manual" && !(Number(amount) > 0) ? null : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}</p>}
+              {/* Its own quiet line with a tick: as a tail after the price it wrapped alone, starting with "·", on phones (owner, 27 October 2026). */}
+              {!checking && sourceCheckStatus === "verified" && checkedTime && <p className="lo-checked"><Check size={14} aria-hidden="true" />{lc.checkedAt(checkedTime)}</p>}
               {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{soldOutAtStore ? soldOutText : tx('Автоматическая проверка не завершена. Сохранённые данные предварительные.','Avtomatik tekshirish tugamadi. Saqlangan ma’lumotlar taxminiy.','Automatic verification is incomplete. Saved details are preliminary.')}</p>}
               {!checking && orderable && variants.length > 1 && variantColors.length > 1 && <div className="variant-step lo-colours-aside"><div><b>{c.color}</b><span>{selectedColor || c.selectColor}</span></div>{colourOptions}</div>}
               {/* Wide screens: what Atlas read from the store, beside the photo, so the card has no empty half
@@ -1549,7 +1554,7 @@ export function GlobalLinkOrder() {
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
                 {variantColors.length>0&&<div className={"variant-step"+(variantColors.length>1?" lo-colours-main":"")}><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:colourOptions}</div>}
-                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(sizeDisplay(selectedSize)):sizeStep?c.selectSize:c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}>{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">adidas ↗</a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:undefined} onClick={()=>choice&&togglePick(choice)}><span>{sizeDisplay(size)}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{sourceFormat(price)}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
+                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(sizeDisplay(selectedSize)):sizeStep?c.selectSize:c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}><span className="lo-size-seg">{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}</span>{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a className="lo-size-chart" href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">{tx("Таблица adidas","adidas jadvali","adidas chart")}<ExternalLink size={13} aria-hidden="true"/></a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:undefined} onClick={()=>choice&&togglePick(choice)}><span>{sizeDisplay(size)}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{sourceFormat(price)}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
                   {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
                   <div className="nike-size-chart"><b>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</b>
                     <p>{tx('Показаны размеры, найденные для этого товара. CM/JP — маркировка обуви Nike; длина стопы указана отдельно.','Bu tovar uchun topilgan o‘lchamlar ko‘rsatilgan. CM/JP — Nike poyabzali yorlig‘i; oyoq uzunligi alohida berilgan.','Shows sizes found for this item. CM/JP is Nike’s shoe-label size; foot length is listed separately.')}</p>
@@ -1568,14 +1573,15 @@ export function GlobalLinkOrder() {
             {choiceNote && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{choiceNote}</p>}
             {variants.length > 1 && <>
               <div className="lo-pick-mode">
-                <p className="lo-hint-line">{manyMode ? k.chooseOptions : k.chooseOne}</p>
+                {/* One option is the default and needs no sentence; the hint shows only in the "several" mode (27 October 2026). */}
+                {manyMode && <p className="lo-hint-line">{k.chooseOptions}</p>}
                 <button type="button" className="lo-source-link" aria-pressed={manyMode} onClick={() => {
                   setFormIssue("");
                   if (!manyMode) { setMultiPick(true); return; }
                   // Back to one: the option touched last stays, with one piece.
                   setMultiPick(false);
                   setPicked(current => { const last = Object.keys(current).at(-1); return last ? { [last]: 1 } : {}; });
-                }}>{manyMode ? k.pickOne : k.pickMany}</button>
+                }}>{!manyMode && <Plus size={16} aria-hidden="true"/>}{manyMode ? k.pickOne : k.pickMany}</button>
               </div>
               {/* The choice shows below even when it is one option, with a tick, so it is clear what is chosen; the
                   quantity appears in the "several" mode (owner, 12 October 2026). */}
@@ -1591,7 +1597,7 @@ export function GlobalLinkOrder() {
                 </li>;
               })}</ul>}
             </>}
-            {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted lo-stock-hint">{k.stockUnknown}</p>}
+            {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted lo-stock-hint">{variants.some(isStockUnconfirmed) ? k.stockCheckFirst : k.stockUnknown}</p>}
             {/* The comment sits right under the chosen options (owner, 12 October 2026). */}
             <div className="lo-comment">
               <label htmlFor="order-comment"><b>{k.blocks.comment}</b><small>{k.commentHint}</small></label>

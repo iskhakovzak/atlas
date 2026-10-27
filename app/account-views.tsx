@@ -262,8 +262,9 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups:
           <span className="cabinet-allowance-who"><i aria-hidden="true">{name.trim().charAt(0).toUpperCase()}</i><b>{name}</b></span>
           <span className="cabinet-allowance-figure"><strong>{allowanceMoney(over ? used - limit : limit - used)}</strong><small>{over ? c.customs.overLabel : c.customs.leftLabel}</small></span>
         </div>
-        <AllowanceMeter limit={limit} orders={row.parts ?? []} cartUsd={row.name === primaryName || rows.length === 1 ? cartUsd : 0} locale={locale} label={name} />
-        <p className="cabinet-allowance-status">{over ? c.customs.over : c.customs.used(used, limit)}</p>
+        <AllowanceMeter limit={limit} orders={row.parts ?? []} cartUsd={row.name === primaryName || rows.length === 1 ? cartUsd : 0} locale={locale} label={name} headline />
+        {/* "$0 of $200" only repeated the headline: the line shows once something counts against the limit (27 October 2026). */}
+        {(over || used > 0) && <p className="cabinet-allowance-status">{over ? c.customs.over : c.customs.used(used, limit)}</p>}
       </li>;
     })}</ul> : <ul className="cabinet-allowance">
       {/* No recipient yet: the whole allowance and its scale, with the cart on it — no invented recipient name. */}
@@ -271,7 +272,7 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups:
         <div className="cabinet-allowance-head solo">
           <span className="cabinet-allowance-figure"><strong>{allowanceMoney(limit)}</strong><small>{c.customs.leftLabel}</small></span>
         </div>
-        <AllowanceMeter limit={limit} orders={[]} cartUsd={cartUsd} locale={locale} label={c.customs.title} />
+        <AllowanceMeter limit={limit} orders={[]} cartUsd={cartUsd} locale={locale} label={c.customs.title} headline />
         <p className="cabinet-allowance-status">{c.customs.empty}</p>
       </li>
     </ul>}

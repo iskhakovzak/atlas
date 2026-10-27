@@ -5,7 +5,7 @@ import { catalogCategories } from '../lib/market/catalog-editor.ts';
 import { catalogAllowance } from '../lib/market/allowance.ts';
 import {
   categorySlugs, readCatalogQuery, catalogQueryString, emptyCatalogQuery, normalizeSize, compareSizes, productSizes,
-  catalogItems, applyCatalogQuery, catalogFacets, relaxations, withoutFilter, activeFilterCount, parcelExtra, cartParcelStores, storeLabel, sameCatalogProduct,
+  catalogItems, topDealThreshold, applyCatalogQuery, catalogFacets, relaxations, withoutFilter, activeFilterCount, parcelExtra, cartParcelStores, storeLabel, sameCatalogProduct,
 } from '../lib/market/catalog-query.ts';
 import { searchWords } from '../lib/market/catalog-synonyms.ts';
 
@@ -211,4 +211,46 @@ test('a cart line made by the link order is the catalog product it came from', (
   // Products without a store link compare by id alone.
   assert.ok(sameCatalogProduct({ id: 'manual' }, { id: 'manual' }));
   assert.equal(sameCatalogProduct({ id: 'manual' }, { id: 'manual', sourceUrl: 'https://www.nike.com/t/runner' }), false);
+});
+
+test('"Top price" marks the best fifth by discount, never under 40 %', () => {
+  // 10 items: the best fifth is 2; both are 40 %+ off.
+  assert.equal(topDealThreshold([70, 66, 64, 64, 60, 58, 56, 55, 53, 41]), 66);
+  // Few items still get one badge; ties at the threshold share it.
+  assert.equal(topDealThreshold([50, 45]), 50);
+  assert.deepEqual([70, 66, 66, 10].filter((d) => d >= topDealThreshold([70, 66, 66, 10])), [70]);
+  // Nothing is 40 %+ off: no badge at all.
+  assert.equal(topDealThreshold([39, 20, 0]), Infinity);
+  // Only one item clears 40 %: it alone gets the badge, whatever the share says.
+  assert.equal(topDealThreshold([45, 30, 20, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 45);
+});
+
+test('the admin queue names one reason and one action for a waiting card', async () => {
+  const { catalogQueueVerdict } = await import('../lib/market/catalog-queue-verdict.ts');
+  assert.deepEqual(catalogQueueVerdict('Название · Фото · Цена · Валюта · Страна отправки · Доступный вариант · Ошибка проверки магазина'), { text: 'Магазин не ответил — данных нет.', action: 'recheck', label: 'Перечитать' });
+  assert.equal(catalogQueueVerdict('Страна отправки').action, 'edit');
+  assert.equal(catalogQueueVerdict('Доступный вариант · Нет доступных вариантов').action, 'delete');
+  assert.equal(catalogQueueVerdict('Опубликовано; уточняем у магазина: Магазин ещё не подтвердил полноту вариантов').action, undefined);
+});
+
+test('store health counts reads per store and says which stores fail', async () => {
+  const { mergeStoreHealth, storeReadability } = await import('../lib/market/store-health.ts');
+  let health = mergeStoreHealth({}, [
+    { url: 'https://www.mango.com/a', result: 'failed', reason: 'blocked' }, { url: 'https://shop.mango.com/b', result: 'failed' },
+    { url: 'https://tartecosmetics.com/x', result: 'ok' }, { url: 'https://tartecosmetics.com/y', result: 'partial', reason: 'country' },
+    { url: 'not a url', result: 'ok' },
+  ], 1);
+  assert.equal(storeReadability(health['mango.com']), 'fails');
+  assert.equal(health['mango.com'].reason, 'blocked');
+  assert.equal(storeReadability(health['tartecosmetics.com']), 'partial');
+  assert.equal(storeReadability(health['nike.com']), 'unknown');
+  for (let i = 0; i < 60; i++) health = mergeStoreHealth(health, [{ url: 'https://tartecosmetics.com/z', result: 'ok' }], 2 + i);
+  assert.equal(storeReadability(health['tartecosmetics.com']), 'reads');
+  assert.ok(health['tartecosmetics.com'].ok + health['tartecosmetics.com'].partial <= 51, 'old reads fade');
+  assert.equal(health['tartecosmetics.com'].reason, undefined);
+});
+
+test('store health keeps a phone link under its store', async () => {
+  const { mergeStoreHealth } = await import('../lib/market/store-health.ts');
+  assert.deepEqual(Object.keys(mergeStoreHealth({}, [{ url: 'https://m.zara.com/es/en/x-p1.html', result: 'failed' }, { url: 'https://www.zara.com/es/en/y-p2.html', result: 'ok' }], 1)), ['zara.com']);
 });

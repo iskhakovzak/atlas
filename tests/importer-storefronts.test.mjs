@@ -9,7 +9,7 @@ import {linkImportStorefronts, isSupportedStoreHost} from '../lib/importer/store
 import {applyMerchantProfile, merchantProfileForUrl} from '../lib/importer/merchant-profiles.ts';
 import {publicJsonStates} from '../lib/importer/public-state.ts';
 import {extractShopify} from '../lib/importer/shopify.ts';
-import {importDraft, catalogIssues} from '../lib/market/catalog-editor.ts';
+import {importDraft, pendingCatalogIssues} from '../lib/market/catalog-editor.ts';
 import {variantsForSourceColor} from '../lib/importer/link-selection.ts';
 
 const fixture = name => JSON.parse(readFileSync(new URL(`./fixtures/importer/${name}.json`, import.meta.url), 'utf8'));
@@ -310,7 +310,8 @@ test('captured PUMA urql state keeps selected swatch, its own price/photo and un
   assert.equal(result.price,90);assert.equal(result.currency,'USD');assert.equal(result.selectedVariantColor,'Cast Iron-PUMA White');
   assert.ok(result.image.includes('/399781/06/'));assert.equal(result.variants.length,2);
   assert.ok(result.variants.every(v=>v.availabilityKnown===false&&!v.size));
-  assert.ok(catalogIssues(importDraft(result,[],'США',1000),1001).length>0);
+  // Sizes without a stock answer are sold subject to stock (27 October 2026): noted, not blocked.
+  assert.ok(pendingCatalogIssues(importDraft(result,[],'США',1000)).some(issue=>issue.includes('уточним перед выкупом')));
   const missingUrl=f.sourceUrl.replace('swatch=06','swatch=18');
   const missing=extractProduct(ld({...f.schema,offers:{...f.schema.offers,url:missingUrl}})+publicState,missingUrl);
   assert.equal(missing.price,undefined);assert.deepEqual(missing.variants,[]);

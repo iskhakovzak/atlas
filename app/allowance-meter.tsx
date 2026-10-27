@@ -22,7 +22,8 @@ export const allowanceMoney=money;
  * duty is due on that part only (owner, 12 October 2026). Segments are buttons: tap, hover or focus one to read it
  * below the bar; otherwise the line below is a legend of the totals.
  */
-export function AllowanceMeter({limit,orders,cartUsd=0,locale,label}:{limit:number;orders:AllowancePart[];cartUsd?:number;locale:Locale;label:string}){
+/** `headline`: the card already prints what is left in large type, so the readout leaves out the same "left" figure (it still says what is left after the cart). */
+export function AllowanceMeter({limit,orders,cartUsd=0,locale,label,headline=false}:{limit:number;orders:AllowancePart[];cartUsd?:number;locale:Locale;label:string;headline?:boolean}){
  const c=copy[locale],id=useId();
  // Browsers often lack Uzbek month names ("M10 13"), so Uzbek dates are built by hand.
  const intlDay=new Intl.DateTimeFormat(locale,{day:'numeric',month:'long'}),day={format:(at:number)=>{const d=new Date(at);return isUzbek(locale)?uzText(locale,`${d.getDate()}-${uzMonths[d.getMonth()]}`):intlDay.format(at)}};
@@ -59,7 +60,7 @@ export function AllowanceMeter({limit,orders,cartUsd=0,locale,label}:{limit:numb
    {current?<span className={'allowance-key '+current.kind}><i/><b>{current.label}</b> {money(current.usd)}</span>:<>
     {used>0&&<span className="allowance-key order"><i/>{c.orders}{orders.length>1?` · ${orders.length}`:''} <b>{money(used)}</b></span>}
     {cartUsd>0&&<span className="allowance-key cart"><i/>{c.inCart} <b>{money(cartUsd)}</b></span>}
-    {overUsd>0?<span className="allowance-key over"><i/>{c.over} <b>{money(overUsd)}</b></span>:<span className="allowance-key left"><i/>{cartUsd>0?c.afterCart:c.left} <b>{money(limit-total)}</b></span>}
+    {overUsd>0?<span className="allowance-key over"><i/>{c.over} <b>{money(overUsd)}</b></span>:headline&&cartUsd===0?null:<span className="allowance-key left"><i/>{cartUsd>0?c.afterCart:c.left} <b>{money(limit-total)}</b></span>}
    </>}
   </p>
  </div>;

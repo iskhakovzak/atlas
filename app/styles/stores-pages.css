@@ -492,3 +492,7 @@ html:not([data-theme="dark"]) .store-tile-mark { background: var(--day-ink); bor
 html[data-theme="dark"] .stores-mine-placeholder { background-image: linear-gradient(100deg, rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, .1) 50%, rgba(255, 255, 255, .05) 70%); }
 @media (prefers-reduced-motion: reduce) { .stores-mine-placeholder { animation: none; } }
 @media (min-width: 761px) { .stores-mine-placeholder { width: 100%; } }
+
+/* The search placeholder reads at 4.5:1 on the white field (it was 3.2:1). */
+.stores-search input::placeholder { color: #626d67; opacity: 1; }
+html[data-theme="dark"] .stores-search input::placeholder { color: var(--night-muted, #a9b2ad); }

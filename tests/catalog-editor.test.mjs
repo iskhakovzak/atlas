@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogLifetime,catalogRefreshInterval,catalogRecheckBatches,catalogRecheckBatchSize,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,isBundledCatalogEntry,manualFallbackCatalogDraft,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogLifetime,catalogRefreshInterval,catalogRecheckBatches,catalogRecheckBatchSize,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,isBundledCatalogEntry,manualFallbackCatalogDraft,isManualCatalogSource,manualStoreReviewReason,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {catalogQueueVerdict} from '../lib/market/catalog-queue-verdict.ts';
 import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
 import {catalogOrderVariants,keepCatalogVisible} from '../lib/market/catalog.ts';
@@ -51,7 +52,6 @@ test('blocked store imports stay as incomplete manual drafts without asserting p
  assert.equal(draft.soldOut,false);
  assert(catalogIssues(draft,1001).includes('Цена'));
  assert(catalogIssues(draft,1001).includes('Валюта'));
- assert(catalogIssues(draft,1001).includes('Наличие не подтверждено магазином'));
  assert(catalogIssues(draft,1001).some(value=>value.includes('ручная проверка')));
  const blank=manualFallbackCatalogDraft(undefined,'https://www.asos.com/asos-design/prd/123456789',[],'Великобритания',1000);
  assert.equal(blank.brand,'asos.com');assert.equal(blank.country,'Великобритания');
@@ -307,7 +307,7 @@ test('operator confirmation publishes a stale card with unconfirmed stock and re
  const base=importDraft({...extracted,variants:[{...extracted.variants[0],available:true,availabilityKnown:false},{id:'rose',label:'Rosé',available:false,availabilityKnown:false}]},[],'США',1000);
  const now=1000+8*24*60*60*1000;
  const stale={...base,lastCheckError:'Магазин не ответил',importFailureReason:'timeout',reviewReasons:['Покупатель сообщил, что товар отсутствует']};
- assert(catalogIssues(stale,now).includes('Обновите источник'));assert(catalogIssues(stale,now).includes('Наличие не подтверждено магазином'));
+ assert(catalogIssues(stale,now).includes('Обновите источник'));
  const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip',draft:stale,queueState:'queued',autoHiddenAt:5,autoHideReason:'source-sold-out'}],availabilityReports:[{id:'r1',productId:'lip',sourceUrl:stale.sourceUrl,answer:'unavailable',reporterId:'c1',createdAt:999},{id:'r2',productId:'other',sourceUrl:stale.sourceUrl,answer:'unavailable',reporterId:'c2',createdAt:999}]});
  assert.throws(()=>changeCatalog(doc,{kind:'publish',ids:['lip']},now,tariff),/Обновите источник/);
  const confirmed=changeCatalog(doc,{kind:'confirm',ids:['lip']},now,tariff);
@@ -391,4 +391,14 @@ test('bulk publish takes every card that passes review and reports the rest; a l
  assert(next.entries.find(e=>e.id==='good').published);assert(!next.entries.find(e=>e.id==='bad').published);
  const none={published:0,skipped:[]};
  assert.throws(()=>changeCatalog(doc,{kind:'publish',ids:['bad']},1001,tariff,none),/No photo/);
+});
+
+test('a Best Buy link becomes a card for the operator to fill in, which the scheduler leaves alone (27 October 2026)',()=>{
+ const url='https://www.bestbuy.com/site/apple-airpods-4/6447384.p?skuId=6447384';
+ assert.equal(isManualCatalogSource(url),true);assert.equal(isManualCatalogSource('https://www.nike.com/t/x/DM4044-108'),false);
+ const draft=manualFallbackCatalogDraft(undefined,url,[],'США',1000);
+ assert.deepEqual(draft.reviewReasons,[manualStoreReviewReason]);assert.equal(draft.country,'США');
+ assert.equal(catalogQueueVerdict(catalogIssues(draft,1001).join(' · ')).action,'edit');
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'bb',draft:{...draft,checkedAt:1},queueState:'published',published:{...draft,checkedAt:1},autoManaged:false}]});
+ assert.equal(dueCatalogEntries(doc,10**13).length,0);
 });

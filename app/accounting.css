@@ -57,7 +57,7 @@
 .accounting .acc-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
 .accounting .acc-filters-row { grid-template-columns: repeat(3, 160px); }
 .accounting .acc-hint, .accounting .acc-warn, .accounting .acc-field-error { display: block; margin-top: 4px; font-size: 12.5px; line-height: 1.4; }
-.accounting .acc-fixing { box-shadow: inset 3px 0 0 var(--day-accent, #1f4d3b); }
+.accounting .acc-fixing { background: color-mix(in srgb, var(--day-accent, #1f4d3b) 6%, transparent); }
 .accounting .acc-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; font-size: 13px; }
 .accounting .acc-status { margin: 0; }
 .accounting .acc-ok { font-weight: 500; }

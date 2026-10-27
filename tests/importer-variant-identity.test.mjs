@@ -39,12 +39,12 @@ test('renamed labels and neutral legacy single-option labels remain compatible',
   assert.equal(verifyProductSnapshot(neutral,neutral.variants[0],{...fresh,variants:[fresh.variants[0]]}).sourcePrice,19);
 });
 
-test('legacy omitted matrices stay readable but unknown stock blocks verification',()=>{
+test('legacy omitted matrices stay readable and unknown stock is ordered subject to stock',()=>{
   const omitted={...fresh,variants:[]};
   assert.equal(verifyProductSnapshot(product,product.variants[0],omitted).sourcePrice,19);
   assert.doesNotThrow(()=>verifyKnownSnapshotFields(product,product.variants[0],omitted));
   const unknown={...fresh,variants:fresh.variants.map(item=>({...item,available:false,availabilityKnown:false}))};
-  assert.throws(()=>verifyProductSnapshot(product,product.variants[0],unknown),/не подтвердил наличие/);
+  assert.equal(verifyProductSnapshot(product,product.variants[0],unknown).sourcePrice,19);
   assert.doesNotThrow(()=>verifyKnownSnapshotFields(product,product.variants[0],unknown));
 });
 

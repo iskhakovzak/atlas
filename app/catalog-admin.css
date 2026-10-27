@@ -8,3 +8,11 @@
 .catalog-operator-confirmed svg{width:14px;height:14px;flex:none;margin-top:1px}
 .catalog-draft-summary .catalog-operator-confirmed{font-size:11px}
 .catalog-refresh-diagnostics .catalog-operator-confirmed{margin:10px 0 0}
+
+/* One action beside a waiting card (lib/market/catalog-queue-verdict.ts): reread the store, fill a field or delete. */
+.catalog-drafts .catalog-quick-action { justify-self: start; min-height: 36px; margin: 0 0 10px 14px; padding: 0 14px; font-size: 13px; }
+.catalog-store-health { display: grid; gap: 4px; margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; }
+.catalog-store-health li::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 999px; background: #3f9b72; vertical-align: 1px; }
+.catalog-store-health li[data-state="partial"]::before { background: #c8902a; }
+.catalog-store-health li[data-state="fails"]::before { background: #c8503f; }
+.catalog-store-health small { color: var(--day-muted, #5f6b65); }

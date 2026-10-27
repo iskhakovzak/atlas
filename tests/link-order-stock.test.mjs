@@ -22,9 +22,9 @@ test('every option sold out by the store is "sold out", not a step to choose in'
   assert.equal(optionStock([gone('Only option')]), 'sold-out');
 });
 
-test('options without any stock answer are not called sold out', () => {
-  assert.equal(optionStock([gone('S'), { label: 'M', available: true }]), 'unconfirmed');
-  assert.equal(optionStock([{ label: 'S', available: true, availabilityKnown: false }, { label: 'M', available: true, availabilityKnown: false }]), 'unconfirmed');
-  // "available" without a confirmed stock answer is not an option on sale either.
-  assert.notEqual(optionStock([{ label: 'S', available: true }]), 'open');
+test('options without any stock answer can be chosen, subject to stock (27 October 2026)', () => {
+  assert.equal(optionStock([gone('S'), { label: 'M', available: true, availabilityKnown: false }]), 'open');
+  assert.equal(optionStock([{ label: 'S', available: false, availabilityKnown: false }]), 'open');
+  // A legacy option says nothing about stock either way: it follows its own flag.
+  assert.equal(optionStock([{ label: 'S', available: false }]), 'unconfirmed');
 });

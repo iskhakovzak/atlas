@@ -39,7 +39,7 @@
   .hw-rail-glider {
     position: absolute; z-index: 0; left: 30px; right: 0; top: -20px; height: 40px; box-sizing: border-box; pointer-events: none;
     border: 1px solid var(--hwr-card-line); border-radius: 12px; background: var(--hwr-card); box-shadow: var(--hwr-card-shadow);
-    opacity: 0; will-change: transform; transition: transform .55s cubic-bezier(.22, 1.18, .36, 1), opacity .3s;
+    opacity: 0; will-change: transform; transition: transform .55s cubic-bezier(.22, 1, .36, 1), opacity .3s;
   }
   .hw-rail-glider[data-on] { opacity: 1; }
   .hw-rail-head {
@@ -47,7 +47,7 @@
     border: 3px solid var(--hwr-accent); border-radius: 50%; background: var(--hwr-dot-bg); will-change: transform;
     box-shadow: 0 0 0 5px color-mix(in srgb, var(--hwr-accent) 12%, transparent);
   }
-  .hw-rail-num, .hw-rail-label { transition: color .3s, opacity .3s, transform .45s cubic-bezier(.22, 1.18, .36, 1); }
+  .hw-rail-num, .hw-rail-label { transition: color .3s, opacity .3s, transform .45s cubic-bezier(.22, 1, .36, 1); }
   .hw-rail-item[aria-current] .hw-rail-num { color: var(--hwr-accent); opacity: 1; font-weight: 700; transform: scale(1.08); }
   .hw-rail-item[aria-current] .hw-rail-label { font-weight: 650; }
   .hw-rail-item[aria-current] .hw-rail-dot { border-color: var(--hwr-fill); background: var(--hwr-fill); }

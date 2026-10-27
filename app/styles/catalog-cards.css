@@ -721,3 +721,10 @@ html[data-theme="dark"] .site-main .find-card .find-purchase { margin-top: auto;
 }
 /* «Открыть источник» in the sheet was a 21 px tall text link: a full 44 px tap row on touch screens. */
 @media (pointer: coarse) { .product-sheet a.text-link { display: inline-flex; align-items: center; min-height: 44px; } }
+
+/* A neutral card note ("We'll check before ordering", "Store delivery free") is a status, not a control: plain muted
+   text like the delivery days above it, with no box, so it no longer reads as a second (or disabled) button next to
+   "Order" on phones. Mint and amber notes keep their tint: they carry a good or a warning (27 October 2026). */
+.site-main .find-card .find-chip:not([data-tone="mint"]):not([data-tone="amber"]) { height: auto; min-height: 0; padding: 0; border-color: transparent; border-radius: 0; background: transparent; }
+html:not([data-theme="dark"]) .site-main .find-card .find-chip:not([data-tone="mint"]):not([data-tone="amber"]) { border-color: transparent; }
+html[data-theme="dark"] .site-main .find-card .find-chip:not([data-tone="mint"]):not([data-tone="amber"]) { border-color: transparent; }

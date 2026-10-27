@@ -134,13 +134,26 @@ export type CatalogItem = Omit<ReturnType<typeof dealQuote>, 'product'> & {
   rank?: number;
   /** When the store last confirmed the snapshot (`sourceCheckedAt`), else the day it was observed. */
   checkedAt: number;
+  /** "Top price": among the best fifth of the list by store discount (and at least 40 %). Set only when true. */
+  topDeal?: true;
 };
+
+/** The badge marks the best deals, not every discount: when the whole catalogue is 40 %+ off, a badge on every card
+ *  says nothing (impeccable/taste review, 27 October 2026). The best fifth by discount, never under 40 %. */
+export const topDealMinPercent = 40;
+export const topDealShare = 0.2;
+export function topDealThreshold(discounts: number[]): number {
+  const ranked = discounts.filter((value) => value >= topDealMinPercent).sort((a, b) => b - a);
+  if (!ranked.length) return Infinity;
+  const count = Math.max(1, Math.round(discounts.length * topDealShare));
+  return ranked[Math.min(count, ranked.length) - 1];
+}
 /**
  * Catalog items priced for the storefront. `records` are the records whose `referenceUsd` gives the
  * store discount: by default the products themselves, so an imported snapshot's discount shows too.
  */
 export function catalogItems(products: MerchantFind[], pricing: Pricing, records: MerchantFind[] = products): CatalogItem[] {
-  return products.map((product) => {
+  const items: CatalogItem[] = products.map((product) => {
     const deal = dealQuote(product, pricing, records);
     const usd = deal.costs ? deal.costs.merchandise / pricing.fx : undefined;
     const addedAt = product.addedAt ?? (Date.parse(product.observedOn ?? '') || 0);
@@ -148,6 +161,8 @@ export function catalogItems(products: MerchantFind[], pricing: Pricing, records
     // `rank` is spread in only when set, so items without a position compare deep-equal to the plain shape.
     return { ...deal, product, usd, store: storeHost(product), sizes: productSizes(product), fresh: !product.priceNeedsConfirmation, addedAt, checkedAt, ...(product.rank !== undefined ? { rank: product.rank } : {}) };
   });
+  const threshold = topDealThreshold(items.map((item) => item.discount));
+  return items.map((item) => item.discount >= threshold ? { ...item, topDeal: true as const } : item);
 }
 
 export type CatalogContext = {

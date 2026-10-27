@@ -281,14 +281,14 @@
     position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 12px;
     min-height: 56px; padding: 8px 12px 8px 8px; box-sizing: border-box; border: 1px solid var(--hwc-cs-line); border-radius: 12px;
     background: var(--hwc-cs-tile); color: var(--hwc-cs-ink); text-decoration: none;
-    transition: border-color .2s, background-color .2s, transform .25s cubic-bezier(.22, 1.2, .36, 1), box-shadow .25s;
+    transition: border-color .2s, background-color .2s, transform .25s cubic-bezier(.22, 1, .36, 1), box-shadow .25s;
   }
   html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-tile .store-logo { border-radius: 10px; }
   html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-text { display: grid; gap: 2px; min-width: 0; }
   html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-name { overflow: hidden; font-size: 15px; font-weight: 650; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; }
   html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-meta { display: flex; align-items: center; gap: 6px; overflow: hidden; color: var(--hwc-muted); font-size: 12.5px; font-weight: 500; line-height: 1.2; white-space: nowrap; }
   html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-flag { flex: none; width: 16px; height: 11px; border-radius: 2px; }
-  html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-go { color: var(--hwc-muted); opacity: 0; transform: translate(-4px, 4px); transition: opacity .2s, transform .25s cubic-bezier(.22, 1.2, .36, 1), color .2s; }
+  html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-go { color: var(--hwc-muted); opacity: 0; transform: translate(-4px, 4px); transition: opacity .2s, transform .25s cubic-bezier(.22, 1, .36, 1), color .2s; }
   html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-tile:is(:hover, :focus-visible) .hw-cs-go { opacity: 1; transform: none; color: var(--hwc-cs-accent); }
   html[data-view="catalog"]:is(html) body .catalog-home :is(.hw-cs-tile, .hw-cs-all):focus-visible { outline: 2px solid var(--hwc-cs-accent); outline-offset: 2px; }
   /* All stores: a stack of more logos, the count and an arrow that leans forward on hover */

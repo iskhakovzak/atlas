@@ -1,9 +1,12 @@
+import {storeCountryLabelForUrl} from '@/lib/market/store-brands';
+import {desktopStoreUrl,expandShortLink} from '@/lib/importer/short-links';
+import {mergeStoreHealth,storeHealthKey,type StoreHealth,type StoreReadOutcome} from '@/lib/market/store-health';
 import {withoutAuthor} from '@/lib/market/pricing-equal';
 import {z} from 'zod';
 import {database,identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing,rateLimit} from '@/lib/market/server';
 import {catalogSaleRunner,validatedSaleSource} from '@/lib/market/catalog-sale-server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
-import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
+import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,isManualCatalogSource,recheckedDraft,changeCatalog,publicCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
 import type {CatalogDraft} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError,describeImportDiagnostic} from '@/lib/importer/fetch';
 import type {Extracted} from '@/lib/importer/extract';
@@ -16,8 +19,6 @@ const ids=z.array(z.string().min(1).max(100)).min(1).max(100);
 const catalogImportBatchMax=25;
 /** How many stores one batch reads concurrently (each read is bounded to 15 s). */
 const catalogImportConcurrency=8;
-/** Operator link reads per minute: one full batch plus retries and one collection discovery. */
-const catalogImportRateLimitPerMinute=60;
 function importFailureText(error:unknown){
   const message=error instanceof Error?error.message.trim():'';
   return (message&&/[А-Яа-яЁё]/.test(message)?message:'Не удалось загрузить страницу товара. Проверьте ссылку и повторите позже.').slice(0,500);
@@ -25,7 +26,7 @@ function importFailureText(error:unknown){
 function invalidLinkText(error:unknown){
   return error instanceof Error&&error.message.startsWith('Используйте')?error.message:'Это не ссылка на страницу товара. Нужна HTTPS-ссылка поддерживаемого магазина.';
 }
-type ImportOutcome={url:string;status:'saved'|'failed';id?:string;published?:boolean;note?:string;reason?:string;importFailureReason?:CatalogDraft['importFailureReason']};
+type ImportOutcome={url:string;status:'saved'|'failed';manual?:boolean;id?:string;published?:boolean;note?:string;reason?:string;importFailureReason?:CatalogDraft['importFailureReason']};
 /** Read one store page; never throws for recoverable merchant failures — those become a reviewable draft. */
 async function readForImport(sourceUrl:string,collectionIds:string[],country:string){
   let data:Extracted|undefined,sourceUnavailable=false,failureMessage='',failureReason:CatalogDraft['importFailureReason']='unknown';
@@ -42,10 +43,33 @@ async function readForImport(sourceUrl:string,collectionIds:string[],country:str
     data=error instanceof ManualEntryFallbackError?error.partial:undefined;
   }
   const now=Date.now();
+  // Where it ships from: the store's own page first (importDraft), then the operator's choice, then the store list.
+  const shipsFrom=country||storeCountryLabelForUrl(sourceUrl);
   const draft=sourceUnavailable
-    ?manualFallbackCatalogDraft(data,sourceUrl,collectionIds,country,now,failureMessage,failureReason)
-    :importDraft(data!,collectionIds,country,now);
-  return {draft,sourceUnavailable,failureMessage,failureReason};
+    ?manualFallbackCatalogDraft(data,sourceUrl,collectionIds,shipsFrom,now,failureMessage,failureReason)
+    :importDraft(data!,collectionIds,shipsFrom,now);
+  // Best Buy and the other stores Atlas does not read become a card for the operator to fill in, not a failure.
+  const manual=sourceUnavailable&&isManualCatalogSource(sourceUrl);
+  return {draft,sourceUnavailable,failureMessage,failureReason,manual};
+}
+/** A manual card is the operator's to fill in and publish: the scheduler and automatic publication leave it alone. */
+function handOverManual(document:{entries:{id:string;autoManaged?:boolean}[]},id:string){
+  const entry=document.entries.find(item=>item.id===id);if(entry)entry.autoManaged=false;
+}
+const manualNote='Ручной ввод: откройте карточку и заполните её со страницы магазина.';
+/** A phone's share link (m.zara.com) or a store short link (a.co, amzn.to, ebay.us) reads as the store page, as for customers. */
+async function storePageUrl(value:string){
+  try{return desktopStoreUrl(await expandShortLink(new URL(value.trim()))).href}catch{return value}
+}
+async function readStoreHealth():Promise<StoreHealth>{
+  try{const row=await database().prepare('SELECT value FROM market_settings WHERE key=?').bind(storeHealthKey).first<{value:string}>();return row?JSON.parse(row.value) as StoreHealth:{}}catch{return {}}
+}
+/** One write per batch; a failed write never fails the import (the map is advice for the operator). */
+async function recordStoreHealth(outcomes:StoreReadOutcome[],userId:string){
+  if(!outcomes.length)return;
+  try{const now=Date.now(),next=mergeStoreHealth(await readStoreHealth(),outcomes,now);
+    await database().prepare('INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES (?,?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by').bind(storeHealthKey,JSON.stringify(next),now,userId).run();
+  }catch(error){console.error('Store health write failed',error)}
 }
 async function mapConcurrent<T,R>(items:T[],limit:number,task:(item:T,index:number)=>Promise<R>){
   const results:R[]=new Array(items.length);let next=0;
@@ -78,7 +102,7 @@ export async function GET(request:Request){try{
   let saleJob;
   if(admin){const user=await identity();await requirePermission(user,'catalog.manage');saleJob=await catalogSaleRunner(user).read(user.userId);}
   const [{document},currentPricing]=await Promise.all([readCatalog(),pricing()]);
-  return json(admin?{document,saleJob,catalogFormat:'chunks-v2'}:{...publicCatalog(document,currentPricing),pricing:withoutAuthor(currentPricing)});
+  return json(admin?{document,saleJob,catalogFormat:'chunks-v2',storeHealth:await readStoreHealth()}:{...publicCatalog(document,currentPricing),pricing:withoutAuthor(currentPricing)});
 }catch(error){return failure(error,request)}}
 export async function POST(request:Request){try{
   sameOrigin(request);const user=await identity();await requirePermission(user,'catalog.manage');
@@ -114,20 +138,21 @@ export async function POST(request:Request){try{
     document.revision++;await persistCatalog(document,raw,user,'catalog.recheck',{ids:command.ids});return json({document,recheckResults:results});
   }
   if(command.kind==='import'||command.kind==='discover'||command.kind==='import-batch'){
-    const now=Date.now(),db=database();
-    const key=user.userId+':catalog-import:'+Math.floor(now/60000),reads=command.kind==='import-batch'?command.urls.length:1;
-    // One round trip: the count and the clean-up of expired keys (it never touches the key just written).
-    const [counted]=await db.batch<{count:number}>([db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET count=count+? RETURNING count').bind(key,reads,now+120000,reads),db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now)]);
-    const limit=counted?.results?.[0];
-    if(!limit||limit.count>catalogImportRateLimitPerMinute)throw new HttpError(429, 'err_32');
+    // No per-minute cap on the operator (owner, 27 October 2026: a large batch should run through in one go). The stores
+    // are protected by the reads themselves: at most two at a time per store and eight in all (mapMerchantConcurrent).
     if(command.kind==='import-batch'){
       if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
       const urls=[...new Set(command.urls.map(value=>value.trim()).filter(Boolean))];
       // Every store is read at the same time; the catalog is written once, so the operator sees one revision and one result list.
       const reads=await mapMerchantConcurrent(urls,async(url):Promise<ImportOutcome|{url:string;sourceUrl:string;read:Awaited<ReturnType<typeof readForImport>>}>=>{
         let sourceUrl:string;
-        try{sourceUrl=canonicalCatalogUrl(url)}catch(error){return {url,status:'failed',reason:invalidLinkText(error)}}
-        try{return {url,sourceUrl,read:await readForImport(sourceUrl,command.collectionIds,command.country)}}
+        try{sourceUrl=canonicalCatalogUrl(await storePageUrl(url))}catch(error){return {url,status:'failed',reason:invalidLinkText(error)}}
+        try{
+          const read=await readForImport(sourceUrl,command.collectionIds,command.country);
+          // A store that answered nothing usable leaves no empty card: the link stays in the field with the reason.
+          if(read.sourceUnavailable&&!read.draft.name&&!read.manual)return {url,status:'failed',reason:read.failureMessage||'Магазин не отдал данные товара.',importFailureReason:read.failureReason};
+          return {url,sourceUrl,read};
+        }
         catch(error){return {url,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error)}}
       });
       const currentPricing=await pricing();
@@ -136,22 +161,29 @@ export async function POST(request:Request){try{
         if('status' in item){results.push(item);continue}
         try{
           const outcome=applyAutomaticCatalogImport(document,item.read.draft,Date.now(),currentPricing.rates);saved++;
+          if(item.read.manual){handOverManual(document,outcome.id);results.push({url:item.url,status:'saved',id:outcome.id,published:false,note:manualNote,manual:true});continue}
           results.push({url:item.url,status:'saved',...outcome,...(item.read.sourceUnavailable?{importFailureReason:item.read.failureReason}:{})});
         }catch(error){results.push({url:item.url,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error)})}
       }
       if(saved){document.revision++;await persistCatalog(document,raw,user,'catalog.import-batch',{count:saved,failed:results.length-saved});}
+      // Dead or malformed links say nothing about the store; only reads count (lib/market/store-health.ts).
+      await recordStoreHealth(results.filter(item=>!item.manual).flatMap((item):StoreReadOutcome[]=>item.status==='failed'
+        ?(item.importFailureReason?[{url:item.url,result:'failed',reason:item.reason}]:[])
+        :[{url:item.url,result:item.importFailureReason||(!item.published&&item.note)?'partial':'ok',reason:item.importFailureReason??item.note}]),user.userId);
       return json({document,results});
     }
     // A link outside the store list or a malformed line is the operator's input error, not a service failure.
     let sourceUrl:string;
-    try{sourceUrl=canonicalCatalogUrl(command.url)}catch(error){throw new HttpError(400,invalidLinkText(error))}
+    try{sourceUrl=canonicalCatalogUrl(await storePageUrl(command.url))}catch(error){throw new HttpError(400,invalidLinkText(error))}
     if(command.kind==='discover'){
       try{return json({urls:await fetchCollectionLinks(sourceUrl,merchantRequest)})}
       catch(error){throw new HttpError(422,importFailureText(error))}
     }
     if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
     const read=await readForImport(sourceUrl,command.collectionIds,command.country);
+    if(read.sourceUnavailable&&!read.draft.name&&!read.manual)throw new HttpError(422,read.failureMessage||'Магазин не отдал данные товара.');
     const outcome=applyAutomaticCatalogImport(document,read.draft,Date.now(),(await pricing()).rates),importedId=outcome.id;
+    if(read.manual){handOverManual(document,importedId);document.revision++;await persistCatalog(document,raw,user,'catalog.import');return json({document,importedId,published:false,importNote:manualNote,manual:true})}
     document.revision++;
     await persistCatalog(document,raw,user,'catalog.import');
     return json({document,importedId,published:outcome.published,importNote:outcome.note,...(read.sourceUnavailable?{importNote:read.failureMessage.slice(0,500),importFailureReason:read.failureReason}:{})});

@@ -177,3 +177,18 @@ export const storeRegionOrder: StoreRegion[] = ['us', 'eu', 'asia', 'other'];
 export function brandRegions(brand: StoreBrand) {
   return new Set(brand.storefronts.map((storefront) => regions[storefront.country]));
 }
+
+/**
+ * The shipping country Atlas's store list gives a link's storefront, as the Russian label drafts store ("США"), or ''
+ * for a host outside the list. The catalog import falls back to it when the store's page does not say where it ships
+ * from: a fully read Tarte card otherwise waited in the queue for a country no recheck would ever add (27 October 2026).
+ */
+export function storeCountryLabelForUrl(url: string): string {
+  let host: string;
+  try { host = new URL(url).hostname.toLowerCase().replace(/^www\./, ''); } catch { return ''; }
+  let best: { root: string; country: StoreCountry } | undefined;
+  for (const brand of storeBrands) for (const front of brand.storefronts) {
+    if ((host === front.root || host.endsWith('.' + front.root)) && (!best || front.root.length > best.root.length)) best = front;
+  }
+  return best ? storeCountryNames[best.country].ru : '';
+}

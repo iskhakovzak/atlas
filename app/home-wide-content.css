@@ -18,7 +18,7 @@
   /* Store tiles (owner, 7.10.2026: the chips looked "too simple"): logo plate, name, country and kind, a quiet arrow */
   html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-tile:hover { border-color: var(--hwc-cs-line-hover); transform: translateY(-2px); box-shadow: var(--hwc-cs-shadow); }
   /* All stores: a stack of more logos, the count and an arrow that leans forward on hover */
-  html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-all svg { transition: transform .25s cubic-bezier(.22, 1.2, .36, 1); }
+  html[data-view="catalog"]:is(html) body .catalog-home .hw-cs-all svg { transition: transform .25s cubic-bezier(.22, 1, .36, 1); }
 }
 
 /* The FAQ chat (wide screens): each question shows for a sixth of the cycle; the typing dots bounce in turn. */

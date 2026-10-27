@@ -219,10 +219,10 @@ html body .home-faq details[open] summary::after { content: "+"; transform: rota
 
 /* Theme switch icon (app/theme-control.tsx): a ring with its right half filled; in the dark theme the half has turned
    to the left. Transform only, and only after a click. */
-.theme-toggle .tt-icon { display: block; transition: transform .3s cubic-bezier(.3, 1.3, .5, 1); }
+.theme-toggle .tt-icon { display: block; transition: transform .3s cubic-bezier(.22, 1, .36, 1); }
 .theme-toggle .tt-half { transform-box: view-box; transform-origin: 12px 12px; }
 .theme-toggle[aria-pressed="true"] .tt-half { transform: rotate(180deg); }
-.theme-toggle[data-moved] .tt-half { transition: transform .55s cubic-bezier(.5, 0, .2, 1.2); }
+.theme-toggle[data-moved] .tt-half { transition: transform .55s cubic-bezier(.5, 0, .2, 1); }
 .theme-toggle:hover .tt-icon { transform: rotate(-15deg); }
 /* The page cross-fades between the themes (a view transition, composited) */
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .32s; animation-timing-function: ease-out; }

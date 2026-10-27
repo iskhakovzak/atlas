@@ -56,10 +56,27 @@ test('admin auto import publishes exact available prices and preserves options t
  assert.ok(reads.all>0,'manifest chunks are read with bounded multi-row SELECTs');assert.equal(reads.chunkFirst,0,'no D1 subrequest for every individual chunk');assert.ok(reads.maxChunkBinds<=80);
  sqlite.close();delete globalThis.__adminAutoTestDb;
 });
-test('admin automatic unknown or partial imports wait for retry and cannot be manually confirmed',()=>{
- for(const extra of [{variantsComplete:false},{variants:[{...source().variants[0],availabilityKnown:false}]},{variants:[{...source().variants[0],image:undefined,images:[]}]},{variants:[{...source().variants[0],price:undefined}]}]){
+test('an option the store lists without a stock answer is sold subject to stock (27 October 2026)',()=>{
+ const doc=document(),outcome=applyAutomaticCatalogImport(doc,draft({variants:[{...source().variants[0],availabilityKnown:false}]}),now);
+ assert.equal(outcome.published,true);assert.match(outcome.note,/уточним перед выкупом/);assert.equal(dueCatalogEntries(doc,now+3600001).length,1);
+ // An explicit "sold out" still closes the option.
+ const gone=document();assert.equal(applyAutomaticCatalogImport(gone,draft({variants:[{...source().variants[0],available:false,availabilityKnown:true}]}),now).published,false);
+});
+test('admin automatic imports without a confirmed price wait for retry and cannot be manually confirmed',()=>{
+ for(const extra of [{variants:[{...source().variants[0],price:undefined}]}]){
  const doc=document(),outcome=applyAutomaticCatalogImport(doc,draft(extra),now);assert.equal(outcome.published,false);assert.ok(outcome.note);assert.equal(dueCatalogEntries(doc,now+3600001).length,1);assert.throws(()=>changeCatalog(doc,{kind:'confirm',ids:[outcome.id]},now+1));
  }
+});
+test('a new card whose options the store has not fully confirmed is published with a note and rechecked soon (27 October 2026)',()=>{
+ for(const extra of [{variantsComplete:false},{variants:[{...source().variants[0],image:undefined,images:[]}]}]){
+  const doc=document(),outcome=applyAutomaticCatalogImport(doc,draft(extra),now);
+  assert.equal(outcome.published,true);assert.match(outcome.note,/уточняем у магазина/);assert.equal(dueCatalogEntries(doc,now+3600001).length,1);
+ }
+ // One option the store confirms is the whole product; an explicit "incomplete" from the store is still respected.
+ const single=document();assert.equal(applyAutomaticCatalogImport(single,draft({variants:[source().variants[0]],variantsComplete:undefined}),now).note,undefined);
+ const told=document();assert.match(applyAutomaticCatalogImport(told,draft({variants:[source().variants[0]],variantsComplete:false}),now).note,/уточняем/);
+ // A crossed-out price needs the whole group.
+ const sale=document();assert.equal(applyAutomaticCatalogImport(sale,draft({variantsComplete:false,price:25,referencePrice:50}),now).published,false);
 });
 test('admin automatic import excludes unavailable options and deduplicates exact group without erasing collections',()=>{
  const doc=document();doc.collections=[{id:'c',name:'Collection',nameEn:'',nameUz:'',description:'',visible:true,position:0}];
@@ -74,7 +91,9 @@ test('admin retry publishes recovered queued import while manual hide stays hidd
 });
 test('automatic evidence cannot be replaced by editor supplied stock and price',()=>{
  const doc=document(),result=applyAutomaticCatalogImport(doc,draft({variantsComplete:false}),now);const edited=changeCatalog(doc,{kind:'edit',id:result.id,draft:{...doc.entries[0].draft,variantsComplete:true,price:1,lastCheckError:undefined,description:'Allowed description'}},now+1);
- assert.equal(edited.entries[0].draft.variantsComplete,false);assert.equal(edited.entries[0].draft.description,'Allowed description');assert.throws(()=>changeCatalog(edited,{kind:'publish',ids:[result.id]},now+2));assert.doesNotThrow(()=>catalogDocumentSchema.parse(JSON.parse(JSON.stringify(edited))));
+ assert.equal(edited.entries[0].draft.variantsComplete,false);assert.equal(edited.entries[0].draft.price,25);assert.equal(edited.entries[0].draft.description,'Allowed description');
+ // Publishing again publishes the store's evidence, never the editor's price.
+ assert.equal(changeCatalog(edited,{kind:'publish',ids:[result.id]},now+2).entries[0].published.price,25);assert.doesNotThrow(()=>catalogDocumentSchema.parse(JSON.parse(JSON.stringify(edited))));
 });
 test('automatic reimport never replaces a published snapshot with a partial response and hides confirmed soldout',()=>{
  const doc=document();applyAutomaticCatalogImport(doc,draft(),now);const previous=structuredClone(doc.entries[0].published);

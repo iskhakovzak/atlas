@@ -181,8 +181,19 @@
 
 /* sonner's live region sits before the header; until the toast library has injected its own styles it took a few
    pixels of the page flow and every page moved up when they arrived (mobile CLS, 26 October 2026). */
-body > section[aria-live][tabindex="-1"] { position: fixed; top: 0; left: 0; width: 0; height: 0; margin: 0; padding: 0; overflow: visible; }
+/* A fixed box is a stacking context of its own: without a z-index it sat at level 0, and every positioned element later
+   in the page (the account heading and avatar) painted over the toasts inside it (owner's iPhone, 27 October 2026). */
+body > section[aria-live][tabindex="-1"] { position: fixed; z-index: 999999999; top: 0; left: 0; width: 0; height: 0; margin: 0; padding: 0; overflow: visible; }
 /* While a page shows its loading placeholder the footer (inside <main>) is laid out but not shown: when the content
    arrives and moves it, nothing visible jumps, and it simply appears where it belongs (mobile CLS 0.13–0.93 on the cart,
    orders and notifications, 26 October 2026). */
 .site-main:has(.access-loading, .atlas-skeleton, .catalog-skeleton) > .home-footer { visibility: hidden; }
+
+/* Prices and totals keep every digit the same width, so a total that changes (the cart's glide, a quantity step)
+   does not shuffle its neighbours, and columns of sums line up (27 October 2026). Zero specificity: any rule that
+   sets the figures itself still wins. */
+:where(.money, [class*="price"], [class*="total"], [class*="-sum"]) { font-variant-numeric: tabular-nums; }
+
+/* Paragraphs and list items avoid a lone last word ("заказе." on a line of its own); the browser balances the last
+   lines, the text and its measure are unchanged (impeccable detector, 27 October 2026). */
+.site-main :is(p, li) { text-wrap: pretty; }
