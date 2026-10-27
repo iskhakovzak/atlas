@@ -1010,7 +1010,7 @@ button.atlas-check:disabled { opacity: 1; cursor: not-allowed; }
   color: var(--home-accent-ink); transition: background-color .3s ease, border-color .3s ease;
 }
 .lo-check-steps li[data-state="done"] { color: var(--home-ink); }
-.lo-check-steps li[data-state="done"] .lo-check-mark { border-color: var(--home-accent); background: var(--home-accent); animation: lo-check-pop .4s cubic-bezier(.2, .9, .3, 1.4); }
+.lo-check-steps li[data-state="done"] .lo-check-mark { border-color: var(--home-accent); background: var(--home-accent); animation: lo-check-pop .4s cubic-bezier(.22, 1, .36, 1); }
 .lo-check-steps li[data-state="current"] { color: var(--home-ink); font-weight: 600; }
 .lo-check-steps li[data-state="current"] .lo-check-mark { border-color: var(--home-accent); border-top-color: transparent; animation: spin .9s linear infinite; }
 .lo-check-steps li[data-state="next"] { opacity: .75; }

@@ -60,7 +60,7 @@ html[data-theme="dark"] :is(.lang-trigger, .lang-menu-list button):focus-visible
 .site-header .notice-link svg { transform-origin: 50% 8%; }
 .site-header .notice-link.has-unread svg { animation: notice-bell-swing 1s cubic-bezier(.36, .07, .19, .97) .5s 1 both; }
 .site-header .notice-link > b { top: -5px; right: -6px; min-width: 20px; height: 20px; padding: 0 6px; border: 2px solid var(--day-surface, #fff); border-radius: 99px; background: linear-gradient(180deg, #d4623f 0%, #b9452c 100%); color: #fff; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0; box-shadow: 0 3px 8px -3px rgba(185, 69, 44, .7); }
-.site-header .notice-link b { animation: notice-badge-pop .42s cubic-bezier(.34, 1.56, .64, 1) both; }
+.site-header .notice-link b { animation: notice-badge-pop .42s cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes notice-bell-swing { 0%, 100% { transform: none; } 15% { transform: rotate(14deg); } 30% { transform: rotate(-11deg); } 45% { transform: rotate(7deg); } 60% { transform: rotate(-4deg); } 75% { transform: rotate(2deg); } }
 html[data-theme="dark"] .site-header .notice-link { color: var(--night-ink-2, #d5d9d4); }
 html[data-theme="dark"] .site-header .notice-link:hover { background: rgba(255, 255, 255, .06); color: var(--night-ink, #f1eee5); }

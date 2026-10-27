@@ -16,6 +16,18 @@ const MAIN_ACTION = '.btn.primary, .cart-link';
  *   never looks ignored. Site links (components/site-link.tsx) start it themselves and change the page in place;
  *   here it starts for the remaining full loads (plain <a>), and stops when the address changes.
  */
+let arrivalTimer = 0;
+/** Restarts the page-arrival fade: the attribute is set in the next frame, so a second change restarts it. */
+function markArrival() {
+  const root = document.documentElement;
+  root.removeAttribute('data-arrived');
+  window.clearTimeout(arrivalTimer);
+  requestAnimationFrame(() => {
+    root.setAttribute('data-arrived', '');
+    arrivalTimer = window.setTimeout(() => root.removeAttribute('data-arrived'), 400);
+  });
+}
+
 export function PressFeedback() {
   const pathname = usePathname();
   // A move to another page starts at its top; back/forward returns to the place the page was left. The router skipped
@@ -28,6 +40,8 @@ export function PressFeedback() {
     stopNavigationFeedback();
     if (firstPage.current) { firstPage.current = false; return; }
     const saved = (history.state as { __vinext_scrollY?: unknown } | null)?.__vinext_scrollY;
+    // A new page (not back/forward) fades in once it is on screen, instead of a hard cut (motion.css, 27 October 2026).
+    if (typeof saved !== 'number') markArrival();
     if (typeof saved === 'number') {
       if (saved <= 0) return;
       // The page may still be loading its list: try again while it grows, give up after a second or on the first touch.

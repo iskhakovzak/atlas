@@ -1,7 +1,7 @@
 /* Site-wide motion: page changes, dialogs, checkout steps, the placed-order screen and loading placeholders.
-   Every link is a full page load (components/site-link is a plain <a>), so page changes use cross-document view
-   transitions: the header and the phone bar stay put while the page under them fades and settles. Browsers without
-   them (Firefox for now) simply load the page as before. Reduced motion turns all of it off. */
+   Site links change the page in place (components/site-link.tsx: the header and the phone bar stay, the new page fades
+   in, see the end of this file); the remaining full page loads use cross-document view transitions, where the header
+   and the phone bar stay put while the page under them fades and settles. Reduced motion turns all of it off. */
 
 /* ---------- Page changes ---------- */
 @view-transition { navigation: auto; types: atlas-page; }
@@ -137,7 +137,7 @@ html[data-theme="dark"] :is([data-slot="dialog-overlay"], [data-slot="alert-dial
 /* ---------- Checkout steps ---------- */
 /* Recipient → review: the new step's blocks mount and settle in; the step rail fills towards the current step. */
 .atlas-modal .basket-checkout > * { animation: atlas-rise-in .36s cubic-bezier(.22, 1, .36, 1) both; }
-.basket-steps li[data-state="current"] > span { animation: atlas-step-pop .4s cubic-bezier(.34, 1.56, .64, 1) both; }
+.basket-steps li[data-state="current"] > span { animation: atlas-step-pop .4s cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes atlas-step-pop { from { transform: scale(.7); } }
 
 /* ---------- Order placed ---------- */
@@ -182,7 +182,7 @@ html[data-theme="dark"] .account-skeleton :is(i, b) { background-image: linear-g
 
 /* Signed in: the check draws, the line fills while the page goes back. */
 .login-done { align-items: center; justify-content: center; min-height: 300px; text-align: center; animation: atlas-placed-in .45s cubic-bezier(.22, 1, .36, 1) both; }
-.login-done-mark { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: #e6f1ea; color: #1f4d3b; animation: atlas-step-pop .5s cubic-bezier(.34, 1.56, .64, 1) both; }
+.login-done-mark { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: #e6f1ea; color: #1f4d3b; animation: atlas-step-pop .5s cubic-bezier(.22, 1, .36, 1) both; }
 
 /* Back to the app (app/auth-return-view.tsx): the brand arrow inside a turning arc. */
 .atlas-loader::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 25%, currentColor 100%); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); animation: access-spin 1s linear infinite; }
@@ -226,3 +226,11 @@ html:is([data-view="catalog"], [data-view="cart"], [data-view="link"]) #main.vie
 @media (prefers-reduced-motion: reduce) {
   #main.view-entered, #main.view-entered > * { animation: none; }
 }
+
+/* In-place page change (components/site-link.tsx): the new page fades in once it is on screen instead of cutting in.
+   Opacity only: a transform on main would make it the containing block of the fixed bars inside it (the cart total, the
+   link order's bar) and move them for the duration. Not on back/forward (app/press-feedback.tsx). */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-arrived] .site-main { animation: atlas-page-arrive 220ms cubic-bezier(.22, 1, .36, 1) both; }
+}
+@keyframes atlas-page-arrive { from { opacity: .35; } }

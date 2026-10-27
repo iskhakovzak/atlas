@@ -193,3 +193,7 @@ body > section[aria-live][tabindex="-1"] { position: fixed; z-index: 999999999; 
    does not shuffle its neighbours, and columns of sums line up (27 October 2026). Zero specificity: any rule that
    sets the figures itself still wins. */
 :where(.money, [class*="price"], [class*="total"], [class*="-sum"]) { font-variant-numeric: tabular-nums; }
+
+/* Paragraphs and list items avoid a lone last word ("заказе." on a line of its own); the browser balances the last
+   lines, the text and its measure are unchanged (impeccable detector, 27 October 2026). */
+.site-main :is(p, li) { text-wrap: pretty; }

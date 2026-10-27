@@ -344,12 +344,7 @@ html[data-theme="dark"] :is(.find-photo, .basket-photo, .order-x-photo, .product
 html[data-theme="dark"] .no-photo { background: var(--night-raised); color: var(--night-faint); }
 
 /* ---------- Home ---------- */
-html[data-theme="dark"] .home-hero h1 {
-  background: linear-gradient(180deg, #fbf8f0 0%, #ddd5c1 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
+html[data-theme="dark"] .home-hero h1 { color: #f4efe3; }
 html[data-theme="dark"] .home-quote { background: var(--night-sheen), var(--night-raised); border-color: var(--night-line-strong); }
 html[data-theme="dark"] .home-quote-total strong { color: var(--night-ivory); }
 html[data-theme="dark"] .home-tip-panel { border-color: var(--night-line-strong); background: var(--night-raised); box-shadow: var(--night-shadow-pop); color: var(--night-ink-2); }
