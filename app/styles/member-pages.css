@@ -434,8 +434,8 @@ html[data-theme="dark"] .basket-checkout .checkout-next{background:var(--night-r
   .review-layout{padding-bottom:20px}
 }
 /* While the order is placed the button stays readable: locked (disabled, aria-busy) in its own colours, with the spinner. */
-:root body .btn.primary.checkout-place[aria-busy="true"]:disabled{opacity:1;cursor:progress;border-color:#1a4233;color:#fff;background:linear-gradient(180deg,#2b5e49 0%,var(--day-accent,#1f4d3b) 55%,#1a4233 100%)}
-html[data-theme="dark"] body .btn.primary.checkout-place[aria-busy="true"]:disabled{opacity:1;cursor:progress;border-color:transparent;color:var(--night-on-ivory);background:linear-gradient(180deg,var(--night-ivory-hi) 0%,var(--night-ivory) 52%,var(--night-ivory-lo) 100%)}
+:root body .btn.primary.checkout-place[aria-busy="true"]:disabled{opacity:1;cursor:progress;border-color:var(--day-accent,#1f4d3b);color:#fff;background:var(--day-accent,#1f4d3b)}
+html[data-theme="dark"] body .btn.primary.checkout-place[aria-busy="true"]:disabled{opacity:1;cursor:progress;border-color:transparent;color:var(--night-on-ivory);background:var(--night-ivory)}
 /* "К оплате" over the held amount: 12 px needs the full muted ink (#7e8d70 was 3.3:1 on the light dialog). */
 html:not([data-theme="dark"]) .payment-preview span{color:var(--day-muted,#58635c)}
 /* "Place order · 1 754 677 сум": the amount wraps under the action as a whole when the button is narrow. */
@@ -1689,7 +1689,7 @@ html[data-theme="dark"] .wallet-card .order-x-eyebrow { color: var(--night-champ
 html[data-theme="dark"] .wallet-amount { color: var(--night-ivory-hi); }
 html[data-theme="dark"] .wallet-card .wallet-note { color: rgba(241, 238, 229, 0.72); opacity: 1; }
 html[data-theme="dark"] .wallet-card .wallet-actions .btn.secondary { border-color: rgba(235, 228, 210, 0.35); background: rgba(255, 255, 255, 0.04); color: var(--night-ink); }
-html[data-theme="dark"] .wallet-card .wallet-actions .btn.primary { background: linear-gradient(180deg, var(--night-ivory-hi), var(--night-ivory) 52%, var(--night-ivory-lo)); color: var(--night-on-ivory); }
+html[data-theme="dark"] .wallet-card .wallet-actions .btn.primary { background: var(--night-ivory); color: var(--night-on-ivory); }
 html[data-theme="dark"] .wallet-entry-icon { background: rgba(255, 255, 255, 0.05); }
 html[data-theme="dark"] .wallet-entries strong.credit { color: var(--night-ok-ink); }
 html[data-theme="dark"] .order-x-action { border-color: var(--night-warn-line); background: radial-gradient(120% 160% at 0% 0%, rgba(232, 189, 112, 0.12), transparent 60%), var(--night-surface); }

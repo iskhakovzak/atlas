@@ -148,7 +148,7 @@ html[data-theme="dark"] .price-off { background: var(--night-jade-soft-strong); 
 .delete-account { display: grid; gap: 16px; margin-top: 8px; }
 /* The irreversible button is red, not the site's primary green or ivory: the theme rules for .btn.primary
    (day-folio 0,3,1 and its hover 0,5,1; theme-night 0,3,1) are outweighed here. Disabled stays with the themes. */
-:root body .delete-account-confirm.btn.primary:not(:disabled) { background: var(--cx-danger); border-color: var(--cx-danger); color: #fff; box-shadow: 0 10px 22px -14px rgba(180, 35, 24, .55); }
+:root body .delete-account-confirm.btn.primary:not(:disabled) { background: var(--cx-danger); border-color: var(--cx-danger); color: #fff; box-shadow: none; }
 
 /* The cart beside the order button on the link-order page: count bumps when something is added. */
 @keyframes lo-cart-bump { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }

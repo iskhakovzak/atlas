@@ -230,19 +230,15 @@ html:not([data-theme="dark"]) .home-footer-brand p { color: var(--day-muted); }
 
 /* ---------- Buttons and fields ---------- */
 html:not([data-theme="dark"]) .btn { border-radius: var(--day-r-control); font-weight: 600; letter-spacing: 0; }
-/* Primary buttons get the same finish as in Night: a soft top-to-bottom gradient, a light edge on top and a shadow in their own green. */
-html:not([data-theme="dark"]) :is(.btn.primary, .cart-link) {
-  border-color: #1a4233; color: #fff;
-  background: linear-gradient(180deg, #2b5e49 0%, var(--day-accent) 55%, #1a4233 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), inset 0 -1px 0 rgba(0, 0, 0, .14), 0 10px 22px -12px rgba(31, 77, 59, .6);
-}
-html:not([data-theme="dark"]) :is(.btn.primary, .cart-link):hover:not(:disabled) { background: linear-gradient(180deg, #2f6650 0%, #22533f 55%, #1c4636 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(0, 0, 0, .14), 0 14px 28px -12px rgba(31, 77, 59, .65); }
-html:not([data-theme="dark"]) :is(.btn.primary, .cart-link):active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 6px 14px -10px rgba(31, 77, 59, .6); }
+/* Primary buttons: one flat fill in the brand green, no gradient and no shadow (owner, 27 October 2026, after the
+   impeccable/taste review: the glossy gradient read as a template). Hover is one step darker, press sinks 1px. */
+html:not([data-theme="dark"]) :is(.btn.primary, .cart-link) { border-color: var(--day-accent); color: #fff; background: var(--day-accent); box-shadow: none; }
+html:not([data-theme="dark"]) :is(.btn.primary, .cart-link):hover:not(:disabled) { border-color: #173b2d; background: #173b2d; box-shadow: none; }
+html:not([data-theme="dark"]) :is(.btn.primary, .cart-link):active:not(:disabled) { transform: translateY(1px); background: #12301f; box-shadow: none; }
 html:not([data-theme="dark"]) .btn.primary:disabled { border-color: var(--day-line-strong); background: var(--day-soft); color: var(--day-muted); box-shadow: none; }
-/* Secondary buttons: white with a hairline in green and a light lift. */
-html:not([data-theme="dark"]) .btn.secondary { border: 1.5px solid var(--day-accent); background: linear-gradient(180deg, #fff 0%, #f9faf7 100%); color: var(--day-accent);
-  box-shadow: inset 0 1px 0 #fff, 0 6px 14px -10px rgba(22, 33, 28, .35); }
-html:not([data-theme="dark"]) .btn.secondary:not(:disabled):hover { background: var(--day-tint); box-shadow: inset 0 1px 0 #fff, 0 8px 18px -10px rgba(31, 77, 59, .4); }
+/* Secondary buttons: white with a green outline, flat. */
+html:not([data-theme="dark"]) .btn.secondary { border: 1.5px solid var(--day-accent); background: var(--day-surface, #fff); color: var(--day-accent); box-shadow: none; }
+html:not([data-theme="dark"]) .btn.secondary:not(:disabled):hover { background: var(--day-tint); box-shadow: none; }
 @media (prefers-reduced-motion: no-preference) {
   html:not([data-theme="dark"]) :is(.btn, .cart-link) { transition: background-color .15s, border-color .15s, color .15s, box-shadow .18s, transform .08s; }
 }

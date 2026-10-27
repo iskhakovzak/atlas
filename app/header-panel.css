@@ -108,4 +108,5 @@ html:not([data-theme="dark"]) [data-sonner-toaster] {
   --warning-bg: #fffaf0; --warning-border: #f0dca8; --warning-text: #7a5a12;
 }
 html:not([data-theme="dark"]) [data-sonner-toast] { box-shadow: 0 14px 32px -14px rgba(22, 33, 28, .28), 0 2px 6px rgba(22, 33, 28, .06); }
-html:not([data-theme="dark"]) [data-sonner-toast][data-type="success"] { box-shadow: inset 3px 0 0 #3f9b72, 0 14px 32px -14px rgba(22, 33, 28, .28); }
+/* Success shows sonner's tick icon; no coloured stripe down the left edge (27 October 2026). */
+html:not([data-theme="dark"]) [data-sonner-toast][data-type="success"] [data-icon] { color: #2f7d58; }

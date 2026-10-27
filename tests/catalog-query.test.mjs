@@ -5,7 +5,7 @@ import { catalogCategories } from '../lib/market/catalog-editor.ts';
 import { catalogAllowance } from '../lib/market/allowance.ts';
 import {
   categorySlugs, readCatalogQuery, catalogQueryString, emptyCatalogQuery, normalizeSize, compareSizes, productSizes,
-  catalogItems, applyCatalogQuery, catalogFacets, relaxations, withoutFilter, activeFilterCount, parcelExtra, cartParcelStores, storeLabel, sameCatalogProduct,
+  catalogItems, topDealThreshold, applyCatalogQuery, catalogFacets, relaxations, withoutFilter, activeFilterCount, parcelExtra, cartParcelStores, storeLabel, sameCatalogProduct,
 } from '../lib/market/catalog-query.ts';
 import { searchWords } from '../lib/market/catalog-synonyms.ts';
 
@@ -211,4 +211,16 @@ test('a cart line made by the link order is the catalog product it came from', (
   // Products without a store link compare by id alone.
   assert.ok(sameCatalogProduct({ id: 'manual' }, { id: 'manual' }));
   assert.equal(sameCatalogProduct({ id: 'manual' }, { id: 'manual', sourceUrl: 'https://www.nike.com/t/runner' }), false);
+});
+
+test('"Top price" marks the best fifth by discount, never under 40 %', () => {
+  // 10 items: the best fifth is 2; both are 40 %+ off.
+  assert.equal(topDealThreshold([70, 66, 64, 64, 60, 58, 56, 55, 53, 41]), 66);
+  // Few items still get one badge; ties at the threshold share it.
+  assert.equal(topDealThreshold([50, 45]), 50);
+  assert.deepEqual([70, 66, 66, 10].filter((d) => d >= topDealThreshold([70, 66, 66, 10])), [70]);
+  // Nothing is 40 %+ off: no badge at all.
+  assert.equal(topDealThreshold([39, 20, 0]), Infinity);
+  // Only one item clears 40 %: it alone gets the badge, whatever the share says.
+  assert.equal(topDealThreshold([45, 30, 20, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 45);
 });

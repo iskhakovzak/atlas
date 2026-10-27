@@ -100,7 +100,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
     // The whole card is one button (phrasing content only, so spans), with the heart beside it, not inside.
     return <article className="find-card find-card-compact" data-saved={saved || undefined}>
       <button type="button" className="find-compact" onClick={open} aria-label={cc.open(name)} aria-describedby={costs ? priceId : undefined}>
-        <span className="find-visual"><span className="find-photo"><ProductImage product={product} decorative locale={locale} /></span>{(discount >= 40 || showDiscount) && <span className="find-photo-badges">{discount >= 40 && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}{showDiscount && <em className="find-discount">−{discount}&#x202F;%</em>}</span>}</span>
+        <span className="find-visual"><span className="find-photo"><ProductImage product={product} decorative locale={locale} /></span>{(item.topDeal || showDiscount) && <span className="find-photo-badges">{item.topDeal && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}{showDiscount && <em className="find-discount">−{discount}&#x202F;%</em>}</span>}</span>
         <span className="find-content">
           <span className="find-meta"><span className="find-store"><StoreMark host={item.store} />{storeLabel(item.store, locale) || product.brand || category}</span></span>
           <b className="find-compact-title">{name}</b>
@@ -123,7 +123,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   return <article className="find-card" data-stale={needsPrice || undefined} data-saved={saved || undefined}>
     <div className="find-visual">
       <button className="find-photo" type="button" onClick={open} aria-label={cc.open(name)}><ProductImage product={product} locale={locale} /></button>
-      {discount >= 40 && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}
+      {item.topDeal && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}
       {save}
     </div>
     <div className="find-content">
