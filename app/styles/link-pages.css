@@ -1108,3 +1108,4 @@ html[data-theme="dark"] .lo-page .variant-options.sizes button small.lo-stock { 
 .lo-load-stage > svg { flex: none; color: var(--day-accent, #1f4d3b); }
 html[data-theme="dark"] .lo-load-stage { color: var(--night-muted, #9ba6a0); }
 html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, #80d0ac); }
+

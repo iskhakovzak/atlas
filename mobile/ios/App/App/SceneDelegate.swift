@@ -29,5 +29,35 @@ class AtlasViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
         webView?.allowsBackForwardNavigationGestures = true
+        bridge?.registerPluginInstance(AtlasClipboardPlugin())
+    }
+}
+
+/// The copied-link suggestion (app/clipboard-suggest.tsx). `peek` only asks iOS whether the clipboard holds something
+/// that looks like a web link (UIPasteboard pattern detection: no text is read and no "Allow Paste" prompt appears).
+/// `read` returns the text after the customer taps the suggestion; iOS 16+ then shows its own paste permission.
+@objc(AtlasClipboardPlugin)
+public class AtlasClipboardPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "AtlasClipboardPlugin"
+    public let jsName = "AtlasClipboard"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "peek", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "read", returnType: CAPPluginReturnPromise),
+    ]
+
+    @objc func peek(_ call: CAPPluginCall) {
+        let board = UIPasteboard.general
+        guard board.hasStrings || board.hasURLs else { call.resolve(["hasLink": false]); return }
+        board.detectPatterns(for: [.probableWebURL]) { result in
+            let found = (try? result.get())?.contains(.probableWebURL) ?? false
+            call.resolve(["hasLink": found])
+        }
+    }
+
+    @objc func read(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            let text = UIPasteboard.general.string ?? UIPasteboard.general.url?.absoluteString ?? ""
+            call.resolve(["text": String(text.prefix(2048))])
+        }
     }
 }

@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste
 import {useRouter} from 'next/navigation';
 import Link from '@/components/site-link';
 import {PasteButton} from '@/components/paste-button';
+import {useClipboardLink} from './use-clipboard-link';
 import {useMarket} from '@/lib/market/store';
 import {deliveryPerKgUsdFor,deliverySpeeds,price,unknownStoreShippingUsd,validateSource} from '@/lib/market/domain';
 import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
@@ -146,6 +147,8 @@ function HomeLinkForm({formId,inputId,errorId,noteId,takesSticky=false}:{formId:
  const {status}=useMarket();
  const {c,locale}=useHomeCopy();
  const {url,error,help,busy,submit,change,pasted,prefetch}=useLinkSubmit();
+ // A store link already in the clipboard lights up "Вставить" (app/use-clipboard-link.ts); the hero only, one background ask.
+ const clip=useClipboardLink(undefined,takesSticky);
  useEffect(()=>{
   if(!takesSticky)return;
   const take=(event:Event)=>{const link=(event as CustomEvent<unknown>).detail;if(typeof link==='string'&&link)change(link)};
@@ -156,7 +159,7 @@ function HomeLinkForm({formId,inputId,errorId,noteId,takesSticky=false}:{formId:
  return <>
   <form id={formId} className="home-link-form" onSubmit={submit} noValidate>
    <label className="sr-only" htmlFor={inputId}>{c.hero.label}</label>
-   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id={inputId} name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?errorId:noteId} onFocus={prefetch} onChange={event=>change(event.target.value)} onPaste={event=>{const text=event.clipboardData.getData('text');if(!text.trim())return;event.preventDefault();pasted(text)}}/><PasteButton targetId={inputId} locale={locale} onPaste={pasted}/></span>
+   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id={inputId} name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?errorId:noteId} onFocus={prefetch} onChange={event=>change(event.target.value)} onPaste={event=>{const text=event.clipboardData.getData('text');if(!text.trim())return;event.preventDefault();pasted(text)}}/><PasteButton targetId={inputId} locale={locale} ready={takesSticky&&clip.ready} onPaste={text=>{clip.used();pasted(text)}}/></span>
    {/* While the order page opens: a spinner over the hidden label, so the button keeps its width. */}
    <button type="submit" className="btn primary home-cta" aria-busy={busy||undefined}><span className="home-cta-label">{c.hero.calculate}</span>{busy&&<Loader2 className="home-cta-spinner spin" size={20} aria-hidden="true"/>}</button>
   </form>

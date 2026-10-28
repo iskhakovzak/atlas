@@ -76,6 +76,7 @@ import { formatKg, formatSum } from "@/lib/market/format";
 import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-copy";
 import { extractSharedLink } from "@/lib/market/shared-link";
 import {PasteButton} from '@/components/paste-button';
+import {useClipboardLink} from './use-clipboard-link';
 import { ProductGallery } from "./product-gallery";
 import { retryOriginal, sizedImage } from "@/lib/market/image-size";
 import {
@@ -351,6 +352,8 @@ export function GlobalLinkOrder() {
   const [autoLoadStarted,setAutoLoadStarted]=useState("");
   // From the first frame until the store answers the page keeps its shape: the product stays, the rest waits in placeholders.
   const checking=busy||(Boolean(requestedUrl)&&autoLoadStarted!==autoLoadKey);
+  // A store link already copied lights up "Вставить" and is fetched in the background (app/use-clipboard-link.ts).
+  const clip = useClipboardLink(requestedUrl);
   const [catalogContextLoaded,setCatalogContextLoaded]=useState<string|null>(()=>catalogId?null:'');
   // Drafts are kept per page address (link, catalog card or deal) on this device: lib/market/link-order-draft.ts.
   const dealId=dealSeed?.id??"";
@@ -1314,7 +1317,8 @@ export function GlobalLinkOrder() {
             openLink(text);
           }}
           placeholder={lc.placeholder}
-        /><PasteButton targetId="source-url" locale={lang} disabled={busy} onPaste={text => {
+        /><PasteButton targetId="source-url" locale={lang} disabled={busy} ready={clip.ready && !source} onPaste={text => {
+          clip.used();
           forgetLastDraft(browserStorage()); setResumedFrom(''); setFormIssue(''); setLinkError(''); setUrl(text); setSource(''); setSourceCheckStatus('idle'); setShowSourceForm(true);
           // The "Вставить" button is the same intent: a valid store link is opened right away.
           try { validateSource(text); openLink(text); } catch { /* not a link: it stays in the field */ }

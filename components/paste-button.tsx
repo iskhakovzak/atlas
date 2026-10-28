@@ -6,10 +6,12 @@ import { isUzbek, type Locale } from '@/lib/market/i18n';
 import { uzText } from '@/lib/market/uz-cyrl';
 import { extractSharedLink } from '@/lib/market/shared-link';
 import { toast } from '@/lib/market/toast';
+import { isNative, readClipboardAfterTap } from '@/lib/native/bridge';
 
-/** Reads only after a tap. Filling a field never submits a product or starts an import. */
-export function PasteButton({ targetId, locale, onPaste, disabled = false, multiline = false }: {
-  targetId: string; locale: Locale; onPaste: (text: string) => void; disabled?: boolean; multiline?: boolean;
+/** Reads only after a tap. `ready`: the clipboard already holds a store link (app/use-clipboard-link.ts), so the button
+ *  lights up; the caller decides what a pasted link does (the link pages open its calculation). */
+export function PasteButton({ targetId, locale, onPaste, disabled = false, multiline = false, ready = false }: {
+  targetId: string; locale: Locale; onPaste: (text: string) => void; disabled?: boolean; multiline?: boolean; ready?: boolean;
 }) {
   const [reading, setReading] = useState(false);
   const pending = useRef(false);
@@ -23,7 +25,8 @@ export function PasteButton({ targetId, locale, onPaste, disabled = false, multi
     const before = field?.value;
     pending.current = true; setReading(true);
     try {
-      const text = (await navigator.clipboard.readText()).trim();
+      // Inside the Atlas apps the web view's clipboard API is unreliable: the native plugin reads it (iOS asks to allow).
+      const text = (isNative() ? await readClipboardAfterTap() : await navigator.clipboard.readText()).trim();
       // Do not replace text entered while a permission prompt was open, or a field on another page.
       if (!field?.isConnected || field.value !== before || field.disabled) return;
       if (!text) { toast.message(hint); return; }
@@ -34,7 +37,8 @@ export function PasteButton({ targetId, locale, onPaste, disabled = false, multi
       if (field?.isConnected && [button, field, document.body].includes(document.activeElement as HTMLElement)) field.focus({ preventScroll: true });
     }
   }
-  return <button type="button" className="paste-button" disabled={disabled || reading} aria-controls={targetId} aria-busy={reading} onClick={event => void paste(event.currentTarget)}>
+  const readyLabel = locale === 'ru' ? 'Вставить скопированную ссылку' : isUzbek(locale) ? uzText(locale, 'Nusxalangan havolani qo‘yish') : 'Paste the copied link';
+  return <button type="button" className={'paste-button' + (ready && !reading ? ' is-ready' : '')} aria-label={ready ? readyLabel : undefined} title={ready ? readyLabel : undefined} disabled={disabled || reading} aria-controls={targetId} aria-busy={reading} onClick={event => void paste(event.currentTarget)}>
     {reading ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <ClipboardPaste size={16} aria-hidden="true" />}<span>{label}</span>
   </button>;
 }
