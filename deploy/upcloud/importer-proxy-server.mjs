@@ -115,7 +115,9 @@ export function createImporterProxyServer({secret,allowedHosts,fetcher=fetch,imp
     const deadlineMs=Number.isInteger(payload?.deadlineMs)&&payload.deadlineMs>=1000&&payload.deadlineMs<=30_000?payload.deadlineMs:undefined;
     // The Worker stopped waiting (its attempt timed out, the customer left): stop the engines too.
     const gone=new AbortController();
-    res.on('close',()=>{if(!res.writableFinished)gone.abort()});
+    // Only a real client drop stops the work: behind a tunnel (cloudflared) the response's 'close' came while the request
+    // was still being answered, so every attempt was cut within milliseconds as 'timeout' (29 October 2026).
+    req.on('aborted',()=>gone.abort());res.on('close',()=>{if(!res.writableFinished&&req.destroyed&&!req.complete)gone.abort()});
     active++;
     const started=Date.now();
     try{
