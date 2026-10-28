@@ -106,3 +106,10 @@ test("Levi's: a stray array among a group's children does not hide the linked ch
   assert.equal(result.price, 77);
   assert.equal(result.currency, 'USD');
 });
+
+test('the gateway gets a long turn for browser stores and for slow plain pages like Amazon only', async () => {
+  const { needsLongGatewayTurn } = await import('../lib/importer/stores.ts');
+  assert.equal(needsLongGatewayTurn('www.amazon.com'), true);
+  assert.equal(needsLongGatewayTurn('www.sephora.com'), true);
+  assert.equal(needsLongGatewayTurn('www.nike.com'), false);
+});

@@ -172,3 +172,17 @@ test('a tiny Akamai sensor page with HTTP 200 is a wall for both the proxy and t
   assert.equal(blockedSignal(200,undefined,'text/html',Buffer.from(largeWithoutJsonLd)),undefined);
   assert.equal(detectBotChallenge(largeWithoutJsonLd),undefined);
 });
+
+test('the client asks for a gzip body and unpacks it; an unknown encoding is refused',async()=>{
+  const {gzipSync}=await import('node:zlib');
+  const html='<html><body>'+'Atlas product page '.repeat(400)+'</body></html>';
+  let payload;
+  const answer=encoding=>createMerchantProxyFetch({endpoint:'https://85-9-196-196.sslip.io/v1/fetch',secret,fetchImpl:async(_url,init)=>{
+    payload=JSON.parse(init.body);
+    return Response.json({version:1,status:200,engine:'fetch',attempts:['fetch:200'],headers:{contentType:'text/html'},bodyEncoding:encoding,body:gzipSync(Buffer.from(html)).toString('base64')});
+  }});
+  const response=await answer('gzip')('https://www.nike.com/t/x');
+  assert.deepEqual(payload.bodyEncodings,['gzip']);
+  assert.equal(await response.text(),html);
+  await assert.rejects(answer('br')('https://www.nike.com/t/x'),/Unsupported importer proxy body encoding/);
+});

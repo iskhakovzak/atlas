@@ -73,3 +73,20 @@ test('signed native API referers accept exact merchant pairs only',async t=>{
  const cases=[['redsky.target.com','referer','https://www.target.com/p/-/A-12345678',200],['api.victoriassecret.com','referer','https://www.victoriassecret.com/us/',200],['redsky.target.com','referer','https://www.nike.com/',400],['redsky.target.com','origin','https://www.target.com',200],['redsky.target.com','origin','https://www.nike.com',400],['redsky.target.com','referer','http://www.target.com/',400],['redsky.target.com','referer','https://user@www.target.com/',400]];
  for(const [i,[host,key,value,status]] of cases.entries()){const req=signedHeaders({version:1,url:'https://'+host+'/product',method:'GET',headers:{[key]:value}},String(i+10).padStart(32,'e'));assert.equal((await fetch(endpoint,{method:'POST',...req})).status,status);}
 });
+
+test('a page goes back gzip-compressed only to a client that asked for it',async t=>{
+  const {gunzipSync}=await import('node:zlib');
+  const html='<html>'+'<p>Atlas product</p>'.repeat(500)+'</html>';
+  const endpoint=await withProxy(t,async()=>new Response(html,{status:200,headers:{'content-type':'text/html'}}));
+  const ask=async(extra,requestNonce)=>{
+    const request=signedHeaders({version:1,url:'https://www.nike.com/t/example',method:'GET',headers:{accept:'text/html'},...extra},requestNonce);
+    return (await fetch(endpoint,{method:'POST',headers:request.headers,body:request.body})).json();
+  };
+  const packed=await ask({bodyEncodings:['gzip']},'d'.repeat(32));
+  assert.equal(packed.bodyEncoding,'gzip');
+  assert.equal(gunzipSync(Buffer.from(packed.body,'base64')).toString(),html);
+  assert.ok(packed.body.length<html.length/4);
+  const plain=await ask({},'e'.repeat(32));
+  assert.equal(plain.bodyEncoding,undefined);
+  assert.equal(Buffer.from(plain.body,'base64').toString(),html);
+});

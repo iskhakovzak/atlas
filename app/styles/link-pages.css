@@ -1102,3 +1102,9 @@ html[data-theme="dark"] .lo-page .variant-options.sizes button[aria-pressed="tru
 html[data-theme="dark"] .lo-page .lo-size-seg { background: rgba(255, 255, 255, .06); }
 html[data-theme="dark"] .lo-page .lo-size-seg > button[aria-pressed="true"] { background: rgba(255, 255, 255, .1); color: var(--night-ink, #f1eee5); box-shadow: none; }
 html[data-theme="dark"] .lo-page .variant-options.sizes button small.lo-stock { color: #e8b05c; }
+
+/* What the import is doing while the grey outline waits (app/global-link-order.tsx LoadStage, 29 October 2026). */
+.lo-load-stage { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; color: var(--day-muted, #58635c); font-size: 14px; line-height: 1.4; }
+.lo-load-stage > svg { flex: none; color: var(--day-accent, #1f4d3b); }
+html[data-theme="dark"] .lo-load-stage { color: var(--night-muted, #9ba6a0); }
+html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, #80d0ac); }

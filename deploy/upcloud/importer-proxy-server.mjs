@@ -1,5 +1,6 @@
 import {createServer} from 'node:http';
 import {createHmac,timingSafeEqual} from 'node:crypto';
+import {gzipSync} from 'node:zlib';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
@@ -115,9 +116,9 @@ export function createImporterProxyServer({secret,allowedHosts,fetcher=fetch,imp
     const deadlineMs=Number.isInteger(payload?.deadlineMs)&&payload.deadlineMs>=1000&&payload.deadlineMs<=30_000?payload.deadlineMs:undefined;
     // The Worker stopped waiting (its attempt timed out, the customer left): stop the engines too.
     const gone=new AbortController();
-    // Only a real client drop stops the work: behind a tunnel (cloudflared) the response's 'close' came while the request
-    // was still being answered, so every attempt was cut within milliseconds as 'timeout' (29 October 2026).
-    req.on('aborted',()=>gone.abort());res.on('close',()=>{if(!res.writableFinished&&req.destroyed&&!req.complete)gone.abort()});
+    // Only a real client drop stops the work (its socket is gone): behind a tunnel (cloudflared) the response's 'close' came
+    // while the connection was still open, so every attempt was cut within milliseconds as 'timeout' (29 October 2026).
+    res.on('close',()=>{if(!res.writableFinished&&(res.socket?.destroyed??req.socket?.destroyed??true))gone.abort()});
     active++;
     const started=Date.now();
     try{
@@ -128,7 +129,11 @@ export function createImporterProxyServer({secret,allowedHosts,fetcher=fetch,imp
         ...(result.location?{location:result.location.slice(0,4096)}:{}),
         setCookie:result.setCookie.slice(0,20).map(value=>value.slice(0,4096)),
       };
-      return send(res,200,{version:1,status:result.status,engine:result.engine,attempts:result.attempts,headers:responseHeaders,body:result.bytes.toString('base64')});
+      // A client that reads gzip (payload.bodyEncodings, signed with the rest) gets the page compressed: product pages are
+      // 1-6 MB of HTML and travel over the gateway's home upload and the tunnel, gzip makes them 8-10 times smaller.
+      const gzip=Array.isArray(payload?.bodyEncodings)&&payload.bodyEncodings.includes('gzip')&&result.bytes.length>2048;
+      const bodyBytes=gzip?gzipSync(result.bytes,{level:5}):result.bytes;
+      return send(res,200,{version:1,status:result.status,engine:result.engine,attempts:result.attempts,headers:responseHeaders,...(gzip?{bodyEncoding:'gzip'}:{}),body:bodyBytes.toString('base64')});
     }catch(error){
       const status=error?.name==='TimeoutError'||error?.name==='AbortError'?504:error.status??502;
       const attempts=Array.isArray(error?.attempts)?error.attempts:[`failed:${status}`];

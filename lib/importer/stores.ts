@@ -190,6 +190,13 @@ export function importerEngineHints(): Record<string,'impersonate'|'browser'> {
 export function isBrowserStoreHost(host:string){
   return browserHosts.has(host.toLowerCase().replace(/\.$/, ''));
 }
+/** Plain-request stores whose pages are slow from the gateway's address (Amazon: 2-10 s for a 1.5 MB page): the gateway
+ *  gets the long turn browser stores get, instead of 3 s and a second route that may not answer at all. */
+const slowGatewayHosts = new Set(['www.amazon.com', 'amazon.com']);
+export function needsLongGatewayTurn(host:string){
+  const name = host.toLowerCase().replace(/\.$/, '');
+  return browserHosts.has(name) || slowGatewayHosts.has(name);
+}
 
 export function isManualEntryStoreHost(host:string){
   return manualEntryHosts.has(host.toLowerCase().replace(/\.$/, ''));
