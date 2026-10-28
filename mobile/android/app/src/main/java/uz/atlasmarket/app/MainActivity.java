@@ -15,6 +15,8 @@ public class MainActivity extends BridgeActivity {
     // warm one the App plugin fires appUrlOpen, and app/native-shell.tsx opens it in the WebView.
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // The copied-link suggestion (AtlasClipboardPlugin); registered before the bridge starts.
+        registerPlugin(AtlasClipboardPlugin.class);
         shareAsSiteLink(getIntent());
         super.onCreate(savedInstanceState);
     }

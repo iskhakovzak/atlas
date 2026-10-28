@@ -22,3 +22,13 @@ html body :is(.home-link-form, .lo-link):focus-within { border-color: var(--home
   body:has(#finds-product-url:focus, #how-product-url:focus) .home-sticky { visibility: hidden; pointer-events: none; }
   body:has(#home-link-form:focus-within, .hw-demo-field:focus-within, .lo-link:focus-within, .stores-link:focus-within, .store-dialog-link:focus-within, .batch-import:focus-within, .catalog-importer:focus-within) .storage-notice { visibility: hidden; pointer-events: none; }
 }
+
+/* A store link is already in the clipboard (app/use-clipboard-link.ts): "Вставить" turns into the field's filled action
+   and pulses once, so the eye finds it; it goes quiet again after the paste. */
+html body button.paste-button.is-ready { background: var(--day-accent, #1f4d3b); color: #fff; }
+html body button.paste-button.is-ready:hover { background: var(--day-accent-hover, #173b2d); }
+html[data-theme="dark"] body button.paste-button.is-ready { background: var(--night-ivory, #ebe4d2); color: var(--night-on-ivory, #16211c); }
+@media (prefers-reduced-motion: no-preference) {
+  html body button.paste-button.is-ready { animation: paste-ready 1.2s ease-out 1; }
+  @keyframes paste-ready { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--day-accent, #1f4d3b) 45%, transparent); } 100% { box-shadow: 0 0 0 10px transparent; } }
+}

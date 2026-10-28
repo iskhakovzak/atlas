@@ -115,3 +115,36 @@ export async function setStatusBarTheme(theme:'light'|'dark'){
 }
 /** Hides the native splash once the first page has rendered. */
 export async function hideSplash(){await plugin('SplashScreen')?.hide().catch(()=>undefined)}
+
+/**
+ * What the clipboard offers the copied-link suggestion (app/clipboard-suggest.tsx), without any prompt:
+ * - Android app: the text (Android 12+ shows its own "pasted from your clipboard" note);
+ * - iOS app: only whether it looks like a web link ({tap:true}); the text needs the customer's tap (readClipboardAfterTap);
+ * - a browser: the text only when the visitor already allowed this site to read the clipboard (Chrome, Edge); never a prompt.
+ * null when nothing can be learned quietly (Safari, Firefox, an app without the plugin, no permission).
+ */
+export async function peekClipboard():Promise<{text:string}|{tap:true}|null>{
+ const native=plugin('AtlasClipboard');
+ if(native){
+  try{
+   const result=await native.peek() as {text?:string;hasLink?:boolean};
+   if(typeof result?.text==='string')return result.text?{text:result.text}:null;
+   return result?.hasLink?{tap:true}:null;
+  }catch{return null}
+ }
+ if(isNative()||typeof navigator==='undefined'||!navigator.clipboard?.readText||!navigator.permissions?.query)return null;
+ try{
+  const status=await navigator.permissions.query({name:'clipboard-read' as PermissionName});
+  if(status.state!=='granted')return null;
+  const text=await navigator.clipboard.readText();
+  return text?{text:text.slice(0,2048)}:null;
+ }catch{return null}
+}
+/** The clipboard text after a tap on the suggestion (iOS shows its own "Allow Paste" here); "" when unavailable. */
+export async function readClipboardAfterTap():Promise<string>{
+ const native=plugin('AtlasClipboard');
+ try{
+  if(native){const result=await native.read() as {text?:string};return typeof result?.text==='string'?result.text:''}
+  return (await navigator.clipboard.readText()).slice(0,2048);
+ }catch{return ''}
+}
