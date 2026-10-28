@@ -122,6 +122,48 @@ export async function createLocalEngineFetch({mode = 'auto', browser} = {}) {
   };
 }
 
+/** One engine's answer for fetchWithEngines and the race: the bytes, its wall verdict and the attempt line. */
+async function runEngine(engine, {target, method, headers, body, engines, budgetUntil, signal}) {
+  const timeout = AbortSignal.timeout(Math.max(budgetUntil - Date.now(), 1000));
+  const upstream = await engines[engine](target, {method, headers, body, redirect: 'manual', deadline: Math.max(budgetUntil, Date.now() + 1000), signal: signal ? AbortSignal.any([signal, timeout]) : timeout});
+  const bytes = await readUpstream(upstream);
+  const contentType = upstream.headers.get('content-type') ?? undefined;
+  const location = upstream.headers.get('location') ?? undefined;
+  const wall = blockedSignal(upstream.status, location, contentType, bytes);
+  const setCookie = typeof upstream.headers.getSetCookie === 'function' ? upstream.headers.getSetCookie() : [];
+  return {result: {engine, status: upstream.status, contentType, location, setCookie, bytes}, wall, line: `${engine}:${upstream.status}${wall ? ':' + wall : ''}`};
+}
+
+/** fetch, then impersonate in parallel once fetch is slow; the first clean answer wins. */
+async function raceFirstTwo({target, method, headers, body, engines, deadline, deadlineMs, signal, clock, attempts}) {
+  const hedgeMs = Math.min(1500, Math.max(800, Math.round(deadlineMs * 0.4)));
+  const controllers = [new AbortController(), new AbortController()];
+  const link = index => signal ? AbortSignal.any([signal, controllers[index].signal]) : controllers[index].signal;
+  const names = ['fetch', 'impersonate'], lines = [], settled = [];
+  let started = 1, best;
+  const run = (engine, index) => runEngine(engine, {target, method, headers, body, engines, budgetUntil: deadline, signal: link(index)})
+    .then(answer => ({index, answer}), error => ({index, error}));
+  return await new Promise(resolve => {
+    let done = false;
+    // Attempts in engine order; an engine cancelled because the other one won reads as a timeout.
+    const finish = value => { if (done) return; done = true; clearTimeout(hedge); for (const controller of controllers) controller.abort(); for (let i = 0; i < started; i++) attempts.push(lines[i] ?? `${names[i]}:timeout`); resolve(value); };
+    const take = ({index, answer, error}) => {
+      settled[index] = true;
+      if (answer) {
+        lines[index] = answer.line;
+        if (!answer.wall) return finish({result: answer.result});
+        best = answer; // the latest walled answer, as the sequential ladder returns
+        // fetch hit a wall before the race began: impersonate starts at once.
+        if (index === 0 && started === 1) { started = 2; clearTimeout(hedge); run('impersonate', 1).then(take); return; }
+      } else lines[index] = `${names[index]}:${error?.name === 'TimeoutError' || error?.name === 'AbortError' ? 'timeout' : 'error'}`;
+      if (index === 0 && started === 1 && !answer) { started = 2; clearTimeout(hedge); run('impersonate', 1).then(take); return; }
+      if (settled.filter(Boolean).length >= started) finish(best ? {result: best.result, wall: best.wall} : {failure: error ?? new Error('no_engine_answered')});
+    };
+    const hedge = setTimeout(() => { if (done || started === 2 || deadline - clock() < 1000) return; started = 2; run('impersonate', 1).then(take); }, hedgeMs);
+    run('fetch', 0).then(take);
+  });
+}
+
 /**
  * One merchant request through the planned engines, inside a single deadline.
  * Cookies and POSTs (the Amazon delivery-location flow) stay on the engine they
@@ -134,6 +176,15 @@ export async function fetchWithEngines({target, method, headers, body, mode, eng
   if (!plan.length || plan.some(name => !available.includes(name))) throw Object.assign(new Error('engine_unavailable'), {status: 400});
   const deadline = clock() + deadlineMs, attempts = [];
   let result, failure;
+  // A race of the first two server engines: when plain fetch has not answered within ~1.2-1.5 s, impersonate starts too
+  // and the first clean answer wins (the other is cancelled). Without it a stalled fetch kept a 3 s attempt to itself and
+  // impersonate never ran. Chrome is never doubled; requests with cookies or a body stay on one engine.
+  if (escalates && plan[0] === 'fetch' && plan[1] === 'impersonate') {
+    const raced = await raceFirstTwo({target, method, headers, body, engines, deadline, deadlineMs, signal, clock, attempts});
+    if (raced.result && !raced.wall) { planner.succeeded(target.hostname, raced.result.engine); return {...raced.result, attempts}; }
+    result = raced.result; failure = raced.failure;
+    plan.splice(0, 2);
+  }
   for (const [index, engine] of plan.entries()) {
     const remaining = deadline - clock();
     if (signal?.aborted || attempts.length && remaining < 1500) break;
@@ -157,6 +208,8 @@ export async function fetchWithEngines({target, method, headers, body, mode, eng
       attempts.push(`${engine}:${error?.name === 'TimeoutError' || error?.name === 'AbortError' ? 'timeout' : 'error'}`);
     }
   }
+  // A walled answer from the race is still returned when no later engine did better.
+  if (!result && failure === undefined && attempts.length === 0) failure = new Error('no_engine_answered');
   // The caller still learns what each engine ran into (timeouts, refused connections).
   if (!result) throw Object.assign(failure ?? new Error('no_engine_answered'), {attempts});
   return {...result, attempts};

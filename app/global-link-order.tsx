@@ -1304,9 +1304,20 @@ export function GlobalLinkOrder() {
           }}
           // Back to the loaded product when "Изменить ссылку" was opened by mistake and nothing was typed yet.
           onKeyDown={(e) => { if (e.key === "Escape" && source && !url) { e.preventDefault(); setShowSourceForm(false); } }}
+          // A pasted store link starts the calculation at once: no second tap on "Рассчитать", and the store is asked
+          // while the customer would still be reaching for the button. Anything else pastes as usual.
+          onPaste={(e) => {
+            const text = e.clipboardData.getData('text').trim();
+            try { validateSource(text); } catch { return; }
+            e.preventDefault();
+            forgetLastDraft(browserStorage()); setResumedFrom(''); setFormIssue(''); setLinkError(''); setUrl(text); setSource(''); setSourceCheckStatus('idle');
+            openLink(text);
+          }}
           placeholder={lc.placeholder}
         /><PasteButton targetId="source-url" locale={lang} disabled={busy} onPaste={text => {
           forgetLastDraft(browserStorage()); setResumedFrom(''); setFormIssue(''); setLinkError(''); setUrl(text); setSource(''); setSourceCheckStatus('idle'); setShowSourceForm(true);
+          // The "Вставить" button is the same intent: a valid store link is opened right away.
+          try { validateSource(text); openLink(text); } catch { /* not a link: it stays in the field */ }
         }}/></span>
         <button className="btn primary lo-link-submit" disabled={busy}>{busy ? <Loader2 className="spin" size={18} aria-hidden="true" /> : null}{busy ? c.get : lc.calculate}</button>
       </form>}
@@ -1525,6 +1536,7 @@ export function GlobalLinkOrder() {
               <h2 id="lo-product-name">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</h2>
               {favoriteId && <button type="button" className={"find-save lo-save" + (favoriteSaved ? " saved" : "")} aria-pressed={favoriteSaved} aria-label={favoriteSaved ? dc.remove : dc.save} title={favoriteSaved ? dc.remove : dc.save} disabled={favoriteBusy} onClick={() => void toggleFavorite()}><Heart size={20} aria-hidden="true" /></button>}
               </div>
+              {checking && <LoadStage url={requestedUrl || url} locale={lang} />}
               {checking
                 ? <p className="lo-store-price">{lc.storePrice}: <span className="lo-skel lo-skel-price" aria-hidden="true" /></p>
                 : sourceCheckStatus === "manual" && !(Number(amount) > 0) ? null : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}</p>}
@@ -1663,4 +1675,24 @@ export function GlobalLinkOrder() {
       </div>}
     </div>
   );
+}
+
+
+/** While the store is being read: what is happening now, by elapsed time, with the store's name; a slow store says so
+ *  instead of leaving the grey outline silent. Announced politely; gone as soon as the product is in. */
+function LoadStage({ url, locale }: { url: string; locale: string }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const timer = window.setInterval(() => setElapsed(Date.now() - started), 500);
+    return () => window.clearInterval(timer);
+  }, [url]);
+  let host = '';
+  try { host = new URL(url).hostname.replace(/^www\d*\./, ''); } catch { /* no address yet */ }
+  const t = (ru: string, uz: string, en: string) => locale === 'ru' ? ru : locale === 'en' ? en : uzText(locale as Locale, uz);
+  const text = elapsed < 1500 ? t(`Открываем страницу ${host || 'магазина'}…`, `${host || 'Do‘kon'} sahifasini ochyapmiz…`, `Opening ${host || 'the store'}…`)
+    : elapsed < 4000 ? t('Читаем цену, варианты и фото…', 'Narx, variantlar va suratlarni o‘qiyapmiz…', 'Reading the price, options and photos…')
+    : elapsed < 9000 ? t('Магазин отвечает медленно — ещё несколько секунд', 'Do‘kon sekin javob bermoqda — yana bir necha soniya', 'The store is slow to answer — a few more seconds')
+    : t('Почти готово: последняя проверка', 'Deyarli tayyor: oxirgi tekshiruv', 'Almost there: one last check');
+  return <p className="lo-load-stage" role="status" aria-live="polite"><Loader2 className="spin" size={14} aria-hidden="true" />{text}</p>;
 }

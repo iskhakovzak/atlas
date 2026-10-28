@@ -296,7 +296,29 @@ function amazonLocationToken(html: string) {
  * letting an Uzbekistan IP select an ineligible international destination.
  * The cookie jar is request-scoped and never persisted or accepted from a user.
  */
+// The anonymous session that already has the US delivery ZIP (Amazon's own cookies, no customer data), kept in this
+// isolate for 15 minutes: the next Amazon item needs one page instead of page → address → page (~2 s less through
+// the gateway). It is used only while the page it returns still names the ZIP; otherwise the full path runs again.
+const amazonSessionMs = 15 * 60_000;
+let amazonSession: {cookies: Map<string, string>; until: number} | undefined;
+export function resetAmazonSession() { amazonSession = undefined; }
+
+async function readAmazonWithSession(url: URL, signal: AbortSignal, fetcher: MerchantFetch) {
+  const session = amazonSession;
+  if (!session || session.until < Date.now()) return undefined;
+  const jar = new Map(session.cookies);
+  const response = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)}, fetcher);
+  if (response.status !== 200) { await response.body?.cancel(); amazonSession = undefined; return undefined; }
+  mergeCookies(jar, response);
+  const html = await readBody(response, 'html', maxHtmlBytes);
+  if (!html.includes(AMAZON_US_POSTAL_CODE)) { amazonSession = undefined; return undefined; }
+  amazonSession = {cookies: jar, until: session.until};
+  return {text: html, url};
+}
+
 async function readAmazonUs(start: URL, signal: AbortSignal, fetcher: MerchantFetch = fetch) {
+  const reused = await readAmazonWithSession(start, signal, fetcher).catch(() => { amazonSession = undefined; return undefined; });
+  if (reused) return reused;
   const jar = new Map<string, string>([['i18n-prefs', 'USD'], ['lc-main', 'en_US']]);
   let url = start;
   for (let i = 0; i < 4; i++) {
@@ -354,6 +376,7 @@ async function readAmazonUs(start: URL, signal: AbortSignal, fetcher: MerchantFe
     mergeCookies(jar, refreshed);
     if (refreshed.status >= 300 && refreshed.status < 400) throw new ManualEntryFallbackError('Amazon изменил адрес карточки после выбора региона. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect');
     const refreshedHtml = await readBody(refreshed, 'html', maxHtmlBytes);
+    if (refreshedHtml.includes(AMAZON_US_POSTAL_CODE)) amazonSession = {cookies: new Map(jar), until: Date.now() + amazonSessionMs};
     // Location validation is already done by verifying the locationData response
     // from the address-change endpoint above. The HTML representation of the ZIP
     // may change or be hidden behind JS.

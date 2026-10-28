@@ -102,8 +102,11 @@ function useLinkSubmit(){
  },[busy]);
  function submit(event:FormEvent){
   event.preventDefault();
+  open(url);
+ }
+ function open(value:string){
   if(busy)return;
-  const raw=url.trim();
+  const raw=value.trim();
   let target:string;
   try{target=validateSource(normalizeProductLink(raw)||raw)}
   catch{
@@ -118,24 +121,31 @@ function useLinkSubmit(){
   router.push('/order-by-link?url='+encodeURIComponent(target));
  }
  const change=useCallback((value:string)=>{setUrl(value);setError('');setHelp(null)},[]);
+ // A pasted store link goes straight to its calculation (the order page starts loading it on arrival); other text just pastes.
+ function pasted(value:string){
+  change(value);
+  try{validateSource(normalizeProductLink(value.trim())||value.trim())}catch{return}
+  open(value);
+ }
  // The order page's code and data are fetched while the link is being pasted.
  const prefetch=useCallback(()=>{
   if(prefetched.current)return;
   prefetched.current=true;
   try{router.prefetch('/order-by-link')}catch{/* the submit still loads the page */}
  },[router]);
- return {url,error,help,busy,submit,change,prefetch};
+ return {url,error,help,busy,submit,change,pasted,prefetch};
 }
 
 /**
  * The hero's link form, repeated on the closing screen (owner's review, 14.10.2026: a real field there instead of a button
  * that scrolls back up). The hero keeps its ids, which StickyLinkCta, focusLinkInput and app/link-inputs.css use, and takes
- * the link the sticky button reads from the clipboard. Filling the field never submits it.
+ * the link the sticky button reads from the clipboard. That filling never submits it; a paste of a store link
+ * ("Вставить" or Ctrl+V, 29 October 2026) opens its calculation at once.
  */
 function HomeLinkForm({formId,inputId,errorId,noteId,takesSticky=false}:{formId:string;inputId:string;errorId:string;noteId:string;takesSticky?:boolean}){
  const {status}=useMarket();
  const {c,locale}=useHomeCopy();
- const {url,error,help,busy,submit,change,prefetch}=useLinkSubmit();
+ const {url,error,help,busy,submit,change,pasted,prefetch}=useLinkSubmit();
  useEffect(()=>{
   if(!takesSticky)return;
   const take=(event:Event)=>{const link=(event as CustomEvent<unknown>).detail;if(typeof link==='string'&&link)change(link)};
@@ -146,7 +156,7 @@ function HomeLinkForm({formId,inputId,errorId,noteId,takesSticky=false}:{formId:
  return <>
   <form id={formId} className="home-link-form" onSubmit={submit} noValidate>
    <label className="sr-only" htmlFor={inputId}>{c.hero.label}</label>
-   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id={inputId} name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?errorId:noteId} onFocus={prefetch} onChange={event=>change(event.target.value)}/><PasteButton targetId={inputId} locale={locale} onPaste={change}/></span>
+   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id={inputId} name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?errorId:noteId} onFocus={prefetch} onChange={event=>change(event.target.value)} onPaste={event=>{const text=event.clipboardData.getData('text');if(!text.trim())return;event.preventDefault();pasted(text)}}/><PasteButton targetId={inputId} locale={locale} onPaste={pasted}/></span>
    {/* While the order page opens: a spinner over the hidden label, so the button keeps its width. */}
    <button type="submit" className="btn primary home-cta" aria-busy={busy||undefined}><span className="home-cta-label">{c.hero.calculate}</span>{busy&&<Loader2 className="home-cta-spinner spin" size={20} aria-hidden="true"/>}</button>
   </form>

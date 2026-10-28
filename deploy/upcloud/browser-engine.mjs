@@ -139,7 +139,9 @@ export function loadBrowserEngine({
       while (Date.now() < deadline && !signal?.aborted) {
         await sleep(150);
         const document = latest && documents.get(latest);
-        if (!document?.finished || !loaded) continue;
+        // The store's own response is read as soon as it has arrived: when it already carries the product, there is
+        // nothing to wait for (scripts, ads, DOMContentLoaded). Only a page that draws its data needs the DOM.
+        if (!document?.finished) continue;
         if (!document.body) {
           const result = await session.send('Network.getResponseBody', {requestId: latest});
           // Chrome may drop the body of a page that replaced itself; the drawn page below still has the data.
@@ -150,6 +152,7 @@ export function loadBrowserEngine({
         if (!/html/i.test(document.mimeType)) break;
         // Walmart and others embed bot-wall scripts on real pages too: data first, the wall only without it.
         if (carriesProduct(document.body.toString('utf8'))) break;
+        if (!loaded) continue;
         // A wall may clear itself and reload the page (Akamai's sensor); keep waiting for the next document.
         if (blockedSignal(document.status, undefined, 'text/html', document.body)) continue;
         const drawn = await session.send('Runtime.evaluate', {expression: renderedProduct, returnByValue: true});
