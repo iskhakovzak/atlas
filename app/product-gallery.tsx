@@ -84,25 +84,33 @@ export function ProductGallery({ product, images, activeImage, onImageChange, lo
     scrollTo(from + gallerySwipeStep(event.clientX - origin.x, event.clientY - origin.y, event.currentTarget.clientWidth));
   }
   return <div className={`product-gallery${compact ? ' product-gallery-compact' : ''}`} role="group" aria-label={copy.gallery}>
-    <div ref={stage} className={`product-gallery-stage${dragging ? ' dragging' : ''}`} tabIndex={photos.length > 1 ? 0 : undefined}
-      aria-label={photos.length > 1 ? `${copy.hint}. ${copy.photo} ${index + 1} ${copy.of} ${photos.length}` : undefined}
-      onScroll={onScroll} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp}
-      onPointerCancel={() => { if (drag.current) { const from = Math.round(drag.current.left / (stage.current?.clientWidth || 1)); drag.current = null; setDragging(false); scrollTo(from); } }}
-      onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); scrollTo(index + (event.key === 'ArrowLeft' ? -1 : 1)); } }}>
-      {photos.length ? photos.map((photo, position) => <div className={`product-gallery-slide${loaded.includes(photo) || failed.includes(photo) ? '' : ' is-loading'}`} key={photo} aria-hidden={position !== index}>
-        {!failed.includes(photo)
-          // Merchant photos remain safe public HTTPS URLs, without proxying.
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img className="product-img" src={sizedImage(photo, 1000)} alt={`${product.name} — ${copy.photo} ${position + 1}`} loading={position === 0 ? 'eager' : 'lazy'} decoding="async" referrerPolicy="no-referrer" draggable={false} ref={el => { if (el?.complete && el.naturalWidth) markLoaded(photo); }} onLoad={() => markLoaded(photo)} onError={event => { if (!retryOriginal(event.currentTarget, photo)) setFailed(current => [...current, photo]); }}/>
-          : <div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div>}
-      </div>) : <div className="product-gallery-slide"><div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div></div>}
+    {/* Arrows and the photo marker sit on the photo itself (29 October 2026, owner: the row of big buttons and "1 / 8"
+        under the photo looked poor): round glass arrows at the edges, hidden at the ends, shown on hover where there
+        is a mouse; dots for up to ten photos, a small "3 / 14" over the photo for more. */}
+    <div className="product-gallery-frame">
+      <div ref={stage} className={`product-gallery-stage${dragging ? ' dragging' : ''}`} tabIndex={photos.length > 1 ? 0 : undefined}
+        aria-label={photos.length > 1 ? `${copy.hint}. ${copy.photo} ${index + 1} ${copy.of} ${photos.length}` : undefined}
+        onScroll={onScroll} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp}
+        onPointerCancel={() => { if (drag.current) { const from = Math.round(drag.current.left / (stage.current?.clientWidth || 1)); drag.current = null; setDragging(false); scrollTo(from); } }}
+        onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); scrollTo(index + (event.key === 'ArrowLeft' ? -1 : 1)); } }}>
+        {photos.length ? photos.map((photo, position) => <div className={`product-gallery-slide${loaded.includes(photo) || failed.includes(photo) ? '' : ' is-loading'}`} key={photo} aria-hidden={position !== index}>
+          {!failed.includes(photo)
+            // Merchant photos remain safe public HTTPS URLs, without proxying.
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img className="product-img" src={sizedImage(photo, 1000)} alt={`${product.name} — ${copy.photo} ${position + 1}`} loading={position === 0 ? 'eager' : 'lazy'} decoding="async" referrerPolicy="no-referrer" draggable={false} ref={el => { if (el?.complete && el.naturalWidth) markLoaded(photo); }} onLoad={() => markLoaded(photo)} onError={event => { if (!retryOriginal(event.currentTarget, photo)) setFailed(current => [...current, photo]); }}/>
+            : <div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div>}
+        </div>) : <div className="product-gallery-slide"><div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div></div>}
+      </div>
+      {photos.length > 1 && <>
+        <button type="button" className="product-gallery-arrow is-prev" aria-label={copy.previous} disabled={index === 0} onClick={() => scrollTo(index - 1)}><ChevronLeft size={18} strokeWidth={2.4}/></button>
+        <button type="button" className="product-gallery-arrow is-next" aria-label={copy.next} disabled={index === photos.length - 1} onClick={() => scrollTo(index + 1)}><ChevronRight size={18} strokeWidth={2.4}/></button>
+        <div className="product-gallery-marker" aria-hidden="true">
+          {photos.length <= 10 ? photos.map((item, position) => <i key={item} className={position === index ? 'is-on' : undefined}/>) : <span>{index + 1} / {photos.length}</span>}
+        </div>
+        <span className="sr-only" aria-live="polite" aria-atomic="true">{copy.photo} {index + 1} {copy.of} {photos.length}</span>
+      </>}
     </div>
     {photos.length > 1 && <>
-      <div className="product-gallery-controls">
-        <button type="button" aria-label={copy.previous} disabled={index === 0} onClick={() => scrollTo(index - 1)}><ChevronLeft size={20}/></button>
-        <span aria-live="polite" aria-atomic="true">{index + 1} / {photos.length}</span>
-        <button type="button" aria-label={copy.next} disabled={index === photos.length - 1} onClick={() => scrollTo(index + 1)}><ChevronRight size={20}/></button>
-      </div>
       {/* The arrows, the counter and the thumbnails already say the photos turn; the hint stays in the gallery's label. */}
       {!compact && <><div className="product-gallery-thumbnails">
         {photos.map((item, position) => <button type="button" key={item} aria-label={`${copy.photo} ${position + 1}`} aria-pressed={position === index} onClick={() => scrollTo(position)}>

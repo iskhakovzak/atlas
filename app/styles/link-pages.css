@@ -557,7 +557,6 @@ html[data-theme="dark"] .lo-added { border-color: rgba(128, 208, 172, .35); back
   /* Store photos are mostly portrait (4:5, 3:4): a taller box on phones keeps them from shrinking to a stripe. */
   .lo-gallery .product-gallery-stage { height: clamp(240px, 84vw, 360px); }
   .lo-gallery .product-gallery-thumbnails { display: none; }
-  .lo-gallery .product-gallery-controls { margin-top: 4px; }
 }
 .lo-product h2 { margin: 2px 0 6px; color: var(--home-ink); font-size: 20px; font-weight: 800; line-height: 1.3; }
 .lo-store-price { margin: 0; color: var(--home-muted); font-size: 15px; }
