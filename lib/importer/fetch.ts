@@ -1,3 +1,4 @@
+import {PUMA_GRAPHQL, applyPumaSizes, pumaGuestLogonBody, pumaGuestToken, pumaHeaders, pumaProductId, pumaSizesBody} from './puma.ts';
 import {normalizeMerchantVariants} from './variant-normalization.ts';
 import {declarationFor,dedupeSafeImages,extractAdidasProduct,extractProduct,inferProductCategory,safeImage,type Extracted} from './extract.ts';
 import {extractTarget, targetRequest} from './target.ts';
@@ -667,6 +668,22 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
         if (quoted(shopify)) extracted = {...shopify, ...(extracted.boxedWeight !== undefined ? {boxedWeight: extracted.boxedWeight, weightKind: extracted.weightKind} : {}), method: 'Shopify public product JSON'};
       } catch {
         // The page's own data stays; a store that hides the Ajax endpoint is no different from before.
+        if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+      }
+    }
+    const pumaId = pumaProductId(page.url);
+    if (pumaId && extracted.method === 'PUMA public product data') {
+      // The sizes and their stock come from PUMA's own GraphQL after a guest sign-in; without them the colours stay.
+      try {
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(6_000)]);
+        const post = async (body: string, token?: string) => {
+          const response = await merchantFetch(PUMA_GRAPHQL, {method: 'POST', redirect: 'manual', signal, headers: pumaHeaders(token), body}, fetcher);
+          if (!response.ok) { await response.body?.cancel(); return undefined; }
+          return JSON.parse(await readBody(response, 'json')) as unknown;
+        };
+        const token = pumaGuestToken(await post(pumaGuestLogonBody()));
+        if (token) extracted = applyPumaSizes(extracted, await post(pumaSizesBody(pumaId), token), pumaId);
+      } catch {
         if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
       }
     }

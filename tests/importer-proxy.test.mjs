@@ -46,3 +46,13 @@ test('merchant proxy rejects unsafe endpoint, target, method and request body',a
   await assert.rejects(fetcher('https://www.nike.com/item',{method:'PUT'}),/Unsupported importer request method/);
   await assert.rejects(fetcher('https://www.nike.com/item',{method:'POST',body:new Blob(['not supported'])}),/bounded text/);
 });
+
+test('the PUMA guest token leaves only for PUMA GraphQL',async()=>{
+  const sent=[];
+  const fetcher=createMerchantProxyFetch({endpoint,secret,fetchImpl:async(_url,init)=>{sent.push(JSON.parse(init.body));return Response.json({version:1,status:200,headers:{contentType:'application/json'},body:Buffer.from('{}').toString('base64')});}});
+  const headers={'content-type':'application/json',authorization:'Bearer token-value',locale:'en-US','x-graphql-client-name':'nitro-fe'};
+  await fetcher('https://us.puma.com/api/graphql',{method:'POST',headers,body:'{"operationName":"LazyPDP"}'});
+  await fetcher('https://www.nike.com/api/graphql',{method:'POST',headers,body:'{}'});
+  assert.equal(sent[0].headers.authorization,'Bearer token-value');assert.equal(sent[0].headers.locale,'en-US');
+  assert.deepEqual(sent[1].headers,{'content-type':'application/json'});
+});
