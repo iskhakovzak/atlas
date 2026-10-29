@@ -10,7 +10,11 @@ import {loadBrowserEngine} from './browser-engine.mjs';
 const requestHeaderNames=new Set([
   'accept','accept-language','anti-csrftoken-a2z','cache-control','content-type','cookie','origin','referer',
   'sec-ch-ua','sec-ch-ua-mobile','sec-ch-ua-platform','sec-fetch-dest','sec-fetch-mode','sec-fetch-site','user-agent','x-requested-with',
+  'authorization','locale','x-graphql-client-name',
 ]);
+// PUMA US draws sizes from its own GraphQL after a guest sign-in (lib/importer/puma.ts): these two operations, nothing else.
+const pumaGraphql=(target)=>target.hostname==='us.puma.com'&&target.pathname==='/api/graphql'&&!target.search;
+function pumaOperation(body){try{const value=JSON.parse(body);return ['GuestLogon','LazyPDP'].includes(value?.operationName)?value.operationName:undefined}catch{return undefined}}
 const maxRequestBytes=32_768;
 const maxConcurrent=16;
 const maxPerMinute=240;
@@ -46,6 +50,7 @@ function validateHeaders(raw,target,body,method,allowedHosts){
   for(const [name,value] of Object.entries(raw)){
     const key=name.toLowerCase();
     if(!requestHeaderNames.has(key)||typeof value!=='string'||value.length>4096||/[\r\n\0]/.test(value))return undefined;
+    if(['authorization','locale','x-graphql-client-name'].includes(key)&&!pumaGraphql(target))return undefined;
     total+=key.length+value.length;
     if(total>8192)return undefined;
     if(key==='cookie'&&target.hostname!=='www.amazon.com'&&target.hostname!=='amazon.com')return undefined;
@@ -63,7 +68,11 @@ function validateHeaders(raw,target,body,method,allowedHosts){
   }
   if(method==='GET'&&body!==undefined)return undefined;
   if(method==='POST'){
-    if(target.hostname!=='www.amazon.com'||target.pathname!=='/gp/delivery/ajax/address-change.html'||target.search||typeof body!=='string'||body.length>8192||
+    if(pumaGraphql(target)){
+      if(typeof body!=='string'||body.length>4096||!String(result['content-type']??'').toLowerCase().startsWith('application/json'))return undefined;
+      const operation=pumaOperation(body);
+      if(!operation||operation==='LazyPDP'&&!/^Bearer [\w.-]{20,4000}$/.test(result.authorization??''))return undefined;
+    }else if(target.hostname!=='www.amazon.com'||target.pathname!=='/gp/delivery/ajax/address-change.html'||target.search||typeof body!=='string'||body.length>8192||
       !String(result['content-type']??'').toLowerCase().startsWith('application/x-www-form-urlencoded'))return undefined;
   }
   return result;

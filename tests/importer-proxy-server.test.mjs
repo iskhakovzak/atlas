@@ -90,3 +90,23 @@ test('a page goes back gzip-compressed only to a client that asked for it',async
   assert.equal(plain.bodyEncoding,undefined);
   assert.equal(Buffer.from(plain.body,'base64').toString(),html);
 });
+
+test('PUMA GraphQL: only the guest sign-in and the sizes query pass, the sizes only with a token',async t=>{
+ const server=createImporterProxyServer({secret,allowedHosts:new Set(['us.puma.com','www.nike.com']),fetcher:async()=>new Response('{}',{headers:{'content-type':'application/json'}}),now:()=>now});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));});
+ const endpoint='http://127.0.0.1:'+server.address().port+'/v1/fetch';
+ const json={'content-type':'application/json',locale:'en-US','x-graphql-client-name':'nitro-fe',origin:'https://us.puma.com'};
+ const token='Bearer '+'a'.repeat(40);
+ const cases=[
+  ['https://us.puma.com/api/graphql',json,{operationName:'GuestLogon'},200],
+  ['https://us.puma.com/api/graphql',{...json,authorization:token},{operationName:'LazyPDP'},200],
+  ['https://us.puma.com/api/graphql',json,{operationName:'LazyPDP'},400],
+  ['https://us.puma.com/api/graphql',{...json,authorization:token},{operationName:'AddToCart'},400],
+  ['https://us.puma.com/api/graphql?x=1',json,{operationName:'GuestLogon'},400],
+  ['https://www.nike.com/api/graphql',{'content-type':'application/json',authorization:token},{operationName:'LazyPDP'},400],
+ ];
+ for(const [i,[url,headers,body,status]] of cases.entries()){
+  const req=signedHeaders({version:1,url,method:'POST',headers,body:JSON.stringify(body)},String(i+40).padStart(32,'f'));
+  assert.equal((await fetch(endpoint,{method:'POST',...req})).status,status,`${url} ${body.operationName}`);
+ }
+});
