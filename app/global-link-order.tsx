@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, Plus, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
 import Link from "@/components/site-link";
@@ -77,7 +77,7 @@ import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-cop
 import { extractSharedLink } from "@/lib/market/shared-link";
 import {PasteButton} from '@/components/paste-button';
 import {useClipboardLink} from './use-clipboard-link';
-import { ProductGallery } from "./product-gallery";
+import { PhotoWait, ProductGallery } from "./product-gallery";
 import { retryOriginal, sizedImage } from "@/lib/market/image-size";
 import {
   communityDeals,
@@ -209,6 +209,39 @@ function CartEntry({ count, label, compact = false }: { count: number; label: st
   </Link>;
 }
 
+// A grid of tiles splits its rows evenly (12 sizes in two rows of 6, not 11 and a lone one): from the width it sets
+// --cols to the fewest columns that keep the same number of rows; CSS falls back to auto-fill without it.
+function balanceRows(grid: HTMLElement | null) {
+  if (!grid) return;
+  const fit = () => {
+    const count = grid.children.length, gap = 6;
+    // A tile is as wide as its longest label needs (about 8.5 px a character at 14 px semibold), never under 58 px.
+    const longest = Math.max(0, ...Array.from(grid.children, tile => Array.from(tile.querySelector("span")?.childNodes ?? []).filter(node => !(node instanceof Element && node.classList.contains("sr-only"))).map(node => node.textContent ?? "").join("").length));
+    const min = Math.max(58, Math.ceil(longest * 8.5 + 18));
+    const perRow = Math.max(1, Math.floor((grid.clientWidth + gap) / (min + gap)));
+    // One row keeps the tiles at their own width instead of stretching three sizes across the card.
+    const rows = Math.ceil(count / perRow), cols = String(rows === 1 ? perRow : Math.ceil(count / rows));
+    // Written only when it changes: the new rows change the grid's height, which must not set off another round.
+    if (grid.style.getPropertyValue("--cols") !== cols) grid.style.setProperty("--cols", cols);
+  };
+  fit();
+  const holder = grid as HTMLElement & { atlasBalance?: boolean };
+  if (holder.atlasBalance || typeof ResizeObserver === "undefined") return;
+  holder.atlasBalance = true;
+  let width = grid.clientWidth;
+  new ResizeObserver(() => { if (grid.clientWidth === width) return; width = grid.clientWidth; requestAnimationFrame(fit); }).observe(grid);
+  // Another colour can bring another number of sizes into the same grid.
+  new MutationObserver(fit).observe(grid, { childList: true });
+}
+
+// The chosen colour in a sideways row of colours is scrolled into view without moving the page.
+function keepChosenColourInView(row: HTMLElement) {
+  const chosen = row.querySelector<HTMLElement>('button[aria-pressed="true"]');
+  if (!chosen || row.scrollWidth <= row.clientWidth) return;
+  const left = chosen.offsetLeft - row.offsetLeft, right = left + chosen.offsetWidth;
+  if (left < row.scrollLeft || right > row.scrollLeft + row.clientWidth) row.scrollLeft = Math.max(0, left - (row.clientWidth - chosen.offsetWidth) / 2);
+}
+
 export function GlobalLinkOrder() {
   const { ready, status, error: accountError, user, refresh, pricing, state, act, lastActionError, catalogProducts, loadCatalog } = useMarket();
   // Delivery is chosen only in the cart; estimates follow its current speed.
@@ -267,6 +300,8 @@ export function GlobalLinkOrder() {
     [variant, setVariant] = useState(fallbackOptions.length === 1 ? fallbackOptions[0].label : ""),
     [variants, setVariants] = useState<ProductVariant[]>(fallbackOptions),
     [selectedColor, setSelectedColor] = useState(""),
+    // The colour under the pointer or focus, named in full in the step heading while a long row of colours is shown.
+    [colourPeek, setColourPeek] = useState(""),
     [selectedSize, setSelectedSize] = useState(""),
     [image, setImage] = useState(seed?.image ?? dealSeed?.image ?? ""),
     [images, setImages] = useState<string[]>(seedImages),
@@ -293,6 +328,8 @@ export function GlobalLinkOrder() {
       destination?: string;
     } | null>(null);
   // Several options of one product can go to the cart at once: option label → quantity.
+  // Also on the first paint of the colours, when a colour arrives already chosen from the link.
+  useEffect(() => { document.querySelectorAll<HTMLElement>(".lo-colour-rail").forEach(keepChosenColourInView); }, [selectedColor, variants]);
   const [picked, setPicked] = useState<Record<string, number>>(() => fallbackOptions.length === 1 ? { [fallbackOptions[0].label]: 1 } : {});
   // One option at a time by default: a tap replaces the choice. "Several or a quantity" turns on the list with
   // quantities (owner, 12 October 2026). A restored draft with several options opens in that mode.
@@ -302,6 +339,7 @@ export function GlobalLinkOrder() {
   const manyMode = multiPick || Object.keys(picked).length > 1;
   const [manualQuantity, setManualQuantity] = useState(1);
   const [comment, setComment] = useState("");
+  const [commentOpen, setCommentOpen] = useState(false);
   const [weightBasis, setWeightBasis] = useState<"store" | "estimate" | "title" | "catalog" | "customer">(seed ? "catalog" : "estimate");
   const [added, setAdded] = useState<{ lines: number; units: number } | null>(null);
   // Calculation details Atlas filled from the store, shown locked; null until a store check succeeds.
@@ -460,6 +498,9 @@ export function GlobalLinkOrder() {
       : inferNikeFootwearSizeSystem({sourceUrl:source,currency,category,title:name});
   const adidasSizes=variantsForColor.some(v=>/US/i.test(v.sizeLabel??"")&&adidasMenSize(brand,name,v.size??""));
   // Nike sizes switch between US, UK, EU and CM/JP by Nike's own chart, like adidas (owner, 12 October 2026).
+  // With the US / EU / UK / CM switch above the sizes, a tile shows the number only ("9.5", not "US 9.5"); the format
+  // stays for screen readers (29 October 2026).
+  const sizeTileText=(text:string)=>{const match=(adidasSizes||nikeSizeSystem)?/^(US|EU|UK|CM) (.+)$/.exec(text):null;return match?<><span className="sr-only">{match[1]} </span>{match[2]}</>:text;};
   const nikeSizeIn=(size:string)=>{const row=nikeSizeSystem?findNikeFootwearSizeRow(nikeSizeSystem,size):undefined;return !row?`US ${size}`:sizeFormat==='cm'?`CM ${row.cmLabel}`:`${sizeFormat.toUpperCase()} ${row[sizeFormat]}`;};
   const sizeDisplay=(size:string)=>{if(nikeSizeSystem)return nikeSizeIn(size);const alternate=variantsForColor.find(v=>v.size===size)?.sizeAlternates?.find(v=>v.system.toLowerCase()===sizeFormat);if(alternate)return `${sizeFormat.toUpperCase()} ${alternate.value}`;return adidasSizes?`${sizeFormat.toUpperCase()} ${adidasMenSize(brand,name,size)?.[sizeFormat]??size}`:size;};
   // Importers keep the store's axis name, some in Russian ("Размер", "Объём"): shown in the page language; a store's own
@@ -1115,7 +1156,28 @@ export function GlobalLinkOrder() {
   // One price on every tile says nothing: when all colours cost the same, the tiles show only the name (the price
   // stays in the button label and the total below; 27 October 2026).
   const colourPricesSame = variantDisplayPrices(variants).length <= 1;
-  const colourOptions = <div className="variant-options">{variantColors.map(color=>{const options=variants.filter(v=>v.color===color),photo=colourPhotosDiffer?colourPhoto(color):undefined,stock=options.some(v=>v.available&&v.quantity!==0),colorPrices=variantDisplayPrices(options),priceText=colorPrices.length>0?sourceFormat(colorPrices[0])+(colorPrices.length>1?` – ${sourceFormat(colorPrices[colorPrices.length-1])}`:""):"";return <button type="button" key={color} title={color} aria-label={[color,priceText,stock?"":k.outOfStock].filter(Boolean).join(", ")} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{photo&&<img src={sizedImage(photo,120)} alt="" width={36} height={36} decoding="async" onError={event=>{retryOriginal(event.currentTarget,photo)}}/>}<span>{colourName(color)}</span>{priceText&&!colourPricesSame&&<small className="lo-colour-price">{priceText}</small>}{!stock&&<small>{k.outOfStock}</small>}</button>})}</div>;
+  // Three shapes for the colours (29 October 2026, owner: no empty space around small photos, and no colour hidden).
+  // Up to six colours with their own photos: tiles whose photo fills the tile, the name under it, filling the width.
+  // More: the same tiles in one row that scrolls sideways, the chosen one kept in view. No photos: name chips.
+  const colourMode = !colourPhotosDiffer ? "names" : variantColors.length > 6 ? "rail" : "tiles";
+  const colourHeading = (colourMode === "rail" && colourPeek) || selectedColor || c.selectColor;
+  // Sizes with a fit word ("M Tall", "XL Short") fall into labelled rows — Regular, Short, Tall — whose tiles carry
+  // the size only, so "3XL Short" no longer has to fit a phone tile (29 October 2026). One fit: a single grid.
+  const sizeGroups = (() => {
+    const groups: { fit: string; sizes: { size: string; base?: string }[] }[] = [];
+    for (const size of variantSizes) {
+      const match = /^(.+?)\s+(Short|Tall|Long|Petite|Big|Slim|Wide|Regular)$/i.exec(size);
+      const fit = match ? match[2][0].toUpperCase() + match[2].slice(1).toLowerCase() : "";
+      let group = groups.find(item => item.fit === fit);
+      if (!group) { group = { fit, sizes: [] }; groups.push(group); }
+      group.sizes.push({ size, base: match ? match[1] : undefined });
+    }
+    return groups.sort((a, b) => (a.fit ? 1 : 0) - (b.fit ? 1 : 0));
+  })();
+  const sizeTile = (size:string,shown?:string)=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:shown?sizeDisplay(size):undefined} onClick={()=>choice&&togglePick(choice)}><span>{shown??sizeTileText(sizeDisplay(size))}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{sourceFormat(price)}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>};
+  const colourOptions = <div className={`variant-options lo-colour-${colourMode}`} style={{ "--cols": Math.min(variantColors.length, variantColors.length > 4 ? 3 : 4) } as CSSProperties} onMouseLeave={() => setColourPeek("")} onScroll={colourMode === "rail" ? event => { const row = event.currentTarget; row.toggleAttribute("data-end", row.scrollLeft + row.clientWidth >= row.scrollWidth - 4); } : undefined}>{variantColors.map(color=>{const options=variants.filter(v=>v.color===color),photo=colourPhotosDiffer?colourPhoto(color):undefined,stock=options.some(v=>v.available&&v.quantity!==0),colorPrices=variantDisplayPrices(options),priceText=colorPrices.length>0?sourceFormat(colorPrices[0])+(colorPrices.length>1?` – ${sourceFormat(colorPrices[colorPrices.length-1])}`:""):"";return <button type="button" key={color} title={color} className={stock?undefined:"is-out"} aria-label={[color,priceText,stock?"":k.outOfStock].filter(Boolean).join(", ")} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)} onMouseEnter={()=>setColourPeek(color)} onFocus={()=>setColourPeek(color)} onBlur={()=>setColourPeek("")}>
+    {/* eslint-disable-next-line @next/next/no-img-element -- a small store photo through sizedImage, as elsewhere on this page */}
+    {photo&&<img src={sizedImage(photo,240)} alt="" width={112} height={112} decoding="async" data-loading="" onLoad={event=>{event.currentTarget.removeAttribute("data-loading")}} ref={el=>{if(el?.complete&&el.naturalWidth)el.removeAttribute("data-loading")}} onError={event=>{event.currentTarget.removeAttribute("data-loading");retryOriginal(event.currentTarget,photo)}}/>}<span>{colourName(color)}</span>{priceText&&!colourPricesSame&&<small className="lo-colour-price">{priceText}</small>}{!stock&&<small>{k.outOfStock}</small>}</button>})}</div>;
   // The item data card: in the right column under the total, or, for a store Atlas does not read (the customer types
   // every field), under the item card across the wide left column. Rendered in one place only.
   const manualLayout = sourceCheckStatus === "manual";
@@ -1531,7 +1593,7 @@ export function GlobalLinkOrder() {
           <section className={"lo-product" + (image || checking ? "" : " lo-product-plain")} aria-labelledby="lo-product-name">
             {/* A catalog product keeps its photo and name through the check; a bare link gets their outline. */}
             {image ? <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang} compact/></div>
-              : checking && <div className="lo-gallery lo-skel lo-skel-photo" aria-hidden="true" />}
+              : checking && <div className="lo-gallery lo-skel lo-skel-photo" aria-hidden="true"><PhotoWait label={tx("Загружаем фото","Suratlar yuklanmoqda","Loading photos")} /></div>}
             <div className="lo-product-copy">
               {brand || sourceHost || !checking
                 ? <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
@@ -1547,7 +1609,7 @@ export function GlobalLinkOrder() {
               {/* Its own quiet line with a tick: as a tail after the price it wrapped alone, starting with "·", on phones (owner, 27 October 2026). */}
               {!checking && sourceCheckStatus === "verified" && checkedTime && <p className="lo-checked"><Check size={14} aria-hidden="true" />{lc.checkedAt(checkedTime)}</p>}
               {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{soldOutAtStore ? soldOutText : tx('Автоматическая проверка не завершена. Сохранённые данные предварительные.','Avtomatik tekshirish tugamadi. Saqlangan ma’lumotlar taxminiy.','Automatic verification is incomplete. Saved details are preliminary.')}</p>}
-              {!checking && orderable && variants.length > 1 && variantColors.length > 1 && <div className="variant-step lo-colours-aside"><div><b>{c.color}</b><span>{selectedColor || c.selectColor}</span></div>{colourOptions}</div>}
+              {!checking && orderable && variants.length > 1 && variantColors.length > 1 && <div className="variant-step lo-colours-aside"><div><b>{c.color}</b><span>{colourHeading}</span></div>{colourOptions}</div>}
               {/* Wide screens: what Atlas read from the store, beside the photo, so the card has no empty half
                   (owner, 26 October 2026). Phones keep it in the "Calculation data" card only. */}
               {!checking && orderable && dataMode !== "manual" && <dl className="lo-store-facts">
@@ -1555,7 +1617,7 @@ export function GlobalLinkOrder() {
                 {validBoxedWeight(weight) !== undefined && <div><dt>{tx('Вес для расчёта','Hisob uchun og‘irlik','Weight for the estimate')}</dt><dd>{formatKg(validBoxedWeight(weight)!, lang)} {lc.kg}</dd></div>}
                 <div><dt>{tx('Доставка магазина','Do‘kon yetkazishi','Store delivery')}</dt><dd>{lockedShippingText}</dd></div>
                 <div><dt>{tx('Наличие','Mavjudlik','Stock')}</dt><dd>{variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) ? tx('Магазин сообщает остаток по вариантам','Do‘kon variantlar bo‘yicha qoldiqni ko‘rsatadi','The store shows stock per option') : k.stockUnknown}</dd></div>
-                {sourceCheckStatus === "verified" && checkedTime && <div><dt>{tx('Цена сверена','Narx tekshirildi','Price checked')}</dt><dd>{tx(`сегодня в ${checkedTime}`,`bugun ${checkedTime} da`,`today at ${checkedTime}`)}</dd></div>}
+                {/* "Price checked" is not repeated here: the line under the price already says it (29 October 2026). */}
                 {(source || url) && <div className="lo-store-facts-link"><a className="lo-source-link" href={source || url} target="_blank" rel="noopener noreferrer">{c.original}<ExternalLink size={14} aria-hidden="true" /></a></div>}
               </dl>}
             </div>
@@ -1569,8 +1631,8 @@ export function GlobalLinkOrder() {
                 <Stepper value={picked[variants[0].label]??1} max={maxFor(variants[0])} label={k.quantity} k={k} onChange={value=>setPickQuantity(variants[0].label,value)}/>
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
-                {variantColors.length>0&&<div className={"variant-step"+(variantColors.length>1?" lo-colours-main":"")}><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:colourOptions}</div>}
-                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(sizeDisplay(selectedSize)):sizeStep?c.selectSize:c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}><span className="lo-size-seg">{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}</span>{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a className="lo-size-chart" href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">{tx("Таблица adidas","adidas jadvali","adidas chart")}<ExternalLink size={13} aria-hidden="true"/></a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:undefined} onClick={()=>choice&&togglePick(choice)}><span>{sizeDisplay(size)}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{sourceFormat(price)}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
+                {variantColors.length>0&&<div className={"variant-step"+(variantColors.length>1?" lo-colours-main":"")}><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{colourHeading}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:colourOptions}</div>}
+                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(sizeDisplay(selectedSize)):sizeStep?c.selectSize:c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}><span className="lo-size-seg">{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}</span>{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a className="lo-size-chart" href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">{tx("Таблица adidas","adidas jadvali","adidas chart")}<ExternalLink size={13} aria-hidden="true"/></a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}{sizeGroups.length>1?<div className="lo-size-groups">{sizeGroups.map(group=><div className="lo-size-group" key={group.fit||"regular"}><small>{group.fit||tx("Обычные","Oddiy","Regular")}</small><div className="variant-options sizes" ref={balanceRows}>{group.sizes.map(item=>sizeTile(item.size,item.base))}</div></div>)}</div>:<div className="variant-options sizes" ref={balanceRows}>{variantSizes.map(size=>sizeTile(size))}</div>}{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
                   {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
                   <div className="nike-size-chart"><b>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</b>
                     <p>{tx('Показаны размеры, найденные для этого товара. CM/JP — маркировка обуви Nike; длина стопы указана отдельно.','Bu tovar uchun topilgan o‘lchamlar ko‘rsatilgan. CM/JP — Nike poyabzali yorlig‘i; oyoq uzunligi alohida berilgan.','Shows sizes found for this item. CM/JP is Nike’s shoe-label size; foot length is listed separately.')}</p>
@@ -1615,10 +1677,11 @@ export function GlobalLinkOrder() {
             </>}
             {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted lo-stock-hint">{variants.some(isStockUnconfirmed) ? k.stockCheckFirst : k.stockUnknown}</p>}
             {/* The comment sits right under the chosen options (owner, 12 October 2026). */}
-            <div className="lo-comment">
+            {/* Folded into one line until wanted: most orders need no comment (29 October 2026); a written one stays open. */}
+            {commentOpen || comment ? <div className="lo-comment">
               <label htmlFor="order-comment"><b>{k.blocks.comment}</b><small>{k.commentHint}</small></label>
-              <textarea id="order-comment" rows={2} maxLength={500} value={comment} placeholder={k.commentPlaceholder} onChange={(e) => setComment(e.target.value)} />
-            </div>
+              <textarea id="order-comment" rows={2} maxLength={500} value={comment} placeholder={k.commentPlaceholder} autoFocus={commentOpen && !comment} onChange={(e) => setComment(e.target.value)} />
+            </div> : <button type="button" className="lo-source-link lo-comment-open" aria-expanded={false} onClick={() => setCommentOpen(true)}><Plus size={16} aria-hidden="true" />{tx("Комментарий для Atlas", "Atlas uchun izoh", "Comment for Atlas")}</button>}
           </section>}
           </section>
           </div>

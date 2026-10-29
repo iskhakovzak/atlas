@@ -450,20 +450,6 @@ html[data-theme="dark"] .lo-speed-chip { border-color: var(--night-line); backgr
 @media (min-width: 640px) {
   .lo-page .lo-colours-aside { display: block; margin-top: 14px; }
   .lo-page .lo-colours-main { display: none; }
-  .lo-page .lo-colours-aside .variant-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 120px)); gap: 8px; }
-  .lo-page .lo-colours-aside .variant-options button { justify-items: center; align-content: start; min-height: 0; padding: 6px 6px 8px; text-align: center; }
-  .lo-page .lo-colours-aside .variant-options button img { width: 64px; height: 64px; border-radius: 8px; }
-  .lo-page .lo-colours-aside .variant-options button > span { display: -webkit-box; overflow: hidden; font-size: 12px; font-weight: 600; line-height: 1.3; overflow-wrap: break-word; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .lo-page .lo-colours-aside .variant-options button small { font-size: 11.5px; }
-}
-/* Phones: the colours in the option card are an even grid of the same small tiles, not full-width bars of different
-   widths (12 October 2026). */
-@media (max-width: 639px) {
-  .lo-page .lo-colours-main .variant-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
-  .lo-page .lo-colours-main .variant-options button { justify-items: center; align-content: start; min-width: 0; min-height: 0; padding: 6px 6px 8px; text-align: center; }
-  .lo-page .lo-colours-main .variant-options button img { width: 56px; height: 56px; border-radius: 8px; }
-  .lo-page .lo-colours-main .variant-options button > span { display: -webkit-box; overflow: hidden; font-size: 12px; font-weight: 600; line-height: 1.3; overflow-wrap: break-word; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-  .lo-page .lo-colours-main .variant-options button small { font-size: 11.5px; }
 }
 /* The store link at the top: domain and path on one line, cut with an ellipsis, opening the full address. */
 a.lo-source-host { text-decoration: none; }
@@ -571,7 +557,6 @@ html[data-theme="dark"] .lo-added { border-color: rgba(128, 208, 172, .35); back
   /* Store photos are mostly portrait (4:5, 3:4): a taller box on phones keeps them from shrinking to a stripe. */
   .lo-gallery .product-gallery-stage { height: clamp(240px, 84vw, 360px); }
   .lo-gallery .product-gallery-thumbnails { display: none; }
-  .lo-gallery .product-gallery-controls { margin-top: 4px; }
 }
 .lo-product h2 { margin: 2px 0 6px; color: var(--home-ink); font-size: 20px; font-weight: 800; line-height: 1.3; }
 .lo-store-price { margin: 0; color: var(--home-muted); font-size: 15px; }
@@ -1065,11 +1050,7 @@ html[data-theme="dark"] .lo-store-facts { border-top-color: var(--night-line); }
 }
 .lo-page .lo-colours-main .variant-options button[aria-pressed="true"] small,
 .lo-page .lo-colours-aside .variant-options button[aria-pressed="true"] small { color: var(--home-muted); opacity: 1; }
-.lo-page .lo-colours-main .variant-options button img,
-.lo-page .lo-colours-aside .variant-options button img { background: #fff; }
 @media (max-width: 639px) {
-  .lo-page .lo-colours-main .variant-options button { min-height: 108px; }
-  .lo-page .lo-colours-main .variant-options button img { width: 64px; height: 64px; }
   .lo-page .variant-step > div:first-child { display: grid; justify-content: stretch; gap: 2px; }
   .lo-page .variant-step > div:first-child span { overflow: hidden; font-size: 14px; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 }
@@ -1109,3 +1090,86 @@ html[data-theme="dark"] .lo-page .variant-options.sizes button small.lo-stock { 
 html[data-theme="dark"] .lo-load-stage { color: var(--night-muted, #9ba6a0); }
 html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, #80d0ac); }
 
+
+/* Colours by how many there are (app/global-link-order.tsx colourMode, 29 October 2026; owner: no empty space around
+   small photos, many colours and few must both look composed). Tiles: the photo fills the tile, the name under it.
+   Rail: the same tiles in one sideways row. Names: chips as wide as their words. */
+.lo-page .variant-options.lo-colour-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+@media (max-width: 639px) {
+  /* Up to four in one even row; five or six in rows of three, never a lone tile stretched across. */
+  .lo-page .variant-options.lo-colour-tiles { grid-template-columns: repeat(var(--cols, 3), minmax(0, 128px)); }
+}
+/* Seven colours and more: one row of the same tiles that scrolls sideways (owner: colours are never hidden, they
+   scroll). Each tile snaps; the row's far edge fades so the next tile shows there is more; a thin bar under the row
+   stays for mouse users, and the heading names the colour under the pointer in full. */
+.lo-page .variant-options.lo-colour-rail {
+  display: grid; grid-auto-flow: column; grid-auto-columns: 96px; gap: 8px;
+  margin-inline: -2px; padding: 2px 2px 8px; overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; scroll-padding-inline: 2px; scrollbar-width: thin; scrollbar-color: var(--home-line) transparent;
+  -webkit-mask: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+}
+.lo-page .lo-colour-rail[data-end] { -webkit-mask: none; mask: none; }
+.lo-page .lo-colour-rail button { scroll-snap-align: start; }
+@media (max-width: 639px) { .lo-page .variant-options.lo-colour-rail { grid-auto-columns: 88px; } }
+.lo-page :is(.lo-colour-tiles, .lo-colour-rail) button { display: grid; align-content: start; justify-items: stretch; gap: 0; min-width: 0; min-height: 0; padding: 3px 3px 7px; border-radius: 14px; text-align: center; }
+.lo-page :is(.lo-colour-tiles, .lo-colour-rail) button img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; border-radius: 11px; background: #fff; }
+.lo-page :is(.lo-colour-tiles, .lo-colour-rail) button > span { display: -webkit-box; overflow: hidden; margin-top: 6px; padding: 0 4px; font-size: 12px; font-weight: 600; line-height: 1.3; overflow-wrap: break-word; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.lo-page :is(.lo-colour-tiles, .lo-colour-rail) button small { padding: 0 4px; font-size: 11.5px; }
+.lo-page .variant-options.lo-colour-names { display: flex; flex-wrap: wrap; gap: 8px; }
+.lo-page .lo-colour-names button { min-height: 44px; padding: 8px 14px; font-size: 14px; font-weight: 600; }
+.lo-page .lo-colour-names button[aria-pressed="true"] { padding-right: 32px; }
+.lo-page .lo-colour-names button[aria-pressed="true"]::after { top: 50%; right: 9px; transform: translateY(-50%); }
+/* A colour photo on its way shimmers in its place and fades in when it lands. */
+.lo-page :is(.lo-colour-tiles, .lo-colour-rail) img[data-loading] { background: linear-gradient(100deg, var(--skel-a) 30%, var(--skel-b) 50%, var(--skel-a) 70%) 0 0 / 220% 100%; animation: lo-shimmer 1.4s ease-in-out infinite; }
+.lo-page :is(.lo-colour-tiles, .lo-colour-rail) img:not([data-loading]) { animation: lo-colour-in .4s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes lo-colour-in { from { opacity: 0; transform: scale(.94); } }
+
+/* Before the store answers: the photo's place shows the named wait (PhotoWait, app/product-gallery.tsx) over the
+   sweep of light. */
+.lo-skel-photo { position: relative; overflow: hidden; }
+/* The gallery that replaces the outline rises in softly. */
+.lo-gallery:not(.lo-skel) { animation: lo-colour-in .45s cubic-bezier(.22, 1, .36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .lo-page :is(.lo-colour-tiles, .lo-colour-rail) img { animation: none !important; }
+  .lo-gallery:not(.lo-skel) { animation: none; }
+}
+
+/* No empty space under the photo (29 October 2026, owner): beside the photo the colours keep to one row where they
+   fit and the facts do not repeat the check time; whatever height the right column still has, the photo's frame
+   grows to it, so both columns end together. */
+@media (min-width: 640px) {
+  .lo-product:not(.lo-product-plain) { align-items: stretch; }
+  .lo-product:not(.lo-product-plain) > .lo-gallery:not(.lo-skel) { display: flex; flex-direction: column; }
+  .lo-product .lo-gallery .product-gallery { display: flex; flex: 1; flex-direction: column; }
+  .lo-product .lo-gallery .product-gallery-frame { display: flex; flex: 1; flex-direction: column; }
+  .lo-product .lo-gallery .product-gallery-stage { flex: 1; height: auto; min-height: 300px; }
+}
+@media (min-width: 1100px) {
+  .lo-product .lo-gallery .product-gallery-stage { min-height: 380px; }
+}
+
+/* Sizes, 29 October 2026 (owner: more compact and smarter). The format switch shares the heading's row on wide
+   screens; tiles carry the number only (the switch names the format) and fit a full run of sizes in one row. */
+.lo-page .variant-options.sizes { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px; }
+.lo-page .variant-options.sizes[style*="--cols"] { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+.lo-page .variant-options.sizes button { min-height: 46px; padding: 4px; border-radius: 11px; }
+.lo-page .variant-options.sizes button > span { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 639px) { .lo-page .variant-options.sizes button > span { font-size: 13.5px; } .lo-page .variant-options.sizes button { min-height: 44px; } }
+@media (min-width: 640px) {
+  .lo-page .variant-step:has(> .lo-size-formats) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 16px; }
+  .lo-page .variant-step:has(> .lo-size-formats) > * { grid-column: 1 / -1; }
+  .lo-page .variant-step:has(> .lo-size-formats) > div:first-child { grid-column: 1; grid-row: 1; }
+  .lo-page .variant-step:has(> .lo-size-formats) > .lo-size-formats { grid-column: 2; grid-row: 1; justify-content: flex-end; margin: 0; }
+  .lo-page .variant-step:has(> .lo-size-formats) > .lo-size-formats > small { text-align: right; }
+  .lo-page .variant-step:has(> .lo-size-formats) > .variant-options.sizes { margin-top: 10px; }
+}
+/* The comment, folded into one line until wanted. */
+.lo-variant .lo-comment-open { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 6px; padding: 0; border: 0; background: none; color: var(--home-accent); font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; }
+.lo-variant .lo-comment-open:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* Sizes with fit words in labelled rows: Regular, Short, Tall (app/global-link-order.tsx sizeGroups). */
+.lo-page .lo-size-groups { display: grid; gap: 12px; }
+.lo-page .lo-size-group { display: grid; gap: 6px; }
+.lo-page .lo-size-group > small { color: var(--home-muted); font-size: 12.5px; font-weight: 700; letter-spacing: .02em; }
+@media (min-width: 640px) {
+  .lo-page .variant-step:has(> .lo-size-formats) > .lo-size-groups { margin-top: 10px; }
+}
