@@ -1165,3 +1165,10 @@ html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, #80d0ac)
 /* The comment, folded into one line until wanted. */
 .lo-variant .lo-comment-open { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 6px; padding: 0; border: 0; background: none; color: var(--home-accent); font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; }
 .lo-variant .lo-comment-open:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* Sizes with fit words in labelled rows: Regular, Short, Tall (app/global-link-order.tsx sizeGroups). */
+.lo-page .lo-size-groups { display: grid; gap: 12px; }
+.lo-page .lo-size-group { display: grid; gap: 6px; }
+.lo-page .lo-size-group > small { color: var(--home-muted); font-size: 12.5px; font-weight: 700; letter-spacing: .02em; }
+@media (min-width: 640px) {
+  .lo-page .variant-step:has(> .lo-size-formats) > .lo-size-groups { margin-top: 10px; }
+}
