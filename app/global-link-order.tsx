@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, Plus, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, PencilLine, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, Plus, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
 import Link from "@/components/site-link";
 import { toast } from "@/lib/market/toast";
 import { useMarket } from "@/lib/market/store";
@@ -1207,7 +1207,7 @@ export function GlobalLinkOrder() {
             {locks.price ? <LockedFacts hint={lc.locked.value} rows={[{ id: "amount", label: k.price, value: lockedPriceText }, { id: "currency", label: k.currency, value: currency }]} /> : <div className="lo-block-row">
               <div className="field">
                 <label htmlFor="amount">{k.price}</label>
-                <input id="amount" {...issueProps('amount')} type="number" inputMode="decimal" required min=".01" step=".01" value={amount} onChange={(e) => {setAmount(e.target.value); }} />
+                <span className="lo-unit-input"><input id="amount" {...issueProps('amount')} type="number" inputMode="decimal" required min=".01" step=".01" value={amount} onChange={(e) => {setAmount(e.target.value); }} /><span aria-hidden="true">{currency}</span></span>
               </div>
             </div>}
             {variants.some(item => item.price !== undefined) && picks.length > 1 && <small className="micro">{tx("У каждого выбранного варианта своя цена магазина.","Har bir tanlangan variantning o‘z do‘kon narxi bor.","Each chosen option keeps its own store price.")}</small>}
@@ -1220,8 +1220,8 @@ export function GlobalLinkOrder() {
               {storeShippingState !== "free" && <p className="lo-block-state">{shippingEstimated ? k.storeShippingUnknown : k.storeShippingStated}</p>}
             </> : <div className="lo-block-row">
               <div className="field">
-                <label htmlFor="shipping">{k.storeShippingAmount}, {shippingCurrency}</label>
-                <input id="shipping" {...issueProps('shipping')} type="number" inputMode="decimal" required min="0" step=".01" value={shipping} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true);  }} />
+                <label htmlFor="shipping">{k.storeShippingAmount}</label>
+                <span className="lo-unit-input"><input id="shipping" {...issueProps('shipping')} type="number" inputMode="decimal" required min="0" step=".01" value={shipping} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true);  }} /><span aria-hidden="true">{shippingCurrency}</span></span>
               </div>
               <p className="lo-block-state">{shippingEstimated ? k.storeShippingUnknown : k.storeShippingStated}</p>
             </div>}
@@ -1254,24 +1254,24 @@ export function GlobalLinkOrder() {
           </fieldset>
           <fieldset className="lo-block">
             <legend>{k.blocks.weight}</legend>
-            {locks.category && locks.weight ? <LockedFacts hint={lc.locked.value} rows={[{ id: "category", label: k.category, value: displayCategoryName(category, lang) }, { id: "weight", label: k.boxedWeight, value: weightText }]} /> : <div className="lo-block-row">
-              <div className="field">
-                <label htmlFor="category">{k.category}</label>
-                <select id="category" className="select-control" value={canonicalCategory(category)} onChange={(e) => {
-                  const canonical = canonicalCategory(e.target.value);
-                  const estimate = estimateBoxedWeight(canonical, name);
-                  setCategory(canonical);
-                  setWeight(String(estimate.kg));
-                  setWeightBasis(estimate.basis === "title" ? "title" : "estimate");
-                  setWeightOrigin(tx("Оценка Atlas","Atlas bahosi","Atlas estimate"));
-
-                }}>
-                  {weightCategories.map((value) => <option key={value} value={value}>{displayCategoryName(value,lang)}</option>)}
-                </select>
+            {locks.category && locks.weight ? <LockedFacts hint={lc.locked.value} rows={[{ id: "category", label: k.category, value: displayCategoryName(category, lang) }, { id: "weight", label: k.boxedWeight, value: weightText }]} /> : <div className="lo-block-stack">
+              {/* Categories as one tap each instead of a drop-down (29 October 2026): the choice sets the Atlas weight
+                  estimate at once, and the chosen one is visible without opening anything. */}
+              <div className="field lo-cat-field">
+                <span className="lo-field-label" id="category-label">{k.category}</span>
+                <div className="lo-cat-chips" role="radiogroup" aria-labelledby="category-label">
+                  {weightCategories.map((value) => <button type="button" role="radio" key={value} aria-checked={canonicalCategory(category) === value} onClick={() => {
+                    const estimate = estimateBoxedWeight(value, name);
+                    setCategory(value);
+                    setWeight(String(estimate.kg));
+                    setWeightBasis(estimate.basis === "title" ? "title" : "estimate");
+                    setWeightOrigin(tx("Оценка Atlas","Atlas bahosi","Atlas estimate"));
+                  }}>{displayCategoryName(value,lang)}</button>)}
+                </div>
               </div>
               <div className="field">
                 <label htmlFor="weight">{k.boxedWeight}</label>
-                <input id="weight" {...issueProps('weight')} type="number" inputMode="decimal" required min=".01" max="49.5" step=".01" value={weight}
+                <span className="lo-unit-input lo-unit-short"><input id="weight" {...issueProps('weight')} type="number" inputMode="decimal" required min=".01" max="49.5" step=".01" value={weight}
                   onChange={(e) => { setWeight(e.target.value); setWeightBasis("customer"); setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer"));  }}
                   onBlur={() => {
                     const valid=validBoxedWeight(weight);
@@ -1281,7 +1281,7 @@ export function GlobalLinkOrder() {
                     setWeightBasis(estimate.basis==="title"?"title":"estimate");
                     setWeightOrigin(tx("Оценка Atlas","Atlas bahosi","Atlas estimate"));
                     toast.error(tx("Вес должен быть от 0,01 до 49,5 кг. Вернули оценку Atlas.","Og‘irlik 0,01–49,5 kg bo‘lishi kerak. Atlas bahosi qaytarildi.","Weight must be between 0.01 and 49.5 kg. The Atlas estimate was restored."));
-                  }} />
+                  }} /><span aria-hidden="true">{lc.kg}</span></span>
               </div>
             </div>}
             {/* A locked estimate is not the customer's to correct: the warehouse weighs the parcel. */}
@@ -1418,11 +1418,11 @@ export function GlobalLinkOrder() {
           ? <a className="lo-source-host" href={source} target="_blank" rel="noopener noreferrer" title={source}><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span><ExternalLink size={13} aria-hidden="true" /><span className="sr-only"> ({lc.openStore})</span></a>
           : <span className="lo-source-host"><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span></span>}
         {/* The check itself is told in the card below; here only the way back to another link, once it is done. */}
-        {/* Rendered while the store is read too, only hidden: the row keeps its height, so the card below does not jump
-            down when the check ends (mobile CLS, 26 October 2026). */}
-        <span className={"lo-source-actions" + (checking ? " is-waiting" : "")} aria-hidden={checking || undefined} inert={checking || undefined}>
-          <button type="button" className="lo-source-link" onClick={editLink}>{lc.change}</button>
-          <button type="button" className="lo-source-link" title={lc.replaceHint} onClick={() => void replaceLink()}><ClipboardPaste size={15} aria-hidden="true" />{lc.replace}</button>
+        {/* One line on every screen (29 October 2026, owner: the link card was tall and loud): on phones the two actions
+            are round icon buttons beside the link, with their words for screen readers; they stay usable during the check. */}
+        <span className="lo-source-actions">
+          <button type="button" className="lo-source-link" aria-label={lc.change} title={lc.change} onClick={editLink}><PencilLine size={15} aria-hidden="true" /><span className="lo-source-word">{lc.change}</span></button>
+          <button type="button" className="lo-source-link" aria-label={lc.replace} title={lc.replaceHint} onClick={() => void replaceLink()}><ClipboardPaste size={15} aria-hidden="true" /><span className="lo-source-word">{lc.replace}</span></button>
         </span>
       </div>}
 
