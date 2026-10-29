@@ -215,9 +215,9 @@ function balanceRows(grid: HTMLElement | null) {
   if (!grid) return;
   const fit = () => {
     const count = grid.children.length, gap = 6;
-    // A tile is as wide as its longest label needs (about 9 px a character at 15 px bold), never under 58 px.
+    // A tile is as wide as its longest label needs (about 8.5 px a character at 14 px semibold), never under 58 px.
     const longest = Math.max(0, ...Array.from(grid.children, tile => Array.from(tile.querySelector("span")?.childNodes ?? []).filter(node => !(node instanceof Element && node.classList.contains("sr-only"))).map(node => node.textContent ?? "").join("").length));
-    const min = Math.max(58, Math.ceil(longest * 9 + 18));
+    const min = Math.max(58, Math.ceil(longest * 8.5 + 18));
     const perRow = Math.max(1, Math.floor((grid.clientWidth + gap) / (min + gap)));
     // One row keeps the tiles at their own width instead of stretching three sizes across the card.
     const rows = Math.ceil(count / perRow), cols = String(rows === 1 ? perRow : Math.ceil(count / rows));

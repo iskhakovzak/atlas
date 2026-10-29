@@ -1153,7 +1153,8 @@ html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, #80d0ac)
 .lo-page .variant-options.sizes { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px; }
 .lo-page .variant-options.sizes[style*="--cols"] { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
 .lo-page .variant-options.sizes button { min-height: 46px; padding: 4px; border-radius: 11px; }
-.lo-page .variant-options.sizes button > span { font-size: 15px; font-variant-numeric: tabular-nums; }
+.lo-page .variant-options.sizes button > span { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+@media (max-width: 639px) { .lo-page .variant-options.sizes button > span { font-size: 13.5px; } .lo-page .variant-options.sizes button { min-height: 44px; } }
 @media (min-width: 640px) {
   .lo-page .variant-step:has(> .lo-size-formats) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 16px; }
   .lo-page .variant-step:has(> .lo-size-formats) > * { grid-column: 1 / -1; }
