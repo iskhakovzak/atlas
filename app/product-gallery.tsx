@@ -22,6 +22,9 @@ export function ProductGallery({ product, images, activeImage, onImageChange, lo
   const photos = dedupeSafeImages(images ?? [product.image, ...(product.sourceImages ?? [])], product.sourceUrl ?? 'https://atlasmarket.uz/', 12);
   const [selection, setSelection] = useState('');
   const [failed, setFailed] = useState<string[]>([]);
+  // Photos still on their way show a soft sheen in their place and then settle in (motion.css, 29 October 2026).
+  const [loaded, setLoaded] = useState<string[]>([]);
+  const markLoaded = (photo: string) => setLoaded(current => current.includes(photo) ? current : [...current, photo]);
   const [dragging, setDragging] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: number; x: number; y: number; left: number } | null>(null);
@@ -86,11 +89,11 @@ export function ProductGallery({ product, images, activeImage, onImageChange, lo
       onScroll={onScroll} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp}
       onPointerCancel={() => { if (drag.current) { const from = Math.round(drag.current.left / (stage.current?.clientWidth || 1)); drag.current = null; setDragging(false); scrollTo(from); } }}
       onKeyDown={event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); scrollTo(index + (event.key === 'ArrowLeft' ? -1 : 1)); } }}>
-      {photos.length ? photos.map((photo, position) => <div className="product-gallery-slide" key={photo} aria-hidden={position !== index}>
+      {photos.length ? photos.map((photo, position) => <div className={`product-gallery-slide${loaded.includes(photo) || failed.includes(photo) ? '' : ' is-loading'}`} key={photo} aria-hidden={position !== index}>
         {!failed.includes(photo)
           // Merchant photos remain safe public HTTPS URLs, without proxying.
           // eslint-disable-next-line @next/next/no-img-element
-          ? <img className="product-img" src={sizedImage(photo, 1000)} alt={`${product.name} — ${copy.photo} ${position + 1}`} loading={position === 0 ? 'eager' : 'lazy'} decoding="async" referrerPolicy="no-referrer" draggable={false} onError={event => { if (!retryOriginal(event.currentTarget, photo)) setFailed(current => [...current, photo]); }}/>
+          ? <img className="product-img" src={sizedImage(photo, 1000)} alt={`${product.name} — ${copy.photo} ${position + 1}`} loading={position === 0 ? 'eager' : 'lazy'} decoding="async" referrerPolicy="no-referrer" draggable={false} ref={el => { if (el?.complete && el.naturalWidth) markLoaded(photo); }} onLoad={() => markLoaded(photo)} onError={event => { if (!retryOriginal(event.currentTarget, photo)) setFailed(current => [...current, photo]); }}/>
           : <div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div>}
       </div>) : <div className="product-gallery-slide"><div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div></div>}
     </div>

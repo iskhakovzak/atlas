@@ -743,3 +743,15 @@ html[data-theme="dark"] .site-main .catalog-page .find-card .find-purchase .btn.
   .site-main .find-card .find-total-head .find-total-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .site-main .find-card .find-total-head .find-total-label-short { display: inline; }
 }
+
+/* A photo on its way (app/product-gallery.tsx, 29 October 2026): a soft light sweeps its place, then the photo settles
+   in from a slight blur and scale instead of popping onto a white square. */
+@keyframes gallery-sheen { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.product-gallery-slide .product-img { transition: opacity .45s ease-out, transform .7s cubic-bezier(.22, 1, .36, 1), filter .5s ease-out; }
+.product-gallery-slide.is-loading { background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, currentColor 7%, transparent) 50%, transparent 70%) 0 0 / 220% 100%; animation: gallery-sheen 1.4s ease-in-out infinite; }
+.product-gallery-slide.is-loading .product-img { opacity: 0; transform: scale(1.04); filter: blur(10px); }
+@media (prefers-reduced-motion: reduce) {
+  .product-gallery-slide.is-loading { animation: none; }
+  .product-gallery-slide .product-img { transition: opacity .2s; }
+  .product-gallery-slide.is-loading .product-img { transform: none; filter: none; }
+}
