@@ -1094,7 +1094,7 @@ html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, #80d0ac)
 /* Colours by how many there are (app/global-link-order.tsx colourMode, 29 October 2026; owner: no empty space around
    small photos, many colours and few must both look composed). Tiles: the photo fills the tile, the name under it.
    Rail: the same tiles in one sideways row. Names: chips as wide as their words. */
-.lo-page .variant-options.lo-colour-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.lo-page .variant-options.lo-colour-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
 @media (max-width: 639px) {
   /* Up to four in one even row; five or six in rows of three, never a lone tile stretched across. */
   .lo-page .variant-options.lo-colour-tiles { grid-template-columns: repeat(var(--cols, 3), minmax(0, 128px)); }
@@ -1140,4 +1140,18 @@ html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, #80d0ac)
 @media (prefers-reduced-motion: reduce) {
   .lo-page :is(.lo-colour-tiles, .lo-colour-rail) img { animation: none !important; }
   .lo-skel-photo::after, .lo-gallery:not(.lo-skel) { animation: none; }
+}
+
+/* No empty space under the photo (29 October 2026, owner): beside the photo the colours keep to one row where they
+   fit and the facts do not repeat the check time; whatever height the right column still has, the photo's frame
+   grows to it, so both columns end together. */
+@media (min-width: 640px) {
+  .lo-product:not(.lo-product-plain) { align-items: stretch; }
+  .lo-product:not(.lo-product-plain) > .lo-gallery:not(.lo-skel) { display: flex; flex-direction: column; }
+  .lo-product .lo-gallery .product-gallery { display: flex; flex: 1; flex-direction: column; }
+  .lo-product .lo-gallery .product-gallery-frame { display: flex; flex: 1; flex-direction: column; }
+  .lo-product .lo-gallery .product-gallery-stage { flex: 1; height: auto; min-height: 300px; }
+}
+@media (min-width: 1100px) {
+  .lo-product .lo-gallery .product-gallery-stage { min-height: 380px; }
 }

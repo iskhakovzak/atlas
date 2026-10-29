@@ -1574,7 +1574,7 @@ export function GlobalLinkOrder() {
                 {validBoxedWeight(weight) !== undefined && <div><dt>{tx('Вес для расчёта','Hisob uchun og‘irlik','Weight for the estimate')}</dt><dd>{formatKg(validBoxedWeight(weight)!, lang)} {lc.kg}</dd></div>}
                 <div><dt>{tx('Доставка магазина','Do‘kon yetkazishi','Store delivery')}</dt><dd>{lockedShippingText}</dd></div>
                 <div><dt>{tx('Наличие','Mavjudlik','Stock')}</dt><dd>{variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) ? tx('Магазин сообщает остаток по вариантам','Do‘kon variantlar bo‘yicha qoldiqni ko‘rsatadi','The store shows stock per option') : k.stockUnknown}</dd></div>
-                {sourceCheckStatus === "verified" && checkedTime && <div><dt>{tx('Цена сверена','Narx tekshirildi','Price checked')}</dt><dd>{tx(`сегодня в ${checkedTime}`,`bugun ${checkedTime} da`,`today at ${checkedTime}`)}</dd></div>}
+                {/* "Price checked" is not repeated here: the line under the price already says it (29 October 2026). */}
                 {(source || url) && <div className="lo-store-facts-link"><a className="lo-source-link" href={source || url} target="_blank" rel="noopener noreferrer">{c.original}<ExternalLink size={14} aria-hidden="true" /></a></div>}
               </dl>}
             </div>
