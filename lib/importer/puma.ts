@@ -61,7 +61,8 @@ export function applyPumaSizes(extracted: Extracted, payload: unknown, id: strin
     const sizes = variant.color ? byColor.get(variant.color) : undefined;
     if (!sizes) { variants.push(variant); continue; }
     for (const size of sizes) variants.push({
-      ...variant, id: size.productId ?? variant.id, productId: size.productId, size: size.size, label: `${variant.color} / ${size.size}`,
+      // us.puma.com sells in US sizes; the label says so instead of a bare "10.5".
+      ...variant, id: size.productId ?? variant.id, productId: size.productId, size: size.size, sizeLabel: 'Size US', label: `${variant.color} / ${size.size}`,
       available: variant.available && size.orderable, availabilityKnown: true,
     });
     if (variants.length >= 400) break;

@@ -508,6 +508,7 @@ export function GlobalLinkOrder() {
   const localSizeLabel = (label: string) => {
     const key = label.replace(/\s+/g, " ").trim().toLowerCase();
     return key === "размер" || key === "size" ? tx("Размер", "O‘lcham", "Size")
+      : key === "size us" ? tx("Размер · US", "O‘lcham · US", "Size · US")
       : key === "объём" || key === "объем" ? tx("Объём", "Hajm", "Size")
       : key === "вариант" ? tx("Вариант", "Variant", "Option")
       : key === "band / cup" ? tx("Обхват / чашка", "Aylana / chashka", "Band / cup")
@@ -522,7 +523,7 @@ export function GlobalLinkOrder() {
     : [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)).map(localSizeLabel))].join(' / ') || (lang==='ru'?'Размер / модель':isUzbek(lang)?uzText(lang, 'O‘lcham / model'):'Size / model');
   // The step is about sizes (not a volume or a model): its hint says "choose a size".
   const sizeLabels = variantsForColor.map(item => item.sizeLabel?.trim().toLowerCase()).filter(Boolean);
-  const sizeStep = Boolean(nikeSizeSystem || adidasSizes || (sizeLabels.length && sizeLabels.every(label => label === 'размер' || label === 'size')));
+  const sizeStep = Boolean(nikeSizeSystem || adidasSizes || (sizeLabels.length && sizeLabels.every(label => label === 'размер' || label === 'size' || label === 'size us')));
   // The store's product price applies to options it lists without their own; only from a store check (locked there).
   const storeBasePrice=sourceCheckStatus==='verified'&&atlasLocks?.price&&!unlocked.price?basePrice:undefined;
   function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){

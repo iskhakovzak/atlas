@@ -18,6 +18,7 @@ test('PUMA sizes become colour × size options with the store stock; other colou
   assert.deepEqual(result.variants.map(v => [v.label, v.size, v.available, v.availabilityKnown]), [
     ['PUMA Black-Lime Squeeze / 7', '7', false, true], ['PUMA Black-Lime Squeeze / 7.5', '7.5', true, true], ['White', undefined, true, false]]);
   assert.equal(result.variants[1].id, '199264510186');
+  assert.equal(result.variants[1].sizeLabel, 'Size US');
   assert.ok(!result.warnings.some(w => w.startsWith('PUMA опубликовал цвета')));
   // Another product's answer changes nothing.
   assert.equal(applyPumaSizes(page, answer, '999999'), page);
