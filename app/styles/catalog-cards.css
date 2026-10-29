@@ -783,3 +783,21 @@ html[data-theme="dark"] .product-gallery-marker i { background: rgba(241, 238, 2
 html[data-theme="dark"] .product-gallery-marker i.is-on { background: var(--night-ink, #f1eee5); }
 html[data-theme="dark"] .product-gallery-marker span { color: var(--night-ink, #f1eee5); }
 @media (prefers-reduced-motion: reduce) { .product-gallery-arrow, .product-gallery-marker i { transition: none; } }
+
+/* The named wait for a photo (PhotoWait): a ring turning around a picture, a caption under it, centred over the
+   photo's place; it goes once the photo has arrived, and waits .15 s before showing so a quick photo does not flash it. */
+.product-gallery-slide { position: relative; }
+.photo-wait { position: absolute; inset: 0; z-index: 1; display: grid; place-content: center; justify-items: center; gap: 10px; color: var(--home-muted, #6d786f); pointer-events: none; animation: photo-wait-in .3s ease-out .15s both; }
+.photo-wait-ring { position: relative; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--home-surface, #fff); color: var(--home-accent, #1f4d3b); box-shadow: 0 1px 2px rgba(22, 33, 28, .08), 0 6px 18px rgba(22, 33, 28, .08); }
+.photo-wait-ring::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 55%, currentColor 100%); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); animation: photo-wait-spin .9s linear infinite; }
+.photo-wait-ring svg { animation: photo-wait-pulse 1.6s ease-in-out infinite; }
+.photo-wait small { color: inherit; font-size: 13px; font-weight: 600; letter-spacing: .01em; }
+@keyframes photo-wait-spin { to { transform: rotate(1turn); } }
+@keyframes photo-wait-pulse { 50% { transform: scale(.88); opacity: .7; } }
+@keyframes photo-wait-in { from { opacity: 0; transform: translateY(4px); } }
+html[data-theme="dark"] .photo-wait-ring { background: var(--night-raised, #232a26); color: var(--night-jade, #80d0ac); box-shadow: 0 6px 18px rgba(0, 0, 0, .3); }
+html[data-theme="dark"] .photo-wait { color: var(--night-muted, #9ba6a0); }
+@media (prefers-reduced-motion: reduce) {
+  .photo-wait, .photo-wait-ring svg { animation: none; }
+  .photo-wait-ring::before { animation-duration: 2.4s; }
+}

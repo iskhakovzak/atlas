@@ -1,13 +1,22 @@
 'use client';
 
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Image as ImageIcon, Package } from 'lucide-react';
 import { dedupeSafeImages } from '@/lib/importer/extract';
 import { gallerySwipeStep } from '@/lib/market/gallery';
 import { retryOriginal, sizedImage } from '@/lib/market/image-size';
 import type { Product } from '@/lib/market/domain';
 import {pickLocale} from '@/lib/market/uz-cyrl';
 import type {Locale} from '@/lib/market/i18n';
+
+/** The wait for a photo, named: a turning ring around a picture and a caption, over a sweep of light (29 October 2026,
+ * owner: the bare shimmer did not say that photos were on their way). */
+export function PhotoWait({ label }: { label: string }) {
+  return <span className="photo-wait" aria-hidden="true">
+    <span className="photo-wait-ring"><ImageIcon size={22} strokeWidth={1.8}/></span>
+    <small>{label}</small>
+  </span>;
+}
 
 /**
  * UI-only gallery: selected photos never change the purchased variant or its price.
@@ -32,9 +41,9 @@ export function ProductGallery({ product, images, activeImage, onImageChange, lo
   const wanted = activeImage ?? selection;
   const index = Math.max(0, photos.indexOf(wanted));
   const copy = pickLocale({
-    ru: { gallery: 'Фотографии товара', previous: 'Предыдущее фото', next: 'Следующее фото', hint: 'Листайте фото влево или вправо', photo: 'Фото', of: 'из', missing: 'Фото недоступно' },
-    uz: { gallery: 'Tovar suratlari', previous: 'Oldingi surat', next: 'Keyingi surat', hint: 'Suratni chapga yoki o‘ngga suring', photo: 'Surat', of: '/', missing: 'Surat mavjud emas' },
-    en: { gallery: 'Product photos', previous: 'Previous photo', next: 'Next photo', hint: 'Swipe left or right to browse photos', photo: 'Photo', of: 'of', missing: 'Photo unavailable' },
+    ru: { gallery: 'Фотографии товара', previous: 'Предыдущее фото', next: 'Следующее фото', hint: 'Листайте фото влево или вправо', photo: 'Фото', of: 'из', missing: 'Фото недоступно', loading: 'Загружаем фото' },
+    uz: { gallery: 'Tovar suratlari', previous: 'Oldingi surat', next: 'Keyingi surat', hint: 'Suratni chapga yoki o‘ngga suring', photo: 'Surat', of: '/', missing: 'Surat mavjud emas', loading: 'Surat yuklanmoqda' },
+    en: { gallery: 'Product photos', previous: 'Previous photo', next: 'Next photo', hint: 'Swipe left or right to browse photos', photo: 'Photo', of: 'of', missing: 'Photo unavailable', loading: 'Loading photo' },
   }, locale);
   const smooth = () => typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' as const : 'auto' as const;
   function shownIndex() {
@@ -99,6 +108,7 @@ export function ProductGallery({ product, images, activeImage, onImageChange, lo
             // eslint-disable-next-line @next/next/no-img-element
             ? <img className="product-img" src={sizedImage(photo, 1000)} alt={`${product.name} — ${copy.photo} ${position + 1}`} loading={position === 0 ? 'eager' : 'lazy'} decoding="async" referrerPolicy="no-referrer" draggable={false} ref={el => { if (el?.complete && el.naturalWidth) markLoaded(photo); }} onLoad={() => markLoaded(photo)} onError={event => { if (!retryOriginal(event.currentTarget, photo)) setFailed(current => [...current, photo]); }}/>
             : <div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div>}
+          {!loaded.includes(photo) && !failed.includes(photo) && <PhotoWait label={copy.loading}/>}
         </div>) : <div className="product-gallery-slide"><div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div></div>}
       </div>
       {photos.length > 1 && <>

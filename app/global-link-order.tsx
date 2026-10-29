@@ -77,7 +77,7 @@ import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-cop
 import { extractSharedLink } from "@/lib/market/shared-link";
 import {PasteButton} from '@/components/paste-button';
 import {useClipboardLink} from './use-clipboard-link';
-import { ProductGallery } from "./product-gallery";
+import { PhotoWait, ProductGallery } from "./product-gallery";
 import { retryOriginal, sizedImage } from "@/lib/market/image-size";
 import {
   communityDeals,
@@ -1576,7 +1576,7 @@ export function GlobalLinkOrder() {
           <section className={"lo-product" + (image || checking ? "" : " lo-product-plain")} aria-labelledby="lo-product-name">
             {/* A catalog product keeps its photo and name through the check; a bare link gets their outline. */}
             {image ? <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang} compact/></div>
-              : checking && <div className="lo-gallery lo-skel lo-skel-photo" aria-hidden="true" />}
+              : checking && <div className="lo-gallery lo-skel lo-skel-photo" aria-hidden="true"><PhotoWait label={tx("Загружаем фото","Suratlar yuklanmoqda","Loading photos")} /></div>}
             <div className="lo-product-copy">
               {brand || sourceHost || !checking
                 ? <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
