@@ -1173,3 +1173,50 @@ html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, #80d0ac)
 @media (min-width: 640px) {
   .lo-page .variant-step:has(> .lo-size-formats) > .lo-size-groups { margin-top: 10px; }
 }
+
+/* Order by link, the manual form and the link line (29 October 2026, owner: "crooked everywhere, too much bold,
+   no grid"). The groups inside the data card are sections divided by a hairline, not cards inside a card; their
+   headings and labels are lighter; amounts carry their unit inside the field; categories are one tap each. */
+.lo-page .lo-source { flex-wrap: nowrap; gap: 4px; padding: 4px 6px 4px 14px; }
+.lo-page .lo-source-host { flex: 1 1 auto; font-size: 15px; font-weight: 600; }
+.lo-page .lo-source-host > span:not(.sr-only) { color: var(--home-ink); }
+.lo-page .lo-source-actions { flex: none; flex-wrap: nowrap; gap: 2px; }
+.lo-page .lo-source-actions .lo-source-link { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 10px; border-radius: 10px; font-size: 14px; font-weight: 600; }
+.lo-page .lo-source-actions .lo-source-link:hover { background: color-mix(in srgb, var(--home-accent) 8%, transparent); text-decoration: none; }
+@media (max-width: 639px) {
+  .lo-page .lo-source-host { font-size: 14.5px; }
+  .lo-page .lo-source-actions .lo-source-link { justify-content: center; width: 40px; padding: 0; }
+  .lo-page .lo-source-word { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+.lo-page .lo-data .lo-blocks { gap: 0; }
+.lo-page .lo-block { gap: 8px; padding: 16px 0; border: 0; border-top: 1px solid var(--home-line); border-radius: 0; }
+.lo-page .lo-block > legend { float: left; width: 100%; margin: 0 0 2px; color: var(--home-ink); font-size: 15px; font-weight: 700; }
+.lo-page .lo-block .field label, .lo-page .lo-field-label { display: block; margin-bottom: 6px; color: var(--home-muted); font-size: 13px; font-weight: 500; }
+.lo-page .lo-block-state { margin: 0; color: var(--home-muted); font-size: 13px; font-weight: 500; }
+.lo-page .lo-block-row { align-items: start; }
+.lo-page .lo-block-stack { display: grid; gap: 14px; }
+.lo-page .lo-weight-basis.estimate { font-weight: 500; }
+@media (min-width: 900px) {
+  /* Two groups side by side keep the hairline between rows, not a box around each. */
+  .lo-layout.manual .lo-data .lo-blocks { column-gap: 28px; }
+}
+
+/* An amount with its unit inside the field: "10 USD", "1 кг". */
+.lo-unit-input { position: relative; display: block; }
+.lo-unit-input > input { width: 100%; padding-right: 54px; }
+.lo-unit-input > span { position: absolute; top: 50%; right: 14px; color: var(--home-muted); font-size: 14px; font-weight: 600; transform: translateY(-50%); pointer-events: none; }
+.lo-unit-short { max-width: 180px; }
+
+/* Categories: one tap each, the chosen one filled. */
+.lo-cat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lo-cat-chips > button { min-height: 38px; padding: 0 14px; border: 1px solid var(--home-line); border-radius: 999px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+.lo-cat-chips > button:hover { border-color: var(--home-accent); }
+.lo-cat-chips > button[aria-checked="true"] { border-color: var(--home-accent); background: var(--home-accent); color: var(--home-accent-ink, #fff); }
+.lo-cat-chips > button:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
+html[data-theme="dark"] .lo-cat-chips > button[aria-checked="true"] { background: var(--night-jade, #80d0ac); border-color: var(--night-jade, #80d0ac); color: #0d1411; }
+@media (max-width: 639px) {
+  /* Phones: a field and its note stack, the field no wider than an amount needs. */
+  .lo-page .lo-data .lo-block-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .lo-page .lo-data .lo-unit-input { max-width: 220px; }
+}
