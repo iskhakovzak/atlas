@@ -209,6 +209,28 @@ function CartEntry({ count, label, compact = false }: { count: number; label: st
   </Link>;
 }
 
+// A grid of tiles splits its rows evenly (12 sizes in two rows of 6, not 11 and a lone one): from the width it sets
+// --cols to the fewest columns that keep the same number of rows; CSS falls back to auto-fill without it.
+function balanceRows(grid: HTMLElement | null) {
+  if (!grid) return;
+  const fit = () => {
+    const count = grid.children.length, gap = 6, min = 58;
+    const perRow = Math.max(1, Math.floor((grid.clientWidth + gap) / (min + gap)));
+    // One row keeps the tiles at their own width instead of stretching three sizes across the card.
+    const rows = Math.ceil(count / perRow), cols = String(rows === 1 ? perRow : Math.ceil(count / rows));
+    // Written only when it changes: the new rows change the grid's height, which must not set off another round.
+    if (grid.style.getPropertyValue("--cols") !== cols) grid.style.setProperty("--cols", cols);
+  };
+  fit();
+  const holder = grid as HTMLElement & { atlasBalance?: boolean };
+  if (holder.atlasBalance || typeof ResizeObserver === "undefined") return;
+  holder.atlasBalance = true;
+  let width = grid.clientWidth;
+  new ResizeObserver(() => { if (grid.clientWidth === width) return; width = grid.clientWidth; requestAnimationFrame(fit); }).observe(grid);
+  // Another colour can bring another number of sizes into the same grid.
+  new MutationObserver(fit).observe(grid, { childList: true });
+}
+
 // The chosen colour in a sideways row of colours is scrolled into view without moving the page.
 function keepChosenColourInView(row: HTMLElement) {
   const chosen = row.querySelector<HTMLElement>('button[aria-pressed="true"]');
@@ -314,6 +336,7 @@ export function GlobalLinkOrder() {
   const manyMode = multiPick || Object.keys(picked).length > 1;
   const [manualQuantity, setManualQuantity] = useState(1);
   const [comment, setComment] = useState("");
+  const [commentOpen, setCommentOpen] = useState(false);
   const [weightBasis, setWeightBasis] = useState<"store" | "estimate" | "title" | "catalog" | "customer">(seed ? "catalog" : "estimate");
   const [added, setAdded] = useState<{ lines: number; units: number } | null>(null);
   // Calculation details Atlas filled from the store, shown locked; null until a store check succeeds.
@@ -472,6 +495,9 @@ export function GlobalLinkOrder() {
       : inferNikeFootwearSizeSystem({sourceUrl:source,currency,category,title:name});
   const adidasSizes=variantsForColor.some(v=>/US/i.test(v.sizeLabel??"")&&adidasMenSize(brand,name,v.size??""));
   // Nike sizes switch between US, UK, EU and CM/JP by Nike's own chart, like adidas (owner, 12 October 2026).
+  // With the US / EU / UK / CM switch above the sizes, a tile shows the number only ("9.5", not "US 9.5"); the format
+  // stays for screen readers (29 October 2026).
+  const sizeTileText=(text:string)=>{const match=(adidasSizes||nikeSizeSystem)?/^(US|EU|UK|CM) (.+)$/.exec(text):null;return match?<><span className="sr-only">{match[1]} </span>{match[2]}</>:text;};
   const nikeSizeIn=(size:string)=>{const row=nikeSizeSystem?findNikeFootwearSizeRow(nikeSizeSystem,size):undefined;return !row?`US ${size}`:sizeFormat==='cm'?`CM ${row.cmLabel}`:`${sizeFormat.toUpperCase()} ${row[sizeFormat]}`;};
   const sizeDisplay=(size:string)=>{if(nikeSizeSystem)return nikeSizeIn(size);const alternate=variantsForColor.find(v=>v.size===size)?.sizeAlternates?.find(v=>v.system.toLowerCase()===sizeFormat);if(alternate)return `${sizeFormat.toUpperCase()} ${alternate.value}`;return adidasSizes?`${sizeFormat.toUpperCase()} ${adidasMenSize(brand,name,size)?.[sizeFormat]??size}`:size;};
   // Importers keep the store's axis name, some in Russian ("Размер", "Объём"): shown in the page language; a store's own
@@ -1589,7 +1615,7 @@ export function GlobalLinkOrder() {
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
                 {variantColors.length>0&&<div className={"variant-step"+(variantColors.length>1?" lo-colours-main":"")}><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{colourHeading}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:colourOptions}</div>}
-                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(sizeDisplay(selectedSize)):sizeStep?c.selectSize:c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}><span className="lo-size-seg">{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}</span>{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a className="lo-size-chart" href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">{tx("Таблица adidas","adidas jadvali","adidas chart")}<ExternalLink size={13} aria-hidden="true"/></a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:undefined} onClick={()=>choice&&togglePick(choice)}><span>{sizeDisplay(size)}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{sourceFormat(price)}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
+                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(sizeDisplay(selectedSize)):sizeStep?c.selectSize:c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}><span className="lo-size-seg">{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}</span>{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a className="lo-size-chart" href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">{tx("Таблица adidas","adidas jadvali","adidas chart")}<ExternalLink size={13} aria-hidden="true"/></a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}<div className="variant-options sizes" ref={balanceRows}>{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:undefined} onClick={()=>choice&&togglePick(choice)}><span>{sizeTileText(sizeDisplay(size))}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{sourceFormat(price)}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
                   {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
                   <div className="nike-size-chart"><b>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</b>
                     <p>{tx('Показаны размеры, найденные для этого товара. CM/JP — маркировка обуви Nike; длина стопы указана отдельно.','Bu tovar uchun topilgan o‘lchamlar ko‘rsatilgan. CM/JP — Nike poyabzali yorlig‘i; oyoq uzunligi alohida berilgan.','Shows sizes found for this item. CM/JP is Nike’s shoe-label size; foot length is listed separately.')}</p>
@@ -1634,10 +1660,11 @@ export function GlobalLinkOrder() {
             </>}
             {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted lo-stock-hint">{variants.some(isStockUnconfirmed) ? k.stockCheckFirst : k.stockUnknown}</p>}
             {/* The comment sits right under the chosen options (owner, 12 October 2026). */}
-            <div className="lo-comment">
+            {/* Folded into one line until wanted: most orders need no comment (29 October 2026); a written one stays open. */}
+            {commentOpen || comment ? <div className="lo-comment">
               <label htmlFor="order-comment"><b>{k.blocks.comment}</b><small>{k.commentHint}</small></label>
-              <textarea id="order-comment" rows={2} maxLength={500} value={comment} placeholder={k.commentPlaceholder} onChange={(e) => setComment(e.target.value)} />
-            </div>
+              <textarea id="order-comment" rows={2} maxLength={500} value={comment} placeholder={k.commentPlaceholder} autoFocus={commentOpen && !comment} onChange={(e) => setComment(e.target.value)} />
+            </div> : <button type="button" className="lo-source-link lo-comment-open" aria-expanded={false} onClick={() => setCommentOpen(true)}><Plus size={16} aria-hidden="true" />{tx("Комментарий для Atlas", "Atlas uchun izoh", "Comment for Atlas")}</button>}
           </section>}
           </section>
           </div>
