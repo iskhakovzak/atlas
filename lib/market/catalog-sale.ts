@@ -11,8 +11,10 @@ export const catalogSaleJobSchema=z.object({
  processed:z.number().int().nonnegative(),published:z.number().int().nonnegative(),review:z.number().int().nonnegative(),skipped:z.number().int().nonnegative(),failed:z.number().int().nonnegative(),
  total:z.number().int().nonnegative().optional(),updatedAt:z.number(),leaseUntil:z.number(),leaseId:z.string().optional(),pauseRequested:z.boolean().optional(),message:z.string().max(500).optional(),
  retryAt:z.number().optional(),consecutiveErrors:z.number().int().nonnegative().optional(),recent:z.array(z.object({url:z.string().max(3000),message:z.string().max(500)})).max(5),
+ principal:z.object({email:z.string().max(320),method:z.string().max(40)}).optional(),
 });
 export type CatalogSaleJob=z.infer<typeof catalogSaleJobSchema>;
+export function publicSaleJob(job:CatalogSaleJob|undefined){if(!job)return undefined;const {principal,...visible}=job;void principal;return visible;}
 export const isEbayStorefrontLink=(value:string)=>{try{const u=new URL(value);return u.protocol==='https:'&&/^(?:www\.)?ebay\.com$/.test(u.hostname)&&/^\/str\//.test(u.pathname)&&!u.username&&!u.password&&!u.port}catch{return false}};
 export type SaleJobStore={read:(owner:string)=>Promise<{raw:string;job:CatalogSaleJob}|undefined>;write:(owner:string,job:CatalogSaleJob,previous:string|null)=>Promise<boolean>};
 /** Both discovery evidence and the detailed item must corroborate the same current price/currency. */
@@ -34,22 +36,25 @@ type Dependencies={store:SaleJobStore;discover:(source:string,cursor?:string)=>P
 export function createCatalogSaleRunner(deps:Dependencies){
  const now=deps.now??Date.now,uuid=deps.uuid??(()=>crypto.randomUUID()),store=deps.store;
  const read=async(owner:string)=> (await store.read(owner))?.job;
- async function start(owner:string,input:Pick<CatalogSaleJob,'sourceUrl'|'country'|'collectionIds'>){
-  const previous=await store.read(owner);if(previous?.job.status==='running')return previous.job;
-  if(previous?.job.status==='paused'&&previous.job.sourceUrl===input.sourceUrl&&previous.job.country===input.country&&JSON.stringify(previous.job.collectionIds)===JSON.stringify(input.collectionIds))return control(owner,previous.job.id,true);
-  const job:CatalogSaleJob={...input,id:uuid(),status:'running',discoveryDone:false,limited:false,pending:[],seen:[],scanned:0,matched:0,processed:0,published:0,review:0,skipped:0,failed:0,updatedAt:now(),leaseUntil:0,recent:[]};
+ async function start(owner:string,input:Pick<CatalogSaleJob,'sourceUrl'|'country'|'collectionIds'>,principal?:{email:string;method:string}){
+  const previous=await store.read(owner);if(previous?.job.status==='running'){
+   if(principal&&!previous.job.principal){const updated={...previous.job,principal,updatedAt:now()};if(!await store.write(owner,updated,previous.raw))throw Error('Задание изменилось в другой вкладке. Обновите страницу.');return updated;}
+   return previous.job;
+  }
+  if(previous?.job.status==='paused'&&previous.job.sourceUrl===input.sourceUrl&&previous.job.country===input.country&&JSON.stringify(previous.job.collectionIds)===JSON.stringify(input.collectionIds))return control(owner,previous.job.id,true,principal);
+  const job:CatalogSaleJob={...input,...(principal?{principal}:{}),id:uuid(),status:'running',discoveryDone:false,limited:false,pending:[],seen:[],scanned:0,matched:0,processed:0,published:0,review:0,skipped:0,failed:0,updatedAt:now(),leaseUntil:0,recent:[]};
   if(!await store.write(owner,job,previous?.raw??null))throw Error('Задание изменилось в другой вкладке. Обновите страницу.');return job;
  }
- async function control(owner:string,id:string,resume:boolean){
+ async function control(owner:string,id:string,resume:boolean,principal?:{email:string;method:string}){
   const row=await store.read(owner);if(!row||row.job.id!==id)throw Error('Задание импорта не найдено.');
   if(row.job.status==='completed')return row.job;
-  const job={...row.job,status:resume?'running' as const:'paused' as const,pauseRequested:!resume,updatedAt:now(),message:undefined,retryAt:0,consecutiveErrors:0};
+  const job={...row.job,...(resume&&principal?{principal}:{}),status:resume?'running' as const:'paused' as const,pauseRequested:!resume,updatedAt:now(),message:undefined,retryAt:0,consecutiveErrors:0};
   if(!await store.write(owner,job,row.raw))throw Error('Задание изменилось. Повторите действие.');return job;
  }
  async function step(owner:string,id:string){
   const row=await store.read(owner);if(!row||row.job.id!==id)throw Error('Задание импорта не найдено.');
   if(row.job.status!=='running'||row.job.leaseUntil>now()||(row.job.retryAt??0)>now())return row.job;
-  const job=structuredClone(row.job);job.leaseUntil=now()+90_000;job.leaseId=uuid();job.pauseRequested=false;
+  const job=structuredClone(row.job);job.leaseUntil=now()+180_000;job.leaseId=uuid();job.pauseRequested=false;
   if(!await store.write(owner,job,row.raw))return await read(owner);
   const claimed=JSON.stringify(catalogSaleJobSchema.parse(job));
   const retry=(error:unknown)=>{job.consecutiveErrors=(job.consecutiveErrors??0)+1;job.failed++;job.status=job.consecutiveErrors<3?'running':'paused';job.retryAt=now()+15_000*2**(job.consecutiveErrors-1);job.message=(error instanceof Error?error.message:'Не удалось сохранить товар.').slice(0,500);};

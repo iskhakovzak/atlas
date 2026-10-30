@@ -5,7 +5,7 @@ import {runOneScheduledBatch} from '@/lib/market/catalog-batch-scheduler';
 
 /** Signed machine-only request. The scheduler never supplies an identity, URLs or job size. */
 export async function POST(request:Request){try{
- if(!await isAuthorizedCatalogRefresh(request,env.ATLAS_CATALOG_REFRESH_SECRET,Date.now(),catalogBatchPath))throw new HttpError(401,'Недопустимый запрос фонового импорта.');
+ if(!await isAuthorizedCatalogRefresh(request,env.ATLAS_CATALOG_BATCH_SECRET,Date.now(),catalogBatchPath))throw new HttpError(401,'Недопустимый запрос фонового импорта.');
  const now=Date.now(),timestamp=request.headers.get('x-atlas-refresh-timestamp')!;
  const db=database();await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
  const accepted=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO NOTHING RETURNING key').bind(`atlas:catalog-batch:request:${timestamp}`,now+600000).first<{key:string}>();

@@ -1,4 +1,5 @@
 import {publicBatchJob} from '@/lib/market/catalog-batch';
+import {publicSaleJob} from '@/lib/market/catalog-sale';
 import {importFailureText,invalidLinkText,readForImport,handOverManual,manualNote,storePageUrl,readStoreHealth,mapMerchantConcurrent,processCatalogBatch} from '@/lib/market/catalog-import-server';
 import {readBatch,startBatch,controlBatch,claimBatch,finishBatch} from '@/lib/market/catalog-batch-server';
 import {withoutAuthor} from '@/lib/market/pricing-equal';
@@ -34,7 +35,7 @@ const commandSchema=z.discriminatedUnion('kind',[
 export async function GET(request:Request){try{
   const admin=new URL(request.url).searchParams.get('admin')==='1';
   let saleJob,batchJob;
-  if(admin){const user=await identity();await requirePermission(user,'catalog.manage');[saleJob,batchJob]=await Promise.all([catalogSaleRunner(user).read(user.userId),readBatch(user.userId).then(row=>publicBatchJob(row?.job))]);}
+  if(admin){const user=await identity();await requirePermission(user,'catalog.manage');[saleJob,batchJob]=await Promise.all([catalogSaleRunner(user).read(user.userId).then(publicSaleJob),readBatch(user.userId).then(row=>publicBatchJob(row?.job))]);}
   const [{document},currentPricing]=await Promise.all([readCatalog(),pricing()]);
   return json(admin?{document,saleJob,batchJob,catalogFormat:'chunks-v2',storeHealth:await readStoreHealth()}:{...publicCatalog(document,currentPricing),pricing:withoutAuthor(currentPricing)});
 }catch(error){return failure(error,request)}}
@@ -61,11 +62,11 @@ export async function POST(request:Request){try{
     const runner=catalogSaleRunner(user);
     if(command.kind==='sale-start'){
       const {document}=await readCatalog();if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400,'err_33');
-      return json({saleJob:await runner.start(user.userId,{sourceUrl:validatedSaleSource(command.url),country:command.country,collectionIds:command.collectionIds})});
+      return json({saleJob:publicSaleJob(await runner.start(user.userId,{sourceUrl:validatedSaleSource(command.url),country:command.country,collectionIds:command.collectionIds},{email:user.email,method:user.method}))});
     }
-    if(command.kind==='sale-control')return json({saleJob:await runner.control(user.userId,command.id,command.resume)});
+    if(command.kind==='sale-control')return json({saleJob:publicSaleJob(await runner.control(user.userId,command.id,command.resume,{email:user.email,method:user.method}))});
     const saleJob=await runner.step(user.userId,command.id);
-    return json({saleJob});
+    return json({saleJob:publicSaleJob(saleJob)});
   }
   const {document,raw}=await readCatalog();
   if(document.revision!==revision)throw new HttpError(409, 'err_31');

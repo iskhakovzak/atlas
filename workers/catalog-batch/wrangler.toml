@@ -1,0 +1,11 @@
+name = "atlas-catalog-batch"
+main = "src/index.ts"
+compatibility_date = "2026-09-22"
+
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+ATLAS_SITE_URL = "https://atlas-uz-market.ishakovzakir0.chatgpt.site"
+
+# Set ATLAS_CATALOG_BATCH_SECRET as a secret in both Site and Worker runtimes.
