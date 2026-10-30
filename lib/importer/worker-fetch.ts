@@ -30,7 +30,7 @@ async function merchantRequest(input:string|URL,init?:RequestInit):Promise<Respo
     if(tashkent)routes.push({name:'tashkent',fetch:createMerchantProxyFetch({endpoint:tashkent,secret:tashkentSecret}),attemptMs:target=>needsLongGatewayTurn(target.hostname)?9_000:undefined});
     if(endpoint)routes.push({name:'us-vps',fetch:createMerchantProxyFetch({endpoint,secret})});
     if(residential)routes.push({name:'residential',fetch:createMerchantProxyFetch({endpoint:residential,secret:residentialSecret})});
-    return withMerchantRoutes(routes,undefined,routeMemory)(input,init);
+    return withDirectFallback(withMerchantRoutes(routes,undefined,routeMemory),(target,options)=>fetch(target,options))(input,init);
   }
   if(!endpoint&&!secret)return fetch(input,init);
   if(!endpoint||!secret)throw new Error('Importer egress proxy is not fully configured.');

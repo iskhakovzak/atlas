@@ -1100,8 +1100,13 @@ export function extractAdidasProduct(productValue: unknown, listingValue: unknow
   const locale = new URL(sourceUrl).pathname.split('/').filter(Boolean)[0]?.toLowerCase() ?? '';
   const currency = ({us: 'USD', ca: 'CAD', gb: 'GBP', uk: 'GBP', de: 'EUR', es: 'EUR', fr: 'EUR', it: 'EUR', nl: 'EUR', pl: 'PLN', se: 'SEK', dk: 'DKK', no: 'NOK', tr: 'TRY', au: 'AUD', jp: 'JPY', ae: 'AED', qa: 'QAR', bh: 'BHD', om: 'OMR'} as Record<string, string>)[locale];
   const availableSizes = [...new Set((Array.isArray(selected.availableSizes) ? selected.availableSizes : []).map(clean).filter(size => size && size.toLowerCase() !== 'hidden'))];
-  const available = selected.orderable !== 0 && product.orderable !== 0;
-  const availabilityKnown = Array.isArray(selected.availableSizes) || typeof selected.orderable === 'number' || typeof product.orderable === 'number';
+  // The API has returned both numeric and boolean orderability flags. An
+  // explicit false from either source must not become a purchasable variant.
+  const unavailable = selected.orderable === 0 || selected.orderable === false || product.orderable === 0 || product.orderable === false;
+  const available = !unavailable;
+  // An empty list alone does not establish that a generic, unsized option is
+  // in stock; downstream ordering must treat that fallback as unconfirmed.
+  const availabilityKnown = unavailable || availableSizes.length > 0;
   const variants: ProductVariant[] = availableSizes.map(size => ({
     size,
     sizeLabel: 'Размер',

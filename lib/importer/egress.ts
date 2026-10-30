@@ -18,7 +18,7 @@ export function directRetryAllowed(input: string | URL, response: Response | und
   if (!host || locationBound.test(host)) return false;
   if (response) return response.status === 429;
   // The proxy itself refused or is saturated (its own 429/503) — the store was never asked.
-  return failure instanceof Error && /\((429|503)\)/.test(failure.message);
+  return failure instanceof TypeError || failure instanceof Error && /\((429|503)\)/.test(failure.message);
 }
 
 export function markDirectEgress(response: Response) {

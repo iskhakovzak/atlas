@@ -43,30 +43,48 @@ export function pumaGuestToken(payload: unknown) {
 export function applyPumaSizes(extracted: Extracted, payload: unknown, id: string): Extracted {
   const product = record(record(record(payload).data).product);
   if (String(product.id) !== id || !Array.isArray(product.variations) || !extracted.variants?.length) return extracted;
-  const byColor = new Map<string, {label: string; size: string; productId?: string; orderable: boolean}[]>();
+  const byColor = new Map<string, {size: string; productId?: string; orderable?: boolean}[]>();
+  const ambiguousColors = new Set<string>();
+  let incomplete = product.variations.length > 80;
   for (const variation of product.variations.slice(0, 80).map(record)) {
     const groups = Array.isArray(variation.sizeGroups) ? variation.sizeGroups.map(record) : [];
+    if (groups.some(group => Array.isArray(group.sizes) && group.sizes.length > 80)) incomplete = true;
     // Two or more groups (e.g. "Men" and "Women") keep their label on the size; one group needs none.
     const named = groups.filter(group => text(group.label)).length > 1;
     const sizes = groups.flatMap(group => (Array.isArray(group.sizes) ? group.sizes : []).slice(0, 80).map(record).map(size => ({
       size: named ? `${text(group.label)} ${text(size.label)}` : text(size.label),
-      label: text(size.label), productId: text(size.productId) || undefined, orderable: size.orderable === true,
+      productId: text(size.productId) || undefined, orderable: typeof size.orderable === 'boolean' ? size.orderable : undefined,
     }))).filter(size => size.size);
     const color = text(variation.colorName);
-    if (color && sizes.length) byColor.set(color, sizes);
+    if (color && sizes.length) {
+      if (byColor.has(color)) ambiguousColors.add(color);
+      else byColor.set(color, sizes);
+    }
   }
+  // A repeated display name can identify two distinct swatches; guessing would attach the wrong SKU, price and photo.
+  for (const color of ambiguousColors) byColor.delete(color);
+  const pageColorCounts = new Map<string, number>();
+  for (const variant of extracted.variants) if (variant.color)
+    pageColorCounts.set(variant.color, (pageColorCounts.get(variant.color) ?? 0) + 1);
+  for (const [color, count] of pageColorCounts) if (count > 1) byColor.delete(color);
   if (!byColor.size) return extracted;
   const variants: ProductVariant[] = [];
   for (const variant of extracted.variants) {
     const sizes = variant.color ? byColor.get(variant.color) : undefined;
-    if (!sizes) { variants.push(variant); continue; }
-    for (const size of sizes) variants.push({
+    if (!sizes) { variants.push(variant); incomplete = true; continue; }
+    for (const size of sizes) {
+      if (variants.length >= 250) { incomplete = true; break; }
+      if (size.orderable === undefined) incomplete = true;
+      variants.push({
       // us.puma.com sells in US sizes; the label says so instead of a bare "10.5".
       ...variant, id: size.productId ?? variant.id, productId: size.productId, size: size.size, sizeLabel: 'Size US', label: `${variant.color} / ${size.size}`,
-      available: variant.available && size.orderable, availabilityKnown: true,
+      available: size.orderable === undefined ? variant.available : variant.available && size.orderable,
+      availabilityKnown: size.orderable !== undefined,
     });
-    if (variants.length >= 400) break;
+    }
+    if (variants.length >= 250) { incomplete = true; break; }
   }
   return {...extracted, variants, method: 'PUMA public product data + sizes',
-    warnings: extracted.warnings.filter(warning => !warning.startsWith('PUMA опубликовал цвета, но не наличие размеров'))};
+    variantsComplete: incomplete ? false : extracted.variantsComplete,
+    warnings: incomplete ? extracted.warnings : extracted.warnings.filter(warning => !warning.startsWith('PUMA опубликовал цвета, но не наличие размеров'))};
 }

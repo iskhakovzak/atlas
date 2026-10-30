@@ -19,9 +19,26 @@ test('PUMA sizes become colour × size options with the store stock; other colou
     ['PUMA Black-Lime Squeeze / 7', '7', false, true], ['PUMA Black-Lime Squeeze / 7.5', '7.5', true, true], ['White', undefined, true, false]]);
   assert.equal(result.variants[1].id, '199264510186');
   assert.equal(result.variants[1].sizeLabel, 'Size US');
-  assert.ok(!result.warnings.some(w => w.startsWith('PUMA опубликовал цвета')));
+  assert.ok(result.warnings.some(w => w.startsWith('PUMA опубликовал цвета')));
+  assert.equal(result.variantsComplete, false);
   // Another product's answer changes nothing.
   assert.equal(applyPumaSizes(page, answer, '999999'), page);
+});
+
+test('PUMA does not invent stock answers or cross-wire repeated colour names', () => {
+  const partial = {data:{product:{id:'314984',variations:[
+    {colorName:'PUMA Black-Lime Squeeze',sizeGroups:[{sizes:[{label:'9',productId:'sku9'}]}]},
+    {colorName:'White',sizeGroups:[{sizes:[{label:'8',productId:'wrong-a',orderable:true}]}]},
+    {colorName:'White',sizeGroups:[{sizes:[{label:'9',productId:'wrong-b',orderable:true}]}]},
+  ]}}};
+  const result=applyPumaSizes(page,partial,'314984');
+  assert.deepEqual(result.variants.map(v=>[v.color,v.size,v.availabilityKnown,v.id]),[
+    ['PUMA Black-Lime Squeeze','9',false,'sku9'],['White',undefined,false,undefined],
+  ]);
+  assert.equal(result.variants[0].price,350);
+  assert.equal(result.variants[1].price,300);
+  assert.equal(result.variantsComplete,false);
+  assert.ok(result.warnings.length);
 });
 
 test('the guest token is read only when it looks like one', () => {

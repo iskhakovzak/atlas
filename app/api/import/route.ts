@@ -12,9 +12,9 @@ import { apiErrorMessage, importManualEntryMessage, importManualStoreMessage, im
 import { translateDomainError } from '@/lib/market/domain-errors';
 import { classifyImportError } from '@/lib/market/import-monitor';
 import { importMonitorLive, monitorImport } from '@/lib/market/import-monitor-server';
+import { importTimingHeader } from '@/lib/importer/import-timing';
 
-// warm: the clipboard warm-up (app/use-clipboard-link.ts) — the customer has not asked yet.
-const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional(), warm: z.boolean().optional() });
+const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional(), warm: z.boolean().optional(), cacheOnly: z.boolean().optional() });
 
 // One isolate's in-flight imports and recent walls (lib/importer/import-flight.ts); D1 keeps the positive cache.
 const flights = createImportFlights();
@@ -22,6 +22,13 @@ const flights = createImportFlights();
 // (by chance, not by a per-isolate counter: a short-lived isolate may never reach its 50th request).
 
 export async function POST(request: Request) {
+  const started = performance.now();
+  const timings: { lookup?: number; merchant?: number; cacheWrite?: number; total: number } = { total: 0 };
+  const timed = (response: Response) => {
+    timings.total = performance.now() - started;
+    response.headers.set('Server-Timing', importTimingHeader(timings));
+    return response;
+  };
   try {
     sameOrigin(request);
     // The session and the (small) body are read together.
@@ -78,17 +85,16 @@ export async function POST(request: Request) {
     // 90 s — with fresh (the link opened to order, or "Retry automatic import") only from the last 15 s, so a one-off
     // wall does not answer the customer's retry, yet the store gets at most one live attempt per 15 s for the link —
     // and the stored import unless fresh is asked. Amazon US prices depend on the delivery location and are never cached.
-    const known = async () => {
+    const known = async (cacheOnly = false) => {
       const host = new URL(sourceUrl).hostname;
       if (!isSupportedStoreHost(host) || isManualEntryStoreHost(host)) return undefined;
-      const wall = flights.recentFailure(sourceUrl, fresh ? freshRetryGapMs : undefined);
+      const wall = cacheOnly ? undefined : flights.recentFailure(sourceUrl, fresh ? freshRetryGapMs : undefined);
       if (wall) {
-        // The same failure again (often the warm-up's): this customer is told about, the store not counted twice.
         const sorted = warm ? undefined : classifyImportError(wall);
         if (sorted) monitorImport(request, user, { host, url: sourceUrl, ...sorted, replay: true });
         return failed(wall);
       }
-      if (fresh || isAmazonUsUrl(new URL(sourceUrl))) return undefined;
+      if ((!cacheOnly && fresh) || isAmazonUsUrl(new URL(sourceUrl))) return undefined;
       const cached = await db.prepare('SELECT payload,expires_at,updated_at FROM market_import_cache WHERE url=? AND expires_at>?')
         .bind(sourceUrl, Date.now()).first<{ payload: string; expires_at: number; updated_at: number }>();
       if (!cached) return undefined;
@@ -101,9 +107,22 @@ export async function POST(request: Request) {
     };
     // A short link is not a page yet: it is expanded (a request) only after the rate limit is charged.
     const short = isShortLink(new URL(sourceUrl));
+    // A preview must never contact the merchant or expand a redirect on a cache miss.
+    if (payload.data.cacheOnly) {
+      // Preview requests have their own buckets so that polling cannot exhaust fresh imports.
+      for (const bucket of await importRateBuckets(user?.userId, request.headers.get('cf-connecting-ip'), now)) {
+        const key = bucket.key.replace(':import:', ':import-preview:');
+        const row = await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count')
+          .bind(key, now + 120000).first<{ count: number }>();
+        if (!row || row.count > bucket.limit) throw new HttpError(429, 'err_20');
+      }
+      const cached = short ? undefined : await known(true);
+      timings.lookup = performance.now() - started;
+      return timed(cached ?? new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } }));
+    }
     if (!short) {
       const answer = await known();
-      if (answer) return answer;
+      if (answer) { timings.lookup = performance.now() - started; return timed(answer); }
     }
 
     for (const bucket of await importRateBuckets(user?.userId, request.headers.get('cf-connecting-ip'), now)) {
@@ -119,7 +138,7 @@ export async function POST(request: Request) {
       sourceUrl = canonicalProductUrl((await expandShortLink(new URL(sourceUrl))).href);
       if (!isShortLink(new URL(sourceUrl))) {
         const answer = await known();
-        if (answer) return answer;
+        if (answer) { timings.lookup = performance.now() - started; return timed(answer); }
       }
     }
     const host = new URL(sourceUrl).hostname;
@@ -144,7 +163,10 @@ export async function POST(request: Request) {
 
     // The same page asked twice at once (a double tap, two tabs, the operator queue) is fetched once.
     const url = sourceUrl;
+    timings.lookup = performance.now() - started;
+    const merchantStarted = performance.now();
     const { outcome, leader } = await flights.run(url, () => fetchProduct(url, merchantRequest));
+    timings.merchant = performance.now() - merchantStarted;
     // Only the request that asked the store is counted; a follower got the same answer.
     if (leader) {
       if (outcome.ok) monitorImport(request, user, { host, url, kind: 'ok', quiet: warm });
@@ -154,21 +176,23 @@ export async function POST(request: Request) {
         if (sorted) monitorImport(request, user, { host, url, ...sorted, quiet: warm });
       }
     }
-    if (!outcome.ok) return failed(outcome.error);
+    if (!outcome.ok) return timed(failed(outcome.error));
     const data = outcome.data;
     const fetchedAt = Date.now();
     const expiresAt = fetchedAt + 10 * 60_000;
     // Only the request that asked the store writes the cache; a follower got the same answer.
     if (leader && !liveLocationRequired) {
+      const cacheStarted = performance.now();
       // The write and the clean-up of expired pages in one round trip.
       await db.batch([
         db.prepare('INSERT INTO market_import_cache (url,payload,expires_at,updated_at) VALUES (?,?,?,?) ON CONFLICT(url) DO UPDATE SET payload=excluded.payload,expires_at=excluded.expires_at,updated_at=excluded.updated_at')
           .bind(url, JSON.stringify(data), expiresAt, fetchedAt),
         db.prepare('DELETE FROM market_import_cache WHERE expires_at < ?').bind(fetchedAt),
       ]);
+      timings.cacheWrite = performance.now() - cacheStarted;
     }
-    return json({ ...data, fetchedAt, expiresAt, cached: false });
+    return timed(json({ ...data, fetchedAt, expiresAt, cached: false }));
   } catch (error) {
-    return failure(error, request);
+    return timed(await failure(error, request));
   }
 }

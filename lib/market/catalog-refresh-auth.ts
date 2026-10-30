@@ -1,4 +1,5 @@
 export const catalogRefreshPath='/api/internal/catalog-refresh';
+export const catalogBatchPath='/api/internal/catalog-batch';
 const encoder=new TextEncoder();
 const maxClockSkew=5*60*1000;
 
