@@ -6,6 +6,6 @@ compatibility_date = "2026-09-22"
 crons = ["* * * * *"]
 
 [vars]
-ATLAS_SITE_URL = "https://atlas-uz-market.ishakovzakir0.chatgpt.site"
+ATLAS_SITE_URL = "https://atlasmarket.uz"
 
 # Set ATLAS_CATALOG_BATCH_SECRET as a secret in both Site and Worker runtimes.
