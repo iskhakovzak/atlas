@@ -36,7 +36,15 @@ export async function runBatchCron(env:Env,fetcher:typeof fetch=fetch,now:()=>nu
  while(calls<maxCalls&&(calls===0||now()-started<nextCallDeadlineMs)){
   const timestamp=Math.max(now(),lastTimestamp+1);lastTimestamp=timestamp;
   let response:Response;
-  try{response=await fetcher(origin+path,{method:'POST',redirect:'error',signal:AbortSignal.timeout(requestTimeoutMs),headers:{'x-atlas-refresh-timestamp':String(timestamp),'x-atlas-refresh-signature':await signature(secret,String(timestamp)),accept:'application/json'}})}catch{throw new BatchWorkerError('upstream_unreachable')}
+  try{response=await fetcher(origin+path,{method:'POST',redirect:'manual',signal:AbortSignal.timeout(requestTimeoutMs),headers:{'x-atlas-refresh-timestamp':String(timestamp),'x-atlas-refresh-signature':await signature(secret,String(timestamp)),accept:'application/json'}})}catch(error){
+   const name=error instanceof Error?error.name:'';
+   const message=error instanceof Error?error.message:'';
+   throw new BatchWorkerError(name==='TimeoutError'?'upstream_timeout':/redirect/i.test(message)?'upstream_redirect':'upstream_unreachable');
+  }
+  if(response.status>=300&&response.status<400){
+   let destination='other';try{const host=new URL(response.headers.get('location')??'',origin).hostname;destination=host==='atlasmarket.uz'?'atlas':host.endsWith('.chatgpt.site')?'sites':host.endsWith('.openai.com')?'openai':'other'}catch{}
+   throw new BatchWorkerError(`upstream_redirect_${destination}`,response.status);
+  }
   if(!response.ok)throw new BatchWorkerError('upstream_rejected',response.status);
   const body=await responseBody(response);if(!body||typeof body!=='object'||Array.isArray(body))throw new BatchWorkerError('invalid_response');
   const result=body as {ok?:unknown;processed?:unknown};

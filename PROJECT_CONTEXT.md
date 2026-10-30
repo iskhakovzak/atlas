@@ -905,4 +905,6 @@ Windows task Atlas Tashkent Import Gateway launches hidden supervisor at logon, 
 Regional warning made neutral: a first Tashkent request does not imply US was rate-limited. Product completeness/stock checks remain unchanged. Evidence outputs/tashkent-signed-smoke.json,tashkent-hosted-active.json,tashkent-hosted-fallback.json. No customer/catalog/order writes; only normal preview/cache behavior.
 ## Публикация импорта — 30 октября 2026
 
-На Sites опубликована версия 179: дерево исходников совпадает с GitHub main после PR #85 и #86. Новый endpoint фоновой очереди принимает подписанный вызов; конфигурация отдельного Cloudflare Worker `atlas-catalog-batch` и секрет установлены. Расписание каждую минуту зарегистрировано, но на момент записи автоматический вызов ещё не подтверждён по журналам. Монитор из PR #85 использует отдельный Worker и секрет; его фоновое расписание этим развёртыванием не включалось.
+На Sites опубликована версия 179: дерево исходников совпадает с GitHub main после PR #85 и #86. Новый endpoint фоновой очереди принимает подписанный вызов; отдельный Cloudflare Worker `atlas-catalog-batch` установлен и успешно отработал по расписанию с пустой очередью. Обработка реальной пачки после закрытия админки ещё требует проверки. Монитор из PR #85 использует отдельный Worker и секрет; его фоновое расписание этим развёртыванием не включалось.
+
+Подсказки админской очереди уточняют, что обработка после закрытия страницы зависит от настроенного фонового планировщика; состояние очереди сохраняется и без него.
