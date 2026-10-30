@@ -3,7 +3,6 @@ import type { Extracted } from '../importer/extract.ts';
 import { ManualEntryFallbackError, UnsupportedStoreError } from '../importer/fetch.ts';
 import { manualFallbackAllowed, requiresMerchantSnapshot } from '../importer/manual-fallback.ts';
 import { compareProductSnapshot } from '../importer/verify.ts';
-import { isBrowserStoreHost, isManualEntryStoreHost, isSupportedStoreHost } from '../importer/stores.ts';
 import { applyAction, type Action } from './actions.ts';
 import { checkCartSources } from './cart-check.ts';
 import { canonicalCatalogUrl, type CatalogDocument } from './catalog-editor.ts';
@@ -130,11 +129,10 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
       item.product = { ...item.product, sourceCheckedAt: undefined, stockQuantity: undefined, stockMoreThan: undefined, stockSource: undefined };
       const url = item.product.sourceUrl;
       if (!url) continue;
-      // A store Atlas reads is always checked live; only a store it cannot read keeps the customer's confirmation.
-      // A store only the Tashkent gateway's Chrome reads keeps it too, but is still checked live: the confirmation
-      // counts only when the gateway cannot answer (manualFallbackAllowed).
-      const host = new URL(url).hostname;
-      if (isSupportedStoreHost(host) && !isManualEntryStoreHost(host) && !isBrowserStoreHost(host)) item.product.sourceManuallyConfirmed = false;
+      // A store Atlas reads is always checked live, and its answer wins. The customer's confirmation of a hand-filled
+      // form counts only when the store cannot answer (manualFallbackAllowed: blocked, timed out, gateway down):
+      // a failed import opens the manual form instead of an error so the order is not lost (owner, 30.10.2026),
+      // and the operator checks the line before buying. A store Atlas never reads keeps the confirmation as before.
       // A catalog card's delivery is the operator's record, whatever the request says about it.
       const editorial = await deps.editorialShipping?.(item.product);
       if (editorial) item.product = { ...item.product, sourceShipping: editorial.sourceShippingUsd, sourceShippingUsd: editorial.sourceShippingUsd, sourceShippingCurrency: 'USD', sourceShippingEstimated: editorial.sourceShippingEstimated };
@@ -144,7 +142,7 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
         const { value, error } = await result;
         if (!value) {
           if (!manualFallbackAllowed(item.product, item.variant, error)) {
-            if (item.product.sourceManuallyConfirmed === false && (error instanceof ManualEntryFallbackError || error instanceof Error && error.name === 'AbortError')) throw new ActionError(503, 'err_38');
+            if (!item.product.sourceManuallyConfirmed && (error instanceof ManualEntryFallbackError || error instanceof Error && error.name === 'AbortError')) throw new ActionError(503, 'err_38');
             throw error;
           }
         }

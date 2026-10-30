@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, UnsupportedStoreError, validateManualSourceUrl } from '@/lib/importer/fetch';
+import { describeImportDiagnostic, fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, UnsupportedStoreError, validateManualSourceUrl } from '@/lib/importer/fetch';
 import { isBrowserStoreHost, isManualEntryStoreHost, isSupportedStoreHost } from '@/lib/importer/stores';
 import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { canonicalProductUrl } from '@/lib/importer/source-identity';
@@ -10,8 +10,11 @@ import { currentUser } from '@/lib/auth/server';
 import { importRateBuckets } from '@/lib/market/import-preview';
 import { apiErrorMessage, importManualEntryMessage, importManualStoreMessage, importPendingMessage, requestLocale, serverError } from '@/lib/market/i18n';
 import { translateDomainError } from '@/lib/market/domain-errors';
+import { classifyImportError } from '@/lib/market/import-monitor';
+import { importMonitorLive, monitorImport } from '@/lib/market/import-monitor-server';
 
-const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional() });
+// warm: the clipboard warm-up (app/use-clipboard-link.ts) — the customer has not asked yet.
+const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional(), warm: z.boolean().optional() });
 
 // One isolate's in-flight imports and recent walls (lib/importer/import-flight.ts); D1 keeps the positive cache.
 const flights = createImportFlights();
@@ -39,6 +42,9 @@ export async function POST(request: Request) {
     const db = database();
     const fresh = Boolean(payload.data.fresh);
     const locale = requestLocale(request);
+    // The owner hears about every failed import at once (lib/market/import-monitor.ts); the form then says so.
+    const monitored = importMonitorLive(request);
+    const warm = Boolean(payload.data.warm);
 
     const failed = (error: unknown) => {
       // Walmart through Bright Data: the collection is still running. The client asks again after retryAfterMs;
@@ -52,7 +58,7 @@ export async function POST(request: Request) {
       const host = new URL(sourceUrl).hostname;
       if (canManuallyEnter && isBrowserStoreHost(host)) {
         const partial = error instanceof ManualEntryFallbackError ? error.partial : undefined;
-        return json({ ...partial, sourceUrl, brand: partial?.brand ?? host.replace(/^(?:www2?|shop|api)\./, ''), warnings: partial?.warnings ?? [], error: importManualStoreMessage(locale), manualEntryAvailable: true, manualStore: true }, 422);
+        return json({ ...partial, sourceUrl, brand: partial?.brand ?? host.replace(/^(?:www2?|shop|api)\./, ''), warnings: partial?.warnings ?? [], error: importManualStoreMessage(locale), manualEntryAvailable: true, manualStore: true, monitored }, 422);
       }
       // A link outside the store list is answered in the customer's language, with the number of supported stores.
       const unsupported = error instanceof UnsupportedStoreError ? error : undefined;
@@ -61,7 +67,11 @@ export async function POST(request: Request) {
         : unsupported ? serverError(locale, unsupported.code, { count: unsupported.supportedStoreCount })
         : locale === 'ru' ? (error as Error).message : translateDomainError((error as Error).message, locale) ?? apiErrorMessage(422, locale);
       const partial = error instanceof ManualEntryFallbackError ? error.partial : undefined;
-      return json({ ...partial, error: message, ...(unsupported ? { errorCode: unsupported.code } : {}), manualEntryAvailable: canManuallyEnter }, 422);
+      // Every failure opens the form (owner, 30.10.2026), never a bare error. When the store could not answer, the
+      // customer may fill it in and order by hand (orderByHand: the cart accepts the confirmation only then); a link to
+      // a missing product says so instead (errorKind 'link').
+      const kind = classifyImportError(error)?.kind;
+      return json({ ...partial, sourceUrl, error: message, ...(unsupported ? { errorCode: unsupported.code } : {}), manualEntryAvailable: true, orderByHand: canManuallyEnter, monitored, ...(kind === 'link' ? { errorKind: 'link' } : {}) }, 422);
     };
 
     // Answers that ask no store, so they are given before the rate limit: a wall or an incomplete page from the last
@@ -72,7 +82,12 @@ export async function POST(request: Request) {
       const host = new URL(sourceUrl).hostname;
       if (!isSupportedStoreHost(host) || isManualEntryStoreHost(host)) return undefined;
       const wall = flights.recentFailure(sourceUrl, fresh ? freshRetryGapMs : undefined);
-      if (wall) return failed(wall);
+      if (wall) {
+        // The same failure again (often the warm-up's): this customer is told about, the store not counted twice.
+        const sorted = warm ? undefined : classifyImportError(wall);
+        if (sorted) monitorImport(request, user, { host, url: sourceUrl, ...sorted, replay: true });
+        return failed(wall);
+      }
       if (fresh || isAmazonUsUrl(new URL(sourceUrl))) return undefined;
       const cached = await db.prepare('SELECT payload,expires_at,updated_at FROM market_import_cache WHERE url=? AND expires_at>?')
         .bind(sourceUrl, Date.now()).first<{ payload: string; expires_at: number; updated_at: number }>();
@@ -113,6 +128,9 @@ export async function POST(request: Request) {
     // A site outside the store list, or a store Atlas cannot read, is not asked: the page opens the form for the
     // customer's own entry right away, with the confirmation checkbox, and the line can be ordered.
     if (!isSupportedStoreHost(host) || isManualEntryStoreHost(host)) {
+      // A store Atlas does not read at all is demand the owner wants to see, with who asked (a known manual store,
+      // such as Macy's, is the usual path and is not told).
+      if (!isSupportedStoreHost(host) && !warm) monitorImport(request, user, { host, url: sourceUrl, kind: 'unsupported' });
       return json({
         sourceUrl,
         brand: host.replace(/^(?:www2?|shop)\./, ''),
@@ -120,12 +138,22 @@ export async function POST(request: Request) {
         error: importManualStoreMessage(locale),
         manualEntryAvailable: true,
         manualStore: true,
+        monitored: monitored && !isSupportedStoreHost(host),
       }, 422);
     }
 
     // The same page asked twice at once (a double tap, two tabs, the operator queue) is fetched once.
     const url = sourceUrl;
     const { outcome, leader } = await flights.run(url, () => fetchProduct(url, merchantRequest));
+    // Only the request that asked the store is counted; a follower got the same answer.
+    if (leader) {
+      if (outcome.ok) monitorImport(request, user, { host, url, kind: 'ok', quiet: warm });
+      else {
+        const diagnostic = outcome.error instanceof ManualEntryFallbackError ? describeImportDiagnostic(outcome.error.diagnostic) : '';
+        const sorted = classifyImportError(outcome.error, diagnostic);
+        if (sorted) monitorImport(request, user, { host, url, ...sorted, quiet: warm });
+      }
+    }
     if (!outcome.ok) return failed(outcome.error);
     const data = outcome.data;
     const fetchedAt = Date.now();

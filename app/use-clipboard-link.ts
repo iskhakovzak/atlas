@@ -27,7 +27,7 @@ export function useClipboardLink(current?:string,enabled=true){
   setReady(Boolean(link)&&link!==currentRef.current);
   if(link&&link!==currentRef.current&&!warmed().includes(link)){
    remember(link);
-   void fetch('/api/import',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({url:link})}).then(response=>response.body?.cancel()).catch(()=>undefined);
+   void fetch('/api/import',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({url:link,warm:true})}).then(response=>response.body?.cancel()).catch(()=>undefined);
   }
  },[]);
  useEffect(()=>{

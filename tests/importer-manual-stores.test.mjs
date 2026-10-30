@@ -101,11 +101,20 @@ test('a browser store keeps the confirmation for a gateway that cannot answer an
   );
 });
 
-test('a store Atlas reads never keeps a customer confirmation instead of a live check', async () => {
+test('a store Atlas reads is still asked live; the customer confirmation counts only when it cannot answer', async () => {
+  // The manual form after a failed import (owner, 30.10.2026): the store is down, the hand-filled line goes on.
   const target = product('t', { sourceUrl: 'https://www.target.com/p/-/A-12345678', sourceManuallyConfirmed: true });
+  const added = await prepareAction(blank(), { type: 'cart-add', product: target, variant: 'Black · M' }, deps());
+  assert.equal(added.next.cart[0].product.sourceManuallyConfirmed, true);
+  // Without the confirmation the same failure is the "store did not answer" refusal.
   await assert.rejects(
-    prepareAction(blank(), { type: 'cart-add', product: target, variant: 'Black · M' }, deps()),
+    prepareAction(blank(), { type: 'cart-add', product: { ...target, sourceManuallyConfirmed: undefined }, variant: 'Black · M' }, deps()),
     (error) => error instanceof ActionError && error.code === 'err_38',
+  );
+  // A link to a missing product is not a store that cannot answer: the confirmation does not help.
+  await assert.rejects(
+    prepareAction(blank(), { type: 'cart-add', product: target, variant: 'Black · M' }, deps({ fetchProduct: async () => { throw Error('Магазин сообщил, что карточка товара не найдена. Проверьте ссылку.'); } })),
+    /не найдена/,
   );
 });
 

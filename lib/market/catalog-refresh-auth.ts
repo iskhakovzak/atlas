@@ -26,18 +26,21 @@ async function signature(secret:string,timestamp:string,method:string,path:strin
   return new Uint8Array(signed);
 }
 
-/** Used by the separate cron worker; the secret never enters browser code. */
-export async function signCatalogRefreshRequest(secret:string,timestamp:string){
-  return hex(await signature(secret,timestamp,'POST',catalogRefreshPath));
+/** The import monitor's 10-minute call (workers/import-monitor); signed the same way, bound to its own path. */
+export const importMonitorPath='/api/internal/import-monitor';
+
+/** Used by the separate cron workers; the secret never enters browser code. The path is part of what is signed. */
+export async function signCatalogRefreshRequest(secret:string,timestamp:string,path=catalogRefreshPath){
+  return hex(await signature(secret,timestamp,'POST',path));
 }
 
-export async function isAuthorizedCatalogRefresh(request:Request,secret:string|undefined,now=Date.now()){
+export async function isAuthorizedCatalogRefresh(request:Request,secret:string|undefined,now=Date.now(),path=catalogRefreshPath){
   if(!secret)return false;
   const timestamp=request.headers.get('x-atlas-refresh-timestamp')??'';
   const value=Number(timestamp);
   if(!/^\d{13}$/.test(timestamp)||!Number.isSafeInteger(value)||Math.abs(now-value)>maxClockSkew)return false;
-  if(request.method!=='POST'||new URL(request.url).pathname!==catalogRefreshPath)return false;
+  if(request.method!=='POST'||new URL(request.url).pathname!==path)return false;
   const supplied=bytes(request.headers.get('x-atlas-refresh-signature')??'');
   if(!supplied)return false;
-  return equal(await signature(secret,timestamp,request.method,catalogRefreshPath),supplied);
+  return equal(await signature(secret,timestamp,request.method,path),supplied);
 }

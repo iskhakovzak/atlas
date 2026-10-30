@@ -101,3 +101,10 @@ export const providerJobs=sqliteTable('market_provider_jobs',{
 export const pushSubscriptions=sqliteTable('market_push_subscriptions',{
  endpoint:text('endpoint').primaryKey(),userId:text('user_id').notNull(),p256dh:text('p256dh').notNull(),auth:text('auth').notNull(),createdAt:integer('created_at').notNull(),
 },table=>[index('idx_market_push_subscriptions_user').on(table.userId,table.createdAt)]);
+
+// Import monitor (lib/market/import-monitor.ts): one row per live import attempt (ok / failed / link / unsupported),
+// kept 30 days. The URL is the product link; the customer is only the account id (their contact goes to the owner's
+// Telegram, never into this table).
+export const importOutcomes=sqliteTable('market_import_outcomes',{
+ id:text('id').primaryKey(),host:text('host').notNull(),kind:text('kind').notNull(),reason:text('reason'),detail:text('detail'),url:text('url').notNull(),userId:text('user_id'),createdAt:integer('created_at').notNull(),
+},table=>[index('idx_market_import_outcomes_host').on(table.host,table.createdAt),index('idx_market_import_outcomes_created').on(table.createdAt)]);

@@ -312,6 +312,8 @@ export function GlobalLinkOrder() {
     [note, setNote] = useState(seed ? tx(`Данные из подборки ${seed.store} на ${seed.observedOn}. Atlas сверяет цену и вариант с магазином при добавлении в корзину. Вес — оценка Atlas: склад взвесит посылку.`, `${seed.store} to‘plamidagi ma’lumotlar, ${seed.observedOn}. Atlas savatga qo‘shishda narx va variantni do‘kon bilan solishtiradi. Vazn — Atlas bahosi: ombor jo‘natmani tortadi.`, `Data from the ${seed.store} selection as of ${seed.observedOn}. Atlas checks the price and option with the store when you add the item to the cart. Weight is an Atlas estimate: the warehouse weighs the parcel.`) : dealSeed ? tx(`Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas сейчас сверяет их с магазином.`, `Narx va surat ${dealSeed.observedOn} sanadagi to‘plamdan olingan. Atlas hozir ularni do‘kon bilan solishtirmoqda.`, `Price and photo saved from the selection on ${dealSeed.observedOn}. Atlas is checking them with the store now.`) : ""),
     [weightOrigin, setWeightOrigin] = useState(tx("Оценка по категории","Kategoriya bo‘yicha taxmin","Category estimate")),
     [sourceCheckStatus, setSourceCheckStatus] = useState<'idle'|'checking'|'verified'|'failed'|'manual'>('idle'),
+    // Why the automatic import failed, in the store's words when the link is at fault, and whether the owner was told.
+    [importProblem, setImportProblem] = useState<{text?: string; known: boolean; retry?: boolean} | null>(null),
     [importedAt, setImportedAt] = useState<number | undefined>(),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
     [formIssue, setFormIssue] = useState(""),
@@ -680,6 +682,7 @@ export function GlobalLinkOrder() {
     setSelectedSize("");
     setNote(linkDealSeed ? tx(`Цена и фото сохранены из подборки на ${linkDealSeed.observedOn}. Atlas сверяет их с магазином.`, `Narx va surat ${linkDealSeed.observedOn} sanadagi to‘plamdan olingan. Atlas ularni do‘kon bilan solishtiradi.`, `Price and photo saved from the selection on ${linkDealSeed.observedOn}. Atlas checks them with the store.`) : linkSeed ? tx(`Товар из каталога ${linkSeed.store}. Atlas сверит цену и вариант с магазином.`, `${linkSeed.store} katalogidagi tovar. Atlas narx va variantni do‘kon bilan solishtiradi.`, `Item from the ${linkSeed.store} catalog. Atlas checks the price and option with the store.`) : "");
     setFoundShipping(null);
+    setImportProblem(null);
     try {
       // A product opened for ordering is checked against the merchant now;
       // the short cache remains for batch imports and repeat browsing only.
@@ -694,6 +697,12 @@ export function GlobalLinkOrder() {
         manualEntryAvailable?: boolean;
         /** A store Atlas does not read: the customer enters the details (lib/importer/stores.ts manualEntryStoreRoots). */
         manualStore?: boolean;
+        /** The owner was told about this attempt (lib/market/import-monitor.ts); the form says so. */
+        monitored?: boolean;
+        /** The link points at a missing product: the store's words are shown instead of the general note. */
+        errorKind?: 'link';
+        /** The store could not answer: the customer fills the form in and orders by hand, as for a store Atlas never reads. */
+        orderByHand?: boolean;
         fetchedAt?: number;
         expiresAt?: number;
         cached?: boolean;
@@ -740,9 +749,14 @@ export function GlobalLinkOrder() {
         }
         // A store Atlas does not read at all opens the form for the customer's own entry; anything else is a failed check.
         const manualStore=data.manualStore===true;
-        setSourceCheckStatus(manualStore?'manual':'failed');
+        // A store that could not answer opens the same hand-filled form (owner, 30.10.2026), so the order is not lost.
+        const byHand=manualStore||data.orderByHand===true;
+        setSourceCheckStatus(byHand?'manual':'failed');
         setNote(manualStore?"":tx("Автоматически получены не все данные. Проверьте цену и вариант.","Ma’lumotlarning hammasi avtomatik olinmadi. Narx va variantni tekshiring.","Some details were not available automatically. Review the price and option."));
-        if(manualStore)setDataOpen(true);
+        // When the owner was told, the customer hears that too; a store Atlas reads keeps its retry button.
+        if(!manualStore)setImportProblem({text:data.errorKind==='link'?data.error:undefined,known:data.monitored===true,retry:byHand});
+        else if(data.monitored)setImportProblem({known:true});
+        if(byHand)setDataOpen(true);
         setShowSourceForm(false);
         return;
       }
@@ -1139,7 +1153,8 @@ export function GlobalLinkOrder() {
   // A confirmed and fully locked import keeps the details folded; anything to fill in or review stays open.
   const dataExpanded = dataOpen || sourceCheckStatus !== "verified" || !allLocked;
   const dataMode: "atlas" | "catalog" | "manual" = atlasLoaded ? "atlas" : anyLocked ? "catalog" : "manual";
-  const dataNote = dataMode === "manual" ? lc.locked.manualNote : (dataMode === "atlas" ? lc.locked.note(checkedTime) : lc.locked.catalogNote) + (allLocked ? "" : " " + lc.locked.partNote);
+  const ownerKnows = tx("Мы уже знаем о проблеме и можем связаться с вами.", "Muammo haqida bilamiz va siz bilan bog‘lanishimiz mumkin.", "We already know about the problem and may contact you.");
+  const dataNote = dataMode === "manual" ? lc.locked.manualNote + (importProblem?.known && !importProblem.retry && sourceCheckStatus === "manual" ? " " + ownerKnows : "") : (dataMode === "atlas" ? lc.locked.note(checkedTime) : lc.locked.catalogNote) + (allLocked ? "" : " " + lc.locked.partNote);
   // The locked price is the chosen option's; with several options at different prices, each is shown in the list above.
   const lockedPriceText = displayPrices.length ? storePriceText : pickPrices.length > 1 ? lc.locked.byOption : pickPrices.length === 1 ? sourceFormat(pickPrices[0]) : Number(amount) > 0 ? storePriceText : storeBasePrice ? sourceFormat(storeBasePrice) : variants.some(item => item.price !== undefined) ? lc.locked.byOption : "—";
   const lockedShippingText = shippingFree || (shippingEstimated && storeShippingState === "free") ? k.lines.free : !shippingEstimated ? typedMoney(shipping, shippingCurrency) : lc.locked.reserve(typedMoney(shipping, shippingCurrency));
@@ -1448,7 +1463,14 @@ export function GlobalLinkOrder() {
         <button type="button" className="btn secondary" onClick={()=>void load(source)}>{soldOutAtStore ? tx('Проверить снова','Qayta tekshirish','Check again') : tx('Повторить автозагрузку','Avtomatik yuklashni takrorlash','Retry automatic import')}</button>
       </div>}
 
-      {source && !checking && sourceCheckStatus==='manual' && <div className="notice lo-manual-store" role="status">
+      {source && !checking && sourceCheckStatus==='manual' && importProblem?.retry && <div className="notice lo-manual-store" role="status">
+        <p>{tx('Не получилось загрузить товар автоматически. Откройте его на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.','Tovarni avtomatik yuklab bo‘lmadi. Uni do‘kon saytida oching va nomi, narxi, varianti va yetkazishni o‘zingiz kiriting — Atlas operatori xariddan oldin ularni solishtiradi.','We couldn’t load the item automatically. Open it on the store’s site and enter the name, price, option and shipping yourself — an Atlas operator checks them before buying.')}{importProblem?.known ? ' ' + ownerKnows : ''}</p>
+        <span className="lo-added-actions">
+          <a className="btn secondary" href={source} target="_blank" rel="noopener noreferrer">{tx('Открыть товар в магазине','Tovarni do‘konda ochish','Open the item in the store')}<ExternalLink size={14} aria-hidden="true" /></a>
+          <button type="button" className="btn secondary" onClick={()=>void load(source)}>{tx('Повторить автозагрузку','Avtomatik yuklashni takrorlash','Retry automatic import')}</button>
+        </span>
+      </div>}
+      {source && !checking && sourceCheckStatus==='manual' && !importProblem?.retry && <div className="notice lo-manual-store" role="status">
         <p>{tx('Atlas не получает данные этого товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.','Atlas bu tovar ma’lumotlarini avtomatik olmaydi. Tovarni do‘kon saytida oching va nomi, narxi, varianti va yetkazishni o‘zingiz kiriting — Atlas operatori xariddan oldin ularni solishtiradi.','Atlas does not get this item\'s details automatically. Open the item on the store\'s site and enter the name, price, option and shipping yourself — an Atlas operator checks them before buying.')}</p>
         <a className="btn secondary" href={source} target="_blank" rel="noopener noreferrer">{tx('Открыть товар в магазине','Tovarni do‘konda ochish','Open the item in the store')}<ExternalLink size={14} aria-hidden="true" /></a>
       </div>}
@@ -1609,7 +1631,7 @@ export function GlobalLinkOrder() {
                 : sourceCheckStatus === "manual" && !(Number(amount) > 0) ? null : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}</p>}
               {/* Its own quiet line with a tick: as a tail after the price it wrapped alone, starting with "·", on phones (owner, 27 October 2026). */}
               {!checking && sourceCheckStatus === "verified" && checkedTime && <p className="lo-checked"><Check size={14} aria-hidden="true" />{lc.checkedAt(checkedTime)}</p>}
-              {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{soldOutAtStore ? soldOutText : tx('Автоматическая проверка не завершена. Сохранённые данные предварительные.','Avtomatik tekshirish tugamadi. Saqlangan ma’lumotlar taxminiy.','Automatic verification is incomplete. Saved details are preliminary.')}</p>}
+              {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{soldOutAtStore ? soldOutText : importProblem ? importProblem.text ?? tx('Не получилось загрузить автоматически — заполните вручную, мы проверим цену.','Avtomatik yuklab bo‘lmadi — qo‘lda to‘ldiring, narxni tekshiramiz.','We couldn’t load it automatically — fill it in by hand and we’ll check the price.') : tx('Автоматическая проверка не завершена. Сохранённые данные предварительные.','Avtomatik tekshirish tugamadi. Saqlangan ma’lumotlar taxminiy.','Automatic verification is incomplete. Saved details are preliminary.')}{!soldOutAtStore && importProblem?.known ? ' ' + ownerKnows : ''}</p>}
               {!checking && orderable && variants.length > 1 && variantColors.length > 1 && <div className="variant-step lo-colours-aside"><div><b>{c.color}</b><span>{colourHeading}</span></div>{colourOptions}</div>}
               {/* Wide screens: what Atlas read from the store, beside the photo, so the card has no empty half
                   (owner, 26 October 2026). Phones keep it in the "Calculation data" card only. */}
