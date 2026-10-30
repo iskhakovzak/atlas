@@ -6,6 +6,7 @@ declare namespace Cloudflare {
     ATLAS_GOOGLE_SITE_VERIFICATION?: string;
     ATLAS_YANDEX_VERIFICATION?: string;
     ATLAS_CATALOG_REFRESH_SECRET?: string;
+    ATLAS_CATALOG_BATCH_SECRET?: string;
     ATLAS_IMPORT_PROXY_URL?: string;
     ATLAS_IMPORT_PROXY_SECRET?: string;
     BUCKET?: R2Bucket;

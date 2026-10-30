@@ -1,10 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {catalogSaleJobSchema,createCatalogSaleRunner,saleDraftFromEvidence} from '../lib/market/catalog-sale.ts';
+import {catalogSaleJobSchema,createCatalogSaleRunner,publicSaleJob,saleDraftFromEvidence} from '../lib/market/catalog-sale.ts';
 import {applyAutomaticCatalogImport} from '../lib/market/catalog-editor.ts';
 
 const item=(id='123456789012')=>({url:`https://www.ebay.com/itm/${id}`,listingId:id,seller:'adidas_official',price:25,currency:'USD',referencePrice:50});
 const input={sourceUrl:'https://www.ebay.com/str/adidas?_sacat=15709',country:'США',collectionIds:[]};
+test('server-recorded principal is optional for old jobs and omitted from the browser response',async()=>{
+ const {runner}=setup();let job=await runner.start('alice',input);assert.equal(job.principal,undefined);
+ job=await runner.start('alice',input,{email:'operator@example.com',method:'google'});assert.equal(job.principal.email,'operator@example.com');assert.equal('principal' in publicSaleJob(job),false);
+ job=await runner.control('alice',job.id,false);job=await runner.control('alice',job.id,true,{email:'new@example.com',method:'email'});assert.equal(job.principal.email,'new@example.com');
+});
 function setup(extra={}){
  const rows=new Map();let clock=10000,n=0;
  const store={async read(owner){const raw=rows.get(owner);return raw?{raw,job:catalogSaleJobSchema.parse(JSON.parse(raw))}:undefined;},async write(owner,job,old){if((rows.get(owner)??null)!==old)return false;rows.set(owner,JSON.stringify(catalogSaleJobSchema.parse(job)));return true;}};
@@ -26,6 +31,12 @@ test('two tabs cannot import under the same lease and pausing preserves complete
  await runner.step('alice',job.id);assert.equal(imports,1);
  await runner.control('alice',job.id,false);finish();const result=await running;
  assert.equal(result.processed,1);assert.equal(result.published,1);assert.equal(result.pending.length,0);assert.equal(result.status,'completed');
+});
+test('a slow storefront step remains leased beyond the scheduler timeout',async()=>{
+ let finish,entered;const gate=new Promise(resolve=>finish=resolve),ready=new Promise(resolve=>entered=resolve);let imports=0;
+ const {runner,advance}=setup({importItem:async()=>{imports++;entered();await gate;return {published:true}}});
+ const job=await runner.start('alice',input),running=runner.step('alice',job.id);await ready;advance();
+ await runner.step('alice',job.id);assert.equal(imports,1);finish();await running;
 });
 test('failed saves retain the item and retry with backoff instead of reporting a false successful import',async()=>{
  let attempts=0;const {runner,advance}=setup({importItem:async()=>{if(++attempts<3)throw Error('database busy');return {published:true}}});

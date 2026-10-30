@@ -89,6 +89,7 @@ import {
 import {uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek,type Locale} from '@/lib/market/i18n';
 import {requestImport} from "@/lib/market/import-client";
+import {readImportCachePreview} from "@/lib/market/import-cache-preview";
 
 const countryAliases:Record<string,string>={'United States':'США','US':'США','AQSh':'США','Spain':'Испания','Ispaniya':'Испания','Germany':'Германия','Germaniya':'Германия','United Kingdom':'Великобритания','Buyuk Britaniya':'Великобритания','France':'Франция','Fransiya':'Франция','Italy':'Италия','Italiya':'Италия','Romania':'Румыния','Ruminiya':'Румыния','China':'Китай','Xitoy':'Китай','Turkey':'Турция','Turkiya':'Турция','Japan':'Япония','Yaponiya':'Япония','South Korea':'Южная Корея','Janubiy Koreya':'Южная Корея','United Arab Emirates':'ОАЭ','BAA':'ОАЭ','Canada':'Канада','Kanada':'Канада','Australia':'Австралия','Avstraliya':'Австралия','Other country':'Другая страна','Boshqa mamlakat':'Другая страна'};
 const categoryAliases:Record<string,string>={'Shoes':'Обувь','Oyoq kiyim':'Обувь','Clothing':'Одежда','Kiyim':'Одежда','Electronics':'Электроника','Elektronika':'Электроника','Accessories':'Аксессуары','Aksessuarlar':'Аксессуары','Beauty & care':'Красота и уход','Go‘zallik va parvarish':'Красота и уход','Home & living':'Дом и быт','Uy va maishiy':'Дом и быт','Sports':'Спорт','Boshqa':'Другое','Other':'Другое'};
@@ -646,6 +647,7 @@ export function GlobalLinkOrder() {
     const linkSeedImages=linkSeed?dedupeSafeImages([linkSeed.image,...(linkSeed.sourceImages??[])],linkSeed.sourceUrl??link):linkDealSeed?.image?[linkDealSeed.image]:[];
     const linkBoxedWeight=catalogLinkWeight(linkSeed)??(linkDealSeed?Math.max(.1,communityEstimatedWeight(linkDealSeed)-.5):undefined);
     const seq=++loadSeq.current;
+    let freshSettled=false;
     setLinkError("");
     setUrl(link);
     setBusy(true);
@@ -683,6 +685,16 @@ export function GlobalLinkOrder() {
     setNote(linkDealSeed ? tx(`Цена и фото сохранены из подборки на ${linkDealSeed.observedOn}. Atlas сверяет их с магазином.`, `Narx va surat ${linkDealSeed.observedOn} sanadagi to‘plamdan olingan. Atlas ularni do‘kon bilan solishtiradi.`, `Price and photo saved from the selection on ${linkDealSeed.observedOn}. Atlas checks them with the store.`) : linkSeed ? tx(`Товар из каталога ${linkSeed.store}. Atlas сверит цену и вариант с магазином.`, `${linkSeed.store} katalogidagi tovar. Atlas narx va variantni do‘kon bilan solishtiradi.`, `Item from the ${linkSeed.store} catalog. Atlas checks the price and option with the store.`) : "");
     setFoundShipping(null);
     setImportProblem(null);
+    if (!linkSeed && !linkDealSeed) {
+      void readImportCachePreview(link).then(preview => {
+        if (!preview || freshSettled || seq !== loadSeq.current) return;
+        const previewImages=dedupeSafeImages(preview.images,link);
+        setName(preview.title ?? "");
+        setBrand(preview.brand ?? "");
+        setImage(previewImages[0] ?? "");
+        setImages(previewImages);
+      });
+    }
     try {
       // A product opened for ordering is checked against the merchant now;
       // the short cache remains for batch imports and repeat browsing only.
@@ -691,6 +703,7 @@ export function GlobalLinkOrder() {
         isCancelled: () => seq !== loadSeq.current,
         onPending: (pending) => { if (seq === loadSeq.current && pending.message) setNote(pending.message); },
       });
+      freshSettled=true;
       if (response.status === 202) return;
       const data: Extracted & {
         error?: string;
@@ -894,6 +907,7 @@ export function GlobalLinkOrder() {
           .join(" "),
       );
     } catch (e) {
+      freshSettled=true;
       if (seq !== loadSeq.current) return;
       setNote((e as Error).message);
       setName(linkSeed?.name??linkDealSeed?.title??"");
@@ -913,6 +927,7 @@ export function GlobalLinkOrder() {
       setSourceCheckStatus('failed');
       setShowSourceForm(false);
     } finally {
+      freshSettled=true;
       if (seq === loadSeq.current) {
         setBusy(false);
         setLoadsDone(count=>count+1);
@@ -1626,6 +1641,7 @@ export function GlobalLinkOrder() {
               {favoriteId && <button type="button" className={"find-save lo-save" + (favoriteSaved ? " saved" : "")} aria-pressed={favoriteSaved} aria-label={favoriteSaved ? dc.remove : dc.save} title={favoriteSaved ? dc.remove : dc.save} disabled={favoriteBusy} onClick={() => void toggleFavorite()}><Heart size={20} aria-hidden="true" /></button>}
               </div>
               {checking && <LoadStage url={requestedUrl || url} locale={lang} />}
+              {checking && name && <p className="lo-note">{tx("Название и фото предварительные. Сверяем данные с магазином.", "Nom va surat dastlabki. Ma’lumotlarni do‘kon bilan tekshiryapmiz.", "The name and photo are preliminary. Checking details with the store.")}</p>}
               {checking
                 ? <p className="lo-store-price">{lc.storePrice}: <span className="lo-skel lo-skel-price" aria-hidden="true" /></p>
                 : sourceCheckStatus === "manual" && !(Number(amount) > 0) ? null : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}</p>}
