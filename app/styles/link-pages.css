@@ -183,6 +183,8 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .basket-cta[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 .basket-assurance li { display: flex; align-items: flex-start; gap: 8px; color: var(--home-muted); font-size: 13px; line-height: 1.45; }
 .basket-assurance svg { flex-shrink: 0; margin-top: 1px; color: var(--home-accent); }
+.basket-assurance a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
+.basket-assurance a:hover { color: var(--home-ink); text-decoration-color: currentColor; }
 
 /* ---------- Cart, 14.10.2026 ---------- */
 /* Phones: the store name wraps instead of being cut, and the country with the delivery days takes the line under it. */

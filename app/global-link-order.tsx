@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, PencilLine, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, Plus, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, PencilLine, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, PackageCheck, Plus, RotateCcw, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
 import Link from "@/components/site-link";
 import { toast } from "@/lib/market/toast";
 import { useMarket } from "@/lib/market/store";
@@ -1775,7 +1775,7 @@ export function GlobalLinkOrder() {
             </div>
             {/* For a guest, right under the button it explains: the item goes to the cart by itself after sign-in. */}
             {isGuest && <p className="lo-guest"><LogIn size={16} aria-hidden="true" /><span>{canKeep ? lc.guest : lc.guestNoKeep}</span></p>}
-            <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li>{/* Said once: "checked at HH:MM" by the price at the top, or "will check" above the button until then. */}{sourceCheckStatus === "manual" ? <li><Info size={16} aria-hidden="true" />{tx("Данные введены вами по странице магазина.","Ma’lumotlarni do‘kon sahifasi bo‘yicha o‘zingiz kiritdingiz.","You entered the details from the store page.")}</li> : sourceCheckStatus === "verified" && !checkedTime ? <li><ShieldCheck size={16} aria-hidden="true" />{checkedText}</li> : null}</ul>
+            <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li>{/* Trust next to the decision (storefront practice, owner 30 October 2026): only what the offer promises, each linked to its clause. */}<li><RotateCcw size={16} aria-hidden="true" /><a href="/legal#offer-cancel">{tx("До выкупа заказ можно отменить","Xariddan oldin buyurtmani bekor qilish mumkin","You can cancel before we buy it")}</a></li><li><PackageCheck size={16} aria-hidden="true" /><a href="/legal#offer-insurance">{tx("Посылку до Ташкента можно защитить гарантией сохранности Atlas","Toshkentgacha posilkani Atlas saqlash kafolati bilan himoyalash mumkin","You can cover the parcel to Tashkent with the Atlas safe-arrival guarantee")}</a></li>{/* Said once: "checked at HH:MM" by the price at the top, or "will check" above the button until then. */}{sourceCheckStatus === "manual" ? <li><Info size={16} aria-hidden="true" />{tx("Данные введены вами по странице магазина.","Ma’lumotlarni do‘kon sahifasi bo‘yicha o‘zingiz kiritdingiz.","You entered the details from the store page.")}</li> : sourceCheckStatus === "verified" && !checkedTime ? <li><ShieldCheck size={16} aria-hidden="true" />{checkedText}</li> : null}</ul>
           </section>}
           </div>
         </form>
