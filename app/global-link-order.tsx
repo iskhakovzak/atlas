@@ -37,6 +37,7 @@ import {
 import { usePendingCartAdd, type PendingCartAddResult } from "./pending-cart-add";
 import {
   cartDeliverySpeed,
+  defaultDeliverySpeed,
   repriceCart,
   storeDiscount,
   storeShippingReserves,
@@ -253,7 +254,7 @@ function keepChosenColourInView(row: HTMLElement) {
 export function GlobalLinkOrder() {
   const { ready, status, error: accountError, user, refresh, pricing, state, act, lastActionError, catalogProducts, loadCatalog } = useMarket();
   // Delivery is chosen only in the cart; estimates follow its current speed.
-  const [previewSpeed, setPreviewSpeed] = useState<"express" | "standard">("express");
+  const [previewSpeed, setPreviewSpeed] = useState<"express" | "standard">(defaultDeliverySpeed);
   // The heart beside a catalog item's name: the same favourites as in the catalog.
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const cartSpeed = cartDeliverySpeed(state.cart);

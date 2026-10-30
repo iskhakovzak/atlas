@@ -1,4 +1,4 @@
-import { price, storeShippingHoldUsd, storeShippingUsd, type CartItem, type DeliverySpeed, type Pricing, type Product } from './domain.ts';
+import { cartDeliverySpeed, defaultDeliverySpeed, price, storeShippingHoldUsd, storeShippingUsd, type CartItem, type DeliverySpeed, type Pricing, type Product } from './domain.ts';
 import { toUsd } from './world.ts';
 import { bundledMerchantFinds,type MerchantFind } from './catalog.ts';
 export type DealFilters = {
@@ -18,9 +18,9 @@ export function hasActiveDealFilters(filters: DealFilters, collectionId = '') {
  * The storefront quotes the cheapest way in (owner, 30 October 2026): standard delivery, unless the customer's cart
  * already ships at another speed, and no customs (duty is chosen in the cart).
  */
-export const catalogDeliverySpeed: DeliverySpeed = 'standard';
+export const catalogDeliverySpeed: DeliverySpeed = defaultDeliverySpeed;
 export function catalogQuoteSpeed(cart: Pick<CartItem, 'deliverySpeed'>[]): DeliverySpeed {
-  return cart.find((item) => item.deliverySpeed)?.deliverySpeed ?? catalogDeliverySpeed;
+  return cartDeliverySpeed(cart);
 }
 
 /** The lowest price of an option the store still sells, in USD; the product price when no option says less. */

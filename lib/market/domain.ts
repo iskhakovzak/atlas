@@ -275,7 +275,12 @@ export const standardDeliveryPerKgUsd = 13.98;
 export const deliverySpeeds = ["express", "standard"] as const;
 export type DeliverySpeed = (typeof deliverySpeeds)[number];
 export const deliverySpeedSchema = z.enum(deliverySpeeds);
-export const defaultDeliverySpeed: DeliverySpeed = "express";
+/** New carts, estimates and the catalog start at the cheapest delivery (owner, 30 October 2026); express is a choice. */
+export const defaultDeliverySpeed: DeliverySpeed = "standard";
+/** The tariff's base rate (`perKg`, `perKgUsd`) is express: a pricing helper called without a speed prices express. */
+export const baseTariffSpeed: DeliverySpeed = "express";
+/** A line or quote saved without a speed was quoted before the choice existed (6 October 2026): it was express. */
+export const legacyDeliverySpeed: DeliverySpeed = baseTariffSpeed;
 /** Atlas service fee on merchandise only (owner's decision, 4 October 2026); never on delivery or customs. */
 export const atlasServiceFee = 0.0998;
 /** Atlas pays the customer's customs for this share of the goods price, delivery excluded (owner, 5 October 2026). */
@@ -360,7 +365,7 @@ export function upgradePricing(config: Pricing): Pricing {
   });
 }
 /** Delivery per kg in USD for a dispatch country and speed, as the customer pays it (with the delivery margin). */
-export function deliveryPerKgUsdFor(config: Pricing, country?: string, speed: DeliverySpeed = defaultDeliverySpeed) {
+export function deliveryPerKgUsdFor(config: Pricing, country?: string, speed: DeliverySpeed = baseTariffSpeed) {
   const p = pricingForCountry(config, country);
   const override = country ? config.countryOverrides?.[country] : undefined;
   if (speed === "standard") return Math.round((p.standardPerKgUsd ?? standardDeliveryPerKgUsd) * (1 + p.deliveryMargin) * 100) / 100;
@@ -369,7 +374,7 @@ export function deliveryPerKgUsdFor(config: Pricing, country?: string, speed: De
   return Math.round(usd * (1 + p.deliveryMargin) * 100) / 100;
 }
 /** Soum per kg for a speed from a tariff already resolved for the country (pricingForCountry). */
-export function perKgSoumFor(config: Pricing, speed: DeliverySpeed = defaultDeliverySpeed) {
+export function perKgSoumFor(config: Pricing, speed: DeliverySpeed = baseTariffSpeed) {
   return speed === "standard" ? Math.round((config.standardPerKgUsd ?? standardDeliveryPerKgUsd) * config.fx) : config.perKg;
 }
 /** Resolve only the pricing dimensions explicitly overridden for this item's
@@ -480,7 +485,7 @@ export function price(
   quantity = 1,
   sourceShippingUsd = 0,
   config: Pricing = tariff,
-  speed: DeliverySpeed = defaultDeliverySpeed,
+  speed: DeliverySpeed = baseTariffSpeed,
 ) {
   if (
     !Number.isFinite(usd) ||
@@ -531,7 +536,7 @@ export function quote(
   quantity = 1,
   sourceShippingUsd = 0,
   config: Pricing = tariff,
-  speed: DeliverySpeed = defaultDeliverySpeed,
+  speed: DeliverySpeed = baseTariffSpeed,
 ): Quote {
   return {
     id: crypto.randomUUID(),
@@ -1361,9 +1366,9 @@ export function setCartDeliverySpeed(state: State, speed: DeliverySpeed, now = D
   if (!state.cart.length) throw Error("Корзина пуста.");
   return { ...state, cart: repriceCart(state.cart.map((item) => ({ ...item, deliverySpeed: speed })), now, config, customsHelpChosen(state)) };
 }
-/** The speed the cart is quoted at (all lines share it); an older cart without the field is express. */
+/** The speed the cart is quoted at (all lines share it): standard for an empty cart, express for an older one without the field. */
 export function cartDeliverySpeed(cart: Pick<CartItem, "deliverySpeed">[]): DeliverySpeed {
-  return cart.find((item) => item.deliverySpeed)?.deliverySpeed ?? defaultDeliverySpeed;
+  return cart.find((item) => item.deliverySpeed)?.deliverySpeed ?? (cart.length ? legacyDeliverySpeed : defaultDeliverySpeed);
 }
 /**
  * Recalculate international delivery once per merchant parcel, and unknown store delivery once per store order.
@@ -1381,7 +1386,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
         item.quantity,
         storeShippingUsd(item.product),
         itemPricing,
-        item.deliverySpeed ?? defaultDeliverySpeed,
+        item.deliverySpeed ?? legacyDeliverySpeed,
       ),
     };
   });
@@ -1397,7 +1402,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
     const boxedTotal = contributions.reduce((sum, value) => sum + value, 0);
     const chargeableWeight = combinedShipmentWeight(boxedTotal);
     const countryPricing = pricingForCountry(config, next[indexes[0]].product.country);
-    const shippingTotal = Math.ceil(chargeableWeight * perKgSoumFor(countryPricing, next[indexes[0]].deliverySpeed ?? defaultDeliverySpeed));
+    const shippingTotal = Math.ceil(chargeableWeight * perKgSoumFor(countryPricing, next[indexes[0]].deliverySpeed ?? legacyDeliverySpeed));
     const reserveTotal = Math.ceil(shippingTotal * countryPricing.reserve);
     const deliveryMarginTotal = Math.round(shippingTotal * countryPricing.deliveryMargin);
     let shippingLeft = shippingTotal;

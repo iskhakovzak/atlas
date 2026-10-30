@@ -25,8 +25,13 @@ test('the default tariff charges express $15.98 per kg and standard $13.98 per k
 test('the customer switches the whole cart between express and standard delivery', () => {
   const fx = { ...tariff, fx: 12000, perKg: Math.round(15.98 * 12000) };
   let state = addToCart(blank(), products[0], products[0].variants[0], 1000, fx);
-  assert.equal(cartDeliverySpeed(state.cart), 'express', 'a cart saved before the choice is express');
+  // A new cart starts at the cheapest delivery (owner, 30 October 2026); a cart saved before the choice is express.
+  assert.equal(cartDeliverySpeed(state.cart), 'standard');
+  assert.equal(cartDeliverySpeed([]), 'standard');
+  assert.equal(cartDeliverySpeed([{ ...state.cart[0], deliverySpeed: undefined }]), 'express');
+  state = setCartDeliverySpeed(state, 'express', 1000, fx);
   const express = state.cart[0].quote;
+  assert.equal(cartDeliverySpeed(state.cart), 'express');
   state = setCartDeliverySpeed(state, 'standard', 1000, fx);
   const standard = state.cart[0].quote;
   assert.equal(cartDeliverySpeed(state.cart), 'standard');

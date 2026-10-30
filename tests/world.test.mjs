@@ -5,7 +5,7 @@ import {allowedUrl,fetchProduct,supportedStoreCount,ManualEntryFallbackError} fr
 import {manualFallbackAllowed,requiresMerchantSnapshot} from '../lib/importer/manual-fallback.ts';
 import {customsVersion,paddedWeight,toUsd} from '../lib/market/world.ts';
 import {applyAction} from '../lib/market/actions.ts';
-import {blank,products,checkoutCart,addToCart,cartSignature,balanceOf,confirmDemoPayment,totalOf,tariff} from '../lib/market/domain.ts';
+import {blank,products,checkoutCart,addToCart,cartSignature,balanceOf,confirmDemoPayment,totalOf,tariff,perKgSoumFor} from '../lib/market/domain.ts';
 test('JSON-LD extracts title, image, price/currency, shipping and packaged weight',()=>{
 const html=`<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"Zapatos &amp; cosas","image":["https://i.ebayimg.com/image.jpg"],"shippingWeight":{"value":1500,"unitCode":"GRM"},"offers":{"@type":"Offer","price":"99.95","priceCurrency":"EUR","shippingDetails":{"shippingRate":{"value":4.5,"currency":"EUR"},"shippingDestination":{"addressCountry":"ES"}}}}</script>`;
 const p=extractProduct(html,'https://www.ebay.es/itm/123');assert.equal(p.title,'Zapatos & cosas');assert.equal(p.price,99.95);assert.equal(p.currency,'EUR');assert.equal(p.shipping,4.5);assert.equal(p.shippingDestination,'ES');assert.equal(p.boxedWeight,1.5);assert.equal(p.weightKind,'shipping');assert.equal(p.country,'Испания');
@@ -23,16 +23,18 @@ test('missing shipping remains unknown and aggregate lower bounds are not exact 
 test('OG fallback and escaped names render as text, never executable markup',()=>{const p=extractProduct(`<meta property='og:title' content='Product &amp; Shoes'><meta property='og:image' content='/image.jpg'><meta property='product:price:amount' content='12.50'><meta property='product:price:currency' content='USD'>`,'https://nike.com/item');assert.equal(p.title,'Product & Shoes');assert.equal(p.price,12.5);assert.equal(p.image,'https://nike.com/image.jpg');assert.equal(safeImage('javascript:alert(1)','https://nike.com'),undefined)});
 test('units, one-kilo minimum and boxed weight margin are explicit',()=>{assert.equal(parseWeight({value:2,unitCode:'LBR'}),.908);assert.equal(parseWeight({value:2}),undefined);assert.equal(parseWeight({value:99999,unitCode:'KGM'}),undefined);assert.equal(paddedWeight(1.2),1.5);assert.equal(paddedWeight(.1),1);assert.throws(()=>paddedWeight(50));assert.equal(toUsd(100,'EUR'),110)});
 test('same-store cart items share one parcel allowance and one-kilo minimum',()=>{
+ // A new cart travels at standard delivery (owner, 30 October 2026).
+ const perKg=perKgSoumFor(tariff,'standard');
  const make=(id,path,boxed)=>({...products[0],id,sourceUrl:`https://apple.com/shop/${path}`,sourcePrice:20,sourceCurrency:'USD',sourceShipping:0,sourceShippingUsd:0,sourceShippingCurrency:'USD',sourceShippingEstimated:false,shippingKnown:true,boxedWeight:boxed,weight:paddedWeight(boxed),country:'США',usd:20,variants:['Один']});
  let state=addToCart(blank(),make('tag','tag',.2),'Один',1);
- assert.equal(state.cart[0].quote.weight,1);assert.equal(state.cart[0].quote.shipping,tariff.perKg);
+ assert.equal(state.cart[0].quote.weight,1);assert.equal(state.cart[0].quote.shipping,perKg);
  state=addToCart(state,make('case','case',.3),'Один',2);
  assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.weight,0),1);
- assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.shipping,0),tariff.perKg);
+ assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.shipping,0),perKg);
  assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.reserve,0),0,'no reserve on top of delivery since 5 October 2026');
  // A tariff that still sets a reserve takes it once per parcel too.
  const reserved={...tariff,reserve:.2};let withReserve=addToCart(blank(),make('tag','tag',.2),'Один',1,reserved);withReserve=addToCart(withReserve,make('case','case',.3),'Один',2,reserved);
- assert.equal(withReserve.cart.reduce((sum,item)=>sum+item.quote.reserve,0),Math.ceil(tariff.perKg*.2));
+ assert.equal(withReserve.cart.reduce((sum,item)=>sum+item.quote.reserve,0),Math.ceil(perKg*.2));
  assert.equal(totalOf(state.cart),state.cart.reduce((sum,item)=>sum+item.quote.total,0));
 });
 test('storefront and product text infer Apple shipping country and AirTag category',()=>{const p=extractProduct('<script type="application/ld+json">{"@type":"Product","name":"AirTag 1 pack","category":"Bluetooth trackers","offers":{"price":29,"priceCurrency":"USD"}}</script>','https://www.apple.com/shop/buy-airtag/airtag/1-pack');assert.equal(p.country,'США');assert.equal(p.category,'Электроника')});
