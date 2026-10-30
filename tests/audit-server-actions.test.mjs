@@ -108,8 +108,11 @@ test('(g) cart-add: a changed store price is a 409 err_34; a store failure witho
   await assert.rejects(prepareAction(blank(), add(), deps({ fetchProduct: async () => live(44) })),
     (error) => error instanceof ActionError && error.status === 409 && error.code === 'err_34');
   await assert.rejects(prepareAction(blank(), add(), deps({ fetchProduct: down })), error=>error instanceof ActionError && error.code==='err_38');
-  // A buyer-confirmed product goes on when the store hides its data.
-  await assert.rejects(prepareAction(blank(), add({ sourceManuallyConfirmed: true }), deps({ fetchProduct: down })), error=>error instanceof ActionError && error.code==='err_38');
+  // A buyer-confirmed product goes on when the store cannot answer (the manual form after a failed import, 30.10.2026).
+  const confirmed = await prepareAction(blank(), add({ sourceManuallyConfirmed: true }), deps({ fetchProduct: down }));
+  assert.equal(confirmed.refusal, undefined);
+  assert.equal(confirmed.next.cart[0].product.sourceManuallyConfirmed, true);
+  assert.equal(confirmed.next.cart[0].product.sourceCheckedAt, undefined, 'never marked as checked by the store');
   // A verified add records the check on the same action object the route reads afterwards.
   const action = add({ sourceCheckedAt: 1, stockQuantity: 99 });
   const verified = await prepareAction(blank(), action, deps({ fetchProduct: async () => live(40) }));

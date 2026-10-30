@@ -1,0 +1,15 @@
+name = "atlas-import-monitor"
+main = "src/index.ts"
+compatibility_date = "2026-09-22"
+
+[triggers]
+# Every 10 minutes: the site checks the import gateway and, after 10:00 Tashkent, sends the daily summary once.
+crons = ["*/10 * * * *"]
+
+[vars]
+# The public address: only atlasmarket.uz sends Telegram messages (staging never does).
+ATLAS_SITE_URL = "https://atlasmarket.uz"
+
+# A random secret, set to the same value here and in the site's ATLAS_IMPORT_MONITOR_SECRET.
+# Never add the real value to this file or source control:
+#   wrangler secret put ATLAS_IMPORT_MONITOR_SECRET

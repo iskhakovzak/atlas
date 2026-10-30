@@ -25,6 +25,15 @@ declare namespace Cloudflare {
      * the public site (atlasmarket.uz over https) sends, so staging with the same bot token never does.
      */
     ATLAS_TELEGRAM_NOTICES?: string;
+    /**
+     * Import monitor (lib/market/import-monitor.ts): "on"/"off" overrides; unset — only the public site tells the
+     * owner. ATLAS_MONITOR_TELEGRAM is the owner's numeric Telegram id (otherwise the Telegram attached to the
+     * operator account); ATLAS_IMPORT_MONITOR_SECRET signs the 10-minute call of workers/import-monitor.
+     */
+    ATLAS_IMPORT_MONITOR?: string;
+    ATLAS_MONITOR_TELEGRAM?: string;
+    ATLAS_IMPORT_MONITOR_SECRET?: string;
+    ATLAS_TASHKENT_PROXY_URL?: string;
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
     // Sign in with Apple: the web flow uses the Services ID, the iOS app sends tokens for its bundle ID;
