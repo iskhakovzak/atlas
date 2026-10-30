@@ -3,7 +3,8 @@ import {useState,type MouseEvent} from 'react';
 import {ArrowUpRight,ArrowRight,Heart,Info,ShieldCheck,ShoppingBag,X} from 'lucide-react';
 import {Sheet,SheetContent,SheetTitle,SheetDescription,SheetClose} from '@/components/ui/sheet';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
-import {cartDeliverySpeed,price,storeDiscount,storeShippingHoldUsd,storeShippingUsd,tariff,unknownStoreShippingUsd,type Product} from '@/lib/market/domain';
+import {catalogDeliverySpeed,catalogQuoteSpeed} from '@/lib/market/deals';
+import {price,storeDiscount,storeShippingHoldUsd,storeShippingUsd,tariff,unknownStoreShippingUsd,type Product} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
 import {findOrderUrl} from '@/lib/market/catalog';
 import {countryName,packagingKg} from '@/lib/market/world';
@@ -36,7 +37,7 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
   const locale=state.communication.language as Locale,modalWords=marketplaceWords(locale),cc=catalogCopy[locale];
   const [variant,setVariant]=useState(selected.variants[0]),[adding,setAdding]=useState(false);
   // The estimate follows the cart; this sheet never changes its delivery speed.
-  const speed=ready?cartDeliverySpeed(state.cart):'express';
+  const speed=ready?catalogQuoteSpeed(state.cart):catalogDeliverySpeed;
   const curated=catalogProducts.find(item=>item.id===selected.id&&item.sourceUrl===selected.sourceUrl);
   const country=countryName(selected);
   const label=countryLabel(country,locale);

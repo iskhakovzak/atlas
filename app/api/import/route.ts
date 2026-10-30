@@ -5,7 +5,7 @@ import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { canonicalProductUrl } from '@/lib/importer/source-identity';
 import { desktopStoreUrl, expandShortLink, isShortLink } from '@/lib/importer/short-links';
 import { createImportFlights, freshRetryGapMs } from '@/lib/importer/import-flight';
-import { database, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
+import { database, deferBackground, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
 import { currentUser } from '@/lib/auth/server';
 import { importRateBuckets } from '@/lib/market/import-preview';
 import { apiErrorMessage, importManualEntryMessage, importManualStoreMessage, importPendingMessage, requestLocale, serverError } from '@/lib/market/i18n';
@@ -190,6 +190,8 @@ export async function POST(request: Request) {
         db.prepare('DELETE FROM market_import_cache WHERE expires_at < ?').bind(fetchedAt),
       ]);
       timings.cacheWrite = performance.now() - cacheStarted;
+      // A catalog card of this page takes the fresh price too (at most every 30 minutes), after the answer is sent.
+      deferBackground(import('@/lib/market/catalog-refresh').then(({ refreshCatalogFromLiveImport }) => refreshCatalogFromLiveImport(url, data, fetchedAt)), 'Catalog live refresh failed');
     }
     return timed(json({ ...data, fetchedAt, expiresAt, cached: false }));
   } catch (error) {

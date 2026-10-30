@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable,validateServiceCatalog,sendCustomerNotification,orderNeedsOperatorAttention} from '../lib/market/domain.ts';
+import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable,validateServiceCatalog,sendCustomerNotification,orderNeedsOperatorAttention,setCartDeliverySpeed} from '../lib/market/domain.ts';
 import {actionSchema,applyAction} from '../lib/market/actions.ts';
 import {defaultPolicy} from '../lib/market/policy.ts';
 import {customsVersion} from '../lib/market/world.ts';
@@ -83,9 +83,10 @@ const managed={...tariff,fx:13000,perKg:100000,version:'managed-test',updatedAt:
 test('dispatch-country service overrides affect new quote lines and old pricing records inherit base rates',()=>{
 const legacy=pricingSchema.parse({...tariff,countryOverrides:undefined});assert.deepEqual(legacy.countryOverrides,{});
 const managed={...tariff,perKg:90000,margin:.12,countryOverrides:{'США':{margin:.2,buyoutFee:.03,conversionFee:.01,deliveryMargin:.05,perKg:120000,reserve:.1,optionalServices:5000}}};
-const us=addToCart(blank(),products[0],products[0].variants[0],1000,managed).cart[0].quote;
+// The soum-per-kg override is an express rate: the line is switched to express to read it.
+const us=setCartDeliverySpeed(addToCart(blank(),products[0],products[0].variants[0],1000,managed),'express',1000,managed).cart[0].quote;
 assert.equal(us.service,Math.round(us.merchandise*.2));assert.equal(us.buyout,Math.round(us.merchandise*.03));assert.equal(us.conversion,Math.round(us.merchandise*.01));assert.equal(us.shipping,Math.ceil(us.weight*120000));assert.equal(us.reserve,Math.ceil(us.shipping*.1));assert.equal(us.deliveryMargin,Math.round(us.shipping*.05));assert.equal(us.optionalServices,5000);
-const de=addToCart(blank(),products[1],products[1].variants[0],1001,managed).cart[0].quote;
+const de=setCartDeliverySpeed(addToCart(blank(),products[1],products[1].variants[0],1001,managed),'express',1001,managed).cart[0].quote;
 assert.equal(de.service,Math.round(de.merchandise*.12));assert.equal(de.shipping,90000);assert.equal(de.buyout,0);
 });
 test('warehouse service catalogue remains backward compatible and validates unsafe offers',()=>{

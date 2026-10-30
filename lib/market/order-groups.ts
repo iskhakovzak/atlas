@@ -1,4 +1,4 @@
-import { deliveryAddressLine, orderPayable, type DeliveryProfile, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
+import { deliveryAddressLine, legacyDeliverySpeed, orderPayable, type DeliveryProfile, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
 import { orderAttention } from './notice-panel.ts';
 import { localizedStatuses, type Locale } from './i18n.ts';
 import { brandForHost, storefrontLabel } from './store-brands.ts';
@@ -206,7 +206,7 @@ export function sharedDelivery(orders: readonly Order[]): OrderGroup['delivery']
   if (!first) return undefined;
   const key = (order: Order) => order.delivery && [order.delivery.recipient, order.delivery.phone, order.delivery.region, order.delivery.city, order.delivery.address, order.delivery.postalCode ?? '', order.quote.deliverySpeed ?? 'express'].join('|');
   const same = key(live[0]);
-  return live.every((order) => key(order) === same) ? { profile: first, speed: live[0].quote.deliverySpeed ?? 'express' } : undefined;
+  return live.every((order) => key(order) === same) ? { profile: first, speed: live[0].quote.deliverySpeed ?? legacyDeliverySpeed } : undefined;
 }
 
 function buildGroup(key: string, batchId: string | undefined, orders: Order[]): OrderGroup {

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, PencilLine, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, Plus, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, PencilLine, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, PackageCheck, Plus, RotateCcw, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
 import Link from "@/components/site-link";
 import { toast } from "@/lib/market/toast";
 import { useMarket } from "@/lib/market/store";
@@ -37,6 +37,7 @@ import {
 import { usePendingCartAdd, type PendingCartAddResult } from "./pending-cart-add";
 import {
   cartDeliverySpeed,
+  defaultDeliverySpeed,
   repriceCart,
   storeDiscount,
   storeShippingReserves,
@@ -87,6 +88,7 @@ import {
   hasSelectableDimensions,
 } from "@/lib/market/community-deals";
 import {uzText} from '@/lib/market/uz-cyrl';
+import { optionDisplay } from '@/lib/market/variant-display';
 import {isUzbek,type Locale} from '@/lib/market/i18n';
 import {requestImport} from "@/lib/market/import-client";
 import {readImportCachePreview} from "@/lib/market/import-cache-preview";
@@ -145,10 +147,16 @@ function Stepper({ value, max, label, k, onChange }: { value: number; max: numbe
 }
 
 /** Options without a color/size matrix, as buttons the customer can pick several of. */
+// Compact tiles (owner, 30 October 2026): only what tells the options apart ("5.5", not every eBay item specific),
+// the axis name once above them, and a price on a tile only when the prices differ.
 function OptionChips({ variants, picked, k, onToggle, format }: { format:(value:number)=>string; variants: ProductVariant[]; picked: Record<string, number>; k: CalcCopy; onToggle: (item: ProductVariant) => void }) {
-  return <div className="variant-options lo-option-chips">{variants.map(item => <button type="button" key={item.label} aria-pressed={Boolean(picked[item.label])} disabled={!isOrderableVariant(item)} onClick={() => onToggle(item)}>
-    <span>{item.label}</span>{item.price!==undefined&&<small>{format(item.price)}</small>}{item.options?.length? <small>{item.options.map(o=>`${o.name}: ${o.value}`).join(" · ")}</small>:null}{item.quantity !== undefined && item.quantity <= 5 && <small className="lo-stock">{item.quantity ? k.stockLeft(item.quantity) : k.outOfStock}</small>}
-  </button>)}</div>;
+  const shown = optionDisplay(variants);
+  return <>
+    {shown.axes.length > 0 && <p className="lo-option-axes">{shown.axes.join(" · ")}</p>}
+    <div className="variant-options lo-option-chips">{variants.map(item => <button type="button" key={item.label} title={item.label} aria-label={[item.label, item.price !== undefined ? format(item.price) : "", stockText(item, k)].filter(Boolean).join(", ")} aria-pressed={Boolean(picked[item.label])} disabled={!isOrderableVariant(item)} onClick={() => onToggle(item)}>
+      <span>{shown.text(item)}</span>{shown.priceVaries && item.price !== undefined && <small>{format(item.price)}</small>}{item.quantity !== undefined && item.quantity <= 5 && <small className="lo-stock">{item.quantity ? k.stockLeft(item.quantity) : k.outOfStock}</small>}
+    </button>)}</div>
+  </>;
 }
 
 /**
@@ -246,7 +254,7 @@ function keepChosenColourInView(row: HTMLElement) {
 export function GlobalLinkOrder() {
   const { ready, status, error: accountError, user, refresh, pricing, state, act, lastActionError, catalogProducts, loadCatalog } = useMarket();
   // Delivery is chosen only in the cart; estimates follow its current speed.
-  const [previewSpeed, setPreviewSpeed] = useState<"express" | "standard">("express");
+  const [previewSpeed, setPreviewSpeed] = useState<"express" | "standard">(defaultDeliverySpeed);
   // The heart beside a catalog item's name: the same favourites as in the catalog.
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const cartSpeed = cartDeliverySpeed(state.cart);
@@ -1705,7 +1713,7 @@ export function GlobalLinkOrder() {
               {picks.length > 0 && <ul className={"lo-picks" + (manyMode ? "" : " single")} aria-label={k.chosen}>{picks.map(([label, quantity]) => {
                 const option = pickedVariant(label);
                 const optionPrice = option?.price ?? Number(amount);
-                const shown = option?.size ? [option.color ? colourName(option.color) : "", sizeDisplay(option.size)].filter(Boolean).join(" · ") : label;
+                const shown = option?.size ? [option.color ? colourName(option.color) : "", sizeDisplay(option.size)].filter(Boolean).join(" · ") : option ? optionDisplay(variants).text(option) : label;
                 return <li key={label}>
                   <Check className="lo-pick-tick" size={18} aria-hidden="true"/>
                   <span className="lo-pick-label"><b>{shown}</b><small>{[Number.isFinite(optionPrice) && optionPrice > 0 ? sourceFormat(optionPrice) : "", stockText(option, k)].filter(Boolean).join(" · ")}</small></span>
@@ -1767,7 +1775,7 @@ export function GlobalLinkOrder() {
             </div>
             {/* For a guest, right under the button it explains: the item goes to the cart by itself after sign-in. */}
             {isGuest && <p className="lo-guest"><LogIn size={16} aria-hidden="true" /><span>{canKeep ? lc.guest : lc.guestNoKeep}</span></p>}
-            <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li>{/* Said once: "checked at HH:MM" by the price at the top, or "will check" above the button until then. */}{sourceCheckStatus === "manual" ? <li><Info size={16} aria-hidden="true" />{tx("Данные введены вами по странице магазина.","Ma’lumotlarni do‘kon sahifasi bo‘yicha o‘zingiz kiritdingiz.","You entered the details from the store page.")}</li> : sourceCheckStatus === "verified" && !checkedTime ? <li><ShieldCheck size={16} aria-hidden="true" />{checkedText}</li> : null}</ul>
+            <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li>{/* Trust next to the decision (storefront practice, owner 30 October 2026): only what the offer promises, each linked to its clause. */}<li><RotateCcw size={16} aria-hidden="true" /><a href="/legal#offer-cancel">{tx("До выкупа заказ можно отменить","Xariddan oldin buyurtmani bekor qilish mumkin","You can cancel before we buy it")}</a></li><li><PackageCheck size={16} aria-hidden="true" /><a href="/legal#offer-insurance">{tx("Условия компенсации за посылку","Jo‘natma uchun kompensatsiya shartlari","Parcel compensation terms")}</a></li>{/* Said once: "checked at HH:MM" by the price at the top, or "will check" above the button until then. */}{sourceCheckStatus === "manual" ? <li><Info size={16} aria-hidden="true" />{tx("Данные введены вами по странице магазина.","Ma’lumotlarni do‘kon sahifasi bo‘yicha o‘zingiz kiritdingiz.","You entered the details from the store page.")}</li> : sourceCheckStatus === "verified" && !checkedTime ? <li><ShieldCheck size={16} aria-hidden="true" />{checkedText}</li> : null}</ul>
           </section>}
           </div>
         </form>
@@ -1776,7 +1784,7 @@ export function GlobalLinkOrder() {
       {/* On phones the total bar stays put through the check, so the page does not jump when the price arrives. */}
       {(source || checking) && <div className={"basket-sticky lo-sticky" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
         <div><span>{!checking && !previewSums && fromSums ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : previewSums && !nothingToChoose ? formatSum(previewSums.total, lang) : fromSums ? formatSum(fromSums.total, lang) : "—"}</strong></div>
-        {nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? c.adding : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
+        {nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? tx("Добавляем…", "Qo‘shilmoqda…", "Adding…") : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
         {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
       </div>}
     </div>

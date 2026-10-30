@@ -4,7 +4,8 @@ import { useId, useMemo, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import Link from '@/components/site-link';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { cartDeliverySpeed, type Product } from '@/lib/market/domain';
+import { type Product } from '@/lib/market/domain';
+import { catalogDeliverySpeed, catalogQuoteSpeed } from '@/lib/market/deals';
 import { useMarket } from '@/lib/market/store';
 import { catalogCopy } from '@/lib/market/catalog-copy';
 import { applyCatalogQuery, catalogItems, emptyCatalogQuery } from '@/lib/market/catalog-query';
@@ -28,7 +29,7 @@ export function CartPicks({ title, link, products, limit = 8, onSelect }: { titl
   const titleId = useId();
   // Deals are judged against the whole catalog, so a card's "Top price" is the same here as on /catalog.
   const shown = useMemo(() => applyCatalogQuery(catalogItems(products, pricing, catalogProducts), emptyCatalogQuery, { dutyLimitUsd: courierAllowanceUsd }).slice(0, limit), [products, pricing, catalogProducts, limit]);
-  const speed = ready ? cartDeliverySpeed(state.cart) : 'express';
+  const speed = ready ? catalogQuoteSpeed(state.cart) : catalogDeliverySpeed;
   if (!shown.length) return null;
   const go = link ?? { href: '/catalog', label: cc.viewAllShort };
   async function save(product: Product) {

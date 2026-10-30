@@ -22,6 +22,7 @@ import {pickLocale,uzText,withCyrillic} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
 import {breadcrumbs,publicViewPaths} from '@/lib/seo/structured-data';
 import {JsonLd} from './json-ld';
+import {CartAnnouncer} from './cart-announcer';
 
 const breadcrumbLabel:Record<Locale,string>=/*@__PURE__*/withCyrillic({uz:'Sahifa yo‘li',ru:'Путь по сайту',en:'Breadcrumb'});
 const returnPath=()=>typeof window==='undefined'?'/':window.location.pathname+window.location.search;
@@ -92,6 +93,7 @@ export default function Marketplace({view,children}:{view:string;children?:React
    :view==='login'?null:<a className="header-account" href={signInPath('/account')} onClick={event=>{event.currentTarget.href=signInPath(view==='login'?'/':returnPath())}}>{hc.nav.signin}</a>}</div></header>
   {/* Wide screens: the chapter rail after the header (Tab: header → rail → main; the skip link passes it), lazily loaded. */}
   {view==='catalog'&&<HomeRailSlot/>}{view==='catalog'&&<HomeMagnet/>}
+  <CartAnnouncer count={count} ready={ready} locale={locale}/>
   <main className={view==='catalog'?'site-main catalog-home':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span><span aria-current="page">{routeTitle(state.communication.language,view)}</span></nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
   <AccessView view={view}>{children}</AccessView>
    {/* Home: the closing call and the footer share the last sheet (app/home-chapters.css). */}

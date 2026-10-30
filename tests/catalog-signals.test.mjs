@@ -51,19 +51,11 @@ test('a guest never sees "within the allowance"', () => {
   assert.deepEqual(kinds(signalsFor(item, member(200))), ['limit']);
 });
 
-test('amber displaces mint: above the allowance there is no win to show', () => {
+test('no "over the allowance" chip: an expensive item keeps its win and neutral notes (owner, 30 October 2026)', () => {
   const item = itemOf({ sourceVariants: sized });
   const over = signalsFor(item, { ...member(40), parcel: { store: 'nike.com', extra: 50_000 } });
-  assert.deepEqual(kinds(over), ['over-limit', 'sizes']);
-  assert.equal(over[0].tone, 'amber');
-  assert.equal(over[0].text, 'Дороже лимита на $20');
-  assert.equal(signalsFor(itemOf({ usd: 45.5 }), member(40))[0].text, 'Дороже лимита на $6', 'whole dollars, rounded up');
-  const guestOver = signalsFor(itemOf({ usd: 290, boxedWeight: 2.5, weight: 3 }), guest);
-  assert.equal(guestOver[0].kind, 'over-limit');
-  assert.equal(guestOver[0].text, 'Дороже лимита $200');
-  // The hint says the duty is an estimate and that who pays it is chosen in the cart (Atlas can prepay it with the order).
-  assert.match(guestOver[0].hint, /Оценка; кто её оплатит/);
-  assert.equal(colours(signalsFor(itemOf({ usd: 200 }), guest)).filter((signal) => signal.tone === 'amber').length, 0, 'exactly the limit still fits');
+  assert.deepEqual(kinds(over), ['parcel', 'sizes']);
+  assert.ok(!signalsFor(itemOf({ usd: 290, boxedWeight: 2.5, weight: 3 }), guest).some((signal) => /лимит/i.test(signal.text)));
 });
 
 test('an unconfirmed price gets no mint allowance chip, only the "we check before you order" note', () => {
@@ -73,7 +65,7 @@ test('an unconfirmed price gets no mint allowance chip, only the "we check befor
   assert.equal(signals[0].tone, 'neutral');
   assert.equal(signals[0].text, 'Сверим перед заказом');
   // Its last price still counts against the allowance, as on the duty-free filter.
-  assert.deepEqual(kinds(signalsFor(itemOf({ usd: 3, priceNeedsConfirmation: true, sourcePrice: 300, sourceCurrency: 'USD' }), guest)), ['over-limit', 'stale']);
+  assert.deepEqual(kinds(signalsFor(itemOf({ usd: 3, priceNeedsConfirmation: true, sourcePrice: 300, sourceCurrency: 'USD' }), guest)), ['free-shipping', 'stale']);
 });
 
 test('neutral chips: in the cart first, then stale, eBay stock, sizes', () => {

@@ -50,3 +50,14 @@ test('browsed colour and exact size price do not inherit another colour price',(
  const options=[{color:'Red',size:'11',price:25,available:true},{color:'Grey',size:'7',price:24,available:true},{color:'Cargo',size:'11',price:32,available:true},{color:'Cargo',size:'12',price:33,available:true},{color:'White',size:'11',price:34,available:true},{color:'Grey',size:'8',price:1,available:false}];
  assert.deepEqual(variantDisplayPrices(options,'Grey'),[24]);assert.deepEqual(variantDisplayPrices(options,'Cargo'),[32,33]);assert.deepEqual(variantDisplayPrices(options,'Cargo','11'),[32]);assert.deepEqual(variantDisplayPrices(options,'White','11'),[34]);
 });
+test('eBay\'s plain "Size" beside "US Shoe Size" is the same size: sizes stay a matrix, and the seller is kept',async()=>{
+ clearEbayTokenCacheForTests();
+ const id='158007867936';const make=(child,us,size)=>({itemId:`v1|${id}|${child}`,title:'adidas men SL 72 RS SHOES',brand:'adidas',seller:{username:'adidas_official'},price:{value:'27',currency:'USD'},buyingOptions:['FIXED_PRICE'],estimatedAvailabilities:[{estimatedAvailabilityStatus:'IN_STOCK',estimatedAvailableQuantity:2}],image:{imageUrl:`https://assets.adidas.com/${child}.jpg`},localizedAspects:[{name:'US Shoe Size',value:us},{name:'Size',value:size},{name:'Brand',value:'adidas'},{name:'Color',value:'Aurora Ivy / Cloud White / Clear Sky'},{name:'Department',value:'men'}],primaryItemGroup:{itemGroupId:id,itemGroupType:'SELLER_DEFINED_VARIATIONS'}});
+ const items=[make('9001','5','5'),make('9002','5.5','5-')];
+ const fetcher=async input=>new Response(JSON.stringify(String(input).includes('oauth2')?{access_token:'test',expires_in:3600}:String(input).includes('get_items_by_item_group')?{items}:items[0]),{headers:{'content-type':'application/json'}});
+ const data=await fetchEbayProduct(`https://www.ebay.com/itm/${id}?var=9001`,{clientId:'test',clientSecret:'test',environment:'production'},fetcher);
+ assert.deepEqual(data.variants.map(v=>v.size),['5','5.5']);
+ assert.deepEqual(data.variants.map(v=>v.label),['5','5.5']);
+ assert.deepEqual(data.variants[1].sizeAlternates,[{system:'US',value:'5.5'}],'"5-" is not offered as another size system');
+ assert.equal(data.variants[0].sellerId,'adidas_official');
+});

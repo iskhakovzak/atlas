@@ -801,3 +801,19 @@ html[data-theme="dark"] .photo-wait { color: var(--night-muted, #9ba6a0); }
   .photo-wait, .photo-wait-ring svg { animation: none; }
   .photo-wait-ring::before { animation-duration: 2.4s; }
 }
+
+/* Card rhythm on phones (owner, 30 October 2026): a smaller title (eBay titles are long and loud), the days sit right
+   under the total as its caption instead of floating a line below it, and the official brand store reads as one with
+   its check mark. */
+.find-card .find-official { display: inline-flex; align-items: center; gap: 4px; min-width: 0; color: var(--day-accent, var(--home-accent)); font-weight: 600; }
+.find-card .find-official > svg { flex: none; }
+.find-card .find-meta .find-store:has(.find-official) { overflow: hidden; white-space: nowrap; }
+html[data-theme="dark"] .find-card .find-official { color: var(--night-accent, #8fd3b0); }
+@media (max-width: 600px) {
+  html:not([data-theme="dark"]) .site-main .find-card .find-content .find-title,
+  html[data-theme="dark"] .site-main .find-card .find-content .find-title { font-size: 13.5px; font-weight: 600; line-height: 1.3; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-total,
+  html[data-theme="dark"] .site-main .find-card .find-content .find-total { padding-bottom: 0; }
+  .site-main .find-card .find-facts { margin-top: 2px; }
+  .site-main .find-card .find-purchase { padding-top: 12px; }
+}

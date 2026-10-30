@@ -76,6 +76,7 @@ import {
   type ServiceOffering,
   type WarehouseServiceRequest,
   customsHelpShare,
+  legacyDeliverySpeed,
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
 import { countries } from "@/lib/market/world";
@@ -943,7 +944,7 @@ function CustomerOrderLine({ lines, panelId, progress = true, siblings, showThum
   const sharedPayment = many && new Set(lines.map((line) => `${line.payment?.id ?? ""}|${line.payment?.status ?? ""}|${line.cancelled}|${line.customsConsent?.acceptedAt ?? ""}`)).size === 1;
   const notes = [...new Set(lines.map((line) => line.note?.trim()).filter((note): note is string => Boolean(note)))];
   // Delivery speed of the order's quote snapshot (orders placed before the choice are express); days by dispatch region.
-  const speed = lead.quote.deliverySpeed ?? "express";
+  const speed = lead.quote.deliverySpeed ?? legacyDeliverySpeed;
   const region = deliveryRegions.find(item => item.countries.includes(lead.product.country ?? "США"))?.id as DeliveryRegion | undefined;
   const days = region ? deliveryDaysFor(pricing, region, speed) : null;
   const where = lead.delivery ? [lead.delivery.city || lead.delivery.region, lead.delivery.address].filter(Boolean).join(", ") : "";
