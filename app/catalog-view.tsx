@@ -5,7 +5,8 @@ import { ArrowRight, ChevronDown, Heart, Link2, Search, ShieldCheck, SlidersHori
 import Link from '@/components/site-link';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { cartDeliverySpeed, type Product } from '@/lib/market/domain';
+import { type Product } from '@/lib/market/domain';
+import { catalogDeliverySpeed, catalogQuoteSpeed } from '@/lib/market/deals';
 import { useMarket } from '@/lib/market/store';
 import { useRowAtStart } from '@/lib/market/row-start';
 import { retryOriginal, sizedImage } from '@/lib/market/image-size';
@@ -115,7 +116,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
     for (const item of items) if (parcels.includes(item.store)) map.set(item.product.id, parcelExtra(state.cart, item.product, item.usd, pricing));
     return map;
   }, [items, parcels, state.cart, pricing]);
-  const speed = ready ? cartDeliverySpeed(state.cart) : 'express';
+  const speed = ready ? catalogQuoteSpeed(state.cart) : catalogDeliverySpeed;
   // A cart line made by the link order carries its own id (`<url>#<option>`): the source URL says it is this product.
   const inCart = (product: Product) => ready && state.cart.some((line) => sameCatalogProduct(line.product, product));
   const signalsOf = (item: CatalogItem) => signalsFor(item, { locale, pricing, parcel: parcelExtras.get(item.product.id) ?? null, inCart: inCart(item.product), member: Boolean(allowance), remainingUsd: allowance ? allowance.remainingUsd : null, dutyLimitUsd: limitUsd });

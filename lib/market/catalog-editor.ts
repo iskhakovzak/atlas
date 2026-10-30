@@ -364,6 +364,22 @@ export function dueCatalogEntries(document:CatalogDocument,now=Date.now(),limit=
   return selected;
 }
 
+/** A live customer import refreshes the card of the same page at most this often (the scheduler checks daily). */
+export const catalogLiveRefreshGap=30*60*1000;
+/**
+ * Watched cards of the page a customer just loaded live, when their last confirmed check is older than the gap:
+ * the customer's fresh answer becomes the card's (owner, 30 October 2026: the catalog said $43, the store $27).
+ */
+export function catalogEntriesForLiveSource(document:CatalogDocument,sourceUrl:string,now=Date.now()){
+  let canonical:string;
+  try{canonical=canonicalCatalogUrl(sourceUrl)}catch{return []}
+  return document.entries.filter(entry=>{
+    if(!isWatchedCatalogEntry(entry)||isManualCatalogSource(entry.draft.sourceUrl))return false;
+    try{if(canonicalCatalogUrl(entry.draft.sourceUrl)!==canonical)return false}catch{return false}
+    return now-(entry.refresh?.lastSuccessAt??entry.draft.checkedAt)>=catalogLiveRefreshGap;
+  });
+}
+
 function resolveAvailabilityReports(document:CatalogDocument,id:string,now:number){
   document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);
 }

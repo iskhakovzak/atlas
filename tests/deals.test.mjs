@@ -5,7 +5,7 @@ import { merchantFinds, findOrderUrl } from '../lib/market/catalog.ts';
 import { applyAction } from '../lib/market/actions.ts';
 import { allowedUrl } from '../lib/importer/fetch.ts';
 import { safeImage, extractProduct } from '../lib/importer/extract.ts';
-import { dealQuote, filterDeals, defaultDealFilters, hasActiveDealFilters } from '../lib/market/deals.ts';
+import { cheapestUsd, catalogQuoteSpeed, dealQuote, filterDeals, defaultDealFilters, hasActiveDealFilters } from '../lib/market/deals.ts';
 
 test('merchant records retain unique identity, safe sources and unconfirmed shipping reserves', () => {
   assert.equal(new Set(merchantFinds.map(p => p.id)).size, merchantFinds.length);
@@ -28,7 +28,9 @@ test('merchant totals match checkout pricing and source-only discounts', () => {
   const deal = dealQuote(p, tariff);
   // Above $50 an unknown store delivery is free.
   assert.ok(p.usd > tariff.storeShippingFreeFromUsd);
-  assert.deepEqual(deal.costs, price(p.usd, p.weight, 1, 0, tariff));
+  // The storefront quotes standard delivery (owner, 30 October 2026); express is the cart's choice.
+  assert.deepEqual(deal.costs, price(p.usd, p.weight, 1, 0, tariff, 'standard'));
+  assert.ok(deal.costs.total < price(p.usd, p.weight, 1, 0, tariff, 'express').total);
   assert.equal(dealQuote({ ...p, usd: 20 }, tariff).costs.sourceShipping, 0, 'the hold is never in the total');
   assert.equal(dealQuote({ ...p, usd: 20 }, tariff).holdUsd, 10);
   assert.equal(deal.savingsUsd, p.referenceUsd - p.usd);
@@ -40,7 +42,7 @@ test('stale catalog snapshots still get a clearly unconfirmed server-rate estima
   const p={...merchantFinds[0],usd:1,sourcePrice:24,sourceCurrency:'EUR',priceNeedsConfirmation:true,referenceUsd:999};
   const config={...tariff,rates:{...tariff.rates,EUR:1.1}};
   const deal=dealQuote(p,config);
-  assert.deepEqual(deal.costs,price(26.4,p.weight,1,p.sourceShippingEstimated?0:p.sourceShippingUsd,config));
+  assert.deepEqual(deal.costs,price(26.4,p.weight,1,p.sourceShippingEstimated?0:p.sourceShippingUsd,config,'standard'));
   assert.equal(deal.discount,0);assert.equal(deal.referenceUsd,undefined);
 });
 test('reference prices never leak to legacy, changed or unrelated listings', () => {
@@ -73,4 +75,18 @@ test('ProductGroup retains linked colour metadata and each size price without qu
   assert.equal(result.price,undefined); assert.equal(result.currency,'USD'); assert.equal(result.title,'Shoe BLUE'); assert.equal(result.brand,'Nike');assert.equal(result.selectedVariantColor,'BLUE');
   assert.deepEqual(result.variants.map(v=>[v.label,v.price,v.available]),[['RED · 8',10,true],['BLUE · 8',70,true],['BLUE · 9',75,false]]);
   assert.equal(extractProduct(html,'https://www.nike.com/t/shoe/GREEN').price,undefined);
+});
+
+test('the storefront quotes the cheapest option the store still sells, and standard delivery unless the cart ships otherwise', () => {
+  const p = { ...merchantFinds.find(p => p.referenceUsd), usd: 43, sourceCurrency: 'USD', priceNeedsConfirmation: false, sourceVariants: [
+    { label: '5', available: true, price: 43 },
+    { label: '5.5', available: true, price: 27 },
+    { label: '6', available: false, price: 19 },
+    { label: '7', available: true, price: 12, quantity: 0 },
+  ] };
+  assert.equal(cheapestUsd(p, tariff), 27, 'sold-out and zero-stock options do not count');
+  assert.deepEqual(dealQuote(p, tariff).costs, price(27, p.weight, 1, 0, tariff, 'standard'));
+  assert.equal(cheapestUsd({ ...p, sourceVariants: [{ label: '5', available: true, price: 60 }] }, tariff), 43, 'never above the product price');
+  assert.equal(catalogQuoteSpeed([]), 'standard');
+  assert.equal(catalogQuoteSpeed([{ deliverySpeed: 'express' }]), 'express');
 });

@@ -5,12 +5,11 @@ import type { Locale } from './i18n.ts';
 import {withCyrillic} from './uz-cyrl.ts';
 
 /**
- * The chips of a catalog card: at most two, at most one of them coloured (mint for a win, amber
- * for a warning), the other neutral. Amber displaces mint. Pure: the card only renders the result.
+ * The chips of a catalog card: at most two, at most one of them coloured (mint for a win), the other neutral. Pure: the card only renders the result.
  */
 export type Signal = {
-  kind: 'parcel' | 'limit' | 'free-shipping' | 'stale' | 'cart' | 'sizes' | 'stock' | 'over-limit';
-  tone: 'mint' | 'neutral' | 'amber';
+  kind: 'parcel' | 'limit' | 'free-shipping' | 'stale' | 'cart' | 'sizes' | 'stock';
+  tone: 'mint' | 'neutral';
   text: string;
   hint?: string;
 };
@@ -38,9 +37,6 @@ const copy = /*@__PURE__*/withCyrillic({
     limitHint: 'По вашим заказам в Atlas за этот месяц; оценка, пошлину считает таможня при ввозе.',
     freeShipping: 'Доставка магазина бесплатна',
     freeShippingHint: (freeFrom: string) => `Магазин не указал цену доставки до склада, но при заказе больше чем на ${freeFrom} из этого магазина она бесплатна. Если магазин всё же возьмёт плату — доплата только с вашего согласия.`,
-    overLimit: (limit: string) => `Дороже лимита ${limit}`,
-    overLimitBy: (excess: string) => `Дороже лимита на ${excess}`,
-    overLimitHint: 'Цена товара выше беспошлинного лимита: с превышения при ввозе платится пошлина. Оценка; кто её оплатит — Atlas или вы, — выберете в корзине.',
     cart: 'Уже в корзине',
     stale: 'Сверим перед заказом',
     staleHint: 'Цена на дату снимка',
@@ -56,9 +52,6 @@ const copy = /*@__PURE__*/withCyrillic({
     limitHint: 'Shu oydagi Atlas buyurtmalaringiz bo‘yicha; taxminiy, bojni olib kirishda bojxona hisoblaydi.',
     freeShipping: 'Do‘kon yetkazishi bepul',
     freeShippingHint: (freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan, lekin shu do‘kondan ${freeFrom} dan ortiq buyurtmada u bepul. Do‘kon baribir haq olsa — qo‘shimcha to‘lov faqat roziligingiz bilan.`,
-    overLimit: (limit: string) => `${limit} limitdan qimmat`,
-    overLimitBy: (excess: string) => `Limitdan ${excess} ga qimmat`,
-    overLimitHint: 'Tovar narxi bojsiz limitdan yuqori: olib kirishda ortiqcha qismga boj to‘lanadi. Taxminiy; uni Atlas yoki o‘zingiz to‘lashingizni savatda tanlaysiz.',
     cart: 'Savatda bor',
     stale: 'Buyurtmadan oldin tekshiramiz',
     staleHint: 'Narx snapshot sanasiga',
@@ -74,9 +67,6 @@ const copy = /*@__PURE__*/withCyrillic({
     limitHint: 'Based on your Atlas orders this month; an estimate, customs assesses duty on import.',
     freeShipping: 'Free store delivery',
     freeShippingHint: (freeFrom: string) => `The store did not state delivery to our warehouse, but orders over ${freeFrom} from this store ship free. If the store still charges, any extra payment needs your consent.`,
-    overLimit: (limit: string) => `Above the ${limit} allowance`,
-    overLimitBy: (excess: string) => `${excess} above your allowance`,
-    overLimitHint: 'The product price is above the duty-free allowance: duty applies to the excess on import. An estimate; you choose in the cart whether Atlas pays it or you do.',
     cart: 'Already in your cart',
     stale: 'Checked before you order',
     staleHint: 'Price as of the snapshot date',
@@ -87,11 +77,8 @@ const copy = /*@__PURE__*/withCyrillic({
   },
 }) satisfies Record<Locale, unknown>;
 
-/** Whole dollars for a chip: $45,20 over the allowance reads as "$46". */
-const wholeUsd = (amount: number, locale: Locale) => formatUsd(Math.ceil(amount - 1e-9), locale);
-
 /**
- * One coloured chip at most (amber wins over mint), then one neutral chip; never more than two.
+ * One coloured chip at most, then one neutral chip; never more than two.
  * Mint priority: the shared parcel, the allowance, free store delivery. Neutral priority: in the
  * cart, an unconfirmed price, eBay stock, the number of sizes.
  */
@@ -100,15 +87,9 @@ export function signalsFor(item: CatalogItem, ctx: SignalContext): Signal[] {
   const { product, usd } = item;
   const fmt = (sum: number) => formatSum(sum, ctx.locale);
   const member = ctx.member && ctx.remainingUsd !== null;
+  // No "over the allowance" chip (owner, 30 October 2026): duty is chosen in the cart, a warning on the card only scares.
   let coloured: Signal | null = null;
 
-  if (usd !== undefined) {
-    if (member && usd > ctx.remainingUsd! + 1e-9) {
-      coloured = { kind: 'over-limit', tone: 'amber', text: c.overLimitBy(wholeUsd(usd - ctx.remainingUsd!, ctx.locale)), hint: c.overLimitHint };
-    } else if (!member && usd > ctx.dutyLimitUsd + 1e-9) {
-      coloured = { kind: 'over-limit', tone: 'amber', text: c.overLimit(formatUsd(ctx.dutyLimitUsd, ctx.locale)), hint: c.overLimitHint };
-    }
-  }
   if (!coloured && ctx.parcel && item.costs && Number.isFinite(ctx.parcel.extra)) {
     coloured = { kind: 'parcel', tone: 'mint', text: c.parcel(fmt(Math.max(0, ctx.parcel.extra)), storeLabel(ctx.parcel.store, ctx.locale)), hint: c.parcelHint(fmt(item.costs.total)) };
   }

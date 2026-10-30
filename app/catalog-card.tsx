@@ -1,11 +1,13 @@
 'use client';
 
 import { useId } from 'react';
-import { ArrowRight, Flame, Heart, Info, ShoppingBag } from 'lucide-react';
+import { ArrowRight, BadgeCheck, Flame, Heart, Info, ShoppingBag } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { price, storeShippingHoldUsd, storeShippingUsd, tariff, type DeliverySpeed, type Product } from '@/lib/market/domain';
 import { findOrderUrl } from '@/lib/market/catalog';
+import { catalogDeliverySpeed } from '@/lib/market/deals';
+import { officialStoreBrand, officialStoreText } from '@/lib/market/official-stores';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { catalogCopy, countryLabel, shortDate } from '@/lib/market/catalog-copy';
 import { storeLabel, type CatalogItem } from '@/lib/market/catalog-query';
@@ -61,7 +63,7 @@ export type CatalogCardProps = {
   signals?: Signal[];
   /** The same product (id and source URL) is already in the cart: the button opens the cart instead. */
   inCart?: boolean;
-  /** International delivery speed the total is quoted at: the cart's speed for a customer, express otherwise. */
+  /** International delivery speed the total is quoted at: the cart's speed when it has lines, standard otherwise. */
   speed?: DeliverySpeed;
   /** `compact`: photo, one-line name and the price pair; the whole card opens the product sheet (home teaser, shelves). */
   variant?: 'full' | 'compact';
@@ -73,7 +75,7 @@ export type CatalogCardProps = {
  * One catalog product. Photo and name always open the product sheet (an unconfirmed price too: the sheet
  * says so and the order flow fetches the price again); the button goes straight to the link order.
  */
-export function CatalogCard({ item, locale, select, saved, canSave, saving, onSave, signals = [], inCart = false, speed = 'express', variant = 'full', guestSave = false }: CatalogCardProps) {
+export function CatalogCard({ item, locale, select, saved, canSave, saving, onSave, signals = [], inCart = false, speed = catalogDeliverySpeed, variant = 'full', guestSave = false }: CatalogCardProps) {
   const { product, referenceUsd, discount } = item;
   const { pricing } = useMarket();
   const copy = dealCopy(locale), cc = catalogCopy[locale];
@@ -86,8 +88,14 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const costs = costsAt(item, speed, pricing);
   const priceRange=new Set(product.sourceVariants?.filter(v=>v.available&&v.availabilityKnown!==false&&v.quantity!==0).map(v=>v.price).filter(v=>v!==undefined)).size>1;
   const from=locale==='ru'?'от ':locale==='en'?'from ':'';
-  const storePriceText = needsPrice ? (hasRecordedPrice ? fmt(product.sourcePrice!, product.sourceCurrency!) : cc.checkPrice) : (priceRange?from:'')+fmt(product.usd, 'USD')+(priceRange&&locale!=='ru'&&locale!=='en'?' dan':'');
+  const storePriceText = needsPrice ? (hasRecordedPrice ? fmt(product.sourcePrice!, product.sourceCurrency!) : cc.checkPrice) : (priceRange?from:'')+fmt(item.usd ?? product.usd, 'USD')+(priceRange&&locale!=='ru'&&locale!=='en'?' dan':'');
   const open = () => select(product);
+  // The brand's own eBay store reads as such, not as "eBay" (owner, 30 October 2026); the eBay mark stays beside it.
+  const official = officialStoreBrand({ ...product, store: item.store });
+  const officialText = official ? officialStoreText(official, locale) : undefined;
+  const storeName = officialText
+    ? <span className="find-official" title={officialText.full}>{officialText.short}<BadgeCheck size={14} aria-hidden="true" /><span className="sr-only"> · {officialText.full}</span></span>
+    : storeLabel(item.store, locale) || product.brand || category;
   const priceId = useId();
   const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={'find-save ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
     // The address is read on the tap, not while rendering (the card renders on the server too): back to these filters.
@@ -102,7 +110,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <button type="button" className="find-compact" onClick={open} aria-label={cc.open(name)} aria-describedby={costs ? priceId : undefined}>
         <span className="find-visual"><span className="find-photo"><ProductImage product={product} decorative locale={locale} /></span>{(item.topDeal || showDiscount) && <span className="find-photo-badges">{item.topDeal && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}{showDiscount && <em className="find-discount">−{discount}&#x202F;%</em>}</span>}</span>
         <span className="find-content">
-          <span className="find-meta"><span className="find-store"><StoreMark host={item.store} />{storeLabel(item.store, locale) || product.brand || category}</span></span>
+          <span className="find-meta"><span className="find-store"><StoreMark host={item.store} />{storeName}</span></span>
           <b className="find-compact-title">{name}</b>
           <span className="find-compact-price" id={priceId}>{costs ? <><span>{storePriceText}</span><span aria-hidden="true"> → </span>{needsPrice && <span aria-hidden="true">≈ </span>}<Money value={costs.total} locale={locale} /></> : <span>{storePriceText}</span>}</span>
         </span>
@@ -127,7 +135,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       {save}
     </div>
     <div className="find-content">
-      <div className="find-meta"><span className="find-store"><StoreMark host={item.store} />{storeLabel(item.store, locale) || product.brand || category}</span><span>{category}</span></div>
+      <div className="find-meta"><span className="find-store"><StoreMark host={item.store} />{storeName}</span><span>{category}</span></div>
       <button type="button" className="find-title" onClick={open}>{name}</button>
       {/* On a phone the label and its date move into the "?" breakdown (the line keeps them for screen readers). */}
       <div className={'find-store-price' + (needsPrice ? ' needs-confirmation' : '') + (costs ? ' has-breakdown' : '')}>
@@ -152,10 +160,10 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   </article>;
 }
 
-/** The item's costs at the quoted speed: the catalog prices at express; a standard-speed cart re-prices the same lines. */
+/** The item's costs at the quoted speed: the catalog prices at standard; an express cart re-prices the same lines. */
 function costsAt(item: CatalogItem, speed: DeliverySpeed, pricing = tariff): Costs | null {
   if (!item.costs) return null;
-  if (speed === 'express' || item.usd === undefined) return item.costs;
+  if (speed === catalogDeliverySpeed || item.usd === undefined) return item.costs;
   try { return price(item.usd, item.product.weight, 1, storeShippingUsd(item.product), pricing, speed); } catch { return item.costs; }
 }
 

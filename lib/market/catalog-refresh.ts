@@ -1,6 +1,7 @@
 import {fetchProduct,type MerchantFetch} from '../importer/fetch.ts';
 import {
   applyScheduledCatalogRefresh,
+  catalogEntriesForLiveSource,
   dueCatalogEntries,
   importDraft,
   markCatalogRefreshFailed,
@@ -78,4 +79,21 @@ export async function refreshDueCatalog(now=Date.now(),fetcher:MerchantFetch=fet
     }
   }
   return summary;
+}
+
+/**
+ * A customer's live import of a catalog page updates that card at once, so the catalog does not keep quoting an older
+ * price than the store (or the cart) shows. Runs after the answer is sent; an editor's concurrent change wins.
+ */
+export async function refreshCatalogFromLiveImport(sourceUrl:string,data:Awaited<ReturnType<typeof fetchProduct>>,now=Date.now()){
+  const latest=await readCatalog();
+  const entries=catalogEntriesForLiveSource(latest.document,sourceUrl,now);
+  if(!entries.length)return 0;
+  const rates=(await pricing()).rates;
+  let document=latest.document;
+  for(const entry of entries)document=applyResult(document,{id:entry.id,sourceUrl:entry.draft.sourceUrl,data},now,rates).document;
+  if(document.revision===latest.document.revision)return 0;
+  try{await persistCatalog(document,latest.raw,refreshActor,'catalog.refresh.live-import',{sourceUrl})}
+  catch(error){if(error instanceof HttpError&&error.status===409)return 0;throw error}
+  return entries.length;
 }

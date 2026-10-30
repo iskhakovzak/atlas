@@ -495,6 +495,12 @@ function inferCategory(item: EbayItem, title: string) {
   return inferProductCategory([title, category].filter(Boolean).join(' '), clean(item.brand, 80));
 }
 
+/** The seller's eBay username (`seller.username`), kept so the card can name an official brand store; never guessed. */
+function sellerOf(item: EbayItem) {
+  const username = record(item.seller)?.username;
+  return typeof username === 'string' && /^[a-zA-Z0-9_.-]{1,80}$/.test(username) ? username.toLowerCase() : undefined;
+}
+
 function groupVariants(items: EbayItem[], listingId: string, sourceUrl: string, expectedCurrency: string) {
   const validItems = items.filter(item => variationId(item, listingId) !== undefined);
   const aspectMaps = validItems.map(aspectsFor);
@@ -503,7 +509,7 @@ function groupVariants(items: EbayItem[], listingId: string, sourceUrl: string, 
   const colorKey = varyingKeys.find(key => /colou?r/i.test(key));
   const sizeKeys=varyingKeys.filter(key=>/size|width|length|waist|band|cup/i.test(key)&&key!==colorKey);
   const sizeKey = sizeKeys.find(key=>/\bUS\b/i.test(key))??sizeKeys[0];
-  const dependentSizeKeys=sizeKey?sizeKeys.filter(key=>key!==sizeKey&&/\b(?:UK|EU|EUR|CM)\b/i.test(key)&&aspectMaps.every(map=>Boolean(map.get(key)&&map.get(sizeKey)))&&[...new Set(aspectMaps.map(map=>map.get(sizeKey)))].every(value=>new Set(aspectMaps.filter(map=>map.get(sizeKey)===value).map(map=>map.get(key))).size===1)):[];
+  const dependentSizeKeys=sizeKey?sizeKeys.filter(key=>key!==sizeKey&&(/\b(?:UK|EU|EUR|CM)\b/i.test(key)||/^size$/i.test(key))&&aspectMaps.every(map=>Boolean(map.get(key)&&map.get(sizeKey)))&&[...new Set(aspectMaps.map(map=>map.get(sizeKey)))].every(value=>new Set(aspectMaps.filter(map=>map.get(sizeKey)===value).map(map=>map.get(key))).size===1)):[];
   const unknownKeys = varyingKeys.filter(key => key !== colorKey && key !== sizeKey && !dependentSizeKeys.includes(key));
   // The customer UI has a real color/size matrix. If a seller adds a third
   // independent axis (e.g. width or storage), keep each exact option intact
@@ -532,9 +538,10 @@ function groupVariants(items: EbayItem[], listingId: string, sourceUrl: string, 
     variants.push({
       id: variationId(item, listingId),
       productId: listingId, options: [...aspects].map(([name,value])=>({name,value})), images,
+      ...(sellerOf(item) ? {sellerId: sellerOf(item)} : {}),
       label: label.slice(0, 140),
       ...(size ? {size, sizeLabel: sizeKey?.slice(0, 100)} : {}),
-      ...(size?{sizeAlternates:[sizeKey!,...dependentSizeKeys].map(key=>({system:key.match(/\b(?:US|UK|EU|EUR|CM)\b/i)?.[0].toUpperCase()??key,value:aspects.get(key)??''})).filter(entry=>entry.value)}:{}),
+      ...(size?{sizeAlternates:[sizeKey!,...dependentSizeKeys.filter(key=>!/^size$/i.test(key))].map(key=>({system:key.match(/\b(?:US|UK|EU|EUR|CM)\b/i)?.[0].toUpperCase()??key,value:aspects.get(key)??''})).filter(entry=>entry.value)}:{}),
       ...(color ? {color} : {}),
       available: state.known && state.available && ebayStock(item).quantity!==0,
       availabilityKnown: state.known,
@@ -574,6 +581,7 @@ function mapSingleItem(item: EbayItem, listingId: string, url: URL, shipToCountr
     id: variationId(item, listingId) ?? (itemId === `v1|${listingId}|0` ? itemId : undefined),
     productId: listingId,
     sourceUrl: url.href,
+    ...(sellerOf(item) ? {sellerId: sellerOf(item)} : {}),
     label: clean(item.color, 100) || clean(item.size, 100) || 'Объявление eBay',
     available: status.available,
     availabilityKnown: status.known,
