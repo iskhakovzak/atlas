@@ -358,6 +358,8 @@ function ActiveFilters({ query, setQuery, cc, collections, locale }: { query: Ca
 
 function EmptyResult({ mode, empty, query, setQuery, cc, copy, options, collections, locale }: { mode: 'catalog' | 'favorites'; empty: boolean; query: CatalogQuery; setQuery: (query: CatalogQuery) => void; cc: Copy; copy: ReturnType<typeof dealCopy>; options: ReturnType<typeof relaxations>; collections: Collection[]; locale: Locale }) {
   if (mode === 'favorites' && empty) return <Panel title={copy.emptySaved} text={copy.emptySavedHint}><Link className="btn primary" href="/catalog">{copy.catalog}<ArrowRight size={17} /></Link></Panel>;
+  // Nothing published yet (a fresh launch): no filters to relax, only the link order.
+  if (mode === 'catalog' && empty) return <Panel title={cc.catalogEmptyTitle} text={cc.catalogEmptyHint}><Link className="btn primary" href="/order-by-link">{cc.endLink}<ArrowRight size={17} /></Link></Panel>;
   return <Panel title={cc.emptyTitle} text={cc.emptyHint}>
     {options.map(({ key, count }) => <button type="button" className="btn secondary" key={key.kind + ('value' in key ? key.value : '')} onClick={() => setQuery(withoutFilter(query, key))}>{cc.without(filterLabel(key, query, cc, collections, locale), count)}</button>)}
     {activeFilterCount(query) + Number(Boolean(query.q.trim())) > 1 && <button type="button" className="btn secondary" onClick={() => setQuery({ ...emptyCatalogQuery, sort: query.sort })}>{cc.resetAll}</button>}

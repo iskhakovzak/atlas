@@ -6,7 +6,7 @@ import {defaultPolicy,policySchema,type Policy} from './policy';
 import type {Action} from './actions';
 import {reloadAfterErrorCodes,screenLocale,serverError,setLocaleCookie,supportedLocale,type Locale} from './i18n';
 import type {SessionStatus} from './access';
-import {keepCatalogVisible,visibleMerchantFinds,type MerchantFind} from './catalog';
+import {type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
 import {nextPricing} from './pricing-equal';
 import type {CatalogSeedValue} from './catalog-seed';
@@ -30,7 +30,7 @@ const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connec
 // initialPricing is the tariff the server rendered with (lib/market/initial-data.ts); the client keeps it
 // until the API returns a different one, so the example bill and tariffs do not change numbers on hydration.
 export function MarketProvider({children,initialLocale='uz',initialPricing=null,initialSiteContent=null,sessionHint=false}:{children:ReactNode;initialLocale?:Locale;initialPricing?:Pricing|null;initialSiteContent?:SiteContentView|null;sessionHint?:boolean}) {
- const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>(()=>visibleMerchantFinds()),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState(''),[catalogReady,setCatalogReady]=useState(false);
+ const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>([]),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState(''),[catalogReady,setCatalogReady]=useState(false);
  const [state,setState]=useState<State>(()=>{const initial=blank();return {...initial,communication:{...initial.communication,language:initialLocale}}}),[pricing,setPricing]=useState<Pricing>(()=>initialPricing??tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[siteContent,setSiteContent]=useState<SiteContentView>(()=>initialSiteContent??mergeSiteContent(null)),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
  const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>(initialLocale),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
  const catalogLoaded=useRef(false),catalogRequest=useRef<Promise<void>|null>(null),[catalogSeed,setCatalogSeed]=useState<CatalogSeedValue|null>(null);
@@ -49,8 +49,9 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
     const data=await response.json() as {products:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>;pricing?:unknown};
     if(!Array.isArray(data.products)||!Array.isArray(data.collections))throw Error('Catalog response is invalid');
     catalogLoaded.current=true;
-    setCatalogProducts(keepCatalogVisible(data.products));
-    setCatalogError(data.products.length?'':marketMessages[localeRef.current].catalogLoad);
+    // An empty catalog is an answer, not a failure: the storefront says it is being filled (no bundled demo cards).
+    setCatalogProducts(data.products);
+    setCatalogError('');
     setCollections(data.collections);
     const publicPricing=pricingSchema.safeParse(data.pricing);
     if(publicPricing.success)setPricing(previous=>nextPricing(previous,publicPricing.data));
