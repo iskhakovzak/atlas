@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {Bell,ChevronDown,Heart,LogOut,Package,UserRound,Wallet} from 'lucide-react';
+import {Bell,ChevronDown,FileText,Heart,LogOut,Package,UserRound,Wallet} from 'lucide-react';
 import Link from '@/components/site-link';
 import type {NavCopy,Locale} from '@/lib/market/i18n';
 import {ThemeToggle} from './theme-control';
@@ -41,13 +41,15 @@ export function ProfileMenu({nav,locale,balance,attention,view}:{nav:NavCopy;loc
     ['/balance','balance',Wallet,nav.balance,balance],
     ['/notifications','notifications',Bell,nav.notifications],
     ['/favorites','favorites',Heart,nav.favorites],
+    // The passport and the declaration: /identity, which links on to the declaration.
+    ['/identity','identity',FileText,nav.documents],
   ];
   return <div className="shell-profile" ref={wrap} onBlur={event=>{if(open&&event.relatedTarget&&!wrap.current?.contains(event.relatedTarget as Node))setOpen(false)}}>
-    <button type="button" ref={trigger} className={'shell-profile-trigger'+(mine?' active':'')} aria-expanded={open} aria-controls={listId} aria-label={nav.profileMenu+(attention?' — '+nav.needsAction:'')} onClick={event=>{fromKeyboard.current=event.detail===0;setOpen(!open)}} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();fromKeyboard.current=true;setOpen(true)}}}>
+    <button type="button" ref={trigger} className={'shell-profile-trigger'+(mine?' active':'')} aria-expanded={open} aria-controls={listId} aria-label={nav.profile+(attention?' — '+nav.needsAction:'')} onClick={event=>{fromKeyboard.current=event.detail===0;setOpen(!open)}} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();fromKeyboard.current=true;setOpen(true)}}}>
       <span className="shell-profile-icon"><UserRound size={19} aria-hidden="true"/>{attention&&<i className="shell-dot" aria-hidden="true"/>}</span><span className="shell-profile-label">{nav.profile}</span><ChevronDown size={14} aria-hidden="true" className="shell-chevron"/>
     </button>
     <div className="shell-menu-list" id={listId} role="group" aria-label={nav.profileMenu} hidden={!open} onKeyDown={move}>
-      {items.map(([href,key,Icon,label,extra])=><Link key={key} href={href} className={key===view?'active':''} aria-current={key===view?'page':undefined} onClick={()=>setOpen(false)}><Icon size={18} aria-hidden="true"/><span>{label}</span>{extra&&<small>{extra}</small>}</Link>)}
+      {items.map(([href,key,Icon,label,extra])=><Link key={key} href={href} className={key===view||(key==='identity'&&view==='declaration')?'active':''} aria-current={key===view?'page':undefined} onClick={()=>setOpen(false)}><Icon size={18} aria-hidden="true"/><span>{label}</span>{extra&&<small>{extra}</small>}</Link>)}
       <div className="shell-menu-row"><span>{nav.theme}</span><ThemeToggle locale={locale}/></div>
       <button type="button" className="shell-menu-signout" onClick={()=>void signOut()}><LogOut size={18} aria-hidden="true"/><span>{nav.signOut}</span></button>
     </div>

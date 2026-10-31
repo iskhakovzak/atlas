@@ -29,7 +29,7 @@
 html body .shell-search input { flex: 1 1 auto; min-width: 0; min-height: 0; height: 40px; padding: 0; border: 0; outline: none; box-shadow: none; background: transparent; color: var(--text); font: inherit; font-size: var(--fs-14); }
 .shell-search input::placeholder { color: var(--text-3); }
 .shell-search input::-webkit-search-cancel-button { display: none; }
-.shell-search-submit { display: grid; flex: none; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-3); cursor: pointer; }
+.shell-search-submit { order: -1; display: grid; flex: none; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-3); cursor: pointer; }
 .shell-search-submit:hover, .shell-search:focus-within .shell-search-submit { color: var(--link); }
 .shell-search-submit:hover { background: var(--hover); }
 .shell-search-submit:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
@@ -112,7 +112,7 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
 @media (max-width: 1199px) {
   .shell-search { display: none; }
   .shell-search-icon { display: inline-grid; }
-  .shell-actions { margin-left: auto; }
+  .shell-actions, .shell-header .shell-search ~ .shell-actions { margin-left: auto; }
   .shell-nav { margin-left: 4px; }
   .shell-nav a { padding: 0 10px; }
 }
@@ -131,7 +131,9 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   :root .site-header.shell-header { gap: 4px; min-height: 56px; padding-top: env(safe-area-inset-top); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
   :root .site-header.shell-header .wordmark { font-size: 26px; }
   :root .site-header.shell-header .wordmark svg { width: 21px; height: 21px; }
-  .shell-nav, .shell-wide, :root .site-header.shell-header .shell-help { display: none; }
+  /* Help stays as a 44 px icon (its word is hidden from 1279 px down): the app has no footer to find it in. */
+  .shell-nav, .shell-wide { display: none; }
+  :root .site-header.shell-header .shell-help { width: 44px; min-width: 44px; padding: 0; }
   .shell-actions { gap: 2px; }
   /* Pages start under the header without the breadcrumb (its JSON-LD stays in the page). */
   .site-main > .breadcrumb { display: none; }

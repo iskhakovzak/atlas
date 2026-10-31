@@ -18,7 +18,7 @@ test('the bottom bar and header name "order by link" in every language', () => {
 });
 
 test('every new shell word exists in every language, Uzbek Cyrillic included; the bottom-bar labels are short', () => {
-  const keys = ['link', 'buyByLink', 'delivery', 'profile', 'profileMenu', 'search', 'searchPlaceholder', 'searchShort', 'balance', 'notifications', 'favorites', 'theme', 'signOut', 'needsAction'];
+  const keys = ['link', 'buyByLink', 'delivery', 'profile', 'profileMenu', 'search', 'searchPlaceholder', 'searchShort', 'balance', 'notifications', 'favorites', 'documents', 'theme', 'signOut', 'needsAction'];
   for (const locale of locales) for (const key of keys) assert.ok(navCopy[locale][key], `${locale}.${key}`);
   for (const locale of locales) {
     assert.ok(navCopy[locale].link.length <= 8, `${locale}: centre tab label`);
@@ -51,19 +51,27 @@ test('one bottom bar for guests and members: Главная · Каталог ·
 });
 
 test('the sign-in tab on /login keeps the page the guest came from', () => {
-  assert.match(source('app/marketplace.tsx'), /\{href:signInPath\(signInReturn\(here\)\),key:'login',Icon:UserRound,label:nav\.profile,active:view==='login'\}/);
+  const shell = source('app/marketplace.tsx');
+  assert.match(shell, /\{href:signInPath\(signInReturn\(here\)\),key:'login',Icon:UserRound,label:nav\.profile,active:view==='login'&&!cartReturn\}/);
+  // Sent to sign-in by the cart tab: the cart stays lit, not the profile; "Несколько ссылок" lights "Ссылка".
+  assert.match(shell, /const cartReturn=view==='login'&&signInReturn\(here\)\.startsWith\('\/cart'\);/);
+  assert.match(shell, /key:'cart',Icon:ShoppingBag,label:words\.cart,active:view==='cart'\|\|\(view==='login'&&cartReturn\)\}/);
+  assert.match(shell, /key:'link',Icon:Plus,label:nav\.link,active:view==='link'\|\|view==='batch'\}/);
 });
 
 test('the profile shows a dot while an order waits for the customer, said to screen readers too', () => {
   const shell = source('app/marketplace.tsx');
   assert.match(shell, /const attention=ready&&state\.orders\.some\(order=>orderAttention\(order\)!==null\);/);
   assert.match(shell, /dot\?`\$\{label\} — \$\{nav\.needsAction\}`/);
-  assert.match(source('app/profile-menu.tsx'), /aria-label=\{nav\.profileMenu\+\(attention\?' — '\+nav\.needsAction:''\)\}/);
+  // The button's name starts with the word it shows ("Профиль"), so a voice command finds it; the list keeps "Меню профиля".
+  assert.match(source('app/profile-menu.tsx'), /aria-label=\{nav\.profile\+\(attention\?' — '\+nav\.needsAction:''\)\}/);
+  assert.match(source('app/profile-menu.tsx'), /role="group" aria-label=\{nav\.profileMenu\}/);
 });
 
 test('the cart keeps its count in its name in the header and the bottom bar', () => {
   const shell = source('app/marketplace.tsx');
-  assert.match(shell, /const cartLabel=modalWords\.cart\+\(known\?shownCount:''\);/);
+  // A guest (no count known) hears just "Корзина", not "Корзина, товаров:" with nothing after it.
+  assert.match(shell, /const cartLabel=known\?modalWords\.cart\+shownCount:words\.cart;/);
   assert.match(shell, /aria-label=\{key==='cart'\?cartLabel:/);
   assert.match(shell, /className=\{'shell-cart shell-wide'[^}]*\} aria-label=\{cartLabel\}/);
   assert.match(shell, /<CartAnnouncer count=\{count\} ready=\{ready\} locale=\{locale\}\/>/, 'changes are said politely');

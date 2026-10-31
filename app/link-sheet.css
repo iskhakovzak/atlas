@@ -19,6 +19,9 @@ html body .link-sheet-field > input { flex: 1 1 auto; min-width: 0; min-height: 
 .link-sheet-field > input::placeholder { color: var(--text-3); }
 html body .link-sheet .link-sheet-submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; border-radius: var(--r-control); font-size: var(--fs-16); }
 .link-sheet-error { margin: 10px 0 0; color: var(--danger); font-size: var(--fs-14); line-height: var(--lh-body); }
+/* html[data-theme="dark"] p (app/theme-night.css) would make the error grey; the field's frame turns red with it. */
+html body .link-sheet .link-sheet-error { color: var(--danger); }
+.link-sheet-field:has(input[aria-invalid="true"]) { border-color: var(--danger); }
 html body .link-sheet .link-sheet-search { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; min-height: 44px; }
 .link-sheet-more { display: grid; margin-top: 12px; border-top: 1px solid var(--line); }
 .link-sheet-more a { display: flex; align-items: center; gap: 12px; min-height: 52px; border-bottom: 1px solid var(--line); color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-medium); text-decoration: none; }

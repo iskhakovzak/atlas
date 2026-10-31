@@ -286,8 +286,9 @@ html[data-theme="dark"] .catalog-page .catalog-banner.catalog-banner-parcel { bo
   .catalog-head-side { flex-direction: row; gap: 6px; }
   .catalog-stats, .catalog-saved { gap: 6px; min-height: 36px; padding: 0 11px; font-size: 12px; }
   .catalog-head-side { min-height: 36px; }
-  /* Narrow phones (≤ 380 px): the counters stay one row — "Saved" keeps its heart and count, the word goes to the label. */
-  @media (max-width: 380px) {
+  /* Phones: the counters stay one row — "Saved" keeps its heart and count, the word goes to the label (with the word it
+     was ~125 px wide and ran into the title, whose right padding is 96 px). */
+  @media (max-width: 600px) {
     .catalog-head-side { flex-wrap: nowrap; }
     .catalog-saved .catalog-saved-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   }

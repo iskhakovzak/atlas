@@ -34,8 +34,11 @@ export function LinkSheet({open,onOpenChange,locale,member}:{open:boolean;onOpen
   const [busy,setBusy]=useState(false);
   const clip=useClipboardLink(undefined,open);
   const input=useRef<HTMLInputElement>(null);
+  // Set when the sheet closes because the visitor goes to another page: focus then belongs to that page, not to the button.
+  const leaving=useRef(false);
   // Closing leaves the next opening clean (the typed link stays, in case it is wanted again).
   const change=(next:boolean)=>{if(!next){setError('');setSearch('');setBusy(false)}onOpenChange(next)};
+  const leave=()=>{leaving.current=true;change(false)};
   function go(value:string){
     const raw=value.trim();
     let target:string;
@@ -51,7 +54,7 @@ export function LinkSheet({open,onOpenChange,locale,member}:{open:boolean;onOpen
     if(window.location.pathname==='/order-by-link'){window.location.assign(href);return}
     startNavigationFeedback();
     router.push(href);
-    change(false);
+    leave();
   }
   function submit(event:FormEvent){event.preventDefault();go(url)}
   function pasted(text:string){
@@ -60,7 +63,9 @@ export function LinkSheet({open,onOpenChange,locale,member}:{open:boolean;onOpen
     go(text);
   }
   return <Sheet open={open} onOpenChange={change}>
-    <SheetContent side="bottom" showCloseButton={false} className="link-sheet" onOpenAutoFocus={event=>{event.preventDefault();input.current?.focus({preventScroll:true})}}>
+    <SheetContent side="bottom" showCloseButton={false} className="link-sheet" onOpenAutoFocus={event=>{event.preventDefault();leaving.current=false;input.current?.focus({preventScroll:true})}}
+      // Opened from code, so Radix has no trigger to return focus to: Escape, the cross or a swipe put it back on the bar's button.
+      onCloseAutoFocus={event=>{if(leaving.current)return;event.preventDefault();document.querySelector<HTMLElement>('.mobile-nav a[data-tab="link"]')?.focus({preventScroll:true})}}>
       <div className="link-sheet-grip" aria-hidden="true"/>
       <div className="link-sheet-head">
         <span className="link-sheet-mark" aria-hidden="true"><Link2 size={20}/></span>
@@ -78,10 +83,10 @@ export function LinkSheet({open,onOpenChange,locale,member}:{open:boolean;onOpen
         <button type="submit" className="btn primary link-sheet-submit" aria-busy={busy||undefined} disabled={busy}>{busy?<Loader2 className="spin" size={20} aria-hidden="true"/>:null}<span>{c.calculate}</span>{!busy&&<ArrowRight size={18} aria-hidden="true"/>}</button>
       </form>
       {error&&<p id="link-sheet-error" className="link-sheet-error" role="alert">{error}</p>}
-      {search&&<Link className="btn secondary link-sheet-search" href={'/catalog?q='+encodeURIComponent(search)} onClick={()=>change(false)}><Search size={16} aria-hidden="true"/>{c.search(search)}</Link>}
+      {search&&<Link className="btn secondary link-sheet-search" href={'/catalog?q='+encodeURIComponent(search)} onClick={leave}><Search size={16} aria-hidden="true"/>{c.search(search)}</Link>}
       <nav className="link-sheet-more" aria-label={c.title}>
-        <Link href="/stores" onClick={()=>change(false)}><Store size={18} aria-hidden="true"/><span>{c.stores}</span><ArrowRight size={16} aria-hidden="true"/></Link>
-        {member&&<Link href="/batch-import" onClick={()=>change(false)}><ListPlus size={18} aria-hidden="true"/><span>{c.batch}</span><ArrowRight size={16} aria-hidden="true"/></Link>}
+        <Link href="/stores" onClick={leave}><Store size={18} aria-hidden="true"/><span>{c.stores}</span><ArrowRight size={16} aria-hidden="true"/></Link>
+        {member&&<Link href="/batch-import" onClick={leave}><ListPlus size={18} aria-hidden="true"/><span>{c.batch}</span><ArrowRight size={16} aria-hidden="true"/></Link>}
       </nav>
     </SheetContent>
   </Sheet>;

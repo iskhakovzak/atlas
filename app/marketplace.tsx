@@ -64,7 +64,7 @@ const loadLinkSheet=()=>import('./link-sheet');
 const LinkSheet=lazy(()=>loadChunk(loadLinkSheet).then(module=>({default:module.LinkSheet})));
 const preloadLinkSheet=()=>{loadLinkSheet().catch(()=>undefined)};
 /** Views reached through the profile: its tab and its menu button stay lit on them. */
-const profileViews=new Set(['account','orders','balance','notifications','favorites','identity','declaration','batch']);
+const profileViews=new Set(['account','orders','balance','notifications','favorites','identity','declaration']);
 
 /** Wide screens: one field for the catalog search and for a pasted store link (a pasted link opens its calculation). */
 function HeaderSearch({nav}:{nav:NavCopy}){
@@ -81,11 +81,12 @@ function HeaderSearch({nav}:{nav:NavCopy}){
   }
   return <form role="search" className="shell-search" onSubmit={event=>{event.preventDefault();go(text)}}>
     {/* The magnifier is the field's submit button (Enter does the same); no word button, so long languages keep the field. */}
-    <button type="submit" className="shell-search-submit" aria-label={nav.searchShort} title={nav.searchShort}><Search size={18} aria-hidden="true"/></button>
     <label className="sr-only" htmlFor="shell-search-input">{nav.search}</label>
     <input id="shell-search-input" type="search" enterKeyHint="search" autoComplete="off" spellCheck={false} maxLength={2048} value={text} placeholder={nav.searchPlaceholder}
       onChange={event=>setText(event.target.value)}
       onPaste={event=>{const pasted=event.clipboardData.getData('text');if(!headerSearchLink(pasted))return;event.preventDefault();setText(pasted.trim());go(pasted)}}/>
+    {/* After the field in the tab order; drawn before it (order: -1, app/shell.css). */}
+    <button type="submit" className="shell-search-submit" aria-label={nav.searchShort} title={nav.searchShort}><Search size={18} aria-hidden="true"/></button>
   </form>;
 }
 
@@ -117,17 +118,19 @@ export default function Marketplace({view,children}:{view:string;children?:React
   // An order waits for the customer (an extra payment, a change to answer, a payment to finish): a dot on the profile.
   const attention=ready&&state.orders.some(order=>orderAttention(order)!==null);
   // The count is in the cart's name (a polite status line says each change, app/cart-announcer.tsx).
-  const cartLabel=modalWords.cart+(known?shownCount:'');
+  const cartLabel=known?modalWords.cart+shownCount:words.cart;
   // A guest's cart and saved items need an account for now: their links sign in first and come back there.
   const cartHref=member?'/cart':signInPath('/cart'),favoritesHref=member?'/favorites':signInPath('/favorites');
+  // A guest sent to sign-in by the cart tab still sees that tab lit (return_to=/cart), not the profile.
+  const cartReturn=view==='login'&&signInReturn(here).startsWith('/cart');
   // Phones: one bottom bar for everyone. The centre "Ссылка" opens the paste-a-link sheet; without script it is the order page.
   const tabs:{href:string;key:string;Icon:typeof LayoutGrid;label:string;active:boolean}[]=[
     {href:'/',key:'catalog',Icon:House,label:words.home,active:view==='catalog'},
     {href:'/catalog',key:'products',Icon:LayoutGrid,label:words.catalog,active:view==='products'},
-    {href:'/order-by-link',key:'link',Icon:Plus,label:nav.link,active:view==='link'},
-    {href:cartHref,key:'cart',Icon:ShoppingBag,label:words.cart,active:view==='cart'},
+    {href:'/order-by-link',key:'link',Icon:Plus,label:nav.link,active:view==='link'||view==='batch'},
+    {href:cartHref,key:'cart',Icon:ShoppingBag,label:words.cart,active:view==='cart'||(view==='login'&&cartReturn)},
     member?{href:'/account',key:'account',Icon:UserRound,label:nav.profile,active:profileViews.has(view)}
-     :{href:signInPath(signInReturn(here)),key:'login',Icon:UserRound,label:nav.profile,active:view==='login'},
+     :{href:signInPath(signInReturn(here)),key:'login',Icon:UserRound,label:nav.profile,active:view==='login'&&!cartReturn},
   ];
   // The other tabs are fetched while the phone is idle, so a tap on one opens it at once.
   useWarmLinks(tabs.filter(tab=>!tab.active&&tab.key!=='link'&&!tab.href.startsWith('/login')).map(tab=>tab.href));
@@ -157,7 +160,7 @@ export default function Marketplace({view,children}:{view:string;children?:React
    <div className="shell-actions">
     {(user?.operator||!!user?.permissions?.length)&&<Link className="operator-entry shell-operator" href="/admin" aria-label={modalWords.manage}><Settings2 size={18} aria-hidden="true"/><span>{modalWords.manage}</span></Link>}
     <Link className="shell-icon shell-search-icon" href="/catalog" aria-label={nav.search} onClick={openSearch}><Search size={21} aria-hidden="true"/></Link>
-    <HeaderLanguage locale={locale} label={nav.language} onChange={setLocale}/>
+    <HeaderLanguage locale={locale} label={nav.language} themeLabel={nav.theme} onChange={setLocale}/>
     {/* Help in one tap, only once the owner has set the support bot (admin, «Контент сайта»). */}
     {supportBot&&<a className="header-help shell-help" href={`https://t.me/${supportBot}`} target="_blank" rel="noopener noreferrer" aria-label={`${nav.help} — Telegram`}><MessageCircle size={18} aria-hidden="true"/><span>{nav.help}</span></a>}
     {member&&<NotificationsPanel open={noticesOpen} onOpenChange={setNoticesOpen} label={modalWords.notifications} active={view==='notifications'}/>}
