@@ -91,7 +91,7 @@ export const attentionKindLabels: Record<AttentionKind, string> = {
   "topup-unanswered": "Доплаты без ответа",
   "ticket-open": "Открытые обращения",
   "cart-price-change": "Магазин изменил цену в корзине",
-  "fx-stale": "Курс ЦБ устарел",
+  "fx-stale": "Курс устарел",
   "catalog-error": "Ошибки проверки каталога",
   "staff-invited": "Сотрудники без активации",
 };
@@ -151,7 +151,7 @@ export function attentionItems(input: AttentionInput): AttentionItem[] {
   }
   const pricing = input.pricing;
   if (pricing && pricing.fxSource === "cbu" && now - (pricing.fxUpdatedAt ?? 0) >= t.fxStaleHours * 3_600_000)
-    items.push({ kind: "fx-stale", title: "Курс ЦБ не обновлялся", detail: pricing.fxUpdatedAt ? `Последнее обновление ${new Date(pricing.fxUpdatedAt).toLocaleString("ru-RU")}${pricing.fxCbuDate ? ` (дата ЦБ ${pricing.fxCbuDate})` : ""}` : "Курс ещё ни разу не читался с сайта ЦБ", href: "/admin?tab=system", at: pricing.fxUpdatedAt ?? 0 });
+    items.push({ kind: "fx-stale", title: "Курс не обновлялся", detail: pricing.fxUpdatedAt ? `Последнее обновление ${new Date(pricing.fxUpdatedAt).toLocaleString("ru-RU")}${pricing.fxCbuDate ? ` (дата курса ${pricing.fxCbuDate})` : ""}` : "Курс ещё ни разу не читался с сайта ЦБ", href: "/admin?tab=system", at: pricing.fxUpdatedAt ?? 0 });
   for (const entry of input.catalogErrors ?? [])
     items.push({ kind: "catalog-error", title: entry.name || entry.id, detail: entry.error.slice(0, 200), href: "/admin?tab=catalog", at: entry.at ?? 0 });
   for (const member of input.staff ?? []) if (member.status === "invited")
@@ -276,7 +276,7 @@ export function policyErrors(draft: PolicyDraft): Partial<Record<keyof PolicyDra
 export type PricingSnapshot = { fx: number; fxSource: string; fxDate?: string; fxUpdatedAt?: number; expressPerKgUsd: number; standardPerKgUsd: number; marginPercent: number; reserve: number; customsHelpPercent: number; storeShippingFreeFromUsd: number; updatedAt: number; version: string; managedBy?: string };
 export function pricingSnapshot(pricing: Pricing): PricingSnapshot {
   return {
-    fx: pricing.fx, fxSource: pricing.fxSource === "cbu" ? `ЦБ × ${pricing.fxMarkup}` : "установлен вручную", fxDate: pricing.fxCbuDate, fxUpdatedAt: pricing.fxUpdatedAt,
+    fx: pricing.fx, fxSource: pricing.fxSource === "cbu" ? `банк × ${pricing.fxMarkup}` : "установлен вручную", fxDate: pricing.fxCbuDate, fxUpdatedAt: pricing.fxUpdatedAt,
     expressPerKgUsd: pricing.perKgUsd ?? 15.98, standardPerKgUsd: pricing.standardPerKgUsd ?? 13.98, marginPercent: Math.round(pricing.margin * 10000) / 100, reserve: pricing.reserve,
     customsHelpPercent: Math.round(pricing.customsHelpFee * 10000) / 100, storeShippingFreeFromUsd: pricing.storeShippingFreeFromUsd, updatedAt: pricing.updatedAt, version: pricing.version, managedBy: pricing.managedBy,
   };

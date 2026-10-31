@@ -38,11 +38,11 @@ test('pagination uses a source-bound bounded offset and never follows provider n
   assert.equal(calls.length,count,'bad cursors trigger no upstream request');
 });
 
-test('discovery reports the official API search ceiling and refuses unreviewed stores or missing categories',async()=>{
+test('discovery reports the official API search ceiling and refuses unreviewed stores',async()=>{
   const {fetcher,calls}=mock({itemSummaries:[summary()],total:10001,next:'https://api.ebay.com/ignored'});
   const cursor=btoa(JSON.stringify({v:1,sourceUrl:parseEbayStorefrontUrl(source).sourceUrl,offset:9950})).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
   const last=await fetchEbayStorefrontSalePage(source,config,fetcher,cursor);assert.equal(last.limited,true);assert.equal(last.nextCursor,undefined);
-  const count=calls.length;await assert.rejects(fetchEbayStorefrontSalePage('https://www.ebay.com/str/unknown?_sacat=15709',config,fetcher),/не подтверждён/);await assert.rejects(fetchEbayStorefrontSalePage('https://www.ebay.com/str/adidas',config,fetcher),/_sacat/);assert.equal(calls.length,count);
+  const count=calls.length;await assert.rejects(fetchEbayStorefrontSalePage('https://www.ebay.com/str/unknown?_sacat=15709',config,fetcher),/не подтверждён/);assert.equal(calls.length,count);
   await assert.rejects(fetchEbaySellerSearchPage(config,fetcher,{seller:'a},sellers:{evil',categoryId:'15709',offset:0}));
 });
 
@@ -67,4 +67,26 @@ test('seller search transport stays fixed to official API hosts and GET only',as
   assert.throws(()=>isFixedEbayApiRequest('https://api.ebay.com/buy/browse/v1/item_summary/search',{method:'POST'}));
   const seen=[];const fetcher=createEbayAwareMerchantFetch(async()=>{throw Error('page proxy must not see OAuth')},()=>config,async(input,init)=>{seen.push([String(input),init]);return Response.json({})});
   await fetcher('https://api.ebay.com/buy/browse/v1/item_summary/search?category_ids=15709');assert.equal(seen.length,1);
+});
+
+test('a whole-store link walks the seller’s top-level categories one after another',async()=>{
+  const store='https://www.ebay.com/str/adidas?_trksid=p4429486.m3561.l161211';
+  assert.deepEqual(parseEbayStorefrontUrl(store),{sourceUrl:'https://www.ebay.com/str/adidas',store:'adidas',seller:'adidas_official',categoryId:undefined});
+  const {fetcher,calls}=mock(url=>{
+    if(url.searchParams.get('fieldgroups')==='CATEGORY_REFINEMENTS')return{total:505,refinement:{categoryDistributions:[{categoryId:'11450',matchCount:2393},{categoryId:'260012',matchCount:1185},{categoryId:'888',matchCount:215}]}};
+    const category=url.searchParams.get('category_ids'),offset=Number(url.searchParams.get('offset'));
+    if(category==='11450')return offset===0?{itemSummaries:[summary('123456789012')],total:51}:{itemSummaries:[summary('123456789013')],total:51};
+    if(category==='888')return{itemSummaries:[summary('123456789014')],total:1};
+    throw Error(`unexpected category ${category}`);
+  });
+  const seen=[];let cursor,pages=0;
+  do{const page=await fetchEbayStorefrontSalePage(store,config,fetcher,cursor);seen.push(...page.urls);assert.equal(page.total,undefined,'one category total is not the store total');cursor=page.nextCursor;pages++;}while(cursor&&pages<10);
+  assert.deepEqual(seen,['https://www.ebay.com/itm/123456789012','https://www.ebay.com/itm/123456789013','https://www.ebay.com/itm/123456789014']);
+  const refinement=calls.find(call=>call.url.searchParams.get('fieldgroups'));assert.equal(refinement.url.searchParams.get('q'),'adidas');assert.equal(refinement.url.searchParams.get('filter'),'sellers:{adidas_official},buyingOptions:{FIXED_PRICE}');
+  assert.deepEqual(calls.filter(call=>call.url.searchParams.get('category_ids')).map(call=>call.url.searchParams.get('category_ids')),['11450','11450','888'],'subcategories are not searched twice');
+  assert.equal(calls.filter(call=>call.url.searchParams.get('fieldgroups')).length,1,'categories are looked up once, then carried in the cursor');
+  const forged=btoa(JSON.stringify({v:2,sourceUrl:'https://www.ebay.com/str/adidas',categories:['11450','999999'],index:1,offset:0})).replace(/=+$/,'');
+  const before=calls.length;await assert.rejects(fetchEbayStorefrontSalePage(store,config,fetcher,forged),/не относится/);
+  await assert.rejects(fetchEbayStorefrontSalePage(store,config,fetcher,btoa(JSON.stringify({v:1,sourceUrl:'https://www.ebay.com/str/adidas',offset:50})).replace(/=+$/,'')),/не относится/);
+  assert.equal(calls.length,before,'a forged cursor makes no request');
 });

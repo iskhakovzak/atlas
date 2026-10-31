@@ -203,8 +203,8 @@ export const products: Product[] = [
       "Один рюкзак для повседневных планов. Изучите расчёт покупки и доставки до оформления заказа.",
   },
 ];
-/** Atlas conversion markup on the Central Bank rate: 3% since revision 6 (13 October 2026; it was 1.2%). */
-export const atlasFxMarkup = 1.03;
+/** Atlas conversion markup on a bank's USD selling rate: 2.5% since revision 7 (31 October 2026; 3% on the CBU rate before). */
+export const atlasFxMarkup = 1.025;
 export const pricingSchema = z.object({
   fx: positive.max(1_000_000),
   // International delivery per kg in soum, as quotes and settlements use it. When `perKgUsd` is set
@@ -246,7 +246,7 @@ export const pricingSchema = z.object({
   deliveryDays: z.record(z.enum(["us", "uk", "cn", "de", "it", "es"]), z.tuple([z.number().int().min(1).max(120), z.number().int().min(1).max(120)]).refine(([from, to]) => from <= to, "from ≤ to")).optional(),
   /** Standard delivery in business days per dispatch region (admin override of site-content's 9–14). */
   standardDeliveryDays: z.record(z.enum(["us", "uk", "cn", "de", "it", "es"]), z.tuple([z.number().int().min(1).max(120), z.number().int().min(1).max(120)]).refine(([from, to]) => from <= to, "from ≤ to")).optional(),
-  // Where `fx` comes from: the Central Bank of Uzbekistan's USD rate × `fxMarkup`, fetched by the server
+  // Where `fx` comes from: a bank's USD selling rate (the Central Bank rate as fallback) × `fxMarkup`, fetched by the server
   // (lib/market/fx-server.ts), or a rate the operator sets. Customers see which one and when it was set.
   fxSource: z.enum(["cbu", "manual"]).default("manual"),
   fxMarkup: z.number().finite().min(1).max(1.2).default(atlasFxMarkup),
@@ -289,9 +289,10 @@ export const customsHelpShare = 0.0498;
  * Owner decisions that tariffs saved earlier still lack: 1 = $15 per kg, 2 = 9.98% fee and the CBU rate × 1.012,
  * 3 = no international reserve in the bill and customs payment at 4.98% of the cart (5 October 2026),
  * 4 = $14.98 per kg everywhere and the fee exactly 9.98%: no buyout or conversion percent on top (6 October 2026),
- * 5 = express $15.98 and standard $13.98 per kg (6 October 2026, evening); $15 and $14.98 saved earlier become $15.98.
+ * 5 = express $15.98 and standard $13.98 per kg (6 October 2026, evening); $15 and $14.98 saved earlier become $15.98,
+ * 6 = conversion markup 3% (13 October 2026), 7 = markup 2.5% on a bank's selling rate (31 October 2026).
  */
-export const pricingRevision = 6;
+export const pricingRevision = 7;
 /** Until the server reads the Central Bank rate, the owner's estimate stands in, shown as a set rate. */
 const startingFx = 11990;
 export const tariff: Pricing = {
@@ -338,7 +339,7 @@ export function normalizePricing(config: Pricing): Pricing {
 export function upgradePricing(config: Pricing): Pricing {
   const revision = config.revision ?? 0;
   if (revision >= pricingRevision) return normalizePricing(config);
-  // Revision 6: only the conversion markup changes (1.2% → 3%); what the owner set after revision 5 stays.
+  // Revisions 6–7: only the conversion markup changes (1.2% → 3% → 2.5%); what the owner set after revision 5 stays.
   if (revision >= 5) return normalizePricing({ ...config, fxMarkup: atlasFxMarkup, revision: pricingRevision, version: `${config.version.slice(0, 70)}+r${pricingRevision}` });
   const earlier = revision >= 2 ? config : { ...config, margin: atlasServiceFee, fxSource: "cbu" as const };
   // A saved buyout or conversion percent showed as a 10.98% fee; per-country rates and fees gave other prices.

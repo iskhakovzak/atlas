@@ -343,6 +343,22 @@ export async function fetchEbaySellerSearchPage(config:EbayBrowseConfig,fetcher:
   return browseGet(url,token,{id:'EBAY_US'},fetcher,signal,'browse_item',false,ebayEndUserContext(config)?.header);
 }
 
+/** Category ids (with item counts) where a seller lists items matching `q`, from Browse's category refinement. */
+export async function fetchEbaySellerCategories(config:EbayBrowseConfig,fetcher:EbayFetch,query:{seller:string;q:string},signal=AbortSignal.timeout(12_000)) {
+  if(!/^[a-zA-Z0-9_.-]{1,80}$/.test(query.seller)||!/^[a-zA-Z0-9 _-]{1,80}$/.test(query.q))throw new Error('Invalid eBay seller search.');
+  if(!config.clientId?.trim()||!config.clientSecret||!config.environment)throw new EbayBrowseApiError('configuration');
+  const base=config.environment==='sandbox'?'https://api.sandbox.ebay.com':'https://api.ebay.com';
+  const token=await tokenFor(config,base,fetcher,signal);if(!token)throw new EbayBrowseApiError('configuration');
+  const url=new URL(`${base}/buy/browse/v1/item_summary/search`);
+  url.searchParams.set('q',query.q);
+  url.searchParams.set('filter',`sellers:{${query.seller}},buyingOptions:{FIXED_PRICE}`);
+  url.searchParams.set('fieldgroups','CATEGORY_REFINEMENTS');url.searchParams.set('limit','1');
+  const payload=record(await browseGet(url,token,{id:'EBAY_US'},fetcher,signal,'browse_item',false,ebayEndUserContext(config)?.header));
+  const distributions=record(payload?.refinement)?.categoryDistributions;
+  return (Array.isArray(distributions)?distributions:[]).slice(0,100).map(value=>{const row=record(value),id=row?.categoryId,count=Number(row?.matchCount);
+    return typeof id==='string'&&/^\d{1,10}$/.test(id)?{categoryId:id,count:Number.isFinite(count)&&count>0?count:0}:undefined;}).filter((value):value is {categoryId:string;count:number}=>Boolean(value));
+}
+
 function aspectsFor(item: EbayItem) {
   const aspects = new Map<string, string>();
   if (Array.isArray(item.localizedAspects)) {
