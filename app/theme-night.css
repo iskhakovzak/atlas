@@ -1,153 +1,919 @@
-/* Atlas Night: the premium dark appearance, loaded last.
-   Black-green canvas, ivory primary actions, jade accents, champagne labels.
-   Every dark colour elsewhere resolves to the --night-* tokens defined here. */
+/* The dark theme (html[data-theme="dark"], set by next-themes in app/theme-control.tsx): the only one.
+   Its colours are the dark roles in app/tokens.css; the older names (--night-*, --atlas-dark-*) are aliases there.
+   Two layers, in this order: the first dark pass (graphite era, formerly app/dark-theme.css) and Atlas Night on top of
+   it. They were merged into this file on 1.11.2026 without reordering rules, so ties resolve as before.
+   Primary actions are filled with the brand green and white text (owner, 31.10.2026), not ivory. */
 
+/* ========== Layer 1: first dark pass ========== */
+html[data-theme="dark"] body {
+  background: var(--background);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .site-header {
+  background: var(--night-surface);
+  border-color: var(--atlas-line);
+}
+
+html[data-theme="dark"] .wordmark, html[data-theme="dark"] h1, html[data-theme="dark"] h2, html[data-theme="dark"] h3, html[data-theme="dark"] .find-title, html[data-theme="dark"] .page-heading, html[data-theme="dark"] .breadcrumb > span:last-child, html[data-theme="dark"] .product-title {
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .wordmark svg, html[data-theme="dark"] .desktop-nav a.active, html[data-theme="dark"] .text-link, html[data-theme="dark"] .storage-notice a, html[data-theme="dark"] .find-title:hover {
+  color: var(--atlas-link);
+}
+
+html[data-theme="dark"] .desktop-nav a, html[data-theme="dark"] .breadcrumb, html[data-theme="dark"] .text-button, html[data-theme="dark"] .order-timeline li, html[data-theme="dark"] .product-facts > span, html[data-theme="dark"] .sheet-total > span, html[data-theme="dark"] .cost-lines dt {
+  color: var(--atlas-copy-muted);
+}
+
+html[data-theme="dark"] p, html[data-theme="dark"] small, html[data-theme="dark"] .micro, html[data-theme="dark"] .muted, html[data-theme="dark"] .catalog-toolbar p, html[data-theme="dark"] .empty-state p, html[data-theme="dark"] .change-request p {
+  color: var(--atlas-copy-muted);
+}
+
+html[data-theme="dark"] .eyebrow {
+  color: var(--night-jade);
+}
+
+html[data-theme="dark"] :is(
+  .surface,
+  .account-detail,
+  .faq-strip details,
+  .faq-item,
+  .find-card,
+  .product-card,
+  .catalog-draft,
+  .order-card,
+  .store-strip,
+  .trust-strip,
+  .ops-stats > div,
+  .analytics-grid article,
+  .notification-item,
+  .channel-card,
+  .account-address-list .saved-address,
+  .cart-item,
+  .cart-summary,
+  .quote-preview,
+  .order-documents,
+  .ledger-list,
+  .reserve-panel,
+  .receiving-preview,
+  .monitor-panel,
+  .pricing-manager,
+  .change-request,
+  .warehouse-box,
+  .declaration-preview,
+  .weight-formula,
+  .checkout-address-head,
+  .document-list > a,
+  .account-links,
+  .account-stats
+) {
+  background-color: var(--atlas-surface);
+  border-color: var(--atlas-line);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .btn.primary,
+html[data-theme="dark"] .cart-link,
+html[data-theme="dark"] .storage-notice button {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+html[data-theme="dark"] .btn.primary:hover,
+html[data-theme="dark"] .cart-link:hover,
+html[data-theme="dark"] .storage-notice button:hover {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+html[data-theme="dark"] .cart-link b {
+  background: var(--night-jade-soft);
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] .btn.light {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+html[data-theme="dark"] .btn.secondary, html[data-theme="dark"] .select-control, html[data-theme="dark"] .search-field, html[data-theme="dark"] .channel-card, html[data-theme="dark"] .change-request, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .order-tabs, html[data-theme="dark"] .order-tabs [data-state="active"], html[data-theme="dark"] .document-list > a, html[data-theme="dark"] .monitor-panel {
+  background-color: var(--atlas-raised);
+  border-color: var(--atlas-line);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .field label, html[data-theme="dark"] .service-options legend, html[data-theme="dark"] .collection-create-form label {
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]), html[data-theme="dark"] textarea, html[data-theme="dark"] select, html[data-theme="dark"] .field input, html[data-theme="dark"] .field select, html[data-theme="dark"] .field textarea, html[data-theme="dark"] .batch-import textarea, html[data-theme="dark"] .collection-create-form input {
+  background-color: var(--night-canvas);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: var(--night-muted);
+}
+
+html[data-theme="dark"] input[type="checkbox"],
+html[data-theme="dark"] input[type="radio"],
+html[data-theme="dark"] .service-options input,
+html[data-theme="dark"] .channel-card input,
+html[data-theme="dark"] .warehouse-issue-resolution input {
+  accent-color: var(--night-jade);
+}
+
+html[data-theme="dark"] .btn.secondary:hover, html[data-theme="dark"] .icon-btn:hover, html[data-theme="dark"] .notice-link.active {
+  background: var(--night-raised);
+  color: var(--night-jade);
+}
+
+html[data-theme="dark"] .icon-btn,
+html[data-theme="dark"] .notice-link,
+html[data-theme="dark"] .theme-toggle {
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
+  background: var(--night-raised);
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] .theme-toggle:focus-visible {
+  outline-color: var(--night-jade);
+}
+
+html[data-theme="dark"] .notice:not(.error):not(.warning), html[data-theme="dark"] .notice, html[data-theme="dark"] .declaration-preview, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .change-request {
+  background-color: var(--night-jade-soft);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] .notice.warning,
+html[data-theme="dark"] .change-request.pending,
+html[data-theme="dark"] .warehouse-box.attention,
+html[data-theme="dark"] .warehouse-issue-resolution {
+  background-color: var(--night-warn-bg);
+  border-color: var(--night-warn-line);
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] .notice.error {
+  background-color: var(--night-error-bg);
+  border-color: var(--night-error-line);
+  color: var(--night-error-ink);
+}
+
+html[data-theme="dark"] .find-visual, html[data-theme="dark"] .find-photo, html[data-theme="dark"] .detail-image, html[data-theme="dark"] .import-photo, html[data-theme="dark"] .no-photo, html[data-theme="dark"] .confirm-price {
+  background-color: var(--night-surface);
+}
+
+html[data-theme="dark"] .empty-state {
+  background: var(--night-surface);
+  border-color: var(--night-line-strong);
+}
+
+html[data-theme="dark"] .empty-icon {
+  background: var(--night-raised);
+  color: var(--night-jade);
+}
+
+html[data-theme="dark"] .status-badge, html[data-theme="dark"] .order-tabs, html[data-theme="dark"] .document-list > a, html[data-theme="dark"] .order-tabs b {
+  background: var(--night-raised);
+  color: var(--night-jade);
+}
+
+html[data-theme="dark"] .order-tabs [data-state="active"] {
+  background: var(--night-hover);
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] .status-badge.needs-action {
+  background: var(--night-warn-bg);
+  color: var(--night-warn-ink);
+}
+
+html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .sheet-total strong, html[data-theme="dark"] .product-facts b, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .change-amount > strong {
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] .storage-notice {
+  background: var(--night-surface);
+  border-color: var(--atlas-line);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .storage-notice p {
+  color: var(--night-ink-2);
+}
+
+html[data-theme="dark"] .atlas-modal,
+html[data-theme="dark"] .product-sheet,
+html[data-theme="dark"] [data-slot="dialog-content"],
+html[data-theme="dark"] [data-slot="sheet-content"],
+html[data-theme="dark"] [data-slot="popover-content"],
+html[data-theme="dark"] [data-slot="select-content"],
+html[data-theme="dark"] [role="dialog"] {
+  background: var(--atlas-surface);
+  border-color: var(--atlas-line);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] [data-slot="tabs-list"],
+html[data-theme="dark"] [data-slot="tabs-trigger"] {
+  color: var(--atlas-copy-muted);
+}
+
+html[data-theme="dark"] [data-slot="tabs-trigger"][data-state="active"] {
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] button:focus-visible,
+html[data-theme="dark"] a:focus-visible,
+html[data-theme="dark"] summary:focus-visible,
+html[data-theme="dark"] input:focus-visible,
+html[data-theme="dark"] textarea:focus-visible,
+html[data-theme="dark"] select:focus-visible {
+  outline-color: var(--night-jade);
+  box-shadow: 0 0 0 3px rgb(205 232 162 / 22%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="dark"] *,
+  html[data-theme="dark"] *::before,
+  html[data-theme="dark"] *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Low-glare graphite: keep Atlas accents, but avoid pure black, white and neon contrast. */
+
+html[data-theme="dark"] .site-header { background: var(--night-surface); }
+
+html[data-theme="dark"] .eyebrow {
+  color: var(--night-jade);
+}
+
+html[data-theme="dark"] .btn.primary,
+html[data-theme="dark"] .cart-link,
+html[data-theme="dark"] .storage-notice button {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+html[data-theme="dark"] .btn.primary:hover,
+html[data-theme="dark"] .cart-link:hover,
+html[data-theme="dark"] .storage-notice button:hover {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+html[data-theme="dark"] .cart-link b {
+  background: var(--night-hover);
+  color: var(--night-jade);
+}
+
+html[data-theme="dark"] .btn.light {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+html[data-theme="dark"] .field label, html[data-theme="dark"] .service-options legend, html[data-theme="dark"] .collection-create-form label {
+  color: var(--night-ink-2);
+}
+
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]), html[data-theme="dark"] textarea, html[data-theme="dark"] select, html[data-theme="dark"] .field input, html[data-theme="dark"] .field select, html[data-theme="dark"] .field textarea, html[data-theme="dark"] .batch-import textarea, html[data-theme="dark"] .collection-create-form input {
+  background-color: var(--night-surface);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink-2);
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: var(--night-muted);
+}
+
+html[data-theme="dark"] input[type="checkbox"],
+html[data-theme="dark"] input[type="radio"],
+html[data-theme="dark"] .service-options input,
+html[data-theme="dark"] .channel-card input,
+html[data-theme="dark"] .warehouse-issue-resolution input {
+  accent-color: var(--night-jade);
+}
+
+html[data-theme="dark"] .btn.secondary:hover, html[data-theme="dark"] .icon-btn:hover, html[data-theme="dark"] .notice-link.active, html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
+  background: var(--night-hover);
+  color: var(--night-jade);
+}
+
+html[data-theme="dark"] .icon-btn,
+html[data-theme="dark"] .notice-link,
+html[data-theme="dark"] .theme-toggle {
+  color: var(--night-ink-2);
+}
+
+html[data-theme="dark"] .theme-toggle:focus-visible {
+  outline-color: var(--night-jade);
+}
+
+html[data-theme="dark"] .notice:not(.error):not(.warning), html[data-theme="dark"] .notice, html[data-theme="dark"] .declaration-preview, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .change-request {
+  background-color: var(--night-raised);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink-2);
+}
+
+html[data-theme="dark"] .notice.warning,
+html[data-theme="dark"] .change-request.pending,
+html[data-theme="dark"] .warehouse-box.attention,
+html[data-theme="dark"] .warehouse-issue-resolution {
+  background-color: var(--night-raised);
+  border-color: var(--night-warn-line);
+  color: var(--night-warn-ink);
+}
+
+html[data-theme="dark"] .notice.error {
+  background-color: var(--night-raised);
+  border-color: var(--night-line-strong);
+  color: var(--night-error-ink);
+}
+
+html[data-theme="dark"] .find-visual, html[data-theme="dark"] .find-photo, html[data-theme="dark"] .detail-image, html[data-theme="dark"] .import-photo, html[data-theme="dark"] .no-photo, html[data-theme="dark"] .confirm-price {
+  background-color: var(--night-raised);
+}
+
+html[data-theme="dark"] .empty-state {
+  background: var(--night-raised);
+  border-color: var(--night-line-strong);
+}
+
+html[data-theme="dark"] .empty-icon {
+  background: var(--night-hover);
+  color: var(--night-jade);
+}
+
+html[data-theme="dark"] .status-badge, html[data-theme="dark"] .order-tabs, html[data-theme="dark"] .document-list > a, html[data-theme="dark"] .order-tabs b {
+  background: var(--night-hover);
+  color: var(--night-jade);
+}
+
+html[data-theme="dark"] .order-tabs [data-state="active"] {
+  background: var(--night-hover);
+  color: var(--night-ink-2);
+}
+
+html[data-theme="dark"] .status-badge.needs-action {
+  background: var(--night-warn-bg);
+  color: var(--night-warn-ink);
+}
+
+html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .sheet-total strong, html[data-theme="dark"] .product-facts b, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .change-amount > strong {
+  color: var(--night-ink-2);
+}
+
+html[data-theme="dark"] .storage-notice {
+  background: var(--night-raised);
+  border-color: var(--atlas-line);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .storage-notice p {
+  color: var(--night-ink-2);
+}
+
+html[data-theme="dark"] button:focus-visible,
+html[data-theme="dark"] a:focus-visible,
+html[data-theme="dark"] summary:focus-visible,
+html[data-theme="dark"] input:focus-visible,
+html[data-theme="dark"] textarea:focus-visible,
+html[data-theme="dark"] select:focus-visible {
+  outline-color: var(--night-jade);
+  box-shadow: 0 0 0 3px rgb(170 185 227 / 18%);
+}
+
+/* Catalog surfaces and search controls share the graphite palette on every catalog route. */
+
+html[data-theme="dark"] .find-save {
+  background: var(--night-raised);
+  border-color: var(--night-line-strong);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .find-save:hover,
+html[data-theme="dark"] .find-save.saved {
+  background: var(--night-hover);
+  color: var(--atlas-link);
+}
+
+/* Final graphite normalization: pair each formerly fixed light surface with readable text. */
+
+/* Cards and expandable sections. */
+html[data-theme="dark"] :is(
+  .recipient-choice,
+  .store-region,
+  .import-store-links.featured a,
+  .batch-candidate,
+  .customer-warehouse-services,
+  .warehouse-service-catalog,
+  .warehouse-service-config,
+  .warehouse-service-request,
+  .warehouse-service-ops,
+  .warehouse-service-request-form,
+  .warehouse-service-config-body,
+  .warehouse-service-locales fieldset,
+  .catalog-editor,
+  .catalog-importer,
+  .catalog-issues,
+  .catalog-draft,
+  .finds-disclosure,
+  .find-demo,
+  .finds-own-link,
+  .admin-shortcut-grid > *,
+  .admin-metrics article,
+  .staff-form,
+  .ops-tools,
+  .payment-preview,
+  .delivery-box,
+  .parcel-box,
+  .identity-upload,
+  .legal-sources,
+  .legal-nav,
+  .ticket-reply,
+  .notification-history > div,
+  .monitor-panel,
+  .account-address-list .saved-address
+) {
+  background-color: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] :is(
+  .recipient-choice.selected,
+  .variant-options button[aria-pressed="true"],
+  .channel-card.checked,
+  .find-collections button.active,
+  .admin-tabs button[aria-selected="true"],
+  .order-tabs [data-state="active"]
+) {
+  background-color: var(--atlas-dark-selected);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] :is(
+  .recipient-choice:hover,
+  .store-region:hover,
+  .import-store-links a:hover,
+  .find-collections button:hover:not(.active),
+  .admin-shortcut-grid > a:hover,
+  .account-service-grid > a:hover,
+  .account-service-grid > button:hover,
+  .saved-address:hover,
+  .compact-order summary:hover,
+  .finds-own-link button:hover
+) {
+  background-color: var(--atlas-dark-hover);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] :is(
+  .recipient-choice-body > strong,
+  .store-region h3,
+  .store-region p,
+  .import-store-links a,
+  .import-store-links a b,
+  .import-store-links a em,
+  .saved-address b,
+  .saved-address span,
+  .saved-address small,
+  .account-profile-compact summary,
+  .account-profile-compact > div:nth-child(2) span,
+  .account-detail-summary > small,
+  .account-detail-toggle,
+  .account-detail-empty,
+  .account-detail-head p,
+  .account-service-grid small,
+  .account-service-grid > a > svg:last-child,
+  .account-stats a,
+  .account-stats b,
+  .finds-count,
+  .finds-result,
+  .finds-steps,
+  .finds-steps p,
+  .finds-disclosure summary,
+  .finds-own-link label,
+  .find-top-deal small,
+  .find-demo,
+  .catalog-customs-note,
+  .batch-candidate > label,
+  .warehouse-service-request small,
+  .warehouse-service-config > summary small,
+  .warehouse-service-locales legend,
+  .warehouse-service-admin-row > div:first-child p,
+  .catalog-draft-summary em,
+  .admin-shortcut-grid > a,
+  .admin-metrics article,
+  .admin-table-row,
+  .staff-form,
+  .ops-tools,
+  .payment-preview,
+  .delivery-box,
+  .parcel-box,
+  .ticket-reply,
+  .ticket-reply b,
+  .legal-nav a,
+  .legal-sources,
+  .notification-history time,
+  .summary-assurance,
+  .customs-estimate summary strong,
+  .customs-estimate summary small,
+  .customs-estimate summary span,
+  .checkout-progress li,
+  .identity-upload,
+  .payment-methods span,
+  .store-tags span,
+  .journey-strip b,
+  .sheet-close,
+  .status-row,
+  .readiness-grid svg
+) {
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] :is(
+  .account-service-grid > a > svg:first-child,
+  .account-service-grid > button > svg:first-child,
+  .status-center-row span,
+  .status-center-row > svg,
+  .legal-disclosure > summary > svg,
+  .find-result-icon,
+  .finds-search > svg,
+  .finds-filter-row > svg,
+  .price-info
+) {
+  color: var(--atlas-dark-link);
+}
+
+/* Account, order progress and warehouse-service semantic states. */
+html[data-theme="dark"] .recipient-passport-ok, html[data-theme="dark"] .draft-live, html[data-theme="dark"] .warehouse-service-request.completed, html[data-theme="dark"] .change-request:not(.pending):not(.declined) {
+  background-color: var(--atlas-dark-success-bg);
+  border-color: var(--atlas-dark-success-line);
+  color: var(--atlas-dark-success-ink) !important;
+}
+
+html[data-theme="dark"] .recipient-passport-missing,
+html[data-theme="dark"] .settlement-box.attention,
+html[data-theme="dark"] .change-request.pending,
+html[data-theme="dark"] .warehouse-service-request.quoted,
+html[data-theme="dark"] .warehouse-box.attention,
+html[data-theme="dark"] .draft-review,
+html[data-theme="dark"] .catalog-issues {
+  background-color: var(--atlas-dark-warning-bg);
+  border-color: var(--atlas-dark-warning-line);
+  color: var(--atlas-dark-warning-ink) !important;
+}
+
+html[data-theme="dark"] .order-timeline .current span, html[data-theme="dark"] .order-timeline .complete span, html[data-theme="dark"] .change-amount > strong, html[data-theme="dark"] .customs-limit, html[data-theme="dark"] .admin-metrics strong, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .admin-metrics svg, html[data-theme="dark"] .admin-shortcut-grid svg {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .status-badge, html[data-theme="dark"] .order-tabs b {
+  background-color: var(--atlas-dark-selected);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
+}
+
+/* Catalog, deal search, store choices, and imported product variants. */
+
+html[data-theme="dark"] .catalog-editor input, html[data-theme="dark"] .catalog-editor select, html[data-theme="dark"] .catalog-editor textarea, html[data-theme="dark"] .catalog-collections input, html[data-theme="dark"] .warehouse-service-request-form select, html[data-theme="dark"] .warehouse-service-request-form input, html[data-theme="dark"] .warehouse-service-quote input, html[data-theme="dark"] .warehouse-service-locales input, html[data-theme="dark"] .warehouse-service-locales textarea, html[data-theme="dark"] .warehouse-service-config .pricing-grid input, html[data-theme="dark"] .warehouse-service-config .pricing-grid select, html[data-theme="dark"] .batch-candidate select, html[data-theme="dark"] .catalog-review-controls input, html[data-theme="dark"] .catalog-review-controls select {
+  background-color: var(--atlas-dark-inset);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+/* Kept in the layout: theme-night.css styles a pressed variant on hover and must win this tie. */
+html[data-theme="dark"] .variant-options button:hover:not(:disabled), html[data-theme="dark"] .find-collections button:hover:not(.active), html[data-theme="dark"] .catalog-filter-disclosure > summary:hover {
+  background-color: var(--atlas-dark-hover);
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .variant-options button[aria-pressed="true"] {
+  background-color: var(--atlas-dark-selected);
+  border-color: var(--night-jade);
+  color: var(--night-ink);
+  box-shadow: 0 0 0 1px var(--night-jade);
+}
+
+html[data-theme="dark"] .variant-options button:disabled,
+html[data-theme="dark"] button:disabled,
+html[data-theme="dark"] input:disabled,
+html[data-theme="dark"] select:disabled,
+html[data-theme="dark"] textarea:disabled {
+  background-color: var(--night-raised);
+  border-color: var(--night-line-strong);
+  color: var(--night-muted);
+  opacity: .68;
+}
+
+/* Cart, payment estimates and expandable order details. */
+html[data-theme="dark"] .remove-item, html[data-theme="dark"] .customs-estimate, html[data-theme="dark"] .customs-estimate summary, html[data-theme="dark"] .consent {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .remove-item:hover, html[data-theme="dark"] .customs-estimate summary:hover {
+  background-color: var(--atlas-dark-hover);
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .customs-estimate summary::after {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .expiry, html[data-theme="dark"] .consent label, html[data-theme="dark"] .customs-estimate p, html[data-theme="dark"] .customs-estimate small, html[data-theme="dark"] .remove-item {
+  color: var(--atlas-dark-muted);
+}
+
+/* Admin, operations and reporting tables; these are authenticated surfaces too. */
+html[data-theme="dark"] .admin-tabs, html[data-theme="dark"] .admin-tabs button, html[data-theme="dark"] .admin-metrics article, html[data-theme="dark"] .admin-shortcut-grid > *, html[data-theme="dark"] .staff-form, html[data-theme="dark"] .admin-table-row, html[data-theme="dark"] .admin-table-row.head, html[data-theme="dark"] .ops-tools, html[data-theme="dark"] .payment-preview, html[data-theme="dark"] .delivery-box, html[data-theme="dark"] .parcel-box, html[data-theme="dark"] .catalog-editor, html[data-theme="dark"] .catalog-issues, html[data-theme="dark"] .catalog-draft-summary, html[data-theme="dark"] .catalog-reports article, html[data-theme="dark"] .draft-live, html[data-theme="dark"] .draft-ready, html[data-theme="dark"] .draft-review, html[data-theme="dark"] .staff-status {
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .admin-table-row.head,
+html[data-theme="dark"] .admin-tabs,
+html[data-theme="dark"] .admin-metrics article,
+html[data-theme="dark"] .admin-shortcut-grid > *,
+html[data-theme="dark"] .staff-form,
+html[data-theme="dark"] .ops-tools,
+html[data-theme="dark"] .payment-preview,
+html[data-theme="dark"] .delivery-box,
+html[data-theme="dark"] .parcel-box,
+html[data-theme="dark"] .catalog-editor,
+html[data-theme="dark"] .catalog-draft-summary img,
+html[data-theme="dark"] .catalog-draft-summary > span,
+html[data-theme="dark"] .catalog-issues,
+html[data-theme="dark"] .monitor-panel {
+  background-color: var(--atlas-dark-raised);
+}
+
+html[data-theme="dark"] .draft-live, html[data-theme="dark"] .staff-status.active {
+  background-color: var(--atlas-dark-success-bg);
+  color: var(--atlas-dark-success-ink);
+}
+
+html[data-theme="dark"] .draft-review,
+html[data-theme="dark"] .catalog-issues {
+  background-color: var(--atlas-dark-warning-bg);
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .draft-ready {
+  background-color: var(--atlas-dark-selected);
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] .staff-status,
+html[data-theme="dark"] .staff-status.disabled {
+  background-color: var(--atlas-dark-raised);
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .settlement-box.attention > svg,
+html[data-theme="dark"] .settlement-box.attention h3,
+html[data-theme="dark"] .settlement-box.attention p,
+html[data-theme="dark"] .settlement-box.attention strong,
+html[data-theme="dark"] .settlement-box.attention .text-link {
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .settlement-box.delivery-box > svg,
+html[data-theme="dark"] .settlement-box.parcel-box > svg,
+html[data-theme="dark"] .settlement-box.delivery-box strong,
+html[data-theme="dark"] .settlement-box.parcel-box strong {
+  color: var(--atlas-dark-link);
+}
+
+/* Secondary chrome and keyboard/disabled states. */
+html[data-theme="dark"] .ticket-reply, html[data-theme="dark"] .legal-nav, html[data-theme="dark"] .legal-sources, html[data-theme="dark"] .sheet-close, html[data-theme="dark"] .sheet-save, html[data-theme="dark"] .status-row, html[data-theme="dark"] .import-gallery button {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+/* Not connected yet: amber mark and note instead of the green check. */
+
+html[data-theme="dark"] :is(input, textarea, select, option) {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] option {
+  background: var(--atlas-dark-inset);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] :is(button, a, summary, input, textarea, select):focus-visible {
+  outline-color: var(--atlas-dark-focus);
+  box-shadow: 0 0 0 3px rgb(183 200 250 / 24%);
+}
+
+/* Smaller surfaces discovered outside the main customer journey. */
+html[data-theme="dark"] :is(.deal-section, .legacy-import, .ux-disclosure, .legal-requisites) {
+  background-color: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+/* globals.css draws these with the light #e5e9f1, which read as bright stripes on the Night page. */
+html[data-theme="dark"] :is(.legal-document section + section, .legal-requisites dl > div + div) {
+  border-top-color: var(--atlas-dark-line);
+}
+
+html[data-theme="dark"] .ux-disclosure > summary {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .skip-link {
+  background: var(--atlas-dark-raised);
+  color: var(--atlas-dark-link);
+  border-color: var(--atlas-dark-focus);
+}
+
+html[data-theme="dark"] .copy-text-btn {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] :is(.access-icon, .floating-label, .customer-badge) {
+  background-color: var(--atlas-dark-selected);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink) !important;
+}
+
+/* Final contrast sweep for legacy utility copy and route-specific fixed colors. */
+
+html[data-theme="dark"] .access-card :is(p, small) {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .remove-item.confirming,
+html[data-theme="dark"] .remove-item.confirming:hover,
+html[data-theme="dark"] .account-error .text-button,
+html[data-theme="dark"] .account-error .text-link {
+  color: var(--atlas-dark-error-ink);
+}
+
+html[data-theme="dark"] .result-line {
+  color: var(--atlas-dark-success-ink);
+}
+
+html[data-theme="dark"] .warning-text {
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .expiry.expired {
+  color: var(--atlas-dark-warning-ink);
+}
+
+@media (max-width: 600px) {
+  html[data-theme="dark"] :is(
+    .supported-stores,
+    .supported-stores-heading,
+    .supported-store-list,
+    .find-card,
+    .find-content,
+    .cart-item,
+    .compact-order-name,
+    .compact-order-body,
+    .document-row > div,
+    .saved-address,
+    .account-detail-summary,
+    .catalog-draft-summary > div,
+    .admin-table-row > *,
+    .message-log article > *,
+    .review-items > div,
+    .legal-document
+  ) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  html[data-theme="dark"] :is(
+    .supported-store-list > li,
+    .find-title,
+    .product-name,
+    .deal-name,
+    .find-origin,
+    .compact-order-name,
+    .cart-item :is(h2, h3, p, small, strong),
+    .order-card :is(h2, h3, p, small, strong),
+    .document-row b,
+    .catalog-draft-summary :is(b, small, em),
+    .account-error,
+    .ticket-reply,
+    .admin-table-row > *,
+    .message-log article > *,
+    .legal-document :is(p, li),
+    .site-footer :is(a, small)
+  ) {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+}
+
+/* Dark theme keeps blue for navigation/source links and uses Atlas sage for primary actions. */
+
+html[data-theme="dark"] .wordmark svg {
+  color: var(--night-jade);
+}
+
+html[data-theme="dark"] .btn.primary,
+html[data-theme="dark"] .cart-link,
+html[data-theme="dark"] .storage-notice button {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+html[data-theme="dark"] .btn.primary:hover,
+html[data-theme="dark"] .cart-link:hover,
+html[data-theme="dark"] .storage-notice button:hover {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+html[data-theme="dark"] .catalog-scope-tabs button.active span {
+  background: var(--night-hover);
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] .catalog-review-controls input,
+html[data-theme="dark"] .catalog-review-controls select,
+html[data-theme="dark"] .catalog-draft {
+  background: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .catalog-delete-action {
+  background: var(--night-error-bg);
+  border-color: var(--night-error-line);
+  color: var(--night-ink);
+}
+
+html[data-theme="dark"] .catalog-delete-action:hover:not(:disabled) {
+  background: var(--night-error-bg);
+  border-color: var(--night-error-line);
+  color: var(--night-ink);
+}
+
+/* Compact order-by-link quote disclosures use the same low-glare surface as the rest of Atlas. */
+
+html[data-theme="dark"] .customs-estimate-compact {
+  border-color: var(--night-line-strong);
+}
+
+/* Info pages in Atlas Night (14.10.2026): no light hairlines or raised strips inside the pills (/customs, /legal,
+   /privacy, /terms), and the /customs calculator, next step and guarantee cards on Night tokens. */
+html[data-theme="dark"] :is(.customs-estimate-wrap, .customs-estimate-compact) { border-top-color: var(--night-line-strong); }
+html[data-theme="dark"] :is(.ux-disclosure > summary, .customs-estimate > summary) { background-color: transparent; }
+
+/* ========== Layer 2: Atlas Night ========== */
 /* ---------- Typography (both themes) ---------- */
 /* Inter: even, compact figures for long soum amounts; its optical size axis tightens large totals.
    The wordmark keeps Manrope, the face the logo was drawn in. */
-:root {
-  --font-sans: "Inter Variable", "Inter", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
-}
 html body { font-family: var(--font-sans); font-optical-sizing: auto; text-rendering: optimizeLegibility; }
 html .wordmark { font-family: "Manrope Variable", "Manrope", var(--font-sans); }
 html :is(button, input, select, textarea) { font-family: inherit; }
-html :is(h1, h2, h3) { letter-spacing: -0.022em; }
-html h1 { font-weight: 800; }
+html :is(h1, h2, h3) { letter-spacing: -.02em; }
+html h1 { font-weight: 750; }
 html :is(h2, h3) { font-weight: 750; }
 html :is(.wordmark) { font-weight: 800; letter-spacing: -0.045em; }
 html :is(.basket-total strong, .wallet-amount, .home-quote-total strong, .cabinet-customs-value, .order-x-total, .find-total > strong) { font-feature-settings: "tnum" 1; }
 
-/* ---------- Tokens ---------- */
-html[data-theme="dark"] {
-  color-scheme: dark;
-  --night-canvas: #0a0e0c;
-  --night-surface: #111714;
-  --night-raised: #161d19;
-  --night-hover: #1c2520;
-  --night-inset: #0d1210;
-  --night-selected: #1c2a23;
-  --night-line: rgba(226, 238, 231, 0.085);
-  --night-line-strong: rgba(226, 238, 231, 0.15);
-  --night-ink: #f1eee5;
-  --night-ink-2: #d5d9d4;
-  --night-muted: #9ba6a0;
-  /* Quietest text tone; still 4.7:1 or more on every night surface (WCAG AA). */
-  --night-faint: #88938d;
-  --night-on-ivory: #0c120f;
-  --night-ivory: #ebe4d2;
-  --night-ivory-hi: #f8f4ea;
-  --night-ivory-lo: #d9cfb8;
-  --night-jade: #80d0ac;
-  --night-jade-strong: #4fb98b;
-  --night-jade-soft: rgba(128, 208, 172, 0.1);
-  --night-jade-soft-strong: rgba(128, 208, 172, 0.17);
-  --night-champagne: #cbb487;
-  --night-ok-ink: #8fd8b1;
-  --night-warn-ink: #e8bd70;
-  --night-warn-bg: rgba(232, 189, 112, 0.09);
-  --night-warn-line: rgba(232, 189, 112, 0.3);
-  --night-error-ink: #f0988d;
-  --night-error-bg: rgba(240, 152, 141, 0.09);
-  --night-error-line: rgba(240, 152, 141, 0.32);
-  --night-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0) 44%);
-  --night-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 22px 48px -30px rgba(0, 0, 0, 0.9);
-  --night-shadow-pop: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 40px 90px -30px rgba(0, 0, 0, 0.95);
-  --night-ring: 0 0 0 3px rgba(128, 208, 172, 0.22);
-
-  /* shadcn / Tailwind tokens */
-  --background: var(--night-canvas);
-  --foreground: var(--night-ink);
-  --card: var(--night-surface);
-  --card-foreground: var(--night-ink);
-  --popover: var(--night-raised);
-  --popover-foreground: var(--night-ink);
-  --primary: var(--night-ivory);
-  --primary-foreground: var(--night-on-ivory);
-  --secondary: var(--night-raised);
-  --secondary-foreground: var(--night-ink);
-  --muted: var(--night-raised);
-  --muted-foreground: var(--night-muted);
-  --accent: var(--night-hover);
-  --accent-foreground: var(--night-ink);
-  --destructive: var(--night-error-ink);
-  --border: var(--night-line-strong);
-  --input: var(--night-line-strong);
-  --ring: var(--night-jade);
-  --sidebar: var(--night-surface);
-  --sidebar-foreground: var(--night-ink);
-  --sidebar-primary: var(--night-ivory);
-  --sidebar-primary-foreground: var(--night-on-ivory);
-  --sidebar-accent: var(--night-hover);
-  --sidebar-accent-foreground: var(--night-ink);
-  --sidebar-border: var(--night-line);
-  --sidebar-ring: var(--night-jade);
-
-  /* Atlas tokens (all three earlier generations of the dark theme) */
-  --atlas-ink: var(--night-ink);
-  --atlas-blue: var(--night-jade);
-  --atlas-line: var(--night-line-strong);
-  --atlas-soft: var(--night-raised);
-  --atlas-surface: var(--night-surface);
-  --atlas-raised: var(--night-raised);
-  --atlas-copy-muted: var(--night-muted);
-  --atlas-link: var(--night-jade);
-  --atlas-accent: var(--night-jade);
-  --atlas-dark-canvas: var(--night-canvas);
-  --atlas-dark-surface: var(--night-surface);
-  --atlas-dark-raised: var(--night-raised);
-  --atlas-dark-inset: var(--night-inset);
-  --atlas-dark-hover: var(--night-hover);
-  --atlas-dark-selected: var(--night-selected);
-  --atlas-dark-line: var(--night-line-strong);
-  --atlas-dark-ink: var(--night-ink);
-  --atlas-dark-muted: var(--night-muted);
-  --atlas-dark-link: var(--night-jade);
-  --atlas-dark-focus: var(--night-jade);
-  --atlas-dark-success-bg: var(--night-jade-soft);
-  --atlas-dark-success-line: rgba(128, 208, 172, 0.3);
-  --atlas-dark-success-ink: var(--night-ok-ink);
-  --atlas-dark-warning-bg: var(--night-warn-bg);
-  --atlas-dark-warning-line: var(--night-warn-line);
-  --atlas-dark-warning-ink: var(--night-warn-ink);
-  --atlas-dark-error-bg: var(--night-error-bg);
-  --atlas-dark-error-line: var(--night-error-line);
-  --atlas-dark-error-ink: var(--night-error-ink);
-
-  /* Home and customer pages */
-  --home-accent: var(--night-jade);
-  --home-accent-ink: var(--night-on-ivory);
-  --home-ink: var(--night-ink);
-  --home-muted: var(--night-muted);
-  --home-line: var(--night-line);
-  --home-soft: var(--night-raised);
-  --home-surface: var(--night-surface);
-  --home-pending: var(--night-warn-ink);
-  --cx-ok: var(--night-ok-ink);
-  --cx-ok-soft: var(--night-jade-soft);
-  --cx-warn: var(--night-warn-ink);
-  --cx-warn-soft: var(--night-warn-bg);
-  --cx-danger: var(--night-error-ink);
-
-  scrollbar-color: #26302b transparent;
-}
-
-/* ---------- Atmosphere ---------- */
-html[data-theme="dark"] body {
-  background:
-    radial-gradient(1200px 560px at 50% -220px, rgba(79, 185, 139, 0.14), transparent 70%),
-    radial-gradient(760px 420px at 100% 0, rgba(203, 180, 135, 0.06), transparent 65%),
-    var(--night-canvas);
-  /* The glow stays at the top once: on short pages (sign-in return) it must not tile down the screen. */
-  background-repeat: no-repeat;
-  color: var(--night-ink);
-}
+/* ---------- Tokens: app/tokens.css ---------- */
+/* ---------- Canvas: flat, no glow (the only atmosphere is on the home first screen, app/ambient.css) ---------- */
+html[data-theme="dark"] body { background-color: var(--night-canvas); color: var(--night-ink); }
 html[data-theme="dark"] ::selection { background: rgba(128, 208, 172, 0.3); color: #fff; }
 html[data-theme="dark"] :focus-visible { outline-color: var(--night-jade); }
 html[data-theme="dark"] ::-webkit-scrollbar { width: 11px; height: 11px; }
 html[data-theme="dark"] ::-webkit-scrollbar-track { background: transparent; }
-html[data-theme="dark"] ::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 99px; background: #26302b padding-box; }
+html[data-theme="dark"] ::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: var(--r-pill); background: #26302b padding-box; }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #33403a padding-box; }
-html[data-theme="dark"] :is(.eyebrow, .cabinet-eyebrow, .order-x-eyebrow, .home-stores-label, .home-footer-title, .basket-brand) { color: var(--night-champagne); letter-spacing: 0.1em; }
+html[data-theme="dark"] :is(.eyebrow, .cabinet-eyebrow, .order-x-eyebrow, .home-stores-label, .home-footer-title, .basket-brand) { color: var(--night-champagne); letter-spacing: .02em; }
 /* No capitals in the small headings, as in Day (day-folio.css); the champagne colour stays. */
 html[data-theme="dark"] :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .cabinet-eyebrow, .order-x-eyebrow, .store-dialog-section h3, .legal-document > header span) { text-transform: none; letter-spacing: 0; }
 html[data-theme="dark"] :is(h1, h2, h3, .page-heading h1) { color: var(--night-ink); }
@@ -165,46 +931,36 @@ html[data-theme="dark"] .wordmark { color: var(--night-ink); }
 html[data-theme="dark"] .wordmark svg { color: var(--night-jade); }
 /* Nav: the current page sits on a translucent jade pill; no underline or bottom border. */
 html[data-theme="dark"] .site-header .desktop-nav { gap: 2px; margin-left: 8px; }
-html[data-theme="dark"] .site-header .desktop-nav a { min-height: 40px; padding: 0 10px; border: 0; border-radius: 10px; color: var(--night-muted); text-decoration: none; }
+html[data-theme="dark"] .site-header .desktop-nav a { min-height: 40px; padding: 0 10px; border: 0; border-radius: var(--r-control); color: var(--night-muted); text-decoration: none; }
 html[data-theme="dark"] .site-header .desktop-nav a:hover { background: rgba(255, 255, 255, 0.05); color: var(--night-ink); }
 html[data-theme="dark"] .site-header .desktop-nav a.active { background: rgba(128, 208, 172, 0.14); color: var(--night-jade); box-shadow: none; }
 html[data-theme="dark"] .site-header .desktop-nav a:focus-visible { outline: 2px solid var(--night-jade); outline-offset: 2px; }
 html[data-theme="dark"] :is(.rf-chips button, .orders-recipients button, .lo-page .variant-options button)[aria-pressed="true"],
 html[data-theme="dark"] :is(.notices-page .notice-filters button.active, .orders-recipients button.active) {
   border-color: transparent;
-  background: linear-gradient(180deg, var(--night-ivory-hi), var(--night-ivory));
-  color: var(--night-on-ivory);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  background: var(--brand);
+  color: var(--on-brand);
+  box-shadow: none;
 }
 /* The price under a chosen colour sits on the ivory button: it takes the button's dark ink, not the muted night grey. */
-html[data-theme="dark"] .header-account { border-color: rgba(235, 228, 210, 0.5); color: var(--night-ink); }
-html[data-theme="dark"] .header-account:hover { background: rgba(235, 228, 210, 0.08); border-color: var(--night-ivory); }
+html[data-theme="dark"] .header-account { border-color: var(--line-strong); color: var(--night-ink); }
+html[data-theme="dark"] .header-account:hover { background: var(--hover); border-color: var(--field); }
 html[data-theme="dark"] :is(.site-header .icon-btn, .site-header .wallet-link) { color: var(--night-ink-2); }
 html[data-theme="dark"] .site-header :is(.icon-btn, .wallet-link):hover { background: rgba(255, 255, 255, 0.05); color: var(--night-ink); }
 html[data-theme="dark"] .notice-link b { background: #c8503f; color: #fff; box-shadow: 0 0 0 2px var(--night-canvas); }
 html[data-theme="dark"] .cart-link {
   border: 1px solid transparent;
-  background: var(--night-ivory);
-  color: var(--night-on-ivory);
+  background: var(--brand);
+  color: var(--on-brand);
   box-shadow: none;
 }
 html[data-theme="dark"] .cart-link b { background: var(--night-on-ivory); color: var(--night-ivory); }
-html[data-theme="dark"] .mobile-nav {
-  background: linear-gradient(180deg, rgba(12, 17, 15, 0.82), rgba(10, 14, 12, 0.94));
-  -webkit-backdrop-filter: saturate(160%) blur(20px);
-  backdrop-filter: saturate(160%) blur(20px);
-  border-top: 1px solid var(--night-line);
-}
-html[data-theme="dark"] .mobile-nav a { color: var(--night-faint); }
-html[data-theme="dark"] .mobile-nav a.active { color: var(--night-ink); }
-html[data-theme="dark"] .mobile-nav a.active::before { background: var(--night-jade); }
-html[data-theme="dark"] .mobile-nav a b { background: var(--night-ivory); color: var(--night-on-ivory); }
 
 /* ---------- Surfaces ---------- */
 html[data-theme="dark"] :is(.surface, .cabinet-card, .cabinet-tiles a, .basket-summary, .basket-parcel, .basket-empty, .lo-card, .lo-product, .order-x, .home-quote, .home-step, .home-tracking, .home-reviews, .home-legal, .home-faq details, .home-table-wrap, .notice-x, .docs-recipient, .find-card, .store-card, .stores-directory, .login-card, .notice-settings, .cabinet-next.done, .lo-source) {
   border-color: var(--night-line);
   background: var(--night-sheen), var(--night-surface);
-  box-shadow: var(--night-shadow);
+  box-shadow: var(--shadow-2);
 }
 html[data-theme="dark"] :is(.cabinet-tiles a, .store-card, .find-card, .order-x, .docs-recipient):hover { border-color: var(--night-line-strong); }
 html[data-theme="dark"] :is(.basket-parcel-title, .home-tariffs thead th) { background: rgba(255, 255, 255, 0.025); color: var(--night-muted); }
@@ -218,13 +974,13 @@ html[data-theme="dark"] .btn { transition: background-color 0.18s, border-color 
 /* Primary: one flat ivory fill, no gradient and no glow (27 October 2026, as in Day). */
 html[data-theme="dark"] .btn.primary, html[data-theme="dark"] .btn.light {
   border: 1px solid transparent;
-  background: var(--night-ivory);
-  color: var(--night-on-ivory);
+  background: var(--brand);
+  color: var(--on-brand);
   font-weight: 750;
   box-shadow: none;
 }
 html[data-theme="dark"] .btn.primary :is(svg) { color: inherit; }
-html[data-theme="dark"] :is(.btn.primary, .btn.light):hover:not(:disabled) { background: var(--night-ivory-hi); box-shadow: none; }
+html[data-theme="dark"] :is(.btn.primary, .btn.light):hover:not(:disabled) { background: var(--brand-hover); box-shadow: none; }
 html[data-theme="dark"] :is(.btn.primary, .btn.light):active:not(:disabled) { transform: translateY(1px); }
 html[data-theme="dark"] .btn:disabled,
 html[data-theme="dark"] .btn.primary:disabled {
@@ -265,13 +1021,13 @@ html[data-theme="dark"] :is(input:not([type="checkbox"]):not([type="radio"]), se
   box-shadow: var(--night-ring);
 }
 /* Fields that live inside a framed control stay transparent. */
-html[data-theme="dark"] :is(.home-link-field, .lo-link-field, .rf-phone, .finds-search, .stores-search, .search-field) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) { border-color: transparent; background: transparent; box-shadow: none; }
+html[data-theme="dark"] :is(.home-link-field, .lo-link-field, .rf-phone, .finds-search, .stores-search, .search-field, .link-sheet-field, .shell-search) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) { border-color: transparent; background: transparent; box-shadow: none; }
 html[data-theme="dark"] :is(.home-link-form, .lo-link) {
-  border-color: rgba(235, 228, 210, 0.55);
+  border-color: var(--line-strong);
   background: linear-gradient(180deg, rgba(22, 29, 25, 0.92), rgba(15, 20, 18, 0.92));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 30px 70px -36px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(0, 0, 0, 0.4);
 }
-html[data-theme="dark"] :is(.home-link-form, .lo-link):focus-within { border-color: var(--night-ivory); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 4px rgba(235, 228, 210, 0.12), 0 30px 70px -36px rgba(0, 0, 0, 0.95); }
+html[data-theme="dark"] :is(.home-link-form, .lo-link):focus-within { border-color: var(--link); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--focus-ring), 0 30px 70px -36px rgba(0, 0, 0, 0.95); }
 html[data-theme="dark"] :is(.basket-consent, .consent) { border-color: var(--night-line-strong); }
 /* A ticked option lights up as a whole, not only its small box. */
 html[data-theme="dark"] :is(.basket-consent, .consent, .basket-balance, .basket-service):has([data-slot="checkbox"][data-state="checked"]) { border-color: rgba(128, 208, 172, 0.55); background: var(--night-jade-soft); }
@@ -292,10 +1048,10 @@ html[data-theme="dark"] [data-slot="tabs-trigger"][data-selected],
 html[data-theme="dark"] [data-slot="tabs-trigger"][aria-selected="true"],
 html[data-theme="dark"] .order-tabs [data-state="active"] { background: var(--night-hover); color: var(--night-ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
 html[data-theme="dark"] :is(.cabinet-bar, .order-x-bar, .home-tracking-dot) { background: rgba(255, 255, 255, 0.07); }
-html[data-theme="dark"] :is(.cabinet-bar span, .order-x-bar span) { background: linear-gradient(90deg, var(--night-jade-strong), var(--night-jade)); box-shadow: 0 0 12px rgba(128, 208, 172, 0.35); }
+html[data-theme="dark"] :is(.cabinet-bar span, .order-x-bar span) { background: linear-gradient(90deg, var(--night-jade-strong), var(--night-jade)); box-shadow: var(--shadow-2); }
 html[data-theme="dark"] :is(.basket-steps li[data-state="current"] > span, .docs-num, .notice-x-new, .basket-services > summary b, .cabinet-avatar) {
-  background: linear-gradient(180deg, var(--night-ivory-hi), var(--night-ivory));
-  color: var(--night-on-ivory);
+  background: var(--brand);
+  color: var(--on-brand);
 }
 html[data-theme="dark"] .home-tracking li[data-state="done"] .home-tracking-dot { border-color: var(--night-jade); background: var(--night-jade); }
 html[data-theme="dark"] .home-tracking li[data-state="current"] .home-tracking-dot { border-color: var(--night-ivory); box-shadow: 0 0 0 4px rgba(235, 228, 210, 0.14); }
@@ -310,12 +1066,12 @@ html[data-theme="dark"] :is(.atlas-modal, [data-slot="dialog-content"], [data-sl
   border: 1px solid var(--night-line-strong);
   background: var(--night-sheen), var(--night-raised);
   color: var(--night-ink);
-  box-shadow: var(--night-shadow-pop);
+  box-shadow: var(--shadow-3);
 }
 html[data-theme="dark"] :is([data-slot="select-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"]) {
   border: 1px solid var(--night-line-strong);
   background: var(--night-raised);
-  box-shadow: var(--night-shadow-pop);
+  box-shadow: var(--shadow-3);
 }
 html[data-theme="dark"] [data-slot="select-item"][data-highlighted] { background: var(--night-hover); color: var(--night-ink); }
 html[data-theme="dark"] .modal-title { color: var(--night-ink); }
@@ -333,7 +1089,7 @@ html[data-theme="dark"] [data-sonner-toaster] {
   --warning-border: var(--night-warn-line);
   --warning-text: var(--night-warn-ink);
 }
-html[data-theme="dark"] [data-sonner-toast] { box-shadow: var(--night-shadow-pop); }
+html[data-theme="dark"] [data-sonner-toast] { box-shadow: var(--shadow-3); }
 
 /* ---------- Product imagery: merchant photos sit on an ivory studio plate ---------- */
 html[data-theme="dark"] :is(.find-photo, .basket-photo, .order-x-photo, .product-gallery-stage, .product-gallery-thumbnails button, .cart-product-photo, .order-photo, .import-gallery button, .batch-candidate-image) {
@@ -347,7 +1103,7 @@ html[data-theme="dark"] .no-photo { background: var(--night-raised); color: var(
 html[data-theme="dark"] .home-hero h1 { color: #f4efe3; }
 html[data-theme="dark"] .home-quote { background: var(--night-sheen), var(--night-raised); border-color: var(--night-line-strong); }
 html[data-theme="dark"] .home-quote-total strong { color: var(--night-ivory); }
-html[data-theme="dark"] .home-tip-panel { border-color: var(--night-line-strong); background: var(--night-raised); box-shadow: var(--night-shadow-pop); color: var(--night-ink-2); }
+html[data-theme="dark"] .home-tip-panel { border-color: var(--night-line-strong); background: var(--night-raised); box-shadow: var(--shadow-3); color: var(--night-ink-2); }
 html[data-theme="dark"] .home-sticky .home-cta { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65), 0 18px 40px -12px rgba(0, 0, 0, 0.8); }
 html[data-theme="dark"] .home-missing { border-color: rgba(232, 189, 112, 0.5); background: rgba(232, 189, 112, 0.07); color: var(--night-warn-ink); }
 
@@ -377,16 +1133,16 @@ html[data-theme="dark"] .login-form .field small { color: var(--night-muted); }
 
 /* Narrow phones: the operator's extra header link must still fit next to the wordmark. */
 @media (max-width: 420px) {
-  html .site-header .wordmark { font-size: 32px; }
+  html .site-header .wordmark { font-size: 30px; }
   html .site-header .header-actions { gap: 6px; }
 }
 /* ---------- Folio markup (home, cart, link order) in Atlas Night ----------
    The light theme's look lives in day-folio.css; these rules give the same markup a Night finish. */
-html[data-theme="dark"] .home-folio { display: grid; gap: 10px; padding: 16px 12px 12px; border: 1px solid var(--night-line-strong); border-radius: 22px; background: var(--night-inset); box-shadow: var(--night-shadow-pop); }
+html[data-theme="dark"] .home-folio { display: grid; gap: 10px; padding: 16px 12px 12px; border: 1px solid var(--night-line-strong); border-radius: var(--r-sheet); background: var(--night-inset); box-shadow: var(--shadow-3); }
 html[data-theme="dark"] .folio-cap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin: 0; padding: 0 10px 2px; color: var(--night-muted); font-size: 14px; }
 html[data-theme="dark"] .folio-cap b { color: var(--night-champagne); font-weight: 600; }
-html[data-theme="dark"] .home-folio .folio-sheet { display: grid; gap: 14px; padding: 22px 24px 18px; border: 1px solid var(--night-line); border-radius: 12px; background: var(--night-sheen), var(--night-raised); box-shadow: none; }
-html[data-theme="dark"] .bill-route { display: grid; grid-template-columns: auto minmax(24px, 1fr) auto; align-items: center; gap: 10px; margin: 0; color: var(--night-ink); font-size: 13.5px; font-weight: 600; }
+html[data-theme="dark"] .home-folio .folio-sheet { display: grid; gap: 14px; padding: 22px 24px 18px; border: 1px solid var(--night-line); border-radius: var(--r-control); background: var(--night-sheen), var(--night-raised); box-shadow: none; }
+html[data-theme="dark"] .bill-route { display: grid; grid-template-columns: auto minmax(24px, 1fr) auto; align-items: center; gap: 10px; margin: 0; color: var(--night-ink); font-size: 13px; font-weight: 600; }
 html[data-theme="dark"] .bill-route-line { position: relative; height: 0; border-top: 1px dashed var(--night-line-strong); }
 html[data-theme="dark"] .bill-route-line::before, html[data-theme="dark"] .bill-route-line::after { content: ""; position: absolute; top: -4px; width: 7px; height: 7px; box-sizing: border-box; border-radius: 50%; }
 html[data-theme="dark"] .bill-route-line::before { left: 0; background: var(--night-jade); }
@@ -395,21 +1151,21 @@ html[data-theme="dark"] .bill-days { margin: -8px 0 0; color: var(--night-muted)
 html[data-theme="dark"] .bill { display: grid; gap: 14px; margin: 0; }
 html[data-theme="dark"] .bill > div { display: grid; grid-template-columns: minmax(0, auto) minmax(16px, 1fr) auto; column-gap: 8px; align-items: baseline; padding: 0; border: 0; }
 html[data-theme="dark"] .bill > div::before { content: ""; grid-column: 2; grid-row: 1; align-self: end; margin-bottom: .32em; border-bottom: 1px dotted var(--night-line-strong); }
-html[data-theme="dark"] .bill dt { display: block; grid-column: 1; grid-row: 1; margin: 0; color: var(--night-ink); font-size: 15px; font-weight: 500; }
-html[data-theme="dark"] .bill dd { grid-column: 3; grid-row: 1; margin: 0; color: var(--night-ink); font-size: 15px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+html[data-theme="dark"] .bill dt { display: block; grid-column: 1; grid-row: 1; margin: 0; color: var(--night-ink); font-size: var(--fs-16); font-weight: 500; }
+html[data-theme="dark"] .bill dd { grid-column: 3; grid-row: 1; margin: 0; color: var(--night-ink); font-size: var(--fs-16); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
 html[data-theme="dark"] .bill dd.bill-note { grid-column: 1 / -1; grid-row: 2; margin-top: 2px; color: var(--night-muted); font-size: 13px; font-weight: 400; white-space: normal; }
 html[data-theme="dark"] .bill-total { display: grid; gap: 2px; margin: 0; padding-top: 14px; border-top: 1.5px solid var(--night-line-strong); }
 html[data-theme="dark"] .bill-total > span { color: var(--night-ink-2); font-size: 14px; font-weight: 600; }
 /* The total is the darkest figure in Day; in Night it inherited the muted grey of the account card. */
 html[data-theme="dark"] .bill-total .money-n { color: var(--night-ink); }
-html[data-theme="dark"] .home-folio .bill-total .money { font-size: 44px; line-height: 1.05; }
+html[data-theme="dark"] .home-folio .bill-total .money { font-size: 40px; line-height: 1.05; }
 html[data-theme="dark"] .money-unit { color: var(--night-muted); font-size: max(13px, .42em); font-weight: 600; }
-html[data-theme="dark"] .home-folio .folio-outside { display: grid; gap: 10px; padding: 16px 18px; border: 1px solid var(--night-line); border-radius: 12px; background: var(--night-surface); }
-html[data-theme="dark"] .folio-outside > :is(h2, h3) { margin: 0; color: var(--night-ink); font-size: 15px; font-weight: 600; }
+html[data-theme="dark"] .home-folio .folio-outside { display: grid; gap: 10px; padding: 16px 18px; border: 1px solid var(--night-line); border-radius: var(--r-control); background: var(--night-surface); }
+html[data-theme="dark"] .folio-outside > :is(h2, h3) { margin: 0; color: var(--night-ink); font-size: 14px; font-weight: 600; }
 @media (max-width: 600px) {
-  html[data-theme="dark"] .home-folio { padding: 14px 10px 10px; border-radius: 18px; }
+  html[data-theme="dark"] .home-folio { padding: 14px 10px 10px; border-radius: var(--r-card); }
   html[data-theme="dark"] .home-folio .folio-sheet { padding: 16px; }
-  html[data-theme="dark"] .home-folio .bill-total .money { font-size: 34px; }
+  html[data-theme="dark"] .home-folio .bill-total .money { font-size: 30px; }
   html[data-theme="dark"] .bill > div { grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto; }
 }
 /* Steps, rates and money facts from the Folio pass, in Night. */
@@ -422,11 +1178,11 @@ html[data-theme="dark"] .home-faq-head > h2 { margin: 0 0 12px; }
 html[data-theme="dark"] .home-stores-hint { margin: 6px 0 0; color: var(--night-muted); font-size: 14px; }
 /* Closing: a Night card like the blocks above it, not text and a field lying on the page (the Day card is in
    app/day-folio.css; from 1440 px the wide end sheet in app/home-wide-content.css draws its own). */
-html[data-theme="dark"] .home-closing { margin-top: 28px; padding: 28px 32px; border: 1px solid var(--night-line); border-radius: var(--home-radius, 14px); background: var(--night-sheen), var(--night-surface); box-shadow: var(--night-shadow); }
+html[data-theme="dark"] .home-closing { margin-top: 28px; padding: 28px 32px; border: 1px solid var(--night-line); border-radius: var(--home-radius, 14px); background: var(--night-sheen), var(--night-surface); box-shadow: var(--shadow-2); }
 html[data-theme="dark"] .home-closing > h2 { margin: 0; }
 html[data-theme="dark"] .home-closing > p { color: var(--night-muted); }
 /* Hero field: the two facts under it and the way on after plain words (app/home-sections.tsx HomeLinkForm). */
-html[data-theme="dark"] .home-link-points { color: var(--night-muted); font-size: 13.5px; font-weight: 500; }
+html[data-theme="dark"] .home-link-points { color: var(--night-muted); font-size: 13px; font-weight: 500; }
 html[data-theme="dark"] .home-link-points svg { color: var(--night-jade); }
 html[data-theme="dark"] .home-link-help .btn.secondary { color: var(--night-ink); font-weight: 600; }
 html[data-theme="dark"] .home-link-help .btn.secondary svg { color: var(--night-muted); }

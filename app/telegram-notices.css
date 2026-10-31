@@ -1,7 +1,7 @@
 /* Telegram order notices in the account (app/telegram-notices.tsx): the first row of "Настройки" and the soft
    line in "Сейчас важно". Bordered like the other cabinet rows; the brand green only for "on". */
 
-:root body .tg-notices > summary small.tg-notices-on { color: var(--home-accent, #1f4d3b); }
+:root body .tg-notices > summary small.tg-notices-on { color: var(--home-accent, var(--c-brand)); }
 /* The short status ("Включено", "Ждём Start") stays on one line next to the title; below 360 px a longer one
    ("Start kutilmoqda") may wrap rather than push the card past the screen. */
 :root body .tg-notices > summary small { flex: none; white-space: nowrap; }
@@ -9,19 +9,19 @@
   :root body .tg-notices > summary small { flex: 0 1 auto; white-space: normal; text-align: right; }
 }
 :root body .tg-notices-body { gap: 10px; }
-:root body .tg-notices-body > p:first-child { color: var(--home-ink, #16211c); font-size: 14px; }
+:root body .tg-notices-body > p:first-child { color: var(--home-ink, var(--c-ink)); font-size: 14px; }
 
 /* The switch: one button, role="switch"; the label stays, aria-checked carries the state. 44 px target. */
-:root body .tg-switch { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 48px; padding: 6px 12px 6px 14px; border: 1px solid var(--home-line, #e4e2da); border-radius: 12px; background: var(--home-surface, #fff); color: var(--home-ink, #16211c); font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+:root body .tg-switch { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 48px; padding: 6px 12px 6px 14px; border: 1px solid var(--home-line, var(--c-line)); border-radius: var(--r-control); background: var(--home-surface, #fff); color: var(--home-ink, var(--c-ink)); font: inherit; font-size: var(--fs-16); font-weight: 600; text-align: left; cursor: pointer; }
 :root body .tg-switch:disabled { cursor: default; opacity: .65; }
 :root body .tg-switch[aria-busy="true"] { cursor: progress; }
-:root body .tg-switch:focus-visible { outline: 2px solid var(--home-accent, #1f4d3b); outline-offset: 2px; }
-:root body .tg-switch-track { position: relative; flex: none; width: 44px; height: 26px; border-radius: 99px; background: #c9cbc3; transition: background-color .18s ease; }
-:root body .tg-switch-thumb { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .18s ease; }
-:root body .tg-switch[aria-checked="true"] .tg-switch-track { background: #1f4d3b; }
+:root body .tg-switch:focus-visible { outline: 2px solid var(--home-accent, var(--c-brand)); outline-offset: 2px; }
+:root body .tg-switch-track { position: relative; flex: none; width: 44px; height: 26px; border-radius: var(--r-pill); background: #c9cbc3; transition: background-color .18s ease; }
+:root body .tg-switch-thumb { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-1); transition: transform .18s ease; }
+:root body .tg-switch[aria-checked="true"] .tg-switch-track { background: var(--c-brand); }
 :root body .tg-switch[aria-checked="true"] .tg-switch-thumb { transform: translateX(18px); }
-:root body .tg-notices-step { margin: 0; color: var(--home-ink, #16211c); }
-:root body .tg-notices-status { min-height: 0; margin: 0; color: var(--home-muted, #5b665f); font-size: 13px; line-height: 1.45; }
+:root body .tg-notices-step { margin: 0; color: var(--home-ink, var(--c-ink)); }
+:root body .tg-notices-status { min-height: 0; margin: 0; color: var(--home-muted, var(--c-ink-2)); font-size: 13px; line-height: 1.45; }
 :root body .tg-notices-status:empty { display: none; }
 :root body .tg-notices-status.warn { color: #9a4a2c; }
 :root body .tg-notices-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -30,9 +30,9 @@
 :root body .tg-notices-connect { justify-self: start; display: inline-flex; align-items: center; gap: 8px; }
 
 /* "Сейчас важно": one quiet bordered line under the step, never a second call to action of the same weight. */
-:root body .tg-nudge { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 12px; margin-top: 14px; padding: 12px 14px; border: 1px solid var(--home-line, #e4e2da); border-radius: 12px; background: var(--home-surface, #fff); }
-:root body .tg-nudge-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; background: var(--home-soft, #f5f3ee); color: var(--home-accent, #1f4d3b); }
-:root body .tg-nudge p { margin: 0; color: var(--home-ink, #16211c); font-size: 14px; line-height: 1.4; }
+:root body .tg-nudge { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 12px; margin-top: 14px; padding: 12px 14px; border: 1px solid var(--home-line, var(--c-line)); border-radius: var(--r-control); background: var(--home-surface, #fff); }
+:root body .tg-nudge-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-control); background: var(--home-soft, var(--c-sunken)); color: var(--home-accent, var(--c-brand)); }
+:root body .tg-nudge p { margin: 0; color: var(--home-ink, var(--c-ink)); font-size: 14px; line-height: 1.4; }
 :root body .tg-nudge-actions { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 /* Its own width at every size: inside .cabinet-next a .btn is full-width on phones, this one is not the step's action. */
 :root body .tg-nudge .tg-nudge-actions .btn { flex: 0 0 auto; width: auto; min-height: 44px; padding-inline: 22px; }
@@ -45,11 +45,11 @@
 
 html[data-theme="dark"] .tg-switch { border-color: var(--home-line, #3d424a); background: transparent; color: var(--home-ink, #eceef2); }
 html[data-theme="dark"] .tg-switch-track { background: #4a5048; }
-html[data-theme="dark"] .tg-switch[aria-checked="true"] .tg-switch-track { background: var(--night-jade, #80d0ac); }
-html[data-theme="dark"] .tg-switch-thumb { background: #f1eee5; }
+html[data-theme="dark"] .tg-switch[aria-checked="true"] .tg-switch-track { background: var(--night-jade, var(--night-jade)); }
+html[data-theme="dark"] .tg-switch-thumb { background: var(--night-ink); }
 html[data-theme="dark"] .tg-notices-status.warn { color: #e7a98d; }
 html[data-theme="dark"] .tg-nudge { border-color: var(--home-line, #3d424a); background: transparent; }
-html[data-theme="dark"] .tg-notices > summary small.tg-notices-on { color: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .tg-notices > summary small.tg-notices-on { color: var(--night-jade, var(--night-jade)); }
 
 /* Unlinking Telegram in "Способы входа" while its notices are on: said under the name until the second tap. */
 :root body .signin-method-body small.signin-method-warning { overflow: visible; color: #9a4a2c; white-space: normal; }

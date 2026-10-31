@@ -10,7 +10,7 @@
 html[data-theme="dark"] .store-logo { border-color: transparent; }
 
 /* ---------- Hero with the link field and the dispatch countries ---------- */
-.stores-hero h1 { max-width: 20ch; margin: 0 0 8px; color: var(--cat-ink); font-size: clamp(28px, 5vw, 44px); line-height: 1.1; }
+.stores-hero h1 { max-width: 20ch; margin: 0 0 8px; color: var(--cat-ink); font-size: clamp(30px, 5vw, 40px); line-height: 1.1; }
 .stores-intro { max-width: 60ch; margin: 0 0 16px; color: var(--cat-muted); line-height: 1.55; }
 .stores-link { display: grid; gap: 10px; max-width: 720px; }
 .stores-link > .btn { justify-content: center; min-height: 52px; }
@@ -21,7 +21,7 @@ html[data-theme="dark"] .store-logo { border-color: transparent; }
 :is(.stores-howto, .store-dialog-howto)[open] summary svg { transform: rotate(180deg); }
 :is(.stores-howto, .store-dialog-howto) ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 2px 0 0; padding: 0; list-style: none; }
 :is(.stores-howto, .store-dialog-howto) li { display: grid; gap: 2px; min-width: 0; }
-:is(.stores-howto, .store-dialog-howto) li b { color: var(--cat-ink); font-size: 13.5px; font-weight: 700; }
+:is(.stores-howto, .store-dialog-howto) li b { color: var(--cat-ink); font-size: 13px; font-weight: 700; }
 :is(.stores-howto, .store-dialog-howto) li span { color: var(--cat-muted); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
 /* The one mint element of the card: how many of its products the catalog has. */
 /* :last-child — the logo is a header span too, and margin-left: auto pushed it to the middle at 1440. */
@@ -34,8 +34,8 @@ html[data-theme="dark"] .store-logo { border-color: transparent; }
 /* ---------- Breakpoints ---------- */
 /* Phones: a compact hero (the dispatch cards scroll under the field), so stores start sooner. */
 @media (max-width: 599px) {
-  .stores-hero h1 { margin-bottom: 6px; font-size: 24px; letter-spacing: -.025em; }
-  .stores-intro { margin-bottom: 10px; font-size: 14.5px; line-height: 1.5; }
+  .stores-hero h1 { margin-bottom: 6px; font-size: 24px; letter-spacing: -.02em; }
+  .stores-intro { margin-bottom: 10px; font-size: 14px; line-height: 1.5; }
   .stores-link { gap: 8px; }
   .stores-link > .btn { min-height: 46px; }
 }
@@ -52,7 +52,7 @@ html[data-theme="dark"] .store-logo { border-color: transparent; }
 /* ---------- Night ---------- */
 /* Raised surfaces with the theme's hairlines; ivory for the selected dispatch card and the personal mark. */
 html[data-theme="dark"] :is(.stores-region-card, .store-showcase-card, .store-dialog-terms, .store-dialog-products a, .store-dialog-fronts, .store-dialog-note) { border-color: var(--night-line-strong); background: var(--night-surface); }
-html[data-theme="dark"] :is(.stores-region-card, .store-showcase-card) { box-shadow: var(--night-shadow); }
+html[data-theme="dark"] :is(.stores-region-card, .store-showcase-card) { box-shadow: var(--shadow-2); }
 html[data-theme="dark"] :is(.store-showcase-photo, .store-dialog-photo) { border-color: transparent; }
 html[data-theme="dark"] :is(.store-tile-count, .store-showcase-card > header > span:last-child) { color: var(--night-ok-ink); }
 html[data-theme="dark"] :is(.store-showcase-total, .store-dialog-terms dd, .store-dialog-products .money, .store-dialog-product-name) { color: var(--night-ink); }

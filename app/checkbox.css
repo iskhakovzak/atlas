@@ -13,21 +13,21 @@
   --check-radius: 6px;
   --check-line: #8d948e;          /* 3:1 on white, so an empty box still reads as a control */
   --check-fill: #fff;
-  --check-hover: var(--day-accent, #1f4d3b);
-  --check-on: var(--day-accent, #1f4d3b);
+  --check-hover: var(--day-accent, var(--c-brand));
+  --check-on: var(--day-accent, var(--c-brand));
   --check-mark: #fff;
-  --check-focus: var(--day-accent, #1f4d3b);
+  --check-focus: var(--day-accent, var(--c-brand));
   --check-wash: rgba(31, 77, 59, .1);
-  --check-error: var(--day-error, #b42318);
+  --check-error: var(--day-error, var(--c-danger));
   --check-ease: cubic-bezier(.2, .8, .3, 1);
 }
 html[data-theme="dark"] {
   --check-line: rgba(226, 238, 231, .38);
-  --check-fill: var(--night-inset, #0d1210);
+  --check-fill: var(--night-inset, var(--night-inset));
   --check-hover: rgba(226, 238, 231, .7);
-  --check-on: var(--night-jade, #80d0ac);
+  --check-on: var(--night-jade, var(--night-jade));
   --check-mark: var(--night-on-ivory, #0c120f);
-  --check-focus: var(--night-jade, #80d0ac);
+  --check-focus: var(--night-jade, var(--night-jade));
   --check-wash: rgba(128, 208, 172, .14);
   --check-error: var(--night-error-ink, #f0988d);
 }
@@ -50,7 +50,7 @@ button.atlas-check {
   margin: calc((var(--check-size) - var(--check-hit)) / 2);
   padding: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--r-control);
   background: transparent;
   box-shadow: none;
   color: inherit;

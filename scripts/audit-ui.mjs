@@ -289,9 +289,9 @@ try {
     await check("document.querySelector('meta[name=viewport]')?.content.includes('viewport-fit=cover')","iPhone edge-to-edge viewport "+width);
     await check("(()=>{const header=document.querySelector('.site-header');return header.scrollWidth<=header.clientWidth+1})()","iPhone header fits viewport "+width);
     await check("(()=>{const input=document.querySelector('#finds-product-url');const style=getComputedStyle(input);return parseFloat(style.fontSize)>=16&&parseFloat(style.minHeight)>=48})()","iPhone form fields avoid zoom and remain tappable "+width);
-    // Phones: guests have their own bottom bar too (in the server HTML, so it never pops in): home, catalog, order by
-    // link, stores and a sign-in tab that comes back to this page; none of the members' tabs.
-    await check("(()=>{const nav=document.querySelector('.mobile-nav.guest');if(!nav||getComputedStyle(nav).display==='none')return false;const hrefs=[...nav.querySelectorAll('a')].map(a=>a.getAttribute('href')||'');return hrefs.length===5&&hrefs.includes('/order-by-link')&&hrefs.some(href=>href.startsWith('/login?return_to='))&&!hrefs.some(href=>['/orders','/cart','/account'].includes(href))})()","guest mobile has the guest bottom navigation "+width);
+    // Phones: one bottom bar for everyone (in the server HTML, so it never pops in): home, catalog, the centre "link"
+    // button, the cart (sign-in first for a guest, for now) and a profile tab that signs in and comes back to this page.
+    await check("(()=>{const nav=document.querySelector('.mobile-nav.guest');if(!nav||getComputedStyle(nav).display==='none')return false;const hrefs=[...nav.querySelectorAll('a')].map(a=>a.getAttribute('href')||'');return hrefs.length===5&&hrefs[0]==='/'&&hrefs[1]==='/catalog'&&hrefs[2]==='/order-by-link'&&hrefs[3].startsWith('/login?return_to=%2Fcart')&&hrefs[4].startsWith('/login?return_to=')&&!!nav.querySelector('a.mobile-nav-link')})()","guest mobile has the bottom navigation "+width);
    }
    await mkdir('outputs/ui-audit',{recursive:true});
    const shot=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);

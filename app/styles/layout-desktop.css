@@ -2,29 +2,6 @@
    they had there (layout files in import order, then the home page's files), and every rule a later layout rule of the same
    weight overrides stayed in the layout. Edit them here. */
 
-/* ── app/access.css ── */
-@media (max-width:900px) and (min-width:601px) {
-  .desktop-nav{gap:14px;margin-left:0}
-  .desktop-nav a:is([data-nav="how"],[data-nav="tariffs"]){display:none}
-  .cart-link .desktop-only{display:none}
-}
-/* Guests have "Order by link" first in the menu. Where it would scroll, the items that are also in the footer and on the
-   home page make room: "Stores" at 761-799px, "How it works" up to 1049px and "Rates" up to 959px (Uzbek Cyrillic is the longest). */
-@media (min-width:761px) and (max-width:799px) {
-  .site-header:not(:has(.header-account.member)) .desktop-nav a[data-nav="stores"]{display:none}
-}
-@media (min-width:901px) and (max-width:1049px) {
-  .site-header:not(:has(.header-account.member)) .desktop-nav a[data-nav="how"]{display:none}
-}
-@media (min-width:901px) and (max-width:959px) {
-  .site-header:not(:has(.header-account.member)) .desktop-nav a[data-nav="tariffs"]{display:none}
-}
-/* Saved items (the heart) stay in the header on tablets; only at 761-884px, where the menu would scroll (Uzbek Cyrillic with a
-   cart counter), they wait in the account. */
-@media (min-width:761px) and (max-width:884px) {
-  .header-actions>a[href="/favorites"]{display:none}
-}
-
 /* ── app/home-polish.css ── */
 @media (min-width:1280px) {
   .catalog-home .finds-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
@@ -37,48 +14,6 @@
 /* The header's edges line up with the page content (site-main: max 1500px, padding clamp(20px, 4.7vw, 72px)). */
 @media (min-width: 761px) {
   html .site-header { padding-inline: max(clamp(20px, 4.7vw, 72px), calc((100% - 1500px) / 2 + 72px)); }
-  /* Never wider than the screen. The compact rules below make every menu item fit from 1151px up (e2e checks it);
-     only as a last resort (a longer language, an 8-digit balance) the menu shrinks and scrolls inside the header,
-     so the wordmark, account, cart and balance stay whole. The inline padding keeps focus rings unclipped. */
-  .site-header .desktop-nav { min-width: 0; padding-inline: 4px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
-  .site-header .desktop-nav::-webkit-scrollbar { display: none; }
-  .site-header .header-actions, .site-header .wordmark { flex-shrink: 0; }
-  /* Owner, 7.10.2026: the theme switch stays next to the languages after sign-in too (and in the footer for everyone). */
-  /* The operator has one more entry ("Управление"): at the content's 1356px cap the anchors still do not fit next to it,
-     so they stay in the footer at every desktop width. */
-  .site-header:has(.operator-entry) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
-}
-/* Signed-in header below 1680px: the home anchors (also in the footer and the home page) make room for a 7-digit
-   balance and the theme switch (at 1500–1679px the Russian menu ran 10px short with both). */
-@media (min-width: 761px) and (max-width: 1679px) {
-  .site-header:has(.header-account.member) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
-}
-/* The operator's header below 1340px has no room for the theme switch next to «Управление»: it stays in the footer. */
-@media (min-width: 761px) and (max-width: 1339px) {
-  .site-header:has(.operator-entry) .header-theme { display: none; }
-}
-/* Up to 1399px (iPad 768/1024, small laptops): tighter gaps. */
-@media (min-width: 761px) and (max-width: 1399px) {
-  .site-header { gap: 16px; }
-}
-/* Up to 1459px the operator's "Управление" is an icon (its name stays for screen readers): with the full label and a
-   7–8 digit balance the menu ran 20px short at 1400–1459px. */
-@media (min-width: 761px) and (max-width: 1459px) {
-  .site-header .header-actions .operator-entry { width: 44px; min-width: 44px; min-height: 44px; justify-content: center; padding-inline: 0; font-size: 0; }
-  .site-header .header-actions .operator-entry svg { width: 20px; height: 20px; flex: 0 0 auto; }
-}
-/* Tablets (iPad 768/1024): a signed-in menu (Каталог, Магазины, Мои заказы) did not fit beside the balance, bell and cart;
-   «Магазины» stays in the footer and on the home page. */
-@media (min-width: 761px) and (max-width: 1150px) {
-  .site-header:has(.header-account.member) .desktop-nav a[data-nav="stores"] { display: none; }
-}
-/* Up to 1299px the balance is the wallet icon (globals.css does this up to 1150px); the amount is on /balance. */
-@media (min-width: 761px) and (max-width: 1299px) {
-  .site-header .wallet-link span { display: none; }
-}
-/* 1151–1199px: the operator's menu still needs ~13px in Night, so the header's own gaps tighten once more. */
-@media (min-width: 761px) and (max-width: 1199px) {
-  .site-header { gap: 8px; }
 }
 
 /* Hero. */
@@ -163,7 +98,7 @@
 @media (min-width: 1024px) {
   html:not([data-theme="dark"]) .home-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
   html:not([data-theme="dark"]) .home-steps::before { display: none; }
-  html:not([data-theme="dark"]) .home-step { position: relative; padding: 22px 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+  html:not([data-theme="dark"]) .home-step { position: relative; padding: 22px 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--shadow-2); }
   html:not([data-theme="dark"]) .home-step-station { position: static; width: 36px; height: 36px; margin-bottom: 18px; font-size: 14px; box-shadow: none; }
 }
 /* Tracking demo: a white card with a horizontal route on wide screens. */
@@ -178,26 +113,8 @@
 @media (min-width: 960px) {
   .store-marquee-row.single { display: none; }
   .store-marquee-row.double { display: block; }
-  html body .home-stores.home-stores-marquee .store-marquee a { min-height: 50px; padding: 0 20px; font-size: 17px; }
+  html body .home-stores.home-stores-marquee .store-marquee a { min-height: 50px; padding: 0 20px; font-size: 16px; }
   .home-stores.home-stores-marquee .store-marquee .store-mark { zoom: 1.1; }
-}
-
-/* ── app/header-panel.css ── */
-/* ---------- Signed-in header, 761–960px ---------- */
-/* The signed-in menu (Каталог, Мои заказы) ran out of room and scrolled inside the header: at 901–960px by up to 22px
-   (ru), 6px (uz) and 31px (oz) with the cart's name and counter, at 761–800px by 19/23/45px. At 901–960px the cart is its
-   icon and counter, as it is up to 900px (its name stays in the aria-label). Up to 900px the wordmark is a size smaller
-   and the gaps and the account button a little tighter; the buttons keep their 44px. Checked with the operator's extra
-   icon too (14.10.2026). */
-@media (min-width: 901px) and (max-width: 960px) {
-  .site-header:has(.header-account.member) .cart-link .desktop-only { display: none; }
-}
-@media (min-width: 761px) and (max-width: 900px) {
-  .site-header:has(.header-account.member) .wordmark { font-size: 38px; }
-  .site-header:has(.header-account.member) .header-actions { gap: 4px; }
-  .site-header:has(.header-account.member) .desktop-nav { margin-left: 0; }
-  .site-header:has(.header-account.member) .desktop-nav a { padding-inline: 8px; }
-  .site-header .header-account.member { padding-inline: 12px; }
 }
 
 /* ── app/motion.css ── */

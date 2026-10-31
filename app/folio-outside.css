@@ -1,10 +1,10 @@
 /* The "not in the amount to pay" slip under the home example bill (app/home-sections.tsx, .home-folio only; the cart's
    slip keeps its own layout). Owner, 7.10.2026: "not compact, not harmonious" → one composed row: a small caption,
    a mint check, the label and a status pill, the note underneath. Loaded after day-folio.css and theme-night.css. */
-.home-folio .folio-outside { --fo-ok: var(--day-ok, #1d6b47); --fo-ok-bg: rgba(29, 107, 71, .1); --fo-muted: var(--day-muted, #5f6b64); }
+.home-folio .folio-outside { --fo-ok: var(--day-ok, var(--c-ok)); --fo-ok-bg: rgba(29, 107, 71, .1); --fo-muted: var(--day-muted, #5f6b64); }
 html[data-theme="dark"] .home-folio .folio-outside { --fo-ok: var(--night-ok-ink, #8fd8b1); --fo-ok-bg: rgba(143, 216, 177, .12); --fo-muted: var(--night-muted, #a5ab9f); }
 
 html body .home-folio .folio-outside { gap: 6px; padding: 12px 14px 13px; }
 html body .home-folio .folio-outside > :is(h2, h3) {
-  margin: 0; color: var(--fo-muted); font-size: 11.5px; font-weight: 600; line-height: 1.3; letter-spacing: .05em; text-transform: uppercase;
+  margin: 0; color: var(--fo-muted); font-size: 12px; font-weight: 600; line-height: 1.3; letter-spacing: .02em; text-transform: uppercase;
 }

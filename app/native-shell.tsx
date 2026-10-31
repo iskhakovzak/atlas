@@ -89,6 +89,8 @@ export function NativeShell(){
   if(platform!=='android')return;
   // Android convention: back walks the history and leaves the app from the home page.
   return onBackButton(()=>{
+   // An open sheet or dialog (the "Ссылка" sheet, notifications) closes first, as Android users expect.
+   if(document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"]')){document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));return true}
    if(window.location.pathname==='/')return false;
    if(window.history.length>1){window.history.back();return true}
    window.location.assign('/');return true;

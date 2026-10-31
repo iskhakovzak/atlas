@@ -76,11 +76,11 @@ html[data-view="catalog"]:is(html) main.catalog-home { padding-bottom: 0; }
 /* Next-sheet cues: a quiet anchor built from existing copy (the nav label "How it works", the bill title). */
 .home-next { display: none; }
 html[data-view="catalog"]:is(html) .catalog-home .home-next {
-  align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 999px;
-  color: var(--cat-muted, #58635c); font-size: 14px; font-weight: 600; line-height: 1.2; text-decoration: none;
+  align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: var(--r-pill);
+  color: var(--cat-muted, var(--c-ink-2)); font-size: 14px; font-weight: 600; line-height: 1.2; text-decoration: none;
 }
-html[data-view="catalog"]:is(html) .catalog-home .home-next:hover { color: var(--cat-ink, #16211c); }
-html[data-view="catalog"]:is(html) .catalog-home .home-next:focus-visible { outline: 2px solid var(--cat-accent, #1f4d3b); outline-offset: 2px; }
+html[data-view="catalog"]:is(html) .catalog-home .home-next:hover { color: var(--cat-ink, var(--c-ink)); }
+html[data-view="catalog"]:is(html) .catalog-home .home-next:focus-visible { outline: 2px solid var(--cat-accent, var(--c-brand)); outline-offset: 2px; }
 html[data-theme="dark"][data-view="catalog"]:is(html) .catalog-home .home-next { color: var(--night-muted); }
 html[data-theme="dark"][data-view="catalog"]:is(html) .catalog-home .home-next:hover { color: var(--night-ink, #fff); }
 @media (max-width: 1099px) and (min-height: 641px) {
@@ -104,10 +104,10 @@ html[data-view="catalog"]:is(html) .catalog-home #finds .finds-actions { display
 html[data-view="catalog"]:is(html) .catalog-home #finds .finds-pager { display: inline-flex; gap: 8px; }
 html[data-view="catalog"]:is(html) .catalog-home #finds .finds-pager .icon-btn {
   display: inline-grid; place-items: center; width: 48px; height: 48px; padding: 0;
-  border: 1px solid var(--cat-line, #e2e2da); border-radius: 999px; background: var(--cat-surface, #fff); color: var(--cat-ink, #16211c); cursor: pointer;
+  border: 1px solid var(--cat-line, var(--c-line)); border-radius: var(--r-pill); background: var(--cat-surface, #fff); color: var(--cat-ink, var(--c-ink)); cursor: pointer;
 }
 html[data-view="catalog"]:is(html) .catalog-home #finds .finds-pager .icon-btn:disabled { opacity: .4; cursor: default; }
-html[data-view="catalog"]:is(html) .catalog-home #finds .finds-pager .icon-btn:focus-visible { outline: 2px solid var(--cat-accent, #1f4d3b); outline-offset: 2px; }
+html[data-view="catalog"]:is(html) .catalog-home #finds .finds-pager .icon-btn:focus-visible { outline: 2px solid var(--cat-accent, var(--c-brand)); outline-offset: 2px; }
 html[data-theme="dark"][data-view="catalog"]:is(html) .catalog-home #finds .finds-pager .icon-btn { border-color: var(--night-line); background: transparent; color: var(--night-ink, #fff); }
 html[data-view="catalog"]:is(html) .catalog-home #finds .finds-grid {
   grid-auto-flow: column; grid-template-columns: none;
@@ -143,7 +143,7 @@ html[data-view="catalog"]:is(html) .catalog-home .home-trust-money > h2 { margin
   html[data-view="catalog"]:is(html) .catalog-home .home-trust-proof > .home-trust-grid { margin-top: 0; }
   /* The tracking demo has a sheet of its own: give it room. */
   html[data-view="catalog"]:is(html) .catalog-home .home-trust-proof .home-tracking { padding: 24px; }
-  html[data-view="catalog"]:is(html) .catalog-home .home-trust-proof .home-tracking h3 { font-size: 19px; }
+  html[data-view="catalog"]:is(html) .catalog-home .home-trust-proof .home-tracking h3 { font-size: 18px; }
   html[data-view="catalog"]:is(html) .catalog-home .home-trust-proof .home-tracking ol { gap: 16px; }
   html[data-view="catalog"]:is(html) .catalog-home .home-trust-proof .home-tracking li { font-size: 16px; }
 }
@@ -177,7 +177,7 @@ html[data-view="catalog"]:is(html) .home-end > .home-footer { scroll-snap-align:
   html[data-view="catalog"]:is(html) .home-sticky.above-nav {
     z-index: 41; right: 0; bottom: var(--ch-nav); left: 0;
     padding: 5px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left)); /* 1 + 5 + 44 + 6 = --ch-dock */
-    border-top: 1px solid var(--cat-line, #e2e2da);
+    border-top: 1px solid var(--cat-line, var(--c-line));
     background: var(--cat-surface, #fff);
   }
   /* The next sheet starts under the dock and the bar: both are opaque here, so not even a blurred heading shows through. */

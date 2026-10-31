@@ -86,29 +86,29 @@
   html[data-view="catalog"]:is(html) .hw-decor {
     --hwg-body-0: #ffffff; --hwg-body-1: #f1f6f3; --hwg-body-2: #cfe0d6;
     --hwg-air: 76, 170, 128; --hwg-air-a: .34;
-    --hwg-dot: #1f4d3b; --hwg-dot-a: .8; --hwg-sea: #1f4d3b; --hwg-sea-a: .16; --hwg-hot: #2f8f63; --hwg-gold: #c9974a;
+    --hwg-dot: var(--c-brand); --hwg-dot-a: .8; --hwg-sea: var(--c-brand); --hwg-sea-a: .16; --hwg-hot: #2f8f63; --hwg-gold: #c9974a;
     --hwg-grid: rgba(31, 77, 59, .08); --hwg-shade: rgba(16, 48, 35, .26); --hwg-spec: rgba(255, 255, 255, .7); --hwg-limb: rgba(31, 77, 59, .22);
-    --hwg-arc: #1f4d3b; --hwg-arc-a: .62; --hwg-plane: #1f4d3b; --hwg-pin: #1f4d3b; --hwg-city: #3fae7c; --hwg-ring: #ffffff;
+    --hwg-arc: var(--c-brand); --hwg-arc-a: .62; --hwg-plane: var(--c-brand); --hwg-pin: var(--c-brand); --hwg-city: #3fae7c; --hwg-ring: #ffffff;
   }
   html[data-theme="dark"][data-view="catalog"]:is(html) .hw-decor {
     --hwg-body-0: #24463a; --hwg-body-1: #142a21; --hwg-body-2: #08130e;
     --hwg-air: 143, 216, 177; --hwg-air-a: .26;
-    --hwg-dot: #9fe0be; --hwg-dot-a: .78; --hwg-sea: #80d0ac; --hwg-sea-a: .2; --hwg-hot: #c8f5de; --hwg-gold: #e8c88c;
+    --hwg-dot: #9fe0be; --hwg-dot-a: .78; --hwg-sea: var(--night-jade); --hwg-sea-a: .2; --hwg-hot: #c8f5de; --hwg-gold: #e8c88c;
     --hwg-grid: rgba(128, 208, 172, .1); --hwg-shade: rgba(0, 0, 0, .55); --hwg-spec: rgba(170, 240, 205, .12); --hwg-limb: rgba(128, 208, 172, .35);
-    --hwg-arc: #80d0ac; --hwg-arc-a: .7; --hwg-plane: #f1e6c8; --hwg-pin: #80d0ac; --hwg-city: #d8fff0; --hwg-ring: #111714;
+    --hwg-arc: var(--night-jade); --hwg-arc-a: .7; --hwg-plane: #f1e6c8; --hwg-pin: var(--night-jade); --hwg-city: #d8fff0; --hwg-ring: var(--night-surface);
   }
   html[data-view="catalog"]:is(html) .hw-decor-pins { left: 0; top: 0; }
   html[data-view="catalog"]:is(html) .hw-decor-pin { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; will-change: transform; }
   /* Name tags: small pills beside the points; Tashkent's is filled with the accent. */
   html[data-view="catalog"]:is(html) .hw-decor-tag {
-    position: absolute; left: 0; top: 0; padding: calc(var(--hwd-u) * 3) calc(var(--hwd-u) * 9); border-radius: 999px; white-space: nowrap;
+    position: absolute; left: 0; top: 0; padding: calc(var(--hwd-u) * 3) calc(var(--hwd-u) * 9); border-radius: var(--r-pill); white-space: nowrap;
     background: color-mix(in srgb, var(--day-surface) 92%, transparent); color: var(--day-ink);
-    border: 1px solid color-mix(in srgb, var(--day-accent) 14%, transparent); box-shadow: 0 2px 10px rgba(20, 50, 38, .08);
+    border: 1px solid color-mix(in srgb, var(--day-accent) 14%, transparent); box-shadow: var(--shadow-2);
     font-size: calc(var(--hwd-u) * 12.5); font-weight: 600; line-height: 1.3; letter-spacing: .01em;
   }
   html[data-theme="dark"][data-view="catalog"]:is(html) .hw-decor-tag {
     background: color-mix(in srgb, var(--night-surface) 90%, transparent); color: var(--night-ink);
-    border-color: color-mix(in srgb, var(--night-jade) 22%, transparent); box-shadow: 0 2px 12px rgba(0, 0, 0, .3);
+    border-color: color-mix(in srgb, var(--night-jade) 22%, transparent); box-shadow: var(--shadow-2);
   }
   html[data-view="catalog"]:is(html) .hw-decor-tag-l { transform: translate(calc(-100% - var(--hwd-u) * 14), -50%); }
   html[data-view="catalog"]:is(html) .hw-decor-tag-r { transform: translate(calc(var(--hwd-u) * 14), -50%); }

@@ -4,7 +4,7 @@
 
 /* ---------- layout ---------- */
 .admin-investor { display: grid; gap: 16px; min-width: 0; }
-.admin-investor .inv-card, .admin-investor .inv-head { margin: 0; border-radius: 14px; }
+.admin-investor .inv-card, .admin-investor .inv-head { margin: 0; border-radius: var(--r-card); }
 /* operator.css is a shared chunk linked after this file: without the .operator-admin prefix its
    .operator-admin .surface { margin: 0 0 24px } would win the tie. */
 .operator-admin .admin-investor :is(.inv-card, .inv-head) { margin: 0; }
@@ -17,11 +17,11 @@
 .admin-investor .inv-actions .btn { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 14px; white-space: nowrap; }
 .admin-investor .inv-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
 .admin-investor .inv-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; font-size: 14px; cursor: pointer; }
-.admin-investor .inv-toggle input { width: 18px; height: 18px; margin: 0; accent-color: var(--day-accent, #1f4d3b); }
-.admin-investor .text-button, .admin-investor .inv-refresh { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 4px; border: 0; background: transparent; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; color: var(--day-accent, #1f4d3b); }
+.admin-investor .inv-toggle input { width: 18px; height: 18px; margin: 0; accent-color: var(--day-accent, var(--c-brand)); }
+.admin-investor .text-button, .admin-investor .inv-refresh { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 4px; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--day-accent, var(--c-brand)); }
 .admin-investor .text-button:disabled { opacity: .5; cursor: default; }
 .admin-investor .print-only { display: none; }
-.admin-investor .inv-tag { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .01em; }
+.admin-investor .inv-tag { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 2px 8px; border-radius: var(--r-pill); font-size: 12px; font-weight: 600; letter-spacing: .01em; }
 .admin-investor .inv-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .admin-investor .inv-two > .surface { margin: 0; }
 .admin-investor .inv-two-customers h3, .admin-investor .inv-share h3 { margin: 0 0 12px; font-size: 16px; font-weight: 700; }
@@ -30,18 +30,18 @@
 .admin-investor .inv-coverage svg { flex: 0 0 auto; margin-top: 2px; }
 
 /* ---------- honesty banner ---------- */
-.admin-investor .inv-honesty { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; border-radius: 14px; font-size: 14px; line-height: 1.45; }
+.admin-investor .inv-honesty { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; border-radius: var(--r-card); font-size: 14px; line-height: 1.45; }
 .admin-investor .inv-honesty svg { flex: 0 0 auto; width: 20px; height: 20px; margin-top: 1px; }
 
 /* ---------- key figures ---------- */
 .admin-investor .inv-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: stretch; }
-.admin-investor .inv-kpis article { display: flex; flex-direction: column; gap: 0; height: 100%; min-width: 0; padding: 16px; border-radius: 14px; container-type: inline-size; }
+.admin-investor .inv-kpis article { display: flex; flex-direction: column; gap: 0; height: 100%; min-width: 0; padding: 16px; border-radius: var(--r-card); container-type: inline-size; }
 .admin-investor .inv-kpis span { font-size: 13px; font-weight: 500; line-height: 1.3; }
 .admin-investor .inv-kpis strong { display: block; margin: 8px 0 0; font-size: clamp(20px, 10cqw, 24px); line-height: 1.15; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .admin-investor .inv-kpis small { display: block; margin-top: auto; padding-top: 8px; font-size: 12px; line-height: 1.4; }
 .admin-investor .inv-delta { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; white-space: nowrap; }
-.admin-investor .inv-delta-good { color: var(--day-ok, #1d6b47); }
-.admin-investor .inv-delta-bad { color: var(--day-error, #b42318); }
+.admin-investor .inv-delta-good { color: var(--day-ok, var(--c-ok)); }
+.admin-investor .inv-delta-bad { color: var(--day-error, var(--c-danger)); }
 .admin-investor .inv-delta-none { font-weight: 400; }
 
 /* ---------- monthly chart ---------- */
@@ -49,49 +49,49 @@
 .admin-investor .inv-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
 .admin-investor .inv-grid { stroke-width: 1; vector-effect: non-scaling-stroke; stroke-dasharray: 2 4; }
 .admin-investor .inv-bar { fill: var(--day-fresh, #6f9a83); }
-.admin-investor .inv-bar-group:hover .inv-bar { fill: var(--day-accent, #1f4d3b); }
-.admin-investor .inv-line { fill: none; stroke: var(--day-accent, #1f4d3b); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.admin-investor .inv-dot { fill: var(--day-surface, #fff); stroke: var(--day-accent, #1f4d3b); stroke-width: 2; vector-effect: non-scaling-stroke; }
-.admin-investor .inv-axis { font-size: 11px; font-variant-numeric: tabular-nums; fill: var(--day-muted, #58635c); }
-.admin-investor .inv-chart figcaption { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; }
+.admin-investor .inv-bar-group:hover .inv-bar { fill: var(--day-accent, var(--c-brand)); }
+.admin-investor .inv-line { fill: none; stroke: var(--day-accent, var(--c-brand)); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.admin-investor .inv-dot { fill: var(--day-surface, #fff); stroke: var(--day-accent, var(--c-brand)); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.admin-investor .inv-axis { font-size: 12px; font-variant-numeric: tabular-nums; fill: var(--day-muted, var(--c-ink-2)); }
+.admin-investor .inv-chart figcaption { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; }
 .admin-investor .inv-chart figcaption span { display: inline-flex; align-items: center; gap: 6px; }
-.admin-investor .inv-legend-bar { width: 12px; height: 12px; border-radius: 3px; background: var(--day-fresh, #6f9a83); }
-.admin-investor .inv-legend-line { width: 18px; height: 0; border-top: 2px solid var(--day-accent, #1f4d3b); }
+.admin-investor .inv-legend-bar { width: 12px; height: 12px; border-radius: var(--r-xs); background: var(--day-fresh, #6f9a83); }
+.admin-investor .inv-legend-line { width: 18px; height: 0; border-top: 2px solid var(--day-accent, var(--c-brand)); }
 
 /* ---------- tables ---------- */
-.admin-investor .inv-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; border-radius: 12px; }
-.admin-investor .inv-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.admin-investor .inv-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; border-radius: var(--r-control); }
+.admin-investor .inv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .admin-investor .inv-table th, .admin-investor .inv-table td { height: 44px; padding: 8px 12px; text-align: right; vertical-align: middle; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .admin-investor .inv-table th[scope="row"], .admin-investor .inv-table th:first-child { text-align: left; font-weight: 500; }
-.admin-investor .inv-table thead th { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.admin-investor .inv-table thead th { font-size: 12px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; }
 .admin-investor .inv-table tfoot th, .admin-investor .inv-table tfoot td { font-weight: 700; }
 .admin-investor .inv-months-table { min-width: 520px; }
-.admin-investor .inv-cohorts td.inv-heat { color: var(--day-ink, #16211c); background: color-mix(in srgb, var(--day-accent, #1f4d3b) calc(var(--heat, 0) * 55%), transparent); font-weight: 600; }
-.admin-investor .inv-cohorts td.inv-heat-none { background: repeating-linear-gradient(45deg, transparent 0 4px, var(--day-soft, #efefe9) 4px 6px); }
+.admin-investor .inv-cohorts td.inv-heat { color: var(--day-ink, var(--c-ink)); background: color-mix(in srgb, var(--day-accent, var(--c-brand)) calc(var(--heat, 0) * 55%), transparent); font-weight: 600; }
+.admin-investor .inv-cohorts td.inv-heat-none { background: repeating-linear-gradient(45deg, transparent 0 4px, var(--day-soft, var(--c-sunken)) 4px 6px); }
 
 /* ---------- horizontal bars (unit economics, funnel, shares) ---------- */
 .admin-investor .inv-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.admin-investor .inv-bar-row { display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; font-size: 13.5px; }
+.admin-investor .inv-bar-row { display: grid; grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0; font-size: 13px; }
 .admin-investor .inv-bar-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.admin-investor .inv-bar-row i { display: block; height: 12px; border-radius: 999px; min-width: 4px; background: var(--day-fresh, #6f9a83); }
+.admin-investor .inv-bar-row i { display: block; height: 12px; border-radius: var(--r-pill); min-width: 4px; background: var(--day-fresh, #6f9a83); }
 .admin-investor .inv-bar-row b { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
 .admin-investor .inv-bar-row b small { font-weight: 400; font-size: 12px; }
 .admin-investor .inv-tone-transit i { background: var(--day-leader, #a9aea6); }
 .admin-investor .inv-tone-income i { background: var(--day-fresh, #6f9a83); }
-.admin-investor .inv-tone-total i { background: var(--day-accent, #1f4d3b); }
+.admin-investor .inv-tone-total i { background: var(--day-accent, var(--c-brand)); }
 .admin-investor .inv-tone-total b { font-weight: 700; }
-.admin-investor .inv-tone-expense i { background: var(--day-warn, #8a5a00); opacity: .7; }
-.admin-investor .inv-funnel i { height: 16px; border-radius: 4px; }
+.admin-investor .inv-tone-expense i { background: var(--day-warn, var(--c-warn)); opacity: .7; }
+.admin-investor .inv-funnel i { height: 16px; border-radius: var(--r-xs); }
 .admin-investor .inv-facts { display: grid; gap: 8px; margin: 16px 0 0; }
 .admin-investor .inv-facts div { display: grid; gap: 2px; }
-.admin-investor .inv-facts dt { font-size: 12.5px; }
+.admin-investor .inv-facts dt { font-size: 12px; }
 .admin-investor .inv-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* ---------- new customers columns ---------- */
 .admin-investor .inv-columns { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; height: 160px; align-items: end; }
-.admin-investor .inv-columns li { display: grid; grid-template-rows: auto 1fr auto; height: 100%; min-width: 0; text-align: center; font-size: 11px; }
+.admin-investor .inv-columns li { display: grid; grid-template-rows: auto 1fr auto; height: 100%; min-width: 0; text-align: center; font-size: 12px; }
 .admin-investor .inv-columns li b { font-variant-numeric: tabular-nums; font-size: 12px; align-self: end; }
-.admin-investor .inv-columns li i { display: block; align-self: end; width: 100%; max-width: 28px; margin: 2px auto; border-radius: 4px 4px 2px 2px; background: var(--day-fresh, #6f9a83); }
+.admin-investor .inv-columns li i { display: block; align-self: end; width: 100%; max-width: 28px; margin: 2px auto; border-radius: var(--r-xs) var(--r-xs) var(--r-xs) var(--r-xs); background: var(--day-fresh, #6f9a83); }
 .admin-investor .inv-columns li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- growth model ---------- */
@@ -102,7 +102,7 @@
 .admin-investor .inv-model-table { min-width: 420px; }
 
 /* ---------- light theme ---------- */
-html:not([data-theme="dark"]) .admin-investor .inv-kpis article { border: 1px solid var(--day-line); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .admin-investor .inv-kpis article { border: 1px solid var(--day-line); background: var(--day-surface); box-shadow: var(--shadow-2); }
 html:not([data-theme="dark"]) .admin-investor .inv-kpis span, html:not([data-theme="dark"]) .admin-investor .inv-kpis small, html:not([data-theme="dark"]) .admin-investor .inv-facts dt, html:not([data-theme="dark"]) .admin-investor .inv-chart figcaption, html:not([data-theme="dark"]) .admin-investor .inv-table thead th, html:not([data-theme="dark"]) .admin-investor .inv-bar-row b small, html:not([data-theme="dark"]) .admin-investor .inv-assumptions small, html:not([data-theme="dark"]) .admin-investor .inv-columns li span, html:not([data-theme="dark"]) .admin-investor .inv-delta-none { color: var(--day-muted); }
 html:not([data-theme="dark"]) .admin-investor .inv-kpis strong, html:not([data-theme="dark"]) .admin-investor .inv-bar-row span, html:not([data-theme="dark"]) .admin-investor .inv-bar-row b, html:not([data-theme="dark"]) .admin-investor .inv-table td, html:not([data-theme="dark"]) .admin-investor .inv-table th[scope="row"], html:not([data-theme="dark"]) .admin-investor .inv-facts dd { color: var(--day-ink); }
 html:not([data-theme="dark"]) .admin-investor .inv-honesty { border: 1px solid var(--day-slip-line); background: var(--day-slip); color: var(--day-ink); }
@@ -170,8 +170,8 @@ html[data-theme="dark"] .admin-investor .inv-table thead th { border-bottom: 1px
   .admin-investor, .admin-investor * { visibility: visible !important; }
   .admin-investor { position: absolute; left: 0; top: 0; width: 100%; gap: 8px; color: #000 !important; }
   .admin-investor .no-print { display: none !important; }
-  .admin-investor .print-only { display: block; margin: 4px 0 0; font-size: 11px; }
-  .admin-investor .inv-card, .admin-investor .inv-head, .admin-investor .inv-kpis article, .admin-investor .inv-honesty { break-inside: avoid; border: 1px solid #bbb !important; border-radius: 6px !important; background: #fff !important; box-shadow: none !important; padding: 8px 10px !important; }
+  .admin-investor .print-only { display: block; margin: 4px 0 0; font-size: 12px; }
+  .admin-investor .inv-card, .admin-investor .inv-head, .admin-investor .inv-kpis article, .admin-investor .inv-honesty { break-inside: avoid; border: 1px solid #bbb !important; border-radius: var(--r-sm) !important; background: #fff !important; box-shadow: none !important; padding: 8px 10px !important; }
   .admin-investor .admin-section-head { margin-bottom: 6px; }
   .admin-investor .admin-section-head h2 { font-size: 14px; }
   .admin-investor .admin-section-head p, .admin-investor .micro, .admin-investor .inv-kpis small, .admin-investor .inv-facts dt { font-size: 9.5px; color: #333 !important; }

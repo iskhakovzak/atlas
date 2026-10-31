@@ -15,33 +15,33 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .site-main{max-width:1500px;padding-inline:clamp(20px,4.7vw,72px)}
 .site-header{min-height:80px;border-bottom:1px solid var(--atlas-line);box-shadow:none}
 .desktop-nav a.active{color:var(--atlas-ink);border-color:var(--atlas-ink)}
-.eyebrow{color:#5b665f;font-size:var(--atlas-type-meta);letter-spacing:.16em}
-.page-heading h1{font-size:var(--atlas-type-page);line-height:1.08;letter-spacing:-.045em}
+.eyebrow{color:var(--c-ink-2);font-size:var(--atlas-type-meta);letter-spacing:.02em}
+.page-heading h1{font-size:var(--atlas-type-page);line-height:1.08;letter-spacing:-.02em}
 .page-heading p{max-width:62ch;line-height:1.6}
-.catalog-toolbar h2, .section-heading h2{font-size:var(--atlas-type-section);letter-spacing:-.035em}
-.find-card{display:flex;flex-direction:column;min-width:0;border:1px solid var(--atlas-line);border-radius:16px;box-shadow:0 4px 18px #16211c0a;background:var(--atlas-surface,#fff);overflow:hidden}
+.catalog-toolbar h2, .section-heading h2{font-size:var(--atlas-type-section);letter-spacing:-.02em}
+.find-card{display:flex;flex-direction:column;min-width:0;border:1px solid var(--atlas-line);border-radius:var(--r-card);box-shadow:var(--shadow-2);background:var(--atlas-surface,#fff);overflow:hidden}
 .finds-page .find-card .find-content .find-title{min-height:0;margin:10px 0 8px}
 .finds-page .find-card .find-content .find-store-price{margin-top:0;padding-bottom:14px}
 .finds-page .find-card .find-content .find-origin{margin:0 0 12px}
 .card-content,.find-content{display:flex;flex:1;flex-direction:column;min-width:0;padding:16px}
 
-.surface{border-radius:8px;box-shadow:none}
-.btn{border-radius:6px;min-height:46px}
+.surface{border-radius:var(--r-sm);box-shadow:none}
+.btn{border-radius:var(--r-sm);min-height:46px}
 .btn.primary{background:var(--atlas-ink);border-color:var(--atlas-ink)}
 .btn.primary:hover{background:#1c4434;border-color:#1c4434}
 .btn.light{background:var(--accent);border-color:var(--accent);color:var(--atlas-ink)}
-.field input, .field select, .field textarea, .batch-import textarea{border-radius:6px}
+.field input, .field select, .field textarea, .batch-import textarea{border-radius:var(--r-sm)}
 .atlas-modal .support-reply-form .field{display:grid;gap:8px;min-width:0}
 .atlas-modal .support-reply-form .btn{justify-self:end}
 @media(max-width:600px){.site-main{padding-inline:20px}}
 @media(max-width:380px){.site-header{padding-inline:12px}}
-.storage-notice{position:fixed;z-index:60;right:24px;bottom:24px;display:flex;align-items:center;gap:18px;max-width:min(620px,calc(100vw - 40px));padding:14px 16px;border:1px solid var(--atlas-line);border-radius:8px;background:#fff;box-shadow:0 14px 42px #16211c24}
+.storage-notice{position:fixed;z-index:60;right:24px;bottom:24px;display:flex;align-items:center;gap:18px;max-width:min(620px,calc(100vw - 40px));padding:14px 16px;border:1px solid var(--atlas-line);border-radius:var(--r-sm);background:#fff;box-shadow:var(--shadow-3)}
 .storage-notice p{min-width:0;overflow-wrap:anywhere;margin:0;color:#47564e;font-size:.875rem;line-height:1.45}
-.storage-notice a{color:#1f4d3b;text-decoration:underline;text-underline-offset:2px}
+.storage-notice a{color:var(--c-brand);text-decoration:underline;text-underline-offset:2px}
 .storage-notice button{flex:none;min-height:42px;padding:8px 14px;border:0;border-radius:var(--day-r-control,10px);background:var(--atlas-ink);color:#fff;font-weight:650}
 .storage-notice-summary{display:none}
 html .storage-notice .storage-notice-details{background:transparent;color:inherit;text-decoration:underline;text-underline-offset:3px}
-/* Dark theme paints every banner button ivory (dark-theme.css); "Details" stays a link there too. */
+/* Dark theme paints every banner button ivory (app/theme-night.css); "Details" stays a link there too. */
 html[data-theme="dark"] .storage-notice .storage-notice-details,html[data-theme="dark"] .storage-notice .storage-notice-details:hover{border-color:transparent;background:transparent;box-shadow:none;color:inherit}
 @media(max-width:600px){
   .storage-notice.storage-notice{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;max-height:none;overflow:visible}
@@ -72,20 +72,19 @@ html[data-theme="dark"] .storage-notice .storage-notice-details,html[data-theme=
 .find-card{background:var(--atlas-surface,#fff)}
 
 /* Reviewable palette and interaction layer: keeps product data and workflows untouched. */
-:root{--background:#f8faf7;--foreground:#203c31;--primary:#204e3d;--ring:#164e40;--atlas-ink:#203c31;--atlas-blue:#204e3d;--atlas-line:#dfe7dc;--atlas-soft:#f3f7f0;--accent:#dff0b5}
 body{background:var(--background);color:var(--atlas-ink)}
 .site-header, .surface, .find-card, .catalog-draft, .order-card{background-color:#fff}
-.wordmark{color:#203c31}
-.wordmark svg, .desktop-nav a.active, .text-link, .storage-notice a{color:#204e3d}
-.cart-link,.btn.primary,.storage-notice button{background:#204e3d;border-color:#204e3d}
-.cart-link:hover,.btn.primary:hover,.storage-notice button:hover{background:#173d30;border-color:#173d30}
-.cart-link b{background:#dff0b5;color:#203c31}
-.btn.light{background:#dff0b5;border-color:#dff0b5;color:#203c31}
-.desktop-nav a.active{border-color:#204e3d}
-.icon-btn:hover, .notice-link.active{background:#edf5e9;color:#204e3d}
-button:focus-visible,a:focus-visible,summary:focus-visible{outline-color:#164e40}
-input:focus-visible,textarea:focus-visible,select:focus-visible{outline-color:#164e40;box-shadow:0 0 0 4px #164e4018}
-.surface, .find-card, .order-card{box-shadow:0 2px 10px #203c3108}
+.wordmark{color:var(--c-ink)}
+.wordmark svg, .desktop-nav a.active, .text-link, .storage-notice a{color:var(--c-brand)}
+.cart-link,.btn.primary,.storage-notice button{background:var(--c-brand);border-color:var(--c-brand)}
+.cart-link:hover,.btn.primary:hover,.storage-notice button:hover{background:var(--c-brand-hover);border-color:var(--c-brand-hover)}
+.cart-link b{background:#dff0b5;color:var(--c-ink)}
+.btn.light{background:#dff0b5;border-color:#dff0b5;color:var(--c-ink)}
+.desktop-nav a.active{border-color:var(--c-brand)}
+.icon-btn:hover, .notice-link.active{background:#edf5e9;color:var(--c-brand)}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline-color:var(--c-brand)}
+input:focus-visible,textarea:focus-visible,select:focus-visible{outline-color:var(--c-brand);box-shadow:0 0 0 4px #164e4018}
+.surface, .find-card, .order-card{box-shadow:var(--shadow-2)}
 a, button, input, textarea, select, summary, .surface, .find-card{transition:color .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
 @keyframes atlas-loading-shimmer{to{background-position-x:-220%}}
 @keyframes atlas-status-pulse{0%{box-shadow:0 0 0 0 #d2a95166}70%{box-shadow:0 0 0 5px #d2a95100}100%{box-shadow:0 0 0 0 #d2a95100}}
@@ -119,17 +118,17 @@ a, button, input, textarea, select, summary, .surface, .find-card{transition:col
 .payment-reserve-hint>svg{flex:0 0 auto;margin-top:2px;color:var(--muted-foreground)}.payment-reserve-hint>div{display:grid;gap:3px;min-width:0}.payment-reserve-hint p{font-size:13px;line-height:1.5}
 
 /* ---------- Admin tabs rebuilt 6 October 2026 (app/admin-*.tsx). Day tokens from refine.css; Night overrides at the end. ---------- */
-.admin-tabs-icons button.active{color:var(--day-ink,#16211c)}
-.admin-attention-groups li a:hover b{color:var(--day-accent,#1f4d3b)}
+.admin-tabs-icons button.active{color:var(--day-ink,var(--c-ink))}
+.admin-attention-groups li a:hover b{color:var(--day-accent,var(--c-brand))}
 .admin-link{display:grid;gap:2px;padding:0;border:0;background:none;text-align:left;color:inherit;font:inherit;cursor:pointer;min-height:40px;align-content:center}
 .admin-link b{font-weight:600}
-.admin-link:hover b{color:var(--day-accent,#1f4d3b)}
-html[data-theme="dark"] .admin-tabs-icons button{color:var(--night-muted,#9ba6a0)}
-html[data-theme="dark"] .admin-tabs-icons button.active{color:var(--night-ink,#f1eee5)}
-html[data-theme="dark"] .admin-count{background:var(--night-jade-soft,rgba(128,208,172,.1));color:var(--night-jade,#80d0ac)}
-html[data-theme="dark"] .admin-segment button.active{background:var(--night-raised,#161d19);color:var(--night-ink,#f1eee5);box-shadow:none}
-html[data-theme="dark"] .admin-attention-groups summary,html[data-theme="dark"] .admin-attention-groups li b,html[data-theme="dark"] .admin-link b,html[data-theme="dark"] .admin-audit-row summary b{color:var(--night-ink,#f1eee5)}
-html[data-theme="dark"] .admin-grid a,html[data-theme="dark"] .admin-link:hover b,html[data-theme="dark"] .admin-attention-groups li a:hover b{color:var(--night-jade,#80d0ac)}
+.admin-link:hover b{color:var(--day-accent,var(--c-brand))}
+html[data-theme="dark"] .admin-tabs-icons button{color:var(--night-muted,var(--night-muted))}
+html[data-theme="dark"] .admin-tabs-icons button.active{color:var(--night-ink,var(--night-ink))}
+html[data-theme="dark"] .admin-count{background:var(--night-jade-soft,rgba(128,208,172,.1));color:var(--night-jade,var(--night-jade))}
+html[data-theme="dark"] .admin-segment button.active{background:var(--night-raised,var(--night-raised));color:var(--night-ink,var(--night-ink));box-shadow:none}
+html[data-theme="dark"] .admin-attention-groups summary,html[data-theme="dark"] .admin-attention-groups li b,html[data-theme="dark"] .admin-link b,html[data-theme="dark"] .admin-audit-row summary b{color:var(--night-ink,var(--night-ink))}
+html[data-theme="dark"] .admin-grid a,html[data-theme="dark"] .admin-link:hover b,html[data-theme="dark"] .admin-attention-groups li a:hover b{color:var(--night-jade,var(--night-jade))}
 html[data-theme="dark"] .admin-field-error{color:#f08c7d}
 html[data-theme="dark"] .admin-policy .field.invalid input,html[data-theme="dark"] .admin-status-grid article.bad{border-color:#f08c7d}
 
@@ -137,42 +136,42 @@ html[data-theme="dark"] .admin-policy .field.invalid input,html[data-theme="dark
 .operator-admin{display:block;min-width:0}
 .operator-admin .page-heading p{margin-top:6px;font-size:14px;line-height:1.5;max-width:70ch}
 /* Tabs: the outer admin-tabs, the audit folders and the catalog scope tabs share one 40px track. */
-.operator-admin .admin-tabs,.operator-admin .audit-folders,.operator-admin .catalog-scope-tabs{display:flex;flex-wrap:wrap;gap:4px;width:100%;max-width:100%;min-width:0;padding:4px;margin:0 0 24px;border:1px solid var(--day-line,#e2e2da);border-bottom-color:var(--day-line,#e2e2da);border-radius:14px;background:var(--day-soft,#efefe9);overflow:visible;scroll-snap-type:none}
-.operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;height:40px;min-height:40px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--day-muted,#58635c);font:inherit;font-size:14px;font-weight:500;line-height:1;white-space:nowrap;box-shadow:none;cursor:pointer}
+.operator-admin .admin-tabs,.operator-admin .audit-folders,.operator-admin .catalog-scope-tabs{display:flex;flex-wrap:wrap;gap:4px;width:100%;max-width:100%;min-width:0;padding:4px;margin:0 0 24px;border:1px solid var(--day-line,var(--c-line));border-bottom-color:var(--day-line,var(--c-line));border-radius:var(--r-card);background:var(--day-soft,var(--c-sunken));overflow:visible;scroll-snap-type:none}
+.operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;height:40px;min-height:40px;padding:0 12px;border:0;border-radius:var(--r-control);background:transparent;color:var(--day-muted,var(--c-ink-2));font:inherit;font-size:14px;font-weight:500;line-height:1;white-space:nowrap;box-shadow:none;cursor:pointer}
 .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button svg{width:16px;height:16px;flex:0 0 auto;opacity:1}
-.operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button:hover{background:var(--day-surface,#fff);color:var(--day-ink,#16211c)}
-.operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active:hover{background:var(--day-tint,#e8f1ea);color:var(--day-ok,#1d6b47);box-shadow:none}
-.operator-admin .admin-tab-count,.operator-admin .catalog-scope-tabs button span{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--day-accent,#1f4d3b);color:#fff;font-size:12px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
-.operator-admin .admin-segment button{height:36px;min-height:36px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:600;line-height:1}
+.operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button:hover{background:var(--day-surface,#fff);color:var(--day-ink,var(--c-ink))}
+.operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active:hover{background:var(--day-tint,var(--c-selected));color:var(--day-ok,var(--c-ok));box-shadow:none}
+.operator-admin .admin-tab-count,.operator-admin .catalog-scope-tabs button span{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--r-pill);background:var(--day-accent,var(--c-brand));color:#fff;font-size:12px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.operator-admin .admin-segment button{height:36px;min-height:36px;padding:0 12px;border-radius:var(--r-sm);font-size:13px;font-weight:600;line-height:1}
 /* Sections: 24px inside, 24px between, one heading scale. */
 .operator-admin .admin-section{max-width:none}
 .operator-admin .admin-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 16px}
-.operator-admin .admin-section-head>div>h2,.operator-admin .admin-section-head>div>h3{margin:0;font-size:20px;font-weight:700;line-height:1.25;letter-spacing:-.01em;color:var(--day-ink,#16211c)}
-.operator-admin .admin-section-head>div>p{margin:4px 0 0;font-size:14px;line-height:1.5;color:var(--day-muted,#58635c);max-width:70ch}
+.operator-admin .admin-section-head>div>h2,.operator-admin .admin-section-head>div>h3{margin:0;font-size:20px;font-weight:700;line-height:1.25;letter-spacing:-.01em;color:var(--day-ink,var(--c-ink))}
+.operator-admin .admin-section-head>div>p{margin:4px 0 0;font-size:14px;line-height:1.5;color:var(--day-muted,var(--c-ink-2));max-width:70ch}
 .operator-admin .admin-section-head>:is(.admin-count,.admin-system-actions,.admin-segment,.admin-period-filter,.btn){flex:0 0 auto}
 /* KPI and status cards: equal height, label → value → note pinned to the bottom, the icon top-right. */
-.operator-admin .admin-metrics article>svg{position:absolute;right:14px;top:14px;width:18px;height:18px;color:var(--day-muted,#58635c)}
-.operator-admin .admin-metrics article>span{display:block;padding-right:28px;font-size:13px;font-weight:500;line-height:1.3;color:var(--day-muted,#58635c)}
-.operator-admin .admin-metrics article>strong{display:block;margin:8px 0 0;font-size:clamp(20px,10cqw,24px);font-weight:700;line-height:1.15;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;color:var(--day-ink,#16211c)}
-.operator-admin .admin-metrics article.bad{border-color:var(--day-error,#b42318)}
+.operator-admin .admin-metrics article>svg{position:absolute;right:14px;top:14px;width:18px;height:18px;color:var(--day-muted,var(--c-ink-2))}
+.operator-admin .admin-metrics article>span{display:block;padding-right:28px;font-size:13px;font-weight:500;line-height:1.3;color:var(--day-muted,var(--c-ink-2))}
+.operator-admin .admin-metrics article>strong{display:block;margin:8px 0 0;font-size:clamp(20px,10cqw,24px);font-weight:700;line-height:1.15;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;color:var(--day-ink,var(--c-ink))}
+.operator-admin .admin-metrics article.bad{border-color:var(--day-error,var(--c-danger))}
 /* Overview: funnel, attention and the shortcut tiles. */
 .operator-admin .admin-funnel-list li{min-height:32px;grid-template-columns:minmax(120px,160px) minmax(0,1fr) 40px;font-size:14px}
 .operator-admin .admin-funnel-list li b{font-weight:600}
-.operator-admin .admin-shortcut-grid>:is(a,button){display:grid;grid-template-columns:20px minmax(0,1fr);gap:2px 12px;align-items:center;align-content:center;min-height:72px;padding:14px 16px;border:1px solid var(--day-line,#e2e2da);border-radius:14px;background:var(--day-surface,#fff);color:var(--day-ink,#16211c);text-align:left;font:inherit;cursor:pointer;min-width:0}
-.operator-admin .admin-shortcut-grid>:is(a,button):hover{background:var(--day-tint,#e8f1ea);border-color:var(--day-ok-line,#bfdccb)}
+.operator-admin .admin-shortcut-grid>:is(a,button){display:grid;grid-template-columns:20px minmax(0,1fr);gap:2px 12px;align-items:center;align-content:center;min-height:72px;padding:14px 16px;border:1px solid var(--day-line,var(--c-line));border-radius:var(--r-card);background:var(--day-surface,#fff);color:var(--day-ink,var(--c-ink));text-align:left;font:inherit;cursor:pointer;min-width:0}
+.operator-admin .admin-shortcut-grid>:is(a,button):hover{background:var(--day-tint,var(--c-selected));border-color:var(--day-ok-line,#bfdccb)}
 .operator-admin .admin-shortcut-grid b{font-size:14px;font-weight:600;line-height:1.3}
-.operator-admin .admin-shortcut-grid span{font-size:12px;line-height:1.4;color:var(--day-muted,#58635c)}
+.operator-admin .admin-shortcut-grid span{font-size:12px;line-height:1.4;color:var(--day-muted,var(--c-ink-2))}
 /* Tables: 12px uppercase head, 44px rows, numbers to the right. */
 .operator-admin .admin-grid td:first-child{min-width:200px}
 .operator-admin .admin-grid td b{font-weight:600}
 .operator-admin .admin-grid td.admin-cell-text{white-space:normal;min-width:280px;overflow-wrap:anywhere}
 .operator-admin .admin-errors td:first-child{min-width:140px}
-.operator-admin .admin-rights td.center span{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;font-size:13px;font-weight:600;line-height:1}
+.operator-admin .admin-rights td.center span{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:var(--r-pill);font-size:13px;font-weight:600;line-height:1}
 .operator-admin .admin-rights td b{font-weight:500}
 /* Forms: 13px/600 labels, 40px controls, fields in a 220px grid. */
-.operator-admin .field>label,.operator-admin label.field>span:first-child{display:block;margin:0 0 6px;font-size:13px;font-weight:600;line-height:1.3;color:var(--day-ink,#16211c)}
-.operator-admin .field textarea{border-radius:10px;font-size:14px}
-.operator-admin .btn{min-height:40px;border-radius:10px;padding-top:8px;padding-bottom:8px}
+.operator-admin .field>label,.operator-admin label.field>span:first-child{display:block;margin:0 0 6px;font-size:13px;font-weight:600;line-height:1.3;color:var(--day-ink,var(--c-ink))}
+.operator-admin .field textarea{border-radius:var(--r-control);font-size:14px}
+.operator-admin .btn{min-height:40px;border-radius:var(--r-control);padding-top:8px;padding-bottom:8px}
 .operator-admin .admin-system-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
 /* Filters wrap as a row: search takes the room, selects keep a readable width, the count sits at the end. */
 .operator-admin .admin-filters>.field{flex:0 1 220px;min-width:160px;margin:0}
@@ -187,9 +186,9 @@ html[data-theme="dark"] .admin-policy .field.invalid input,html[data-theme="dark
 .operator-admin .admin-audit-row summary{min-height:48px}
 .operator-admin .admin-pager .btn{min-height:36px}
 /* Rules: the heading icon sits on the title line; the three limits share the 220px field grid. */
-.operator-admin .admin-policy .admin-section-head h2 svg{width:20px;height:20px;flex:0 0 auto;color:var(--day-ok,#1d6b47)}
+.operator-admin .admin-policy .admin-section-head h2 svg{width:20px;height:20px;flex:0 0 auto;color:var(--day-ok,var(--c-ok))}
 /* Finance: the old quote summary folded under the accounting view. */
-.operator-admin .admin-legacy>summary{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;min-height:56px;padding:16px 24px;cursor:pointer;list-style:none;font-size:16px;font-weight:700;color:var(--day-ink,#16211c)}
+.operator-admin .admin-legacy>summary{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;min-height:56px;padding:16px 24px;cursor:pointer;list-style:none;font-size:16px;font-weight:700;color:var(--day-ink,var(--c-ink))}
 /* Catalog tab rows share the form grid gap. */
 @media(max-width:950px){.operator-admin .staff-form .btn{grid-column:1/-1;justify-self:start}}
 @media(max-width:700px){
@@ -201,15 +200,15 @@ html[data-theme="dark"] .admin-policy .field.invalid input,html[data-theme="dark
  .operator-admin .admin-legacy>summary{padding:12px 16px}
 }
 /* Night. */
-html[data-theme="dark"] .operator-admin .page-heading>.status-badge, html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active, html[data-theme="dark"] .operator-admin .admin-segment button.active, html[data-theme="dark"] .operator-admin .staff-status.active, html[data-theme="dark"] .operator-admin .admin-rights td.center span[aria-label="есть"]{background:var(--night-jade-soft,rgba(128,208,172,.1));border-color:transparent;color:var(--night-jade,#80d0ac);box-shadow:none}
-html[data-theme="dark"] .operator-admin .admin-tabs,html[data-theme="dark"] .operator-admin .audit-folders,html[data-theme="dark"] .operator-admin .catalog-scope-tabs,html[data-theme="dark"] .operator-admin .admin-segment,html[data-theme="dark"] .operator-admin .staff-form{border-color:var(--night-line,rgba(226,238,231,.085));background:var(--night-inset,#0d1210);color:var(--night-ink,#f1eee5)}
-html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button,html[data-theme="dark"] .operator-admin .admin-segment button{border:0;background:transparent;color:var(--night-muted,#9ba6a0)}
-html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button:hover{background:var(--night-raised,#161d19);color:var(--night-ink,#f1eee5)}
-html[data-theme="dark"] .operator-admin .admin-tab-count,html[data-theme="dark"] .operator-admin .catalog-scope-tabs button span{background:var(--night-jade,#80d0ac);color:var(--night-on-ivory,#0c120f)}
-html[data-theme="dark"] .operator-admin .admin-metrics article,html[data-theme="dark"] .operator-admin .admin-now div,html[data-theme="dark"] .operator-admin .admin-shortcut-grid>:is(a,button),html[data-theme="dark"] .operator-admin .field-vitals{border-color:var(--night-line,rgba(226,238,231,.085));background:var(--night-raised,#161d19);box-shadow:none;color:var(--night-ink,#f1eee5)}
+html[data-theme="dark"] .operator-admin .page-heading>.status-badge, html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active, html[data-theme="dark"] .operator-admin .admin-segment button.active, html[data-theme="dark"] .operator-admin .staff-status.active, html[data-theme="dark"] .operator-admin .admin-rights td.center span[aria-label="есть"]{background:var(--night-jade-soft,rgba(128,208,172,.1));border-color:transparent;color:var(--night-jade,var(--night-jade));box-shadow:none}
+html[data-theme="dark"] .operator-admin .admin-tabs,html[data-theme="dark"] .operator-admin .audit-folders,html[data-theme="dark"] .operator-admin .catalog-scope-tabs,html[data-theme="dark"] .operator-admin .admin-segment,html[data-theme="dark"] .operator-admin .staff-form{border-color:var(--night-line,rgba(226,238,231,.085));background:var(--night-inset,var(--night-inset));color:var(--night-ink,var(--night-ink))}
+html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button,html[data-theme="dark"] .operator-admin .admin-segment button{border:0;background:transparent;color:var(--night-muted,var(--night-muted))}
+html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button:hover{background:var(--night-raised,var(--night-raised));color:var(--night-ink,var(--night-ink))}
+html[data-theme="dark"] .operator-admin .admin-tab-count,html[data-theme="dark"] .operator-admin .catalog-scope-tabs button span{background:var(--night-jade,var(--night-jade));color:var(--night-on-ivory,#0c120f)}
+html[data-theme="dark"] .operator-admin .admin-metrics article,html[data-theme="dark"] .operator-admin .admin-now div,html[data-theme="dark"] .operator-admin .admin-shortcut-grid>:is(a,button),html[data-theme="dark"] .operator-admin .field-vitals{border-color:var(--night-line,rgba(226,238,231,.085));background:var(--night-raised,var(--night-raised));box-shadow:none;color:var(--night-ink,var(--night-ink))}
 html[data-theme="dark"] .operator-admin .admin-shortcut-grid>:is(a,button):hover{background:var(--night-hover,#1b231f);border-color:var(--night-line-strong,rgba(226,238,231,.15))}
-html[data-theme="dark"] .operator-admin .admin-metrics article>strong,html[data-theme="dark"] .operator-admin .admin-now dd,html[data-theme="dark"] .operator-admin .admin-section-head>div>h2,html[data-theme="dark"] .operator-admin .admin-section-head>div>h3,html[data-theme="dark"] .operator-admin .admin-shortcut-grid b,html[data-theme="dark"] .operator-admin .field>label,html[data-theme="dark"] .operator-admin label.field>span:first-child{color:var(--night-ink,#f1eee5)}
-html[data-theme="dark"] .operator-admin .admin-metrics article>svg,html[data-theme="dark"] .operator-admin .admin-metrics article>span,html[data-theme="dark"] .operator-admin .admin-metrics article>small,html[data-theme="dark"] .operator-admin .admin-section-head>div>p,html[data-theme="dark"] .operator-admin .admin-shortcut-grid span,html[data-theme="dark"] .operator-admin .admin-grid td small,html[data-theme="dark"] .operator-admin .admin-now dt,html[data-theme="dark"] .operator-admin .admin-now small,html[data-theme="dark"] .operator-admin .field-vitals thead th{color:var(--night-muted,#9ba6a0)}
-html[data-theme="dark"] .operator-admin .admin-shortcut-grid svg,html[data-theme="dark"] .operator-admin .admin-subhead svg,html[data-theme="dark"] .operator-admin .admin-policy .admin-section-head h2 svg{color:var(--night-jade,#80d0ac)}
-html[data-theme="dark"] .operator-admin .staff-status,html[data-theme="dark"] .operator-admin .staff-status.disabled{background:var(--night-raised,#161d19);color:var(--night-muted,#9ba6a0)}
+html[data-theme="dark"] .operator-admin .admin-metrics article>strong,html[data-theme="dark"] .operator-admin .admin-now dd,html[data-theme="dark"] .operator-admin .admin-section-head>div>h2,html[data-theme="dark"] .operator-admin .admin-section-head>div>h3,html[data-theme="dark"] .operator-admin .admin-shortcut-grid b,html[data-theme="dark"] .operator-admin .field>label,html[data-theme="dark"] .operator-admin label.field>span:first-child{color:var(--night-ink,var(--night-ink))}
+html[data-theme="dark"] .operator-admin .admin-metrics article>svg,html[data-theme="dark"] .operator-admin .admin-metrics article>span,html[data-theme="dark"] .operator-admin .admin-metrics article>small,html[data-theme="dark"] .operator-admin .admin-section-head>div>p,html[data-theme="dark"] .operator-admin .admin-shortcut-grid span,html[data-theme="dark"] .operator-admin .admin-grid td small,html[data-theme="dark"] .operator-admin .admin-now dt,html[data-theme="dark"] .operator-admin .admin-now small,html[data-theme="dark"] .operator-admin .field-vitals thead th{color:var(--night-muted,var(--night-muted))}
+html[data-theme="dark"] .operator-admin .admin-shortcut-grid svg,html[data-theme="dark"] .operator-admin .admin-subhead svg,html[data-theme="dark"] .operator-admin .admin-policy .admin-section-head h2 svg{color:var(--night-jade,var(--night-jade))}
+html[data-theme="dark"] .operator-admin .staff-status,html[data-theme="dark"] .operator-admin .staff-status.disabled{background:var(--night-raised,var(--night-raised));color:var(--night-muted,var(--night-muted))}
 html[data-theme="dark"] .operator-admin .admin-legacy-body{border-top-color:var(--night-line,rgba(226,238,231,.085))}

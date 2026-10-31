@@ -50,7 +50,7 @@
 /* ---------- Between pages: a thin line at the top ---------- */
 .nav-progress {
   position: fixed; z-index: 1000; top: env(safe-area-inset-top, 0px); right: 0; left: 0; height: 3px; pointer-events: none;
-  border-radius: 0 3px 3px 0; opacity: 0; transform: scaleX(0); transform-origin: 0 50%;
+  border-radius: 0 var(--r-pill) var(--r-pill) 0; opacity: 0; transform: scaleX(0); transform-origin: 0 50%;
   background: linear-gradient(90deg, var(--home-accent), color-mix(in srgb, var(--home-accent) 55%, #9be0bd));
   box-shadow: 0 0 12px color-mix(in srgb, var(--home-accent) 45%, transparent);
   transition: opacity .2s ease;
@@ -82,14 +82,9 @@ html[data-navigating] .nav-progress { opacity: 1; animation: nav-progress 9s cub
 /* While the next page loads (data-opening, lib/market/navigation-feedback.ts) the tapped tab already looks current
    and the old one lets go, as in an app; the page itself follows a moment later. */
 .mobile-nav a { transition: color .18s ease; }
-.mobile-nav:has(a[data-opening]) a.active:not([data-opening]) { color: var(--cat-muted); }
-.mobile-nav:has(a[data-opening]) a.active:not([data-opening])::before { opacity: 0; }
-.mobile-nav a[data-opening] { color: var(--cat-accent); }
-.mobile-nav a[data-opening]:not(.active)::before {
-  content: ""; position: absolute; top: -4px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--cat-accent);
-  animation: nav-tab-mark .24s cubic-bezier(.2, .8, .3, 1) both;
-}
-@keyframes nav-tab-mark { from { opacity: 0; transform: scaleX(.3); } }
-html[data-theme="dark"] .mobile-nav:has(a[data-opening]) a.active:not([data-opening]) { color: var(--night-faint); }
-html[data-theme="dark"] .mobile-nav a[data-opening] { color: var(--night-ink); }
-html[data-theme="dark"] .mobile-nav a[data-opening]::before { background: var(--night-jade); }
+.mobile-nav a .mobile-nav-icon { transition: background-color .18s ease; }
+.mobile-nav:has(a[data-opening]) a.active:not([data-opening], .mobile-nav-link) { color: var(--text-2); }
+.mobile-nav:has(a[data-opening]) a.active:not([data-opening], .mobile-nav-link) .mobile-nav-icon { background-color: transparent; }
+.mobile-nav a[data-opening]:not(.mobile-nav-link) { color: var(--link); }
+.mobile-nav a[data-opening]:not(.active, .mobile-nav-link) .mobile-nav-icon { background-color: var(--selected); animation: nav-tab-mark .24s cubic-bezier(.2, .8, .3, 1) both; }
+@keyframes nav-tab-mark { from { opacity: .4; transform: scaleX(.6); } }

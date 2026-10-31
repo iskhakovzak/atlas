@@ -3,16 +3,16 @@
    total splits between the goods and the Atlas service, and how much of the duty-free month this order takes.
    Every number on it still comes from price() and the pricing settings. Loaded after day-folio.css, theme-night.css
    and folio-outside.css; selectors start at :root body to win over their theme-scoped rules (html:not([data-theme="dark"]) …). */
-.home-folio { --bq-item: var(--day-accent, #1f4d3b); --bq-service: #8fcfae; --bq-tile: var(--day-soft, #efefe9); --bq-tile-ink: var(--day-ink, #16211c); --bq-muted: var(--day-muted, #58635c); --bq-plane: var(--day-accent, #1f4d3b); --bq-track: rgba(29, 107, 71, .14); --bq-pill: rgba(29, 107, 71, .08); }
-html[data-theme="dark"] .home-folio { --bq-item: var(--night-jade, #80d0ac); --bq-service: var(--night-champagne, #cbb487); --bq-tile: rgba(241, 238, 229, .07); --bq-tile-ink: var(--night-ink, #f1eee5); --bq-muted: var(--night-muted, #9ba6a0); --bq-plane: var(--night-jade, #80d0ac); --bq-track: rgba(143, 216, 177, .14); --bq-pill: rgba(128, 208, 172, .12); }
+.home-folio { --bq-item: var(--day-accent, var(--c-brand)); --bq-service: #8fcfae; --bq-tile: var(--day-soft, var(--c-sunken)); --bq-tile-ink: var(--day-ink, var(--c-ink)); --bq-muted: var(--day-muted, var(--c-ink-2)); --bq-plane: var(--day-accent, var(--c-brand)); --bq-track: rgba(29, 107, 71, .14); --bq-pill: rgba(29, 107, 71, .08); }
+html[data-theme="dark"] .home-folio { --bq-item: var(--night-jade, var(--night-jade)); --bq-service: var(--night-champagne, #cbb487); --bq-tile: rgba(241, 238, 229, .07); --bq-tile-ink: var(--night-ink, var(--night-ink)); --bq-muted: var(--night-muted, var(--night-muted)); --bq-plane: var(--night-jade, var(--night-jade)); --bq-track: rgba(143, 216, 177, .14); --bq-pill: rgba(128, 208, 172, .12); }
 
 /* What is bought: the store's mark on a tile, the product and its price in the store. */
 :root body .home-folio .folio-cap.bill-product { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 12px; margin: 0; padding: 0 6px 2px; }
-:root body .home-folio .bill-product-mark { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: var(--bq-tile); color: var(--bq-tile-ink); }
-:root body .home-folio .bill-product-label { flex: none; margin-left: auto; padding: 3px 10px; border-radius: 999px; background: var(--bq-tile); color: var(--bq-muted); font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+:root body .home-folio .bill-product-mark { display: grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: var(--r-control); background: var(--bq-tile); color: var(--bq-tile-ink); }
+:root body .home-folio .bill-product-label { flex: none; margin-left: auto; padding: 3px 10px; border-radius: var(--r-pill); background: var(--bq-tile); color: var(--bq-muted); font-size: 12px; font-weight: 600; line-height: 1.3; }
 :root[data-theme="dark"] body .home-folio .bill-product-label { color: var(--night-champagne, #cbb487); }
 :root body .home-folio .bill-product-name { display: grid; gap: 1px; min-width: 0; }
-:root body .home-folio .bill-product-name b { color: var(--bq-tile-ink); font-size: 15.5px; font-weight: 650; line-height: 1.3; }
+:root body .home-folio .bill-product-name b { color: var(--bq-tile-ink); font-size: 16px; font-weight: 650; line-height: 1.3; }
 :root body .home-folio .bill-product-name small { color: var(--bq-muted); font-size: 13px; line-height: 1.35; font-variant-numeric: tabular-nums; }
 /* A narrow phone shows the short label («Пример»), so the product's name keeps its room; screen readers always hear the full
    one, which is only hidden from view there. A very long name breaks inside its own column. */
@@ -25,40 +25,40 @@ html[data-theme="dark"] .home-folio { --bq-item: var(--night-jade, #80d0ac); --b
 
 /* The route: a flag at the start, the plane on the dashed line, a pin-like ring at Tashkent (the line's ::after). */
 :root body .home-folio .bill-route-end { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
-:root body .home-folio .bill-route-flag { width: 18px; height: 12px; flex: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .08); }
+:root body .home-folio .bill-route-flag { width: 18px; height: 12px; flex: none; border-radius: var(--r-xs); box-shadow: 0 0 0 1px rgba(0, 0, 0, .08); }
 :root body .home-folio .bill-route-path { position: relative; display: block; min-width: 24px; }
 :root body .home-folio .bill-route-path > .bill-route-line { display: block; }
 :root body .home-folio .bill-route-plane { position: absolute; top: 50%; left: 50%; color: var(--bq-plane); transform: translate(-50%, -50%) rotate(45deg); }
 /* The plane sits on the line without the dashes running through it. */
 :root body .home-folio .bill-route-plane { padding: 2px; box-sizing: content-box; border-radius: 50%; background: var(--day-surface, #fff); }
-:root[data-theme="dark"] body .home-folio .bill-route-plane { background: var(--night-raised, #161d19); }
+:root[data-theme="dark"] body .home-folio .bill-route-plane { background: var(--night-raised, var(--night-raised)); }
 
 /* The two lines of the bill carry the colours of the bar under the total. */
 :root body .home-folio :is(.bill-row-item, .bill-row-service) > dt::before { content: ""; display: inline-block; width: 8px; height: 8px; margin: 0 8px 1px 0; border-radius: 50%; vertical-align: middle; }
 :root body .home-folio .bill-row-item > dt::before { background: var(--bq-item); }
 :root body .home-folio .bill-row-service > dt::before { background: var(--bq-service); }
 :root body .home-folio .bill-split { display: flex; gap: 3px; height: 6px; margin-top: -4px; }
-:root body .home-folio .bill-split > span { flex-basis: 0; min-width: 6px; border-radius: 999px; }
+:root body .home-folio .bill-split > span { flex-basis: 0; min-width: 6px; border-radius: var(--r-pill); }
 :root body .home-folio .bill-split > span:first-child { background: var(--bq-item); }
 :root body .home-folio .bill-split > span:last-child { background: var(--bq-service); }
 /* The bar's legend: each share under its own end of the bar, with the same colour dot as its bill line. */
-:root body .home-folio .bill-split-legend { display: flex; justify-content: space-between; gap: 12px; margin: -8px 0 0; color: var(--bq-muted); font-size: 12.5px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
+:root body .home-folio .bill-split-legend { display: flex; justify-content: space-between; gap: 12px; margin: -8px 0 0; color: var(--bq-muted); font-size: 12px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
 :root body .home-folio .bill-split-legend > span { display: inline-flex; align-items: center; gap: 6px; }
 :root body .home-folio .bill-split-legend > span::before { content: ""; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--bq-item); }
 :root body .home-folio .bill-split-legend > span:last-child::before { background: var(--bq-service); }
 
 /* The breakdown under «Atlas service»: a short name and the rule next to it in grey ("Delivery 1 kg × $13.98"). */
-:root body .home-folio .bill-parts small { margin-left: 4px; color: var(--bq-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+:root body .home-folio .bill-parts small { margin-left: 4px; color: var(--bq-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 /* Under the bar, in place of the rate line: the whole bill in dollars, a quiet tinted pill. The amount stays dark. */
-:root body .home-folio .bill-usd { display: inline-flex; align-items: center; gap: 7px; justify-self: start; width: fit-content; max-width: 100%; margin: 2px 0 0; padding: 5px 12px 5px 9px; border-radius: 999px; background: var(--bq-pill); color: var(--bq-tile-ink); font-size: 13.5px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums; }
+:root body .home-folio .bill-usd { display: inline-flex; align-items: center; gap: 7px; justify-self: start; width: fit-content; max-width: 100%; margin: 2px 0 0; padding: 5px 12px 5px 9px; border-radius: var(--r-pill); background: var(--bq-pill); color: var(--bq-tile-ink); font-size: 13px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums; }
 :root body .home-folio .bill-usd-icon { flex: none; color: var(--bq-plane); }
 
 /* The duty-free slip: a shield, a readable title instead of small capitals, and how much of the month this order takes. */
 :root body .home-folio .folio-outside.home-customs-slip { gap: 8px; padding: 14px 16px 15px; }
-:root body .home-folio .home-customs-slip > h2 { display: flex; align-items: center; gap: 8px; color: inherit; font-size: 14.5px; font-weight: 650; line-height: 1.35; letter-spacing: 0; text-transform: none; }
+:root body .home-folio .home-customs-slip > h2 { display: flex; align-items: center; gap: 8px; color: inherit; font-size: 14px; font-weight: 650; line-height: 1.35; letter-spacing: 0; text-transform: none; }
 :root body .home-folio .home-customs-icon { flex: none; color: var(--fo-ok); }
 :root body .home-folio .home-customs-meter { display: grid; grid-template-columns: minmax(48px, 1fr) auto; align-items: center; gap: 4px 12px; margin: 0; color: var(--bq-tile-ink); font-size: 13px; font-weight: 600; line-height: 1.35; }
-:root body .home-folio .home-customs-track { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: var(--bq-track); }
+:root body .home-folio .home-customs-track { display: block; height: 6px; overflow: hidden; border-radius: var(--r-pill); background: var(--bq-track); }
 :root body .home-folio .home-customs-track > span { display: block; height: 100%; border-radius: inherit; background: var(--fo-ok); }
 
 /* Short phones (iPhone SE, 667px): the bill has one sheet of var(--ch-h) and must fit it without scrolling inside. */
@@ -67,14 +67,14 @@ html[data-theme="dark"] .home-folio { --bq-item: var(--night-jade, #80d0ac); --b
   :root[data-theme="dark"] body .home-folio { padding: 10px 8px 8px; }
   :root body .home-folio .home-quote { gap: 9px; padding: 14px; }
   :root body .home-folio .bill-total { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
-  :root body .home-folio .bill-product-mark { width: 34px; height: 34px; border-radius: 10px; }
+  :root body .home-folio .bill-product-mark { width: 34px; height: 34px; border-radius: var(--r-control); }
   /* "Nike krossovkalari" next to "Hisob namunasi" stays on one line at 375px. */
   :root body .home-folio .folio-cap.bill-product { gap: 10px; }
-  :root body .home-folio .bill-product-name b { font-size: 14.5px; }
+  :root body .home-folio .bill-product-name b { font-size: 14px; }
   :root body .home-folio .bill-product-label { padding-inline: 8px; font-size: 12px; }
   :root body .home-folio .folio-outside.home-customs-slip { gap: 5px; padding: 10px 14px 11px; }
-  :root body .home-folio .home-customs-slip > h2 { font-size: 13.5px; }
-  :root body .home-folio .home-customs-note { font-size: 12.5px; line-height: 1.4; }
+  :root body .home-folio .home-customs-slip > h2 { font-size: 13px; }
+  :root body .home-folio .home-customs-note { font-size: 12px; line-height: 1.4; }
   :root body .home-folio .bill-usd { margin-top: 0; padding-block: 3px; font-size: 13px; }
   /* The legend under the bar costs a line: the bill's rows sit a little closer to keep the card on its sheet. */
   :root body .home-folio { gap: 6px; }

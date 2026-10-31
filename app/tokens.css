@@ -1,0 +1,373 @@
+/* Atlas design tokens: the one source of colours, type, radii, shadows, spacing, control heights and motion
+   (direction A "Спокойная витрина", owner 31.10.2026). Loaded first by app/layout.tsx; no other file defines these
+   names. Older layers still read --day-*, --night-*, --home-*, --cat-*, --cx-*, --atlas-* and the shadcn names: they are
+   aliases defined at the end of this file and resolve to the roles below, so a change here reaches every page.
+
+   Three layers:
+   1. Palette constants (--c-*): raw colours, the same in both themes. Literal colours in older files were replaced by
+      them, so a rule that never had a dark override looks exactly as before in the dark theme.
+   2. Roles (--bg, --surface, --text, --brand…): what a colour is for; the dark theme redefines them.
+   3. Legacy aliases. New code uses the roles only. */
+
+/* ---------- 1. Palette (never switches) ---------- */
+:root {
+  --c-canvas: #f6f6f2;
+  --c-white: #ffffff;
+  --c-sunken: #f0f1ec;
+  --c-line: #e3e5de;
+  --c-line-strong: #cbccc3;
+  --c-ink: #141a17;
+  --c-ink-2: #4a554f;
+  --c-ink-3: #77817b;
+  --c-brand: #1f4d3b;
+  --c-brand-hover: #173b2d;
+  --c-brand-night: #2f6b52;
+  --c-brand-night-hover: #377a5e;
+  --c-selected: #e9f1ec;
+  --c-selected-line: #cfe2d6;
+  --c-ok: #1d6b47;
+  --c-ok-bg: #dff3e7;
+  --c-gold: #6b4a00;
+  --c-gold-bg: #f5e7c4;
+  --c-warn: #8a5a00;
+  --c-warn-bg: #fff4dc;
+  --c-danger: #b42318;
+  --c-danger-bg: #fdeceb;
+}
+
+/* ---------- 2. Roles, light theme ---------- */
+:root {
+  /* Surfaces */
+  --bg: var(--c-canvas);              /* page */
+  --surface: var(--c-white);          /* cards, sheets, header, inputs */
+  --sunken: var(--c-sunken);          /* photo stages, segmented tracks, opened breakdowns */
+  --raised: var(--c-white);           /* popovers and menus over a surface */
+  --hover: #eceee8;                   /* hover fill of quiet controls */
+  --line: var(--c-line);              /* hairlines */
+  --line-strong: var(--c-line-strong);/* chip and control outlines */
+  --field: #80877f;                   /* form-control borders: 3.69:1 on white */
+  /* Text */
+  --text: var(--c-ink);               /* 16.9:1 on the canvas */
+  --text-2: var(--c-ink-2);           /* secondary: 7.3:1 */
+  --text-3: var(--c-ink-3);           /* quiet captions: 4.6:1, never smaller than 12px */
+  /* Brand and states */
+  --brand: var(--c-brand);            /* filled primary buttons, links, focus; white on it 9.6:1 */
+  --brand-hover: var(--c-brand-hover);
+  --on-brand: #ffffff;
+  --link: var(--c-brand);             /* links and small marks (the brand in light, a lighter jade in dark) */
+  --selected: var(--c-selected);      /* chosen chip, language, tab */
+  --selected-line: var(--c-selected-line);
+  --discount: var(--c-ok);            /* "−N %" pill text */
+  --discount-bg: var(--c-ok-bg);
+  --top-price: var(--c-gold);         /* «Топ-цена» badge text */
+  --top-price-bg: var(--c-gold-bg);
+  --ok: var(--c-ok);
+  --ok-bg: var(--c-ok-bg);
+  --warn: var(--c-warn);
+  --warn-bg: var(--c-warn-bg);
+  --danger: var(--c-danger);
+  --danger-bg: var(--c-danger-bg);
+  --focus-ring: 0 0 0 3px rgba(31, 77, 59, .18);
+
+  /* Type: Inter everywhere (the wordmark keeps its own face, app/theme-night.css); one scale, no in-between sizes. */
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+  --fs-12: 12px; --fs-13: 13px; --fs-14: 14px; --fs-16: 16px; --fs-18: 18px;
+  --fs-20: 20px; --fs-24: 24px; --fs-30: 30px; --fs-40: 40px;
+  --fw-regular: 450; --fw-medium: 550; --fw-semibold: 650; --fw-bold: 700;
+  --lh-tight: 1.15; --lh-snug: 1.3; --lh-body: 1.5;
+  --tracking-title: -0.02em;          /* the tightest a heading gets: Cyrillic must not stick together */
+  --tnum: "tnum" 1;                   /* font-feature-settings for prices and totals */
+
+  /* Radii */
+  --r-xs: 4px;                        /* flags, tiny marks */
+  --r-sm: 8px;                        /* thumbnails and chips inside a card */
+  --r-control: 12px;                  /* buttons and fields */
+  --r-card: 16px;
+  --r-sheet: 24px;
+  --r-pill: 999px;
+
+  /* Elevation: cards are white with a shadow and no border. */
+  --shadow-1: 0 1px 2px rgba(20, 26, 23, .05), 0 1px 3px rgba(20, 26, 23, .04);   /* controls, chips */
+  --shadow-2: 0 1px 2px rgba(20, 26, 23, .04), 0 6px 18px rgba(20, 26, 23, .06);  /* cards */
+  --shadow-3: 0 2px 6px rgba(20, 26, 23, .05), 0 18px 44px rgba(20, 26, 23, .12); /* sheets, menus, dialogs */
+  --shadow-up: 0 -8px 24px rgba(20, 26, 23, .08);                                   /* bars pinned to the bottom: the shadow falls upwards */
+
+  /* Spacing (4-based) */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px;
+  --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px; --space-16: 64px;
+
+  /* Control heights */
+  --h-sm: 40px; --h-md: 48px; --h-lg: 56px;
+
+  /* Motion */
+  --dur-fast: 120ms; --dur-base: 200ms; --dur-slow: 320ms;
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+}
+
+/* ---------- 2. Roles, dark theme (the only dark theme; next-themes sets html[data-theme="dark"]) ---------- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1512;
+  --surface: #161e1a;
+  --sunken: #121915;
+  --raised: #1c2520;
+  --hover: #212b26;
+  --line: rgba(226, 238, 231, .09);
+  --line-strong: rgba(226, 238, 231, .16);
+  --field: rgba(226, 238, 231, .32);
+  --text: #eef0eb;
+  --text-2: #c4cbc6;
+  --text-3: #929d97;
+  --brand: var(--c-brand-night);       /* owner: the primary button is green with white text in dark too, not cream */
+  --brand-hover: var(--c-brand-night-hover);
+  --on-brand: #ffffff;
+  --link: #80d0ac;                     /* links and marks on the dark canvas */
+  --selected: #1f3329;
+  --selected-line: rgba(128, 208, 172, .32);
+  --discount: #8fd8b1;
+  --discount-bg: rgba(128, 208, 172, .14);
+  --top-price: #e8c97a;
+  --top-price-bg: #3a3221;             /* opaque: the badge sits on product photos */
+  --ok: #8fd8b1;
+  --ok-bg: rgba(128, 208, 172, .1);
+  --warn: #e8bd70;
+  --warn-bg: rgba(232, 189, 112, .09);
+  --danger: #f0988d;
+  --danger-bg: rgba(240, 152, 141, .09);
+  --focus-ring: 0 0 0 3px rgba(128, 208, 172, .24);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, .35), 0 10px 24px -12px rgba(0, 0, 0, .7);
+  --shadow-3: 0 2px 6px rgba(0, 0, 0, .4), 0 30px 70px -30px rgba(0, 0, 0, .9);
+  --shadow-up: 0 -18px 40px -24px rgba(0, 0, 0, .9);
+}
+
+/* ---------- 3. Legacy aliases: shadcn / Tailwind ---------- */
+:root {
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--raised);
+  --popover-foreground: var(--text);
+  --primary: var(--brand);
+  --primary-foreground: var(--on-brand);
+  --secondary: var(--sunken);
+  --secondary-foreground: var(--text);
+  --muted: var(--sunken);
+  --muted-foreground: var(--text-2);
+  --accent-foreground: var(--text);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--brand);
+  --radius: var(--r-control);
+  --chart-1: #f54900;
+  --chart-2: #009689;
+  --chart-3: #21513d;
+  --chart-4: #ffb900;
+  --chart-5: #fe9a00;
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--on-brand);
+  --sidebar-accent: var(--sunken);
+  --sidebar-accent-foreground: var(--text);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--brand);
+}
+/* shadcn's "accent" is the hover fill of menus and options. */
+:root { --accent: var(--hover); }
+:root[data-theme="dark"] { --ring: var(--link); }
+
+/* ---------- 3. Legacy aliases: Atlas Day (light) and the older light layers ---------- */
+:root:not([data-theme="dark"]) {
+  --day-canvas: var(--bg);
+  --day-surface: var(--surface);
+  --day-soft: var(--sunken);
+  --day-tint: var(--selected);
+  --day-tint-2: var(--selected-line);
+  --day-line: var(--line);
+  --day-line-strong: var(--line-strong);
+  --day-line-strong-2: #d5d6cd;
+  --day-field: var(--field);
+  --day-leader: #a9aea6;
+  --day-ink: var(--text);
+  --day-muted: var(--text-2);
+  --day-accent: var(--brand);
+  --day-accent-hover: var(--brand-hover);
+  --day-fresh: #6f9a83;
+  --day-folio: #edf3ee;
+  --day-slip: #fdf8ec;
+  --day-slip-line: #f0e5c6;
+  --day-deal: var(--top-price-bg);
+  --day-ok: var(--ok);
+  --day-ok-bg: var(--ok-bg);
+  --day-ok-line: #bfdccb;
+  --day-warn: var(--warn);
+  --day-warn-bg: var(--warn-bg);
+  --day-error: var(--danger);
+  --day-shadow: var(--shadow-2);
+  --day-shadow-lift: var(--shadow-3);
+  --day-raise-form: var(--shadow-2);
+  --day-ring: var(--focus-ring);
+  --day-sans: var(--font-sans);
+  --day-r-control: var(--r-control);
+  --day-r-sheet: var(--r-card);
+  --day-r-card: var(--r-card);
+  --day-r-stage: var(--r-card);
+  --day-r-plate: var(--r-sheet);
+  --day-section: 56px;
+
+  --home-ink: var(--text); --home-muted: var(--text-2); --home-line: var(--line);
+  --home-soft: var(--sunken); --home-surface: var(--surface); --home-accent: var(--brand);
+  --home-accent-ink: var(--on-brand); --home-pending: var(--warn);
+  --cat-ink: var(--text); --cat-muted: var(--text-2); --cat-line: var(--line); --cat-soft: var(--sunken);
+  --cat-surface: var(--surface); --cat-accent: var(--brand); --cat-on: var(--brand); --cat-on-ink: var(--on-brand);
+  --cat-switch-off: #738c7f;
+  --cat-ok: var(--ok); --cat-ok-bg: var(--ok-bg); --cat-ok-line: #bfdccb;
+  --cat-warn: var(--warn); --cat-warn-bg: var(--warn-bg); --cat-warn-line: #ecd3a2;
+  --cat-shadow: var(--shadow-2); --cat-stage: var(--surface);
+  --cx-ok: var(--ok); --cx-ok-soft: var(--ok-bg); --cx-warn: var(--warn); --cx-warn-soft: var(--warn-bg); --cx-danger: var(--danger);
+  --atlas-ink: var(--text); --atlas-line: var(--line); --atlas-soft: var(--sunken); --atlas-blue: var(--brand);
+}
+@media (max-width: 760px) {
+  :root:not([data-theme="dark"]) {
+    --day-section: 36px;
+    --day-r-plate: var(--r-sheet);
+  }
+}
+/* Type steps for titles and totals: one scale for both themes (the dark theme used to keep its own, larger h1). */
+:root {
+  --day-fs-lead: var(--fs-18);
+  --day-fs-h3: var(--fs-18);
+  --day-fs-h2-sheet: var(--fs-20);
+  --day-fs-h2: var(--fs-30);
+  --day-fs-h1-page: clamp(30px, 3vw, 40px);
+  --day-fs-h1: clamp(30px, 4.2vw, 40px);
+  --day-money-xl: var(--fs-40);
+  --day-money-l: var(--fs-30);
+  --day-money-m: var(--fs-30);
+}
+@media (max-width: 760px) {
+  :root {
+    --day-fs-h2: var(--fs-24); --day-fs-h1: 30px; --day-fs-h1-page: 30px; --day-fs-h3: var(--fs-16); --day-fs-lead: var(--fs-16);
+    --day-money-xl: var(--fs-30); --day-money-l: var(--fs-30); --day-money-m: var(--fs-24);
+  }
+}
+@media (max-width: 359px) {
+  :root { --day-fs-h1: var(--fs-24); --day-fs-h1-page: var(--fs-24); --day-money-xl: var(--fs-24); --day-money-l: var(--fs-24); }
+}
+/* Theme-independent older names */
+:root {
+  --home-radius: var(--r-card);
+  --atlas-type-page: clamp(30px, 4.2vw, 40px);
+  --atlas-type-section: var(--fs-24);
+  --atlas-type-card: var(--fs-18);
+  --atlas-type-body: var(--fs-16);
+  --atlas-type-label: var(--fs-14);
+  --atlas-type-meta: var(--fs-12);
+  --atlas-space-1: 4px; --atlas-space-2: 8px; --atlas-space-3: 12px; --atlas-space-4: 16px;
+  --atlas-space-6: 24px; --atlas-space-8: 32px; --atlas-space-12: 48px; --atlas-space-16: 64px;
+}
+
+/* ---------- 3. Legacy aliases: Atlas Night (dark) ---------- */
+:root[data-theme="dark"] {
+  --night-canvas: var(--bg);
+  --night-surface: var(--surface);
+  --night-raised: var(--raised);
+  --night-hover: var(--hover);
+  --night-inset: var(--sunken);
+  --night-selected: var(--selected);
+  --night-line: var(--line);
+  --night-line-strong: var(--line-strong);
+  --night-ink: var(--text);
+  --night-ink-2: var(--text-2);
+  --night-muted: #9ba6a0;
+  --night-faint: var(--text-3);        /* 4.7:1 or more on every night surface */
+  /* Ivory stays a light text tone (prices, outlines); filled actions use --brand (app/theme-night.css). */
+  --night-on-ivory: #0c120f;
+  --night-ivory: #ebe4d2;
+  --night-ivory-hi: #f8f4ea;
+  --night-ivory-lo: #d9cfb8;
+  --night-jade: var(--link);
+  --night-jade-strong: #4fb98b;
+  --night-jade-soft: rgba(128, 208, 172, .1);
+  --night-jade-soft-strong: rgba(128, 208, 172, .17);
+  --night-champagne: #cbb487;
+  --night-ok-ink: var(--ok);
+  --night-warn-ink: var(--warn);
+  --night-warn-bg: var(--warn-bg);
+  --night-warn-line: rgba(232, 189, 112, .3);
+  --night-error-ink: var(--danger);
+  --night-error-bg: var(--danger-bg);
+  --night-error-line: rgba(240, 152, 141, .32);
+  --night-sheen: none;
+  --night-shadow: var(--shadow-2);
+  --night-shadow-pop: var(--shadow-3);
+  --night-ring: var(--focus-ring);
+
+  --atlas-ink: var(--text);
+  --atlas-blue: var(--link);
+  --atlas-line: var(--line-strong);
+  --atlas-soft: var(--raised);
+  --atlas-surface: var(--surface);
+  --atlas-raised: var(--raised);
+  --atlas-copy-muted: var(--night-muted);
+  --atlas-link: var(--link);
+  --atlas-accent: var(--link);
+  --atlas-dark-canvas: var(--bg);
+  --atlas-dark-surface: var(--surface);
+  --atlas-dark-raised: var(--raised);
+  --atlas-dark-inset: var(--sunken);
+  --atlas-dark-hover: var(--hover);
+  --atlas-dark-selected: var(--selected);
+  --atlas-dark-line: var(--line-strong);
+  --atlas-dark-ink: var(--text);
+  --atlas-dark-muted: var(--night-muted);
+  --atlas-dark-link: var(--link);
+  --atlas-dark-focus: var(--link);
+  --atlas-dark-success-bg: var(--ok-bg);
+  --atlas-dark-success-line: rgba(128, 208, 172, .3);
+  --atlas-dark-success-ink: var(--ok);
+  --atlas-dark-warning-bg: var(--warn-bg);
+  --atlas-dark-warning-line: var(--night-warn-line);
+  --atlas-dark-warning-ink: var(--warn);
+  --atlas-dark-error-bg: var(--danger-bg);
+  --atlas-dark-error-line: var(--night-error-line);
+  --atlas-dark-error-ink: var(--danger);
+
+  --home-accent: var(--link);
+  --home-accent-ink: var(--night-on-ivory);
+  --home-ink: var(--text);
+  --home-muted: var(--night-muted);
+  --home-line: var(--line);
+  --home-soft: var(--raised);
+  --home-surface: var(--surface);
+  --home-pending: var(--warn);
+  --cat-accent: var(--link);
+  --cat-ink: var(--text);
+  --cat-muted: var(--night-muted);
+  --cat-line: var(--line-strong);
+  --cat-soft: var(--raised);
+  --cat-surface: var(--surface);
+  --cat-on: var(--brand);
+  --cat-on-ink: var(--on-brand);
+  --cat-switch-off: #6b7671;
+  --cat-ok: var(--ok);
+  --cat-ok-bg: var(--night-jade-soft);
+  --cat-ok-line: rgba(128, 208, 172, .28);
+  --cat-warn: var(--warn);
+  --cat-warn-bg: var(--warn-bg);
+  --cat-warn-line: var(--night-warn-line);
+  --cat-shadow: var(--shadow-2);
+  --cat-stage: radial-gradient(120% 110% at 50% 8%, #f6f3ec 0%, #e6e1d5 100%);
+  --cx-ok: var(--ok);
+  --cx-ok-soft: var(--night-jade-soft);
+  --cx-warn: var(--warn);
+  --cx-warn-soft: var(--warn-bg);
+  --cx-danger: var(--danger);
+
+  scrollbar-color: #26302b transparent;
+}

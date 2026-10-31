@@ -3,8 +3,9 @@ import { ArrowUpRight } from 'lucide-react';
 /**
  * Site-wide decoration behind the pages (owner, 7.10.2026: "effects where there is room, quiet on phones",
  * "a few diagonal watermarks"): soft glows of the brand green, mint and warm gold, and a few large tilted Atlas
- * wordmarks. Fixed under everything (z-index -1 in the root stacking context, app/ambient.css), so it shows only
+ * wordmarks. Under everything (z-index -1 in the root stacking context, app/ambient.css), so it shows only
  * in empty space between cards. Purely decorative: aria-hidden, no pointer events, still with reduced motion.
+ * Since 1.11.2026 (direction A) it shows only behind the first screen of the home page; working pages are flat.
  */
 export function AmbientBackdrop() {
   return <div className="ambient" aria-hidden="true">

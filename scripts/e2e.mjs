@@ -148,10 +148,10 @@ window.__e2e = (() => {
       const header = document.querySelector('.site-header');
       if (header && visible(header)) {
         if (header.scrollWidth > header.clientWidth + 1) issues.push('header content overflows by ' + (header.scrollWidth - header.clientWidth) + 'px');
-        const account = header.querySelector('.header-account'), edge = Math.min(window.innerWidth, header.getBoundingClientRect().right) - parseFloat(getComputedStyle(header).paddingRight);
+        const account = header.querySelector('.shell-profile, .shell-signin'), edge = Math.min(window.innerWidth, header.getBoundingClientRect().right) - parseFloat(getComputedStyle(header).paddingRight);
         if (account && visible(account) && account.getBoundingClientRect().right > edge + 1) issues.push('header account link ends ' + Math.round(account.getBoundingClientRect().right - edge) + 'px past the header padding');
-        // The menu takes any shortage on itself (it scrolls without a scrollbar), so from 1151px every item must fit whole.
-        const menu = header.querySelector('.desktop-nav');
+        // From 1151px every menu item fits whole (app/shell.css hides items by name on narrower screens, never by scrolling).
+        const menu = header.querySelector('.shell-nav');
         if (width >= 1151 && menu && visible(menu) && menu.scrollWidth > menu.clientWidth + 1) issues.push('header menu items hidden ' + (menu.scrollWidth - menu.clientWidth) + 'px');
       }
       // Phones: sticky total/CTA bars stay above the bottom bar, the storage notice stays above their buttons,

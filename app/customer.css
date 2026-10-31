@@ -1,22 +1,7 @@
 /* Cart and account (mobile-first). Reuses the home tokens: one accent, 44px+ tap targets,
    soum amounts never split across lines. */
-:root {
-  --cx-ok: #1f7a4d;
-  --cx-ok-soft: #e7f4ec;
-  --cx-warn: #8a5a00;
-  --cx-warn-soft: #fff4dc;
-  --cx-danger: #b42318;
-}
-html[data-theme="dark"] {
-  --cx-ok: #8fd6ad;
-  --cx-ok-soft: #22362b;
-  --cx-warn: #f0c96a;
-  --cx-warn-soft: #3a3115;
-  --cx-danger: #ffb4a8;
-}
-
 /* ---------- Cart ---------- */
-.basket-head h1, .cabinet-head h1 { margin: 0; color: var(--home-ink); font-size: clamp(28px, 6vw, 40px); line-height: 1.1; letter-spacing: -.03em; }
+.basket-head h1, .cabinet-head h1 { margin: 0; color: var(--home-ink); font-size: clamp(30px, 6vw, 40px); line-height: 1.1; letter-spacing: -.02em; }
 /* Store-delivery reserve of this store order: how to drop it, or that it is not taken. */
 .basket-source, .basket-continue, .cabinet-link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--home-accent); font-size: 14px; font-weight: 700; text-decoration: none; }
 .basket-source:hover, .basket-continue:hover, .cabinet-link:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -24,7 +9,7 @@ html[data-theme="dark"] {
 .basket-item:has(> .basket-item-note) { grid-template-areas: "photo info" "photo price" "note note" "controls controls" "services services"; }
 @media (min-width: 640px) { .basket-item:has(> .basket-item-note) { grid-template-areas: "photo info price" "photo note note" "photo controls controls" "services services services"; } }
 
-.basket-services { grid-area: services; margin-top: 4px; border: 1px solid var(--home-line); border-radius: 12px; }
+.basket-services { grid-area: services; margin-top: 4px; border: 1px solid var(--home-line); border-radius: var(--r-control); }
 /* "Atlas service" (owner, 10.10.2026): one amount; the fee and international delivery fold under it (app/calc-summary.tsx).
    The breakdown reuses .cost-service-breakdown from the item card; its rows are quieter than the bill's own lines. */
 .basket-service-breakdown > summary { display: inline-flex; align-items: center; min-height: 36px; color: var(--home-accent); font-size: 13px; }
@@ -43,7 +28,7 @@ html[data-theme="dark"] {
 }
 
 /* Checkout dialog additions. */
-.basket-consent { display: flex; align-items: flex-start; gap: 12px; margin-top: 14px; padding: 12px; border: 1.5px solid var(--home-line); border-radius: 12px; }
+.basket-consent { display: flex; align-items: flex-start; gap: 12px; margin-top: 14px; padding: 12px; border: 1.5px solid var(--home-line); border-radius: var(--r-control); }
 /* Stages as separate segments: done ones filled, the current one half-lit with a soft pulse, the rest empty. */
 @keyframes cabinet-step-now { 50% { opacity: .55; } }
 /* Deep links (?support=new, ?order=…, #account-delete) scroll a card to the top while it still rises in (motion.css, 10 px):
@@ -59,7 +44,7 @@ html[data-theme="dark"] {
   main:is([data-view="orders"], [data-view="balance"], [data-view="notifications"]) { padding-top: 12px; }
 }
 .orders-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 4px 0 16px; }
-.orders-head h1 { margin: 0; color: var(--home-ink); font-size: clamp(28px, 6vw, 40px); line-height: 1.1; letter-spacing: -.03em; }
+.orders-head h1 { margin: 0; color: var(--home-ink); font-size: clamp(30px, 6vw, 40px); line-height: 1.1; letter-spacing: -.02em; }
 
 .order-x-body { display: grid; gap: 16px; padding: 4px 16px 18px; border-top: 1px solid var(--home-line); }
 @media (min-width: 640px) { .order-x-body { padding: 8px 20px 20px; } }
@@ -74,12 +59,12 @@ html[data-theme="dark"] {
 .order-x-more .cost-service-breakdown > summary { display: inline-flex; align-items: center; min-height: 44px; }
 
 /* Balance. */
-.wallet-card { display: grid; align-content: start; gap: 6px; padding: 22px; border-radius: 20px; background: var(--home-accent); color: var(--home-accent-ink); }
+.wallet-card { display: grid; align-content: start; gap: 6px; padding: 22px; border-radius: var(--r-sheet); background: var(--home-accent); color: var(--home-accent-ink); }
 /* A loaded item: the page title steps back to one short line so the item starts high (owner, 11 October 2026). */
 @media (min-width: 761px) {
   .lo-page-loaded > .orders-head > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
 }
-.lo-link { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; padding: 8px; border: 2px solid var(--home-accent); border-radius: 18px; background: var(--home-surface); box-shadow: 0 12px 32px rgba(20, 48, 36, .10); }
+.lo-link { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; padding: 8px; border: 2px solid var(--home-accent); border-radius: var(--r-card); background: var(--home-surface); box-shadow: var(--shadow-3); }
 .lo-link:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--home-accent) 24%, transparent); }
 /* A bad link marks the field frame and puts the message right under it, as on the home page. */
 .lo-link:has(input[aria-invalid="true"]) { border-color: var(--cx-danger); }
@@ -89,13 +74,13 @@ html[data-theme="dark"] {
 .lo-source-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .lo-source-link svg { flex-shrink: 0; }
 /* The item name with the favourites heart beside it (catalog items, signed-in customers). */
-.site-main .lo-page .find-save.lo-save { position: static; flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: -4px 0 0; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); color: var(--home-ink); box-shadow: none; cursor: pointer; }
+.site-main .lo-page .find-save.lo-save { position: static; flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: -4px 0 0; border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); color: var(--home-ink); box-shadow: none; cursor: pointer; }
 /* Phones: every control on the link-order page is at least 44 px to tap; icon sizes stay as they are. */
 .lo-page .variant-step > div:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; color: var(--home-ink); font-size: 14px; }
 /* Sizes keep their words on one line ("2XL Tall", not "2XL / Tall" at 320 px): each button is as wide as its label
    (at least 78 px) and the buttons of a full row share its width; the last row stays at its own widths (the ::after
    filler). A label longer than the whole row is cut with an ellipsis instead of widening the page. */
-.lo-page .variant-options button { display: grid; place-content: center; gap: 2px; min-height: 48px; padding: 6px 10px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.lo-page .variant-options button { display: grid; place-content: center; gap: 2px; min-height: 48px; padding: 6px 10px; border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: var(--fs-16); font-weight: 700; cursor: pointer; }
 .lo-page .variant-options button[aria-pressed="true"] { border-color: var(--home-accent); background: var(--home-accent); color: var(--home-accent-ink); }
 /* A store Atlas does not read: the note and the store link side by side, stacked on a phone. */
 @media (max-width: 760px) {
@@ -107,7 +92,7 @@ html[data-theme="dark"] {
 
 /* ---------- Recipient form and recipient actions ---------- */
 .rf { display: grid; gap: 14px; }
-.rf input, .rf select { width: 100%; min-height: 48px; padding: 0 12px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 16px; }
+.rf input, .rf select { width: 100%; min-height: 48px; padding: 0 12px; border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 16px; }
 .rf input:focus, .rf select:focus { border-color: var(--home-accent); outline: 2px solid color-mix(in srgb, var(--home-accent) 25%, transparent); }
 /* Checkout step 1 validates like the recipient form: a red frame on the field, the message under it. */
 .rf-primary { margin-top: 0; }
@@ -134,15 +119,14 @@ html[data-theme="dark"] {
    and the percentage in the same mint pill as on the catalog card. */
 .price-was-group { display: inline-flex; align-items: baseline; gap: 6px; margin-left: 8px; white-space: nowrap; }
 .price-was { color: #687f74; font-weight: 500; }
-.price-off { align-self: center; padding: 2px 7px; border-radius: 6px; background: #e7f4e9; color: #226d39; font-size: 12.5px; font-weight: 700; line-height: 1.3; }
+.price-off { align-self: center; padding: 2px 7px; border-radius: var(--r-sm); background: var(--discount-bg); color: var(--discount); font-size: 12px; font-weight: 700; line-height: 1.3; }
 html[data-theme="dark"] .price-was { color: var(--night-muted); }
-html[data-theme="dark"] .price-off { background: var(--night-jade-soft-strong); color: var(--night-jade); }
 
 /* Admin → Финансы → Бухгалтерия (app/accounting-view.tsx). */
 .accounting { display: grid; gap: 18px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--home-line); }
 .accounting h3 { margin: 0; font-size: 20px; }
 .accounting h4 { margin: 0 0 10px; font-size: 16px; }
-.accounting-table td.in { color: #1d6b47; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.accounting-table td.in { color: var(--c-ok); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .accounting-table td.out { font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* "Consents and account": one settings row that unfolds; account deletion lives at its bottom. */
 .delete-account { display: grid; gap: 16px; margin-top: 8px; }
@@ -167,12 +151,12 @@ html[data-theme="dark"] .price-off { background: var(--night-jade-soft-strong); 
    remove; from 640 px the sum gets its own column under the product's text column. */
 .basket-variants { display: grid; margin: 0; padding: 0 16px 6px; list-style: none; }
 .basket-variant { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "info qty del" "sum qty del"; align-items: center; gap: 2px 8px; padding: 10px 0; border-top: 1px dashed var(--home-line); }
-.basket-variant-sum { grid-area: sum; color: var(--home-ink); font-size: 14.5px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.basket-variant-sum { grid-area: sum; color: var(--home-ink); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .basket-variant > .basket-item-note { grid-column: 1 / -1; margin: 0; }
 @media (min-width: 640px) {
   .basket-variants { padding: 0 20px 6px 130px; }
   .basket-variant { grid-template-columns: minmax(0, 1fr) auto minmax(116px, auto) auto; grid-template-areas: "info qty sum del"; gap: 6px 12px; }
-  .basket-variant-sum { font-size: 15px; text-align: right; }
+  .basket-variant-sum { font-size: 14px; text-align: right; }
 }
 /* Only the body scrolls on a short screen: the arrow sits outside the window's edge and must not add a scrollbar. */
 @keyframes customs-how-in { from { opacity: 0; transform: scale(.97); } }

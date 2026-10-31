@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {Check,ChevronDown,Globe} from 'lucide-react';
 import type {Locale} from '@/lib/market/i18n';
+import {ThemeToggle} from './theme-control';
 
 /**
  * Each language names itself in its own script. The menu shows the names only (owner, 14.10.2026): "O‘zbekcha" and
@@ -14,8 +15,11 @@ const languages:{code:Locale;lang:string;name:string;script?:string;short:string
   {code:'en',lang:'en',name:'English',short:'EN'},
 ];
 
-/** Header language menu: one compact button (the current language) that opens the four choices. */
-export function HeaderLanguage({locale,label,onChange}:{locale:Locale;label:string;onChange:(locale:Locale)=>void}){
+/**
+ * Header language menu: one compact button (the current language) that opens the four choices and, under them, the theme
+ * switch. Everyone sees this menu at every width and in the app, so a guest can change the theme without the footer.
+ */
+export function HeaderLanguage({locale,label,themeLabel,onChange}:{locale:Locale;label:string;themeLabel?:string;onChange:(locale:Locale)=>void}){
   const [open,setOpen]=useState(false);
   // One menu per page (the header), so a fixed id: useId gave the server and the browser different ids on some pages.
   const wrap=useRef<HTMLDivElement>(null),trigger=useRef<HTMLButtonElement>(null),listId='atlas-lang-menu';
@@ -45,6 +49,7 @@ export function HeaderLanguage({locale,label,onChange}:{locale:Locale;label:stri
       {languages.map(item=><button type="button" key={item.code} data-locale={item.code} aria-current={item.code===locale} onClick={()=>{onChange(item.code);setOpen(false);trigger.current?.focus()}}>
         <span lang={item.lang}><b>{item.name}</b>{item.script&&<span className="sr-only"> — {item.script}</span>}</span>{item.code===locale&&<Check size={16} aria-hidden="true"/>}
       </button>)}
+      {themeLabel&&<div className="lang-menu-row"><span>{themeLabel}</span><ThemeToggle locale={locale}/></div>}
     </div>
   </div>;
 }
