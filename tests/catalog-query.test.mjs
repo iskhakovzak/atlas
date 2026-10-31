@@ -340,7 +340,7 @@ test('a cart line made by the link order is the catalog product it came from', (
 test('"Top price" goes to the best ~12 % by discount × savings, ranked within each category', async () => {
   const { topDealIds, topDealMinPercent } = await import('../lib/market/top-deal.ts');
   const item = (id, category, discount, savingsUsd) => ({ id, category, discount, savingsUsd });
-  // 25 products: round(25 × 0.12) = 3 badges.
+  // 30 products: round(30 × 0.12) = 4 badges.
   const plain = Array.from({ length: 19 }, (_, index) => item('p' + index, index % 2 ? 'Обувь' : 'Одежда', 0, 0));
   const deals = [
     item('jacket', 'Одежда', 40, 60), item('tee', 'Одежда', 60, 12), item('runner', 'Обувь', 50, 70),
@@ -376,6 +376,14 @@ test('the server marks «Топ-цена» in the public catalogue and the store
   const items = catalogItems(feed.products, tariff);
   assert.deepEqual(items.filter((entry) => entry.topDeal).map((entry) => entry.product.id), ['kit-5']);
   assert.equal(catalogItems(feed.products.map((product) => ({ ...product, topDeal: undefined })), tariff).some((entry) => entry.topDeal), false);
+  // A price older than two weeks keeps its «−N %» but loses «Топ-цена»: on such a catalogue no card has the badge.
+  const { topDealMaxAgeMs, topDealPriceFresh } = await import('../lib/market/top-deal.ts');
+  const later = publicCatalog(catalogDocumentSchema.parse({ revision: 0, collections: [], entries }), tariff, now + topDealMaxAgeMs + 1);
+  assert.equal(later.products.length, 8);
+  assert.equal(later.products.some((product) => product.topDeal), false);
+  assert.equal(topDealPriceFresh({ sourceCheckedAt: now }, now + 1), true);
+  assert.equal(topDealPriceFresh({ sourceCheckedAt: now, priceNeedsConfirmation: true }, now + 1), false);
+  assert.equal(topDealPriceFresh({}, now), false);
 });
 
 test('a card title drops the brand it starts with; the stored name stays whole', async () => {
@@ -394,7 +402,14 @@ test('a card title drops the brand it starts with; the stored name stays whole',
   assert.equal(displayBrand('kylie-cosmetics', 'Kylie Cosmetics'), 'Kylie Cosmetics');
   assert.equal(displayBrand("Brand: TONY'S TEXTILES", 'Amazon'), "TONY'S TEXTILES");
   assert.equal(displayBrand('Nike', 'Nike'), 'Nike');
-  assert.equal(displayBrand('', 'Amazon'), 'Amazon');
+  assert.equal(displayBrand('', 'Amazon'), '');
+  assert.equal(displayBrand('  Brand:  ', 'eBay'), '');
+  // A marketplace recorded as the brand is not the maker: empty (the card shows the category); a brand store keeps its name.
+  assert.equal(displayBrand('Amazon', 'Amazon', 'Amazon'), '');
+  assert.equal(displayBrand('Amazon', 'Amazon · Germany', 'Amazon'), '');
+  assert.equal(displayBrand('eBay', 'eBay', 'eBay'), '');
+  assert.equal(displayBrand('Amazon Basics', 'Amazon', 'Amazon'), 'Amazon Basics');
+  assert.equal(displayBrand('Logitech', 'Amazon', 'Amazon'), 'Logitech');
   assert.equal(displayBrand('Logitech', 'Amazon'), 'Logitech');
 });
 

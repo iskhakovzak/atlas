@@ -153,6 +153,24 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
   // reload or a shared link shows the same products. Computers keep page numbers and the page size.
   const phone = side === 'bottom';
   const visible = phone ? list.slice(0, paged.end) : paged.items;
+  // A phone opened at `?page=N` (a reload, a shared link) shows pages 1..N once it knows it is a phone: it scrolls once to
+  // the first product of page N, so the reader lands where the address points, not at the top of the longer list. After
+  // "Показать ещё" the focus moves to the first product added (the button it was on has moved below the new cards).
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const landed = useRef(false), focusFrom = useRef<number | null>(null);
+  useEffect(() => {
+    const cards = cardsRef.current;
+    if (!phone || !catalogReady || !cards) return;
+    const at = focusFrom.current;
+    if (at !== null) {
+      focusFrom.current = null;
+      cards.children[at]?.querySelector<HTMLElement>('.pcard-title > button')?.focus();
+      return;
+    }
+    if (landed.current) return;
+    landed.current = true;
+    if (paged.page > 1 && window.scrollY < 8) cards.children[paged.start]?.scrollIntoView({ block: 'start' });
+  }, [phone, catalogReady, paged.page, paged.start, visible.length]);
   const parcels = useMemo(() => ready ? cartParcelStores(state.cart).filter((store) => items.some((item) => item.store === store)) : [], [ready, state.cart, items]);
   // What each product of a store with a parcel in the cart adds to it: priced like the cart, so memoised per catalog and cart.
   const parcelExtras = useMemo(() => {
@@ -230,6 +248,8 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
     <div className={'catalog-layout' + (showControls ? '' : ' catalog-layout-plain')}>
       {showControls && <aside className="catalog-sidebar" aria-label={cc.filtersTitle}>{panel}</aside>}
       <section ref={gridRef} className="catalog-results" aria-label={mode === 'favorites' ? copy.saved : cc.title}>
+        {/* The cards' titles are h3: the grid gets the h2 between them and the page's h1. */}
+        <h2 className="sr-only">{mode === 'favorites' ? copy.saved : cc.results}</h2>
         {recent.length >= 2 && <section className="catalog-recent" aria-labelledby="catalog-recent-title">
           <div className="favorites-suggest-head"><h2 id="catalog-recent-title">{cc.recentTitle}</h2><button type="button" className="text-button" onClick={() => { clearRecentProducts(browserStorage()); setRecentIds([]); }}>{cc.recentClear}</button></div>
           <div className="finds-grid finds-grid-compact catalog-recent-row" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
@@ -237,7 +257,7 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
               saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)} speed={speed} />)}
           </div>
         </section>}
-        {!catalogReady ? <CatalogSkeleton label={cc.loading} /> : visible.length > 0 ? <div className="finds-grid" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
+        {!catalogReady ? <CatalogSkeleton label={cc.loading} /> : visible.length > 0 ? <div ref={cardsRef} className="finds-grid" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
           {visible.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select}
             saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)}
             signals={signalsOf(item)} inCart={inCart(item.product)} speed={speed} />)}
@@ -250,7 +270,7 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
           </div>
         </section>}
         {catalogReady && visible.length > 0 && (phone
-          ? <CatalogMore shown={visible.length} total={list.length} per={query.per} href={pageHref(paged.page + 1)} onMore={() => setQueryState({ ...query, page: paged.page + 1 })} cc={cc} />
+          ? <CatalogMore shown={visible.length} total={list.length} per={query.per} href={pageHref(paged.page + 1)} onMore={() => { focusFrom.current = visible.length; setQueryState({ ...query, page: paged.page + 1 }); }} cc={cc} />
           : <CatalogPagination page={paged.page} pages={paged.pages} start={paged.start} end={paged.end} total={list.length} per={query.per} href={pageHref} onPage={setPage} onPer={(per) => setQuery({ ...query, per })} cc={cc} />)}
         {visible.length > 0 && <p className="finds-price-note">{copy.priceNote}</p>}
         {status === 'guest' && mode === 'catalog' && <p className="finds-signin"><Link href="/login?return_to=%2Fcatalog"><Heart size={15} />{copy.signin}</Link></p>}

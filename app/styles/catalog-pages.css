@@ -373,7 +373,7 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pr
 @media (min-width: 1280px) { .site-main .catalog-page .catalog-results > .finds-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (min-width: 1600px) { .site-main .catalog-page .catalog-results > .finds-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 
-.pcard { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); overflow: hidden; transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out); }
+.pcard { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); overflow: clip; transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out); }
 .pcard-visual { position: relative; flex: none; aspect-ratio: 4 / 5; background-color: var(--c-sunken); }
 .pcard-photo { position: absolute; inset: 0; display: block; overflow: hidden; }
 .pcard-photo > .product-img { display: block; width: 100%; height: 100%; padding: 6%; object-fit: contain; mix-blend-mode: multiply; transition: transform var(--dur-slow) var(--ease-out); }
@@ -391,24 +391,28 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pr
 .pcard-save.saved { background-color: var(--c-brand); color: #fff; }
 .pcard-save.saved svg { fill: currentColor; }
 .pcard-save:disabled { opacity: .55; cursor: wait; }
-.pcard-store { position: absolute; z-index: 2; left: 8px; bottom: 8px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background-color: #fff; box-shadow: var(--shadow-1); }
+.pcard-store { position: absolute; z-index: 2; left: 8px; bottom: 8px; pointer-events: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background-color: #fff; box-shadow: var(--shadow-1); }
 .pcard-store .store-logo { width: 18px; height: 18px; }
 .pcard-plus { position: absolute; z-index: 2; right: 8px; bottom: 8px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background-color: var(--brand); color: var(--on-brand); box-shadow: var(--shadow-2); text-decoration: none; }
 .pcard-plus:active { background-color: var(--brand-hover); }
 .pcard-plus[data-in-cart] { background-color: #fff; color: var(--c-brand); }
 
 /* Text: brand 12 grey, title 14 in two lines, the sum 20/700 with a small "до Ташкента", dollars 13, colours and sizes. */
-.pcard-body { display: flex; flex: 1; flex-direction: column; min-width: 0; padding: 10px 12px 12px; }
-.pcard-brand { margin: 0; overflow: hidden; color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-medium); line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
-.site-main .pcard-title { margin: 2px 0 0; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-medium); letter-spacing: 0; line-height: 20px; }
-.pcard-title > button { display: -webkit-box; width: 100%; min-height: 40px; padding: 0; overflow: hidden; border: 0; background: none; color: inherit; font: inherit; text-align: left; overflow-wrap: anywhere; cursor: pointer; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+/* The body is the size container of the big sum: it shrinks with the card (16–20 px), so "≈ 4 305 479 сум" fits a 320 px phone. */
+.pcard-body { display: flex; flex: 1; flex-direction: column; min-width: 0; padding: 10px 12px 12px; container-type: inline-size; }
+/* `.site-main` too: its `text-wrap: pretty` on every p (globals.css) would turn the wrap back on ("Go‘zallik va / parvarish"). */
+.pcard-brand, .site-main .pcard-brand { margin: 0; overflow: hidden; color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-medium); line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.site-main .pcard-title { min-height: 40px; margin: 2px 0 0; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-medium); letter-spacing: 0; line-height: 20px; }
+.pcard-title > button { display: -webkit-box; width: 100%; padding: 0; overflow: hidden; border: 0; background: none; color: inherit; font: inherit; text-align: left; overflow-wrap: anywhere; cursor: pointer; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 /* The title button covers the whole card: a tap anywhere opens the product. */
 .pcard-title > button::after { content: ""; position: absolute; inset: 0; z-index: 1; }
 .site-main .pcard-title > button:focus-visible { outline: 0; }
 .pcard:has(.pcard-title > button:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
 .pcard-sum { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; margin: 6px 0 0; color: var(--text); }
-.pcard-sum > strong { color: var(--text); font-size: var(--fs-20); font-weight: var(--fw-bold); letter-spacing: -.01em; line-height: 26px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.pcard-sum > strong .money-unit { font-size: var(--fs-14); font-weight: var(--fw-semibold); }
+.pcard-sum > strong { min-width: 0; color: var(--text); font-size: clamp(16px, 12.5cqi, var(--fs-20)); font-weight: var(--fw-bold); letter-spacing: -.01em; line-height: 1.3; font-variant-numeric: tabular-nums; }
+/* If the sum still does not fit, "сум" moves to the next line whole; the digits never break. */
+.pcard-sum > strong .money-n { white-space: nowrap; }
+.pcard-sum > strong .money-unit { font-size: max(12px, .7em); font-weight: var(--fw-semibold); }
 .pcard-sum > span { color: var(--text-3); font-size: var(--fs-12); line-height: 16px; }
 .pcard-sum.pcard-sum-pending { color: var(--text-2); font-size: var(--fs-13); line-height: 18px; }
 .pcard-usd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; margin: 2px 0 0; color: var(--text-2); font-size: var(--fs-13); line-height: 18px; font-variant-numeric: tabular-nums; }
@@ -494,6 +498,8 @@ html[data-theme="dark"] .pcard-save:not(.saved) { background-color: rgba(255, 25
   .catalog-page .catalog-active::-webkit-scrollbar { display: none; }
   .catalog-page .catalog-active > * { flex: none; }
   .catalog-page .pcard-body { padding: 8px 10px 10px; }
+  /* A card scrolled to (`?page=N`) or focused after "Показать ещё" stops below the sticky search row. */
+  .catalog-page .finds-grid > .pcard { scroll-margin-top: 72px; }
 }
 /* Narrow phones (under 380 px): "Фильтры" becomes an icon with its count, so the search keeps room for its placeholder. */
 @media (max-width: 379px) {

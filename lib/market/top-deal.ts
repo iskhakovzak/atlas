@@ -6,11 +6,18 @@
  * A deal's score is its discount (%) × what it saves ($): −60 % off a $20 T-shirt ($12) loses to −40 % off a $150
  * jacket ($60). Cards are ranked inside their category (shoes against shoes), then the categories are interleaved by
  * rank share — the best of every category first, then the second best… — so one large category does not take every
- * badge. At least a 30 % store discount qualifies; a dated price too when the card shows its discount (the recorded USD
- * price, owner 12 October 2026: the sale and its percent matter), as the «−N %» pill beside the badge does.
+ * badge. At least a 30 % store discount qualifies, and only on a price the store confirmed in the last two weeks
+ * (review, 1 November 2026): «Топ-цена» promises more than «−N %», so a dated price («≈ … на 13 сент») keeps its «−N %»
+ * pill but never this badge. On a catalogue whose prices are all older, no card has it.
  */
 export const topDealShare = 0.12;
 export const topDealMinPercent = 30;
+export const topDealMaxAgeMs = 14 * 24 * 60 * 60 * 1000;
+
+/** The price may carry «Топ-цена»: confirmed (not waiting for a re-check) and read from the store at most two weeks ago. */
+export function topDealPriceFresh(product: { priceNeedsConfirmation?: boolean; sourceCheckedAt?: number }, now: number) {
+  return product.priceNeedsConfirmation !== true && typeof product.sourceCheckedAt === 'number' && now - product.sourceCheckedAt <= topDealMaxAgeMs;
+}
 
 export type TopDealCandidate = {
   id: string; category: string;

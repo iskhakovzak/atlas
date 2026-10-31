@@ -22,9 +22,13 @@ const letters = (value: string) => value.toLocaleLowerCase().replace(/[^\p{L}\p{
 /**
  * The brand line of a card. Imported brands are sometimes the store's raw field ("Brand: TONY'S TEXTILES") or a slug
  * ("kylie-cosmetics"): the label drops the "Brand:" prefix and, when it names the store, takes the store's own spelling.
+ * A marketplace is not the maker: the importer often records the marketplace itself as the brand ("Amazon" over a Sony
+ * headset, "eBay" over an HP laptop), so with `marketplace` (that store's own name) such a brand is an empty label, and
+ * so is no brand at all; the card then shows the category (the store is the mark on the photo).
  */
-export function displayBrand(brand: string | undefined, store: string) {
+export function displayBrand(brand: string | undefined, store: string, marketplace?: string) {
   const text = (brand ?? '').trim().replace(/^(brand|бренд|marka)\s*:\s*/iu, '').trim();
-  if (!text) return store;
+  if (!text) return '';
+  if (marketplace && [store, marketplace].some((name) => name && letters(text) === letters(name))) return '';
   return store && letters(text) === letters(store) ? store : text;
 }

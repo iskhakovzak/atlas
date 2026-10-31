@@ -79,7 +79,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const storeName = officialText
     ? <Tooltip><TooltipTrigger asChild><span className="find-official" tabIndex={0}><BadgeCheck size={14} aria-hidden="true" /><span aria-hidden="true">{official}</span><span className="sr-only">{officialText.full}</span></span></TooltipTrigger><TooltipContent>{officialText.full}</TooltipContent></Tooltip>
     : storeLabel(item.store, locale) || product.brand || category;
-  const priceId = useId();
+  const priceId = useId(), usdId = useId();
   // The new card draws its own heart (pcard-save); the compact card keeps the older one.
   const saveClass = variant === 'compact' ? 'find-save' : 'pcard-save';
   const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={saveClass + ' ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
@@ -109,8 +109,11 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   // The price keeps its date when it is older than the card looks: a stale snapshot, or stock the operator
   // confirmed without the store re-reading the price.
   const priceDated = item.checkedAt > 0 && (needsPrice ? hasRecordedPrice : confirmedAt !== undefined && item.checkedAt < confirmedAt);
-  // Direction A (1 November 2026): the brand on its own grey line, the title without it, one big sum in soum.
-  const brandName = official ?? (displayBrand(product.brand, storeLabel(item.store, locale)) || category);
+  // Direction A (1 November 2026): the brand on its own grey line, the title without it, one big sum in soum. No brand
+  // reads as the category, and so does a marketplace recorded as the brand ("Amazon" over a Sony headset): the store is
+  // the mark on the photo. A single-brand store keeps its name (nike.com: "Nike").
+  const storeBrand = brandForHost(item.store);
+  const brandName = official ?? (displayBrand(product.brand, storeLabel(item.store, locale), storeBrand?.focus === 'marketplace' ? storeBrand.name : undefined) || category);
   const title = nameWithoutBrand(nameWithoutBrand(name, official ?? product.brand), brandName);
   const storeText = officialText?.full ?? storeLabel(item.store, locale);
   // Only the shared-parcel note stays on the card (neutral): the allowance lives in the banner above the grid, the
@@ -134,14 +137,15 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <p className="pcard-brand">{brandName}</p>
       {/* The title button covers the whole card (::after), so a tap anywhere opens the product; the heart, "+", the
          store mark and "В корзину" sit above it. */}
-      <h3 className="pcard-title"><button type="button" onClick={open} aria-label={cc.open(name)} aria-describedby={priceId}>{title}</button></h3>
+      <h3 className="pcard-title"><button type="button" onClick={open} aria-label={cc.open(name)} aria-describedby={priceId + ' ' + usdId}>{title}</button></h3>
       {costs
-        ? <p className="pcard-sum" id={priceId}><strong>{needsPrice && <span aria-hidden="true">≈&#x202F;</span>}<Money value={costs.total} locale={locale} /></strong> <span>{cc.toTashkent}</span></p>
+        ? <p className="pcard-sum" id={priceId}><strong>{needsPrice && <><span aria-hidden="true">≈&#x202F;</span><span className="sr-only">{cc.about} </span></>}<Money value={costs.total} locale={locale} /></strong> <span>{cc.toTashkent}</span></p>
         : <p className="pcard-sum pcard-sum-pending" id={priceId}>{cc.afterCheck}</p>}
-      <p className="pcard-usd">
+      <p className="pcard-usd" id={usdId}>
+        {/* Spaces between the parts: the line is also the title's spoken description ("$8, base price $27, as of 13 Sep"). */}
         <span>{storePriceText}</span>
-        {showDiscount && <del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>}
-        {priceDated && <small>{cc.priceOn(shortDate(item.checkedAt, locale))}</small>}
+        {showDiscount && <>{' '}<del title={copy.referenceLabel}><span className="sr-only">{copy.referenceLabel}: </span>{fmt(referenceUsd!, 'USD')}</del></>}
+        {priceDated && <>{' '}<small>{cc.priceOn(shortDate(item.checkedAt, locale))}</small></>}
       </p>
       <Variants item={item} locale={locale} />
       {parcel && <p className="pcard-note" title={parcel.hint}>{parcel.text}{parcel.hint && <span className="sr-only">. {parcel.hint}</span>}</p>}
