@@ -8,6 +8,16 @@ import {catalogOrderVariants,keepCatalogVisible} from '../lib/market/catalog.ts'
 import {productSchema,tariff} from '../lib/market/domain.ts';
 
 const extracted={sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?utm_source=mail',title:'Matte Lip Kit',brand:'Kylie Cosmetics',category:'Красота и уход',image:'https://cdn.shopify.com/lip.jpg',images:['https://cdn.shopify.com/lip.jpg'],price:35,currency:'USD',variants:[{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',available:true,price:35}],warnings:['Доставка неизвестна'],method:'Shopify'};
+
+test('a deliberately reset catalog stays empty across bundled synchronization',()=>{
+ const clean=catalogDocumentSchema.parse({revision:0,entries:[],collections:[],bundledSyncDisabled:true});
+ const first=synchronizeBundledCatalog(clean);
+ assert.deepEqual(first,{document:clean,added:0,updated:0});
+ assert.deepEqual(synchronizeBundledCatalog(JSON.parse(JSON.stringify(first.document))),first);
+ const imported={...clean,entries:[{id:'new-import',draft:importDraft(extracted,[],'США',1000),origin:'operator-import',queueState:'queued'}]};
+ assert.deepEqual(synchronizeBundledCatalog(imported).document.entries,imported.entries);
+ assert.equal(synchronizeBundledCatalog(imported).document.bundledSyncDisabled,true);
+});
 test('catalog rechecks keep every selected id in stable server-sized batches',()=>{
  const ids=Array.from({length:23},(_,index)=>`item-${index}`);
  const batches=catalogRecheckBatches([...ids,ids[4]]);

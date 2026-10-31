@@ -1,0 +1,27 @@
+# Atlas managed edge routes — loaded by /opt/atlas/edge/watch.py.
+(atlas_tls) {
+ tls {
+  issuer acme {
+   dir https://acme-v02.api.letsencrypt.org/directory
+   email ishakovzakir0@gmail.com
+  }
+ }
+}
+www.atlasmarket.uz {
+ import atlas_tls
+ redir https://atlasmarket.uz{uri} permanent
+}
+atlasmarket.uz {
+ import atlas_tls
+ encode zstd gzip
+ request_body {
+  max_size 10MB
+ }
+ reverse_proxy atlas-web:3000 {
+  header_up Host atlasmarket.uz
+  header_up X-Forwarded-Host atlasmarket.uz
+  header_up X-Forwarded-Proto https
+  header_up CF-Connecting-IP {remote_host}
+ }
+ header -Server
+}

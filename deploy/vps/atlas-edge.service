@@ -1,0 +1,14 @@
+[Unit]
+Description=Maintain Atlas routes on the shared VPS edge
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/atlas/edge/watch.py
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target
