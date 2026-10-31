@@ -15,11 +15,11 @@ body { -webkit-tap-highlight-color: transparent; }
   /* One bottom bar for guests and members (5 items each). It is exactly as tall as the clearance the sticky
      totals sit on; at 61 px the page showed through a 3 px gap under them. */
   .mobile-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 40; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-height: var(--atlas-mobile-nav-clearance); box-sizing: border-box; padding: 4px 4px env(safe-area-inset-bottom); border-top: 1px solid var(--cat-line); background: color-mix(in srgb, var(--cat-surface) 94%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(18px); backdrop-filter: saturate(1.4) blur(18px); }
-  .mobile-nav a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; min-height: 56px; padding: 4px 2px; color: var(--cat-muted); font-size: 11px; font-weight: 650; line-height: 1.15; text-align: center; }
+  .mobile-nav a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; min-height: 56px; padding: 4px 2px; color: var(--cat-muted); font-size: 12px; font-weight: 650; line-height: 1.15; text-align: center; }
   .mobile-nav a > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mobile-nav a.active { color: var(--cat-accent); }
-  .mobile-nav a.active::before { content: ""; position: absolute; top: -4px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--cat-accent); }
-  .mobile-nav a b { position: absolute; top: 4px; right: calc(50% - 22px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--cat-on); color: var(--cat-on-ink); font-size: 11px; line-height: 18px; text-align: center; }
+  .mobile-nav a.active::before { content: ""; position: absolute; top: -4px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 var(--r-pill) var(--r-pill); background: var(--cat-accent); }
+  .mobile-nav a b { position: absolute; top: 4px; right: calc(50% - 22px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-pill); background: var(--cat-on); color: var(--cat-on-ink); font-size: 12px; line-height: 18px; text-align: center; }
   html[data-theme="dark"] .mobile-nav { background: color-mix(in srgb, var(--night-canvas) 90%, transparent); }
   /* The page ends above the bar. */
   body:has(.mobile-nav) .site-main { padding-bottom: calc(var(--atlas-mobile-nav-clearance) + 12px); }
@@ -36,7 +36,7 @@ body { -webkit-tap-highlight-color: transparent; }
   /* How it works: four short rows instead of four tall cards. */
   .home-steps { gap: 8px; }
   .home-step { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; padding: 14px 16px; }
-  .home-step h3 { margin: 2px 28px 4px 0; font-size: 16.5px; }
+  .home-step h3 { margin: 2px 28px 4px 0; font-size: 16px; }
   .home-step p { font-size: 14px; line-height: 1.45; }
   .home-step > :is(ul, .home-step-extra, .home-missing) { grid-column: 2; }
 }
@@ -85,10 +85,10 @@ body { -webkit-tap-highlight-color: transparent; }
   .tip-text { display: none !important; }
   .info-tip { display: inline-grid; }
 }
-.info-tip-bubble { width: min(300px, calc(100vw - 32px)); padding: 12px 14px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink); box-shadow: 0 14px 36px rgba(21, 43, 34, .16), 0 2px 6px rgba(21, 43, 34, .06); font-size: 14px; font-weight: 450; line-height: 1.5; letter-spacing: normal; text-align: left; text-transform: none; white-space: normal; }
+.info-tip-bubble { width: min(300px, calc(100vw - 32px)); padding: 12px 14px; border: 1px solid var(--cat-line); border-radius: var(--r-card); background: var(--cat-surface); color: var(--cat-ink); box-shadow: var(--shadow-3); font-size: 14px; font-weight: 450; line-height: 1.5; letter-spacing: normal; text-align: left; text-transform: none; white-space: normal; }
 .info-tip-bubble p { margin: 0; color: inherit; font-size: inherit; line-height: inherit; }
 .info-tip-bubble p + p { margin-top: 8px; }
-html[data-theme="dark"] .info-tip-bubble { box-shadow: 0 16px 40px rgba(0, 0, 0, .45); }
+html[data-theme="dark"] .info-tip-bubble { box-shadow: var(--shadow-3); }
 /* Rises from the "?" with a small overshoot and settles; closes quicker than it opens. */
 .info-tip-bubble[data-state="open"] { animation: info-tip-in .32s cubic-bezier(.22, 1, .36, 1) both; }
 .info-tip-bubble[data-state="closed"] { animation: info-tip-out .14s ease-in both; }

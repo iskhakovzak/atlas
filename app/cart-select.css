@@ -4,17 +4,17 @@
  */
 
 /* ---------- cart: selection ---------- */
-.basket-select-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--day-surface, #fff); border: 1px solid var(--day-line, #e2e2da); font-size: 14px; }
-.basket-select-bar label { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: var(--day-ink, #16211c); }
-.basket-select-bar small { color: var(--day-muted, #58635c); font-size: 13px; }
+.basket-select-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; padding: 10px 14px; border-radius: var(--r-control); background: var(--day-surface, #fff); border: 1px solid var(--day-line, var(--c-line)); font-size: 14px; }
+.basket-select-bar label { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: var(--day-ink, var(--c-ink)); }
+.basket-select-bar small { color: var(--day-muted, var(--c-ink-2)); font-size: 13px; }
 .basket-select { display: inline-flex; align-items: center; flex-shrink: 0; }
 .basket-step-name { font-weight: inherit; }
 .basket-parcel-title .basket-select { margin-right: 2px; }
 .basket-item { position: relative; }
-.basket-item > .basket-select { position: absolute; top: 12px; left: 12px; z-index: 1; padding: 3px; border-radius: 7px; background: color-mix(in srgb, var(--day-surface, #fff) 88%, transparent); }
+.basket-item > .basket-select { position: absolute; top: 12px; left: 12px; z-index: 1; padding: 3px; border-radius: var(--r-sm); background: color-mix(in srgb, var(--day-surface, #fff) 88%, transparent); }
 .basket-item.is-later { opacity: .62; }
 .basket-item.is-later:focus-within, .basket-item.is-later:hover { opacity: .85; }
-.basket-later-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 20px; font-size: 12px; font-weight: 500; background: var(--day-soft, #efefe9); color: var(--day-muted, #58635c); }
+.basket-later-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: var(--r-sheet); font-size: 12px; font-weight: 500; background: var(--day-soft, var(--c-sunken)); color: var(--day-muted, var(--c-ink-2)); }
 /* Option rows of one product: the tick gets its own first column; the option's note spans the row under it. */
 .basket-variant { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "sel info qty del" "sel sum qty del"; }
 .basket-variant > .basket-select { grid-area: sel; align-self: center; }
@@ -33,7 +33,7 @@
 @container (min-width: 560px) {
   .basket-variants { padding: 0 20px 6px 130px; }
   .basket-variant { grid-template-columns: auto minmax(0, 1fr) auto minmax(116px, auto) auto; grid-template-areas: "sel info qty sum del"; gap: 6px 12px; }
-  .basket-variant-sum { font-size: 15px; text-align: right; }
+  .basket-variant-sum { font-size: 14px; text-align: right; }
   /* The product line holds its "remove all" under the sum, so nothing hangs alone under the photo; each option row
      keeps its "comment" link under the size, beside the quantity, instead of a row of its own (owner, 12 October 2026). */
   .basket-group > .basket-group-head { grid-template-columns: 96px minmax(0, 1fr) auto; grid-template-areas: "photo info price" "photo info controls"; grid-template-rows: auto 1fr; }
@@ -43,15 +43,15 @@
   .basket-variant > .basket-note-add { grid-area: note; align-self: start; min-height: 30px; margin: 0; }
   .basket-variant > :is(.basket-note, .basket-item-note) { grid-column: 2 / -1; margin-top: 6px; }
 }
-.basket-none-hint { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 14px; color: var(--day-muted, #58635c); }
-.basket-later-note { margin: 8px 0 0; font-size: 13px; color: var(--day-muted, #58635c); }
+.basket-none-hint { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 14px; color: var(--day-muted, var(--c-ink-2)); }
+.basket-later-note { margin: 8px 0 0; font-size: 13px; color: var(--day-muted, var(--c-ink-2)); }
 
 /* ---------- cart: services of a store parcel ---------- */
 .basket-parcel-services { margin: 4px 0 0; }
 .basket-parcel-services > summary { cursor: pointer; }
 .basket-service[aria-busy="true"] { opacity: .8; }
 .basket-service-copy label { cursor: pointer; }
-.basket-service-unit { margin-left: 6px; font-size: 12px; font-weight: 500; color: var(--day-muted, #58635c); }
+.basket-service-unit { margin-left: 6px; font-size: 12px; font-weight: 500; color: var(--day-muted, var(--c-ink-2)); }
 
 /* ---------- checkout review: wide dialog with a sticky total ---------- */
 /* The dialog jumps to its wide size (no width transition), and the two columns follow the dialog's own width. */
@@ -69,23 +69,23 @@
 .review-main { min-width: 0; display: grid; gap: 14px; container-type: inline-size; }
 .review-aside { display: grid; gap: 12px; align-content: start; }
 
-.review-table { display: grid; font-size: 14px; border: 1px solid var(--day-line, #e2e2da); border-radius: 12px; overflow: hidden; background: var(--day-surface, #fff); }
+.review-table { display: grid; font-size: 14px; border: 1px solid var(--day-line, var(--c-line)); border-radius: var(--r-control); overflow: hidden; background: var(--day-surface, #fff); }
 .review-row { display: grid; grid-template-columns: 24px minmax(150px, 1fr) minmax(56px, .45fr) 58px minmax(92px, max-content); align-items: center; gap: 10px 16px; padding: 8px 12px; }
-.review-head { background: var(--day-soft, #efefe9); color: var(--day-muted, #58635c); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; padding-block: 7px; }
-.review-n { color: var(--day-muted, #58635c); font-variant-numeric: tabular-nums; text-align: right; }
+.review-head { background: var(--day-soft, var(--c-sunken)); color: var(--day-muted, var(--c-ink-2)); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; padding-block: 7px; }
+.review-n { color: var(--day-muted, var(--c-ink-2)); font-variant-numeric: tabular-nums; text-align: right; }
 .review-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.review-sum { font-weight: 600; color: var(--day-ink, #16211c); }
+.review-sum { font-weight: 600; color: var(--day-ink, var(--c-ink)); }
 .review-item { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.review-photo { width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: var(--day-soft, #efefe9); }
+.review-photo { width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--r-sm); overflow: hidden; background: var(--day-soft, var(--c-sunken)); }
 .review-photo .no-photo { min-height: 0; font-size: 0; }
 .review-photo .no-photo svg { width: 18px; height: 18px; }
-.review-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; color: var(--day-ink, #16211c); }
+.review-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; color: var(--day-ink, var(--c-ink)); }
 .review-title { display: grid; min-width: 0; gap: 3px; }
-.review-colour { overflow-wrap: anywhere; color: var(--day-muted, #58635c); line-height: 1.35; }
-.review-variant { color: var(--day-ink, #16211c); overflow-wrap: anywhere; }
-.review-parcel + .review-parcel { border-top: 1px solid var(--day-line-strong, #cbccc3); }
-.review-parcel-title { padding: 10px 12px 4px; font-size: 13px; font-weight: 700; color: var(--day-accent, #1f4d3b); }
-.review-model + .review-model { border-top: 1px dashed var(--day-line, #e2e2da); }
+.review-colour { overflow-wrap: anywhere; color: var(--day-muted, var(--c-ink-2)); line-height: 1.35; }
+.review-variant { color: var(--day-ink, var(--c-ink)); overflow-wrap: anywhere; }
+.review-parcel + .review-parcel { border-top: 1px solid var(--day-line-strong, var(--c-line-strong)); }
+.review-parcel-title { padding: 10px 12px 4px; font-size: 13px; font-weight: 700; color: var(--day-accent, var(--c-brand)); }
+.review-model + .review-model { border-top: 1px dashed var(--day-line, var(--c-line)); }
 .review-row-extra { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; margin-top: -2px; }
 .review-flag { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .review-flag.issue { color: var(--day-error, #a3341f); }
@@ -93,26 +93,26 @@
 .review-row.has-issue { background: color-mix(in srgb, var(--day-error, #a3341f) 6%, transparent); }
 .review-row.has-change { background: color-mix(in srgb, var(--day-warn, #8a5a12) 6%, transparent); }
 .review-later { font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
-.review-row-note { grid-column: 2 / -1; font-size: 13px; color: var(--day-muted, #58635c); line-height: 1.45; overflow-wrap: anywhere; }
-.review-row-note b { color: var(--day-ink, #16211c); font-weight: 600; }
-.review-note, .review-services { margin: 0; padding: 4px 12px 8px 54px; font-size: 13px; color: var(--day-muted, #58635c); line-height: 1.5; }
-.review-note b, .review-services b { color: var(--day-ink, #16211c); font-weight: 600; }
+.review-row-note { grid-column: 2 / -1; font-size: 13px; color: var(--day-muted, var(--c-ink-2)); line-height: 1.45; overflow-wrap: anywhere; }
+.review-row-note b { color: var(--day-ink, var(--c-ink)); font-weight: 600; }
+.review-note, .review-services { margin: 0; padding: 4px 12px 8px 54px; font-size: 13px; color: var(--day-muted, var(--c-ink-2)); line-height: 1.5; }
+.review-note b, .review-services b { color: var(--day-ink, var(--c-ink)); font-weight: 600; }
 
-.review-checklist { border: 1px solid var(--day-line, #e2e2da); border-radius: 12px; padding: 12px 14px; background: var(--day-surface, #fff); }
+.review-checklist { border: 1px solid var(--day-line, var(--c-line)); border-radius: var(--r-control); padding: 12px 14px; background: var(--day-surface, #fff); }
 .review-checklist h3 { font-size: 14px; margin: 0 0 8px; }
 .review-checklist ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .review-checklist li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 8px; align-items: start; font-size: 13px; }
-.review-check-mark { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--day-tint, #e8f1ea); color: var(--day-ok, #1d6b47); }
+.review-check-mark { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--day-tint, var(--c-selected)); color: var(--day-ok, var(--c-ok)); }
 .review-checklist li[data-ok="no"] .review-check-mark { background: color-mix(in srgb, var(--day-error, #a3341f) 12%, transparent); color: var(--day-error, #a3341f); }
 .review-check-body { display: grid; gap: 1px; min-width: 0; }
-.review-check-body > span { color: var(--day-muted, #58635c); }
-.review-check-body > b { font-weight: 600; color: var(--day-ink, #16211c); overflow-wrap: anywhere; }
+.review-check-body > span { color: var(--day-muted, var(--c-ink-2)); }
+.review-check-body > b { font-weight: 600; color: var(--day-ink, var(--c-ink)); overflow-wrap: anywhere; }
 .review-checklist .text-button { font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
 /* Under the amount: the store-delivery hold (once) and, under the button, what happens next. */
 .review-held, .review-next { margin: 0; line-height: 1.45; }
 /* The bill and customs in detail, folded: the amount and the button are what the step is about. */
-.review-details { border-top: 1px solid var(--day-line, #e2e2da); padding-top: 10px; }
-.review-details > summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--day-accent, #1f4d3b); }
+.review-details { border-top: 1px solid var(--day-line, var(--c-line)); padding-top: 10px; }
+.review-details > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--day-accent, var(--c-brand)); }
 .review-details[open] > summary { margin-bottom: 10px; }
 .review-details .calc-customs { margin-top: 12px; }
 
@@ -131,7 +131,7 @@
   .review-aside { display: contents; }
   .review-aside > .btn.primary.full, .review-confirm-bar { position: sticky; bottom: 0; z-index: 2; }
   .review-aside > .btn.primary.full { margin-bottom: env(safe-area-inset-bottom); box-shadow: 0 0 0 8px var(--background, #fff), 0 -10px 24px 8px rgba(20, 35, 68, .1); }
-  .review-confirm-bar { display: flex; flex-direction: column; align-items: stretch; gap: 0; margin: 0 -12px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--day-line, #e2e2da); background: var(--background, #fff); box-shadow: 0 -8px 20px rgba(20, 35, 68, .08); }
+  .review-confirm-bar { display: flex; flex-direction: column; align-items: stretch; gap: 0; margin: 0 -12px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--day-line, var(--c-line)); background: var(--background, #fff); box-shadow: var(--shadow-2); }
   .review-confirm-bar > .btn.primary.full { position: static; flex: none; width: 100%; max-width: none; min-height: 48px; margin: 0; box-shadow: none; }
   .review-confirm-bar .checkout-trust { margin-top: 6px; }
 }
@@ -161,7 +161,7 @@
   .review-item { grid-column: 2 / -1; grid-row: 1; margin-bottom: 4px; }
   .review-variant { grid-column: 2; grid-row: 2; font-size: 13px; }
   .review-sum { grid-column: 3; grid-row: 2; }
-  .review-num[data-label]:not(.review-sum) { grid-column: 2; grid-row: 3; justify-self: start; font-size: 13px; color: var(--day-muted, #58635c); }
+  .review-num[data-label]:not(.review-sum) { grid-column: 2; grid-row: 3; justify-self: start; font-size: 13px; color: var(--day-muted, var(--c-ink-2)); }
   .review-num[data-label]:not(.review-sum)::before { content: attr(data-label) ": "; }
   .review-row-extra { grid-column: 2 / -1; grid-row: 4; margin-top: 4px; }
   .review-note, .review-services { padding-left: 44px; }
@@ -185,7 +185,7 @@ html[data-theme="dark"] .review-check-mark { background: var(--night-jade-soft);
 html[data-theme="dark"] .review-details { border-top-color: var(--night-line); }
 html[data-theme="dark"] .review-details > summary { color: var(--night-jade); }
 html[data-theme="dark"] .review-colour { color: var(--night-muted); }
-html[data-theme="dark"] .review-confirm-bar { border-top-color: var(--night-line); background: var(--night-raised); box-shadow: 0 -8px 20px rgba(0, 0, 0, .35); }
+html[data-theme="dark"] .review-confirm-bar { border-top-color: var(--night-line); background: var(--night-raised); box-shadow: var(--shadow-2); }
 @media (max-width: 923px) {
   html[data-theme="dark"] .review-aside > .btn.primary.full { box-shadow: 0 0 0 8px var(--night-raised), 0 -10px 24px 8px rgba(0, 0, 0, .35); }
 }

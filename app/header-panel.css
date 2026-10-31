@@ -4,29 +4,29 @@
 
 /* ---------- Language menu ---------- */
 .lang-menu { position: relative; display: inline-flex; flex: none; }
-.lang-trigger { display: inline-flex; align-items: center; gap: 5px; min-width: 44px; min-height: 44px; padding: 0 9px; border: 1px solid var(--day-line, #e2e2da); border-radius: var(--day-r-control, 10px); background: transparent; color: var(--day-ink, #16211c); font: inherit; font-size: 13px; font-weight: 650; letter-spacing: .03em; cursor: pointer; }
-.lang-trigger:hover, .lang-trigger[aria-expanded="true"] { background: var(--day-soft, #efefe9); }
-.lang-trigger:focus-visible, .lang-menu-list button:focus-visible { outline: 2px solid var(--day-accent, #1f4d3b); outline-offset: 2px; }
-.lang-trigger svg { flex: none; color: var(--day-muted, #58635c); }
+.lang-trigger { display: inline-flex; align-items: center; gap: 5px; min-width: 44px; min-height: 44px; padding: 0 9px; border: 1px solid var(--day-line, var(--c-line)); border-radius: var(--day-r-control, 10px); background: transparent; color: var(--day-ink, var(--c-ink)); font: inherit; font-size: 13px; font-weight: 650; letter-spacing: .03em; cursor: pointer; }
+.lang-trigger:hover, .lang-trigger[aria-expanded="true"] { background: var(--day-soft, var(--c-sunken)); }
+.lang-trigger:focus-visible, .lang-menu-list button:focus-visible { outline: 2px solid var(--day-accent, var(--c-brand)); outline-offset: 2px; }
+.lang-trigger svg { flex: none; color: var(--day-muted, var(--c-ink-2)); }
 .lang-trigger .lang-chevron { transition: transform .15s; }
 .lang-trigger[aria-expanded="true"] .lang-chevron { transform: rotate(180deg); }
-.lang-menu-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; display: grid; gap: 2px; min-width: 220px; padding: 6px; border: 1px solid var(--day-line, #e2e2da); border-radius: 14px; background: var(--day-surface, #fff); box-shadow: 0 18px 40px -18px rgba(22, 33, 28, .35); }
+.lang-menu-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; display: grid; gap: 2px; min-width: 220px; padding: 6px; border: 1px solid var(--day-line, var(--c-line)); border-radius: var(--r-card); background: var(--day-surface, #fff); box-shadow: var(--shadow-3); }
 .lang-menu-list[hidden] { display: none; }
 /* The header is static and blurred (its own stacking layer): while the list is open it is lifted above the page. */
 .site-header:has(.lang-menu-list:not([hidden])) { position: relative; z-index: 45; }
-.lang-menu-list button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 6px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--day-ink, #16211c); font: inherit; text-align: left; cursor: pointer; }
-.lang-menu-list button:hover { background: var(--day-soft, #efefe9); }
-.lang-menu-list button[aria-current="true"] { background: var(--day-tint, #e8f1ea); color: var(--day-ok, #1d6b47); }
+.lang-menu-list button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 6px 12px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--day-ink, var(--c-ink)); font: inherit; text-align: left; cursor: pointer; }
+.lang-menu-list button:hover { background: var(--day-soft, var(--c-sunken)); }
+.lang-menu-list button[aria-current="true"] { background: var(--day-tint, var(--c-selected)); color: var(--day-ok, var(--c-ok)); }
 .lang-menu-list button > span { display: grid; line-height: 1.25; }
-.lang-menu-list b { font-size: 15px; font-weight: 600; }
+.lang-menu-list b { font-size: 14px; font-weight: 600; }
 .lang-menu-list svg { flex: none; }
-html[data-theme="dark"] .lang-trigger { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); color: var(--night-ink, #f1eee5); }
-html[data-theme="dark"] .lang-trigger svg { color: var(--night-muted, #9ba6a0); }
+html[data-theme="dark"] .lang-trigger { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); color: var(--night-ink, var(--night-ink)); }
+html[data-theme="dark"] .lang-trigger svg { color: var(--night-muted, var(--night-muted)); }
 html[data-theme="dark"] :is(.lang-trigger:hover, .lang-trigger[aria-expanded="true"], .lang-menu-list button:hover) { background: rgba(255, 255, 255, .06); }
-html[data-theme="dark"] .lang-menu-list { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: var(--night-surface, #111714); box-shadow: 0 18px 40px -16px rgba(0, 0, 0, .7); }
-html[data-theme="dark"] .lang-menu-list button { color: var(--night-ink, #f1eee5); }
-html[data-theme="dark"] .lang-menu-list button[aria-current="true"] { background: rgba(235, 228, 210, .1); color: var(--night-ivory, #ebe4d2); }
-html[data-theme="dark"] :is(.lang-trigger, .lang-menu-list button):focus-visible { outline-color: var(--night-ivory, #ebe4d2); }
+html[data-theme="dark"] .lang-menu-list { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: var(--night-surface, var(--night-surface)); box-shadow: var(--shadow-3); }
+html[data-theme="dark"] .lang-menu-list button { color: var(--night-ink, var(--night-ink)); }
+html[data-theme="dark"] .lang-menu-list button[aria-current="true"] { background: rgba(235, 228, 210, .1); color: var(--night-ivory, var(--night-ivory)); }
+html[data-theme="dark"] :is(.lang-trigger, .lang-menu-list button):focus-visible { outline-color: var(--night-ivory, var(--night-ivory)); }
 
 /* The theme switch stays in the header at every width (it used to move to the footer). */
 .site-header .header-theme { display: inline-flex; flex: none; }
@@ -54,18 +54,18 @@ html[data-theme="dark"] :is(.lang-trigger, .lang-menu-list button):focus-visible
 
 /* The bell: a soft tile like the language button, mint while hovered or open; the counter is a warm pill ringed with
    the header colour. With unread messages the bell swings once (re-keyed), and the counter pops when it changes. */
-.site-header .notice-link { position: relative; border: 1px solid transparent; border-radius: 12px; color: var(--day-ink, #16211c); transition: background-color .18s ease, border-color .18s ease, color .18s ease; }
-.site-header .notice-link:hover { background: var(--day-soft, #efefe9); }
-.site-header .notice-link.active { border-color: var(--day-tint-2, #d6e6db); background: var(--day-tint, #e8f1ea); color: var(--day-accent, #1f4d3b); }
+.site-header .notice-link { position: relative; border: 1px solid transparent; border-radius: var(--r-control); color: var(--day-ink, var(--c-ink)); transition: background-color .18s ease, border-color .18s ease, color .18s ease; }
+.site-header .notice-link:hover { background: var(--day-soft, var(--c-sunken)); }
+.site-header .notice-link.active { border-color: var(--day-tint-2, #d6e6db); background: var(--day-tint, var(--c-selected)); color: var(--day-accent, var(--c-brand)); }
 .site-header .notice-link svg { transform-origin: 50% 8%; }
 .site-header .notice-link.has-unread svg { animation: notice-bell-swing 1s cubic-bezier(.36, .07, .19, .97) .5s 1 both; }
-.site-header .notice-link > b { top: -5px; right: -6px; min-width: 20px; height: 20px; padding: 0 6px; border: 2px solid var(--day-surface, #fff); border-radius: 99px; background: linear-gradient(180deg, #d4623f 0%, #b9452c 100%); color: #fff; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0; box-shadow: 0 3px 8px -3px rgba(185, 69, 44, .7); }
+.site-header .notice-link > b { top: -5px; right: -6px; min-width: 20px; height: 20px; padding: 0 6px; border: 2px solid var(--day-surface, #fff); border-radius: var(--r-pill); background: linear-gradient(180deg, #d4623f 0%, #b9452c 100%); color: #fff; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0; box-shadow: var(--shadow-2); }
 .site-header .notice-link b { animation: notice-badge-pop .42s cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes notice-bell-swing { 0%, 100% { transform: none; } 15% { transform: rotate(14deg); } 30% { transform: rotate(-11deg); } 45% { transform: rotate(7deg); } 60% { transform: rotate(-4deg); } 75% { transform: rotate(2deg); } }
-html[data-theme="dark"] .site-header .notice-link { color: var(--night-ink-2, #d5d9d4); }
-html[data-theme="dark"] .site-header .notice-link:hover { background: rgba(255, 255, 255, .06); color: var(--night-ink, #f1eee5); }
-html[data-theme="dark"] .site-header .notice-link.active { border-color: rgba(128, 208, 172, .35); background: var(--night-jade-soft, rgba(128, 208, 172, .1)); color: var(--night-jade, #80d0ac); }
-html[data-theme="dark"] .site-header .notice-link > b { border-color: var(--night-canvas, #0a0e0c); background: linear-gradient(180deg, #d8654f 0%, #b9452c 100%); box-shadow: none; }
+html[data-theme="dark"] .site-header .notice-link { color: var(--night-ink-2, var(--night-ink-2)); }
+html[data-theme="dark"] .site-header .notice-link:hover { background: rgba(255, 255, 255, .06); color: var(--night-ink, var(--night-ink)); }
+html[data-theme="dark"] .site-header .notice-link.active { border-color: rgba(128, 208, 172, .35); background: var(--night-jade-soft, rgba(128, 208, 172, .1)); color: var(--night-jade, var(--night-jade)); }
+html[data-theme="dark"] .site-header .notice-link > b { border-color: var(--night-canvas, var(--night-canvas)); background: linear-gradient(180deg, #d8654f 0%, #b9452c 100%); box-shadow: none; }
 @keyframes notice-badge-pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* Reduced motion: the bell does not swing and the counter does not pop. */
@@ -77,13 +77,13 @@ html[data-theme="dark"] .site-header .notice-link > b { border-color: var(--nigh
 /* With a known count of 0 the cart is a quiet outlined button, so the page's own call to action stays the brightest thing
    in view; with items it keeps the filled green (Day) or ivory (Night) look and the counter. Until the count is known
    (a new tab) it keeps the filled look, so a cart with items never blinks. Beats day-folio.css (0,3,1)/(0,5,1). */
-html:not([data-theme="dark"]) body .site-header .cart-link.is-empty { background: var(--day-surface, #fff); color: var(--day-ink, #16211c); box-shadow: inset 0 0 0 1px var(--day-line-strong, #cbccc3); }
-html:not([data-theme="dark"]) body .site-header .cart-link.is-empty:hover:not(:disabled) { background: var(--day-soft, #efefe9); box-shadow: inset 0 0 0 1px var(--day-line-strong, #cbccc3); }
-html:not([data-theme="dark"]) body .site-header .cart-link.is-empty:active:not(:disabled) { box-shadow: inset 0 0 0 1px var(--day-line-strong, #cbccc3); }
+html:not([data-theme="dark"]) body .site-header .cart-link.is-empty { background: var(--day-surface, #fff); color: var(--day-ink, var(--c-ink)); box-shadow: inset 0 0 0 1px var(--day-line-strong, var(--c-line-strong)); }
+html:not([data-theme="dark"]) body .site-header .cart-link.is-empty:hover:not(:disabled) { background: var(--day-soft, var(--c-sunken)); box-shadow: inset 0 0 0 1px var(--day-line-strong, var(--c-line-strong)); }
+html:not([data-theme="dark"]) body .site-header .cart-link.is-empty:active:not(:disabled) { box-shadow: inset 0 0 0 1px var(--day-line-strong, var(--c-line-strong)); }
 /* Day draws the outline as an inset ring: atlas-design.css takes the cart's border away (border: 0). Both looks keep a 44px tap height. */
 body .site-header .cart-link { min-height: 44px; }
-html[data-theme="dark"] .site-header .cart-link.is-empty { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: transparent; color: var(--night-ink, #f1eee5); box-shadow: none; }
-html[data-theme="dark"] .site-header .cart-link.is-empty:hover { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: rgba(255, 255, 255, .05); color: var(--night-ink, #f1eee5); box-shadow: none; }
+html[data-theme="dark"] .site-header .cart-link.is-empty { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: transparent; color: var(--night-ink, var(--night-ink)); box-shadow: none; }
+html[data-theme="dark"] .site-header .cart-link.is-empty:hover { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: rgba(255, 255, 255, .05); color: var(--night-ink, var(--night-ink)); box-shadow: none; }
 
 /* ---------- Balance dot ---------- */
 /* A positive internal balance puts a small mint dot on the wallet icon's top-right corner (owner, 14.10.2026), so it is
@@ -94,19 +94,19 @@ html[data-theme="dark"] .site-header .cart-link.is-empty:hover { border-color: v
    onto the corner; `top` is counted from the middle, where the 19px icon is centred. */
 .site-header .wallet-link.has-balance { position: relative; }
 .site-header .wallet-link.has-balance::before { content: ""; position: absolute; top: calc(50% - 13.5px); margin-left: 11px; box-sizing: content-box; width: 8px; height: 8px; border: 2px solid var(--day-surface, #fff); border-radius: 50%; background: #3f9b72; pointer-events: none; }
-html[data-theme="dark"] .site-header .wallet-link.has-balance::before { border-color: var(--night-canvas, #0a0e0c); background: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .site-header .wallet-link.has-balance::before { border-color: var(--night-canvas, var(--night-canvas)); background: var(--night-jade, var(--night-jade)); }
 
 /* ---------- Toasts (sonner) ---------- */
 /* Inter like the rest of the page, softer corners, and calm Day colours: white cards with a coloured edge and text
    instead of the library's bright tinted fills. Night keeps its own values (theme-night.css). */
 :root body [data-sonner-toaster] { font-family: inherit; }
-:root body [data-sonner-toast] { border-radius: 12px; }
+:root body [data-sonner-toast] { border-radius: var(--r-control); }
 html:not([data-theme="dark"]) [data-sonner-toaster] {
-  --normal-bg: #fff; --normal-border: var(--day-line, #e2e2da); --normal-text: var(--day-ink, #16211c);
-  --success-bg: #fff; --success-border: #cfe3d6; --success-text: #1d6b47;
+  --normal-bg: #fff; --normal-border: var(--day-line, var(--c-line)); --normal-text: var(--day-ink, var(--c-ink));
+  --success-bg: #fff; --success-border: #cfe3d6; --success-text: var(--c-ok);
   --error-bg: #fff; --error-border: #f1c9c4; --error-text: #9b2c20;
   --warning-bg: #fffaf0; --warning-border: #f0dca8; --warning-text: #7a5a12;
 }
-html:not([data-theme="dark"]) [data-sonner-toast] { box-shadow: 0 14px 32px -14px rgba(22, 33, 28, .28), 0 2px 6px rgba(22, 33, 28, .06); }
+html:not([data-theme="dark"]) [data-sonner-toast] { box-shadow: var(--shadow-3); }
 /* Success shows sonner's tick icon; no coloured stripe down the left edge (27 October 2026). */
 html:not([data-theme="dark"]) [data-sonner-toast][data-type="success"] [data-icon] { color: #2f7d58; }

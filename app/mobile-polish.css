@@ -6,7 +6,7 @@ body:has([role=dialog][data-state=open],[role=listbox][data-state=open]) .storag
   /* Let copy reflow instead of creating hidden page overflow. */
   .site-main{padding-inline:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
   .page-heading{gap:12px;margin-bottom:24px}
-  .page-heading h1{font-size:clamp(28px,8vw,36px);line-height:1.15;overflow-wrap:anywhere}
+  .page-heading h1{font-size:clamp(30px,8vw,40px);line-height:1.15;overflow-wrap:anywhere}
   .page-heading p{font-size:16px;line-height:1.5}
   .site-main :is(.field input:not([type=checkbox]):not([type=radio]),.field textarea,.select-control,.field select){font-size:16px;min-height:48px;line-height:1.4}
   .site-main :is(.btn,.text-button,.icon-btn){min-height:44px}

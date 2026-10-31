@@ -5,11 +5,11 @@
 .ambient {
   position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; user-select: none; contain: strict;
   --amb-mint: rgba(120, 210, 168, .30); --amb-green: rgba(32, 78, 61, .10); --amb-gold: rgba(240, 190, 100, .22);
-  --amb-mark: #1f4d3b; --amb-mark-a: .035;
+  --amb-mark: var(--c-brand); --amb-mark-a: .035;
 }
 html[data-theme="dark"] .ambient {
   --amb-mint: rgba(92, 196, 150, .14); --amb-green: rgba(174, 187, 220, .07); --amb-gold: rgba(222, 178, 98, .09);
-  --amb-mark: #ebe4d2; --amb-mark-a: .03;
+  --amb-mark: var(--night-ivory); --amb-mark-a: .03;
 }
 
 .ambient-glow { position: absolute; border-radius: 50%; filter: blur(60px); will-change: transform; }
@@ -43,3 +43,9 @@ html[data-theme="dark"] .ambient {
 
 /* Work screens and the home page on wide screens (it has its own decor, app/home-wide-decor.css) go without it. */
 html:has(main[data-view="operations"], main[data-view="admin"], .operator-admin) .ambient { display: none; }
+
+/* Direction A (owner, 31.10.2026): working pages stand on a flat canvas. The glows and the watermark stay only behind
+   the first screen of the home page: there the backdrop scrolls away with the page instead of staying fixed. Every other
+   page (catalog, stores, link order, cart, account, customs, support, sign-in…) goes without it. */
+html:not([data-view="catalog"]) .ambient { display: none; }
+html[data-view="catalog"] .ambient { position: absolute; inset: 0 0 auto; height: 100svh; }

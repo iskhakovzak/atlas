@@ -23,7 +23,7 @@ html[data-theme="dark"] .store-logo.store-logo-vector { border-color: var(--home
 .home-stores.home-stores-marquee .store-marquee ul { display: flex; flex-wrap: nowrap; gap: 0; margin: 0; padding: 0; overflow: visible; list-style: none; -webkit-mask-image: none; mask-image: none; }
 .home-stores.home-stores-marquee .store-marquee li { flex: none; }
 html body .home-stores.home-stores-marquee .store-marquee a {
-  display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: none;
+  display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 0 16px; border: 0; border-radius: var(--r-control); background: none;
   color: var(--home-ink); font-size: 16px; font-weight: 650; letter-spacing: -.01em; white-space: nowrap; text-decoration: none; opacity: .78; transition: opacity .2s;
 }
 html body .home-stores.home-stores-marquee .store-marquee a:hover { border: 0; opacity: 1; text-decoration: none; }
@@ -32,7 +32,7 @@ html body .home-stores.home-stores-marquee .store-marquee a:focus-visible { opac
    with an arrow; the ribbon's tile look above (padding, opacity, larger type at 960px+) is not for it. */
 html body .home-stores.home-stores-marquee .store-marquee .store-marquee-foot a.home-stores-all {
   display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0; border: 0; border-radius: 0; background: none; opacity: 1;
-  color: var(--day-accent, #1f4d3b); font-size: 15px; font-weight: 600; letter-spacing: normal;
+  color: var(--day-accent, var(--c-brand)); font-size: 14px; font-weight: 600; letter-spacing: normal;
   text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px;
 }
 html body .home-stores.home-stores-marquee .store-marquee .store-marquee-foot a.home-stores-all:hover { text-decoration: underline; text-decoration-thickness: 2px; }
@@ -45,7 +45,7 @@ html[data-theme="dark"] body .home-stores.home-stores-marquee .store-marquee .st
    a soft aurora and the delivery sky (app/delivery-sky.tsx). */
 .store-marquee { position: relative; isolation: isolate; padding-top: 8px; }
 .store-marquee::before {
-  content: ""; position: absolute; z-index: -2; inset: -18px 0 -10px; pointer-events: none; border-radius: 40px; filter: blur(26px);
+  content: ""; position: absolute; z-index: -2; inset: -18px 0 -10px; pointer-events: none; border-radius: var(--r-pill); filter: blur(26px);
   background:
     radial-gradient(40% 70% at 16% 50%, rgba(76, 170, 128, .2), transparent 72%),
     radial-gradient(34% 70% at 86% 56%, rgba(214, 168, 92, .18), transparent 72%);
@@ -79,7 +79,7 @@ html[data-theme="dark"] .delivery-sky { --sky-mint: 140, 214, 180; --sky-gold: 2
 /* Comets (app/delivery-sky.tsx cometKeyframes): a fading tail and a glowing head; the head sits on the point the
    keyframes move, so they only animate transform and opacity. */
 .sky-comet {
-  position: absolute; left: -30px; top: -1.5px; width: 30px; height: 3px; border-radius: 3px; opacity: 0;
+  position: absolute; left: -30px; top: -1.5px; width: 30px; height: 3px; border-radius: var(--r-pill); opacity: 0;
   transform-origin: 100% 50%; will-change: transform, opacity; pointer-events: none;
   background: linear-gradient(90deg, rgba(var(--sky-mint), 0), rgba(var(--sky-mint), var(--sky-pulse-a)));
 }

@@ -163,7 +163,7 @@
 @media (min-width: 1024px) {
   html:not([data-theme="dark"]) .home-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
   html:not([data-theme="dark"]) .home-steps::before { display: none; }
-  html:not([data-theme="dark"]) .home-step { position: relative; padding: 22px 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+  html:not([data-theme="dark"]) .home-step { position: relative; padding: 22px 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--shadow-2); }
   html:not([data-theme="dark"]) .home-step-station { position: static; width: 36px; height: 36px; margin-bottom: 18px; font-size: 14px; box-shadow: none; }
 }
 /* Tracking demo: a white card with a horizontal route on wide screens. */
@@ -178,7 +178,7 @@
 @media (min-width: 960px) {
   .store-marquee-row.single { display: none; }
   .store-marquee-row.double { display: block; }
-  html body .home-stores.home-stores-marquee .store-marquee a { min-height: 50px; padding: 0 20px; font-size: 17px; }
+  html body .home-stores.home-stores-marquee .store-marquee a { min-height: 50px; padding: 0 20px; font-size: 16px; }
   .home-stores.home-stores-marquee .store-marquee .store-mark { zoom: 1.1; }
 }
 
@@ -193,7 +193,7 @@
   .site-header:has(.header-account.member) .cart-link .desktop-only { display: none; }
 }
 @media (min-width: 761px) and (max-width: 900px) {
-  .site-header:has(.header-account.member) .wordmark { font-size: 38px; }
+  .site-header:has(.header-account.member) .wordmark { font-size: 40px; }
   .site-header:has(.header-account.member) .header-actions { gap: 4px; }
   .site-header:has(.header-account.member) .desktop-nav { margin-left: 0; }
   .site-header:has(.header-account.member) .desktop-nav a { padding-inline: 8px; }

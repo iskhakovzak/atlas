@@ -16,17 +16,17 @@
   .hw-rail-steps { position: relative; }
   .hw-rail-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
   /* --hw-rail-t0 / --hw-rail-len: the first and last items' centres, measured by app/home-rail.tsx */
-  .hw-rail-track, .hw-rail-fill { position: absolute; left: 7px; top: var(--hw-rail-t0, 21px); width: 2px; height: var(--hw-rail-len, 0px); border-radius: 2px; pointer-events: none; }
+  .hw-rail-track, .hw-rail-fill { position: absolute; left: 7px; top: var(--hw-rail-t0, 21px); width: 2px; height: var(--hw-rail-len, 0px); border-radius: var(--r-pill); pointer-events: none; }
   .hw-rail-track { background: var(--hwr-track); }
   /* Progress is an inline transform (compositor), not a height. No transition: the scroll itself animates it,
      and a running transition would restyle the rail every frame. */
   .hw-rail-fill { background: var(--hwr-fill); transform-origin: 50% 0; transform: scaleY(0); will-change: transform; }
-  .hw-rail-item { position: relative; display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: center; column-gap: 14px; min-height: 44px; color: var(--hwr-muted); text-decoration: none; border-radius: 12px; }
+  .hw-rail-item { position: relative; display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: center; column-gap: 14px; min-height: 44px; color: var(--hwr-muted); text-decoration: none; border-radius: var(--r-control); }
   .hw-rail-dot { position: relative; z-index: 1; justify-self: center; width: 10px; height: 10px; box-sizing: border-box; border: 2px solid var(--hwr-track); border-radius: 50%; background: var(--hwr-dot-bg); transition: background-color .2s, border-color .2s; }
-  .hw-rail-card { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center; column-gap: 10px; min-height: 40px; padding: 0 14px; box-sizing: border-box; border: 1px solid transparent; border-radius: 12px; transition: background-color .2s, border-color .2s, box-shadow .2s, color .2s; }
+  .hw-rail-card { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center; column-gap: 10px; min-height: 40px; padding: 0 14px; box-sizing: border-box; border: 1px solid transparent; border-radius: var(--r-control); transition: background-color .2s, border-color .2s, box-shadow .2s, color .2s; }
   /* Full strength in the compact rail, where the number is the only visible text of a link; dimmed from 1920 next to its name */
   .hw-rail-num { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
-  .hw-rail-label { overflow: hidden; font-size: 15px; font-weight: 550; line-height: 1.25; white-space: nowrap; text-overflow: ellipsis; }
+  .hw-rail-label { overflow: hidden; font-size: 14px; font-weight: 550; line-height: 1.25; white-space: nowrap; text-overflow: ellipsis; }
   .hw-rail-item:hover .hw-rail-card { color: var(--hwr-ink); }
   .hw-rail-item:not([aria-current]):hover .hw-rail-card { background: var(--hwr-hover); }
   .hw-rail .hw-rail-item:focus-visible { outline: none; box-shadow: none; }
@@ -38,7 +38,7 @@
   .hw-rail-item { z-index: 1; }
   .hw-rail-glider {
     position: absolute; z-index: 0; left: 30px; right: 0; top: -20px; height: 40px; box-sizing: border-box; pointer-events: none;
-    border: 1px solid var(--hwr-card-line); border-radius: 12px; background: var(--hwr-card); box-shadow: var(--hwr-card-shadow);
+    border: 1px solid var(--hwr-card-line); border-radius: var(--r-control); background: var(--hwr-card); box-shadow: var(--hwr-card-shadow);
     opacity: 0; will-change: transform; transition: transform .55s cubic-bezier(.22, 1, .36, 1), opacity .3s;
   }
   .hw-rail-glider[data-on] { opacity: 1; }
@@ -53,8 +53,8 @@
   .hw-rail-item[aria-current] .hw-rail-dot { border-color: var(--hwr-fill); background: var(--hwr-fill); }
   /* The rail's action is a quiet outline button: the filled green stays on the page's own main actions.
      It shows only on sheets without main buttons of their own (data-cta, app/home-rail.tsx). */
-  .hw-rail-cta.btn { display: none; align-self: flex-start; gap: 8px; min-height: 42px; margin-left: 30px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 650; white-space: nowrap; transition: opacity .2s, visibility .2s, transform .2s; }
-  html:not([data-theme="dark"]) .hw-rail-cta.btn.secondary { border: 1px solid var(--day-line-strong); background: var(--day-surface); color: var(--day-ink); box-shadow: var(--day-shadow); }
+  .hw-rail-cta.btn { display: none; align-self: flex-start; gap: 8px; min-height: 42px; margin-left: 30px; padding: 0 16px; border-radius: var(--r-control); font-size: 14px; font-weight: 650; white-space: nowrap; transition: opacity .2s, visibility .2s, transform .2s; }
+  html:not([data-theme="dark"]) .hw-rail-cta.btn.secondary { border: 1px solid var(--day-line-strong); background: var(--day-surface); color: var(--day-ink); box-shadow: var(--shadow-2); }
   html:not([data-theme="dark"]) .hw-rail-cta.btn.secondary:not(:disabled):hover { border-color: var(--day-tint-2); background: var(--day-tint); }
   html:not([data-theme="dark"]) .hw-rail-cta.btn svg { color: var(--day-accent); }
   html[data-theme="dark"] .hw-rail-cta.btn svg { color: var(--night-jade); }
@@ -68,7 +68,7 @@
   .hw-rail-glider { left: 24px; right: auto; width: 36px; }
   .hw-rail-label {
     position: absolute; z-index: 2; left: calc(100% + 6px); top: 50%; transform: translateY(-50%); overflow: visible;
-    padding: 7px 12px; border: 1px solid var(--hwr-card-line); border-radius: 10px; background: var(--hwr-card); box-shadow: var(--hwr-card-shadow);
+    padding: 7px 12px; border: 1px solid var(--hwr-card-line); border-radius: var(--r-control); background: var(--hwr-card); box-shadow: var(--hwr-card-shadow);
     color: var(--hwr-ink); font-size: 14px; pointer-events: none; opacity: 0; clip-path: inset(50%); transition: opacity .15s;
   }
   .hw-rail-item:is(:hover, :focus-visible) .hw-rail-label { opacity: 1; clip-path: none; }
@@ -87,7 +87,7 @@
   html[data-view="catalog"]:is(html) body .catalog-home .home-top:has(> .hw-next) > .home-next-how { display: none; }
   html[data-view="catalog"]:is(html) body .catalog-home .hw-next {
     display: inline-flex; position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
-    align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px;
+    align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: var(--r-pill);
     color: var(--hwr-muted); font-size: 14px; font-weight: 600; line-height: 1.2; text-decoration: none; white-space: nowrap;
   }
   html[data-view="catalog"]:is(html) body .catalog-home .hw-next:hover { color: var(--hwr-ink); }

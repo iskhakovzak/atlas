@@ -9,6 +9,8 @@ import "@fontsource-variable/inter/opsz.css";
 // Manrope (only the wordmark uses it): the fontsource faces, with the letters of "atlas" in a 5.9 KB file of their own
 // (app/fonts/manrope.css, written by scripts/wordmark-font.mjs).
 import "./fonts/manrope.css";
+// The design tokens (colours, type scale, radii, shadows, spacing, heights, motion) come first: every later file reads them.
+import "./tokens.css";
 import { preload } from "react-dom";
 import interLatin from "@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url";
 import interCyrillic from "@fontsource-variable/inter/files/inter-cyrillic-opsz-normal.woff2?url";
@@ -27,7 +29,6 @@ import "./access.css";
 import "./login.css";
 import "./experience.css";
 import "./home-polish.css";
-import "./dark-theme.css";
 import "./mobile-polish.css";
 import "./customer-mobile.css";
 import "./home.css";

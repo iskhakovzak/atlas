@@ -15,7 +15,7 @@ const getServerSnapshot = () => false;
 function ThemeColorSync() {
   const { resolvedTheme } = useTheme();
   useEffect(() => {
-    const color = resolvedTheme === "dark" ? "#0a0e0c" : "#ffffff";
+    const color = resolvedTheme === "dark" ? "#0f1512" : "#ffffff";
     for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute("content", color);
   }, [resolvedTheme]);
   return null;
@@ -52,7 +52,7 @@ export function ThemeToggle({ locale }: { locale: Locale }) {
   const [moved, setMoved] = useState(false);
   // Owner, 7.10.2026: "the theme switch lags badly". next-themes' disableTransitionOnChange inserted and removed a
   // stylesheet around the switch and then wrote color-scheme into html's inline style: each a restyle of the whole page
-  // (~150ms on the home page), even with the same value. Now color-scheme comes from CSS (app/dark-theme.css), the
+  // (~150ms on the home page), even with the same value. Now color-scheme comes from CSS (app/tokens.css), the
   // attribute is set here once (next-themes then writes the same value, which costs nothing) and the new theme lands in
   // one restyle, inside a view transition: the page cross-fades on the compositor instead of jumping.
   const toggle = () => {

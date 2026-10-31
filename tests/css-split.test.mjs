@@ -21,9 +21,9 @@ const resolve = (file, spec) => (spec.startsWith('.') ? posix.join(posix.dirname
 const isSplit = (path) => path.startsWith('app/styles/');
 
 const LAYOUT_CSS = [
-  '@fontsource-variable/inter/opsz.css', './fonts/manrope.css',
+  '@fontsource-variable/inter/opsz.css', './fonts/manrope.css', './tokens.css',
   './globals.css', './atlas-design.css', './finds.css', './checkout-clarity.css', './access.css', './login.css',
-  './experience.css', './home-polish.css', './dark-theme.css', './mobile-polish.css', './customer-mobile.css', './home.css',
+  './experience.css', './home-polish.css', './mobile-polish.css', './customer-mobile.css', './home.css',
   './customer.css', './theme-night.css', './catalog.css', './stores.css', './mobile.css', './refine.css', './day-folio.css',
   './native.css', './store-marks.css', './ambient.css', './checkbox.css', './press.css', './header-panel.css', './motion.css',
   './link-inputs.css',

@@ -2,64 +2,7 @@
    loaded after this file. Older layers still name --home-*, --cat-* and --atlas-* tokens; here they
    all resolve to the same day palette. */
 
-/* ---------- Atlas Day palette: light canvas, white cards, ink, the brand green; light accents only where they carry news ---------- */
-:root:not([data-theme="dark"]) {
-  --day-canvas: #f6f6f2;          /* page: ink 15.4:1, muted 5.78:1, accent 8.88:1 */
-  --day-surface: #ffffff;         /* cards, sheets, header, inputs, photo stages, dialogs */
-  --day-soft: #efefe9;            /* segmented tracks, opened breakdowns, quiet fills */
-  --day-tint: #e8f1ea;            /* soft mint: selected chip or language, badges, good-news wells (ok text 5.61:1) */
-  --day-tint-2: #d6e6db;          /* mint borders and the plate's edge */
-  --day-line: #e2e2da;            /* decorative hairlines only */
-  --day-line-strong: #cbccc3;     /* chip outlines; chips are identified by their text */
-  --day-line-strong-2: #d5d6cd;   /* the not-yet part of step and tracking rails */
-  --day-field: #80877f;           /* form-control borders: 3.69:1 on white */
-  --day-leader: #a9aea6;          /* dotted bill leaders (decorative) */
-  --day-ink: #16211c;
-  --day-muted: #58635c;           /* stays AA on soft and mint */
-  --day-accent: #1f4d3b;          /* the brand green: actions, links, focus (white on it 9.62:1) */
-  --day-accent-hover: #173b2d;
-  --day-fresh: #6f9a83;           /* soft sage for marks only (bars, rails): 3.17:1, never for text */
-  --day-folio: #edf3ee;           /* the light plate behind a bill */
-  --day-slip: #fdf8ec;            /* the "not in the amount to pay" slip (muted 5.91:1) */
-  --day-slip-line: #f0e5c6;
-  --day-deal: #efe2bb;            /* top-deal gold */
-  --day-ok: #1d6b47;
-  --day-ok-bg: var(--day-tint);
-  --day-ok-line: #bfdccb;
-  --day-warn: #8a5a00;
-  --day-warn-bg: #fff4dc;
-  --day-error: #b42318;
-  --day-shadow: 0 1px 2px rgba(22, 33, 28, .04), 0 6px 18px rgba(22, 33, 28, .05);
-  --day-shadow-lift: 0 2px 4px rgba(22, 33, 28, .04), 0 14px 32px rgba(22, 33, 28, .08);
-  --day-raise-form: 0 1px 0 rgba(22, 33, 28, .04), 0 18px 36px -24px rgba(22, 33, 28, .28);
-  --day-ring: 0 0 0 3px rgba(31, 77, 59, .16);
-
-  --day-sans: "Inter Variable", "Inter", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
-  --day-fs-lead: 18px;
-  --day-fs-h3: 18px;
-  --day-fs-h2-sheet: 20px;
-  --day-fs-h2: 34px;
-  --day-fs-h1-page: clamp(30px, 3vw, 38px);
-  --day-fs-h1: clamp(38px, 4.2vw, 54px);
-  --day-money-xl: 40px;           /* home bill */
-  --day-money-l: 34px;            /* cart and link-order total */
-  --day-money-m: 32px;            /* cabinet amount due */
-  --day-r-control: 10px;
-  --day-r-sheet: 14px;
-  --day-r-card: 18px;
-  --day-r-stage: 14px;
-  --day-r-plate: 22px;
-  --day-section: 96px;
-
-  --home-ink: var(--day-ink); --home-muted: var(--day-muted); --home-line: var(--day-line);
-  --home-soft: var(--day-soft); --home-surface: var(--day-surface); --home-accent: var(--day-accent);
-  --cat-ink: var(--day-ink); --cat-muted: var(--day-muted); --cat-line: var(--day-line); --cat-soft: var(--day-soft);
-  --cat-surface: var(--day-surface); --cat-accent: var(--day-accent); --cat-on: var(--day-accent);
-  --cat-ok: var(--day-ok); --cat-ok-bg: var(--day-ok-bg); --cat-ok-line: var(--day-ok-line);
-  --atlas-ink: var(--day-ink); --atlas-line: var(--day-line); --atlas-soft: var(--day-soft); --atlas-blue: var(--day-accent);
-  --background: var(--day-canvas); --foreground: var(--day-ink); --border: var(--day-line); --input: var(--day-line-strong);
-  --primary: var(--day-accent); --ring: var(--day-accent); --muted-foreground: var(--day-muted);
-}
+/* The Atlas Day tokens (--day-*) are aliases in app/tokens.css. */
 /* ---------- Checkboxes and choices (both themes size; day colours) ---------- */
 /* The boxes themselves (size, colours, tick, tap target) live in app/checkbox.css. */
 html:not([data-theme="dark"]) :is(.basket-consent, .consent, .basket-balance, .basket-service):has([data-slot="checkbox"][data-state="checked"]) { border-color: var(--day-accent); background: #eef4f0; }
@@ -72,23 +15,23 @@ html:not([data-theme="dark"]) .site-header { border-bottom-color: var(--day-line
 html:not([data-theme="dark"]) ::selection { background: rgba(31, 77, 59, .16); }
 /* The old breadcrumb grey (#65738b) falls just below 4.5:1 on the warm canvas. */
 html:not([data-theme="dark"]) .breadcrumb { color: var(--day-muted); }
-html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf button, .basket-parcel, .basket-summary, .cabinet-card, .order-x, .surface) { box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf button, .basket-parcel, .basket-summary, .cabinet-card, .order-x, .surface) { box-shadow: var(--shadow-2); }
 html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf button, .surface, .cabinet-card, .order-x) { border-color: var(--day-line); }
 html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: var(--day-accent-hover); }
 
 /* ---------- Catalog cards: long soum totals never leave the card ---------- */
 @media (max-width: 600px) {
   /* 44px to tap; the painted circle stays 36px (padding outside the background). */
-  :is(.catalog-page, .catalog-teaser) .find-card .find-store-price b { font-size: 13.5px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-store-price b { font-size: 13px; }
   /* "+N soum to the parcel": the store line on top, the amount below it. */
-  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel > b { grid-column: 1 / -1; font-size: clamp(11.5px, 3.5vw, 13px); }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel > b { grid-column: 1 / -1; font-size: clamp(12px, 3.5vw, 13px); }
 }
 
 /* ---------- 320–359 px phones: the header fits without sideways scrolling ---------- */
 @media (max-width: 359px) {
   .site-header { gap: 6px; }
   .site-header .header-actions { gap: 2px !important; }
-  .site-header .wordmark { font-size: 23px !important; }
+  .site-header .wordmark { font-size: 24px !important; }
   .site-header .wordmark svg { width: 20px !important; height: 20px !important; }
   .site-header .icon-btn { min-width: 36px !important; }
 }
@@ -96,14 +39,14 @@ html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: va
 .stores-link { grid-template-columns: minmax(0, 1fr); }
 /* The phone bar's longest label fits at 320 px. */
 @media (max-width: 359px) {
-  .mobile-nav a span, .mobile-nav button span { font-size: 10.5px !important; letter-spacing: -.01em; }
+  .mobile-nav a span, .mobile-nav button span { font-size: 12px !important; letter-spacing: -.01em; }
 }
 
 /* ---------- Phones: a lighter scale ---------- */
 @media (max-width: 600px) {
   /* Header: 60px instead of 80px. */
   .site-header { min-height: 60px; }
-  .site-header .wordmark { font-size: 26px; }
+  .site-header .wordmark { font-size: 24px; }
   .site-header .wordmark svg { width: 23px; height: 23px; }
   .site-header .icon-btn { min-width: 40px; min-height: 40px; }
   /* The unread count sits on the bell's corner, inside the screen. */
@@ -111,19 +54,19 @@ html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: va
   .site-header .notice-link b { right: -2px; top: -4px; }
 
   /* Page titles 25px, section titles 20–21px, leads 15px; weights one step lighter. */
-  .site-main h1 { font-size: 25px; line-height: 1.15; font-weight: 760; letter-spacing: -.03em; }
-  .site-main .home-hero h1 { font-size: 29px; line-height: 1.1; }
-  .site-main :is(.home-section, .home-example-copy, .catalog-teaser > header) h2 { font-size: 21px; line-height: 1.2; font-weight: 740; letter-spacing: -.025em; }
-  .site-main :is(.catalog-end, .catalog-empty, .surface, .communication-heading, .cabinet-next-body) h2 { font-size: 19px; line-height: 1.25; }
+  .site-main h1 { font-size: 24px; line-height: 1.15; font-weight: 760; letter-spacing: -.02em; }
+  .site-main .home-hero h1 { font-size: 30px; line-height: 1.1; }
+  .site-main :is(.home-section, .home-example-copy, .catalog-teaser > header) h2 { font-size: 20px; line-height: 1.2; font-weight: 740; letter-spacing: -.02em; }
+  .site-main :is(.catalog-end, .catalog-empty, .surface, .communication-heading, .cabinet-next-body) h2 { font-size: 18px; line-height: 1.25; }
   .home-hero { padding: 20px 0 26px; }
-  .home-hero-lead, .catalog-teaser > header p, .page-heading p, .stores-intro { font-size: 15px; line-height: 1.5; }
+  .home-hero-lead, .catalog-teaser > header p, .page-heading p, .stores-intro { font-size: 14px; line-height: 1.5; }
   .home-hero-lead { margin-top: 12px; }
   .home-link-form { margin-top: 18px; }
   .home-link-field input { font-size: 16px; }
   .home-link-form .home-cta { min-height: 50px; font-size: 16px; }
 
   /* Catalog head: title, one line of counters, short banners. */
-  :is(.catalog-categories, .catalog-sets, .catalog-chips, .catalog-active) > button:not(.text-button) { min-height: 40px; padding: 0 12px; font-size: 13.5px; }
+  :is(.catalog-categories, .catalog-sets, .catalog-chips, .catalog-active) > button:not(.text-button) { min-height: 40px; padding: 0 12px; font-size: 13px; }
 }
 
 /* Both themes: short titles wrap into even lines instead of leaving one word hanging (ui-ux-pro-max heading-line-balance, 13.10.2026).
