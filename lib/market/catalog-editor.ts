@@ -6,6 +6,7 @@ import {dedupeSafeImages,inferProductCategory,safeImage,type Extracted} from '..
 import {isManualEntryStoreHost,isSupportedStoreHost} from '../importer/stores.ts';
 import {isOrderableVariant} from '../importer/variant-normalization.ts';
 import {estimateBoxedWeight} from './weight.ts';
+import {topDealIds} from './top-deal.ts';
 import {catalogFacetsSchema,catalogFacetsVersion,categoryFromFacets,deriveCatalogFacets,weightForFacets,type CatalogFacets} from './catalog-facets.ts';
 
 export const catalogCategories=['Обувь','Одежда','Электроника','Аксессуары','Красота и уход','Дом и быт','Спорт','Другое'] as const;
@@ -537,7 +538,9 @@ export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.
     return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:recordedUsd??1,sourcePrice:hasRecordedPrice?d.price:undefined,sourceCurrency:hasRecordedPrice?d.currency:undefined,referenceUsd:(!priceNeedsConfirmation||(hasRecordedPrice&&d.currency==='USD'))&&d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:sourceImages[0]??'',sourceImages,sourceVariants,sourceColorwayImages:d.colorwayImages?.map(g=>({color:g.color,colorId:g.colorId,images:dedupeSafeImages(g.images,d.sourceUrl,12)})),sourceUrl:d.sourceUrl,sourceGroupId:d.groupId,sourceVariantScope:d.variantScope,sourceVariantsComplete:d.variantsComplete,description:cleanGeneratedCatalogDescription(d.description),country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:priceNeedsConfirmation?['Уточнить вариант в магазине']:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:sourceShippingUsd,sourceShippingUsd,sourceShippingCurrency:'USD',sourceShippingEstimated,shippingKnown:!sourceShippingEstimated,sourceExpiresAt:Math.max(d.checkedAt,d.confirmedAt??0)+catalogLifetime,sourceCheckedAt:d.checkedAt,collectionIds:d.collectionIds,priceNeedsConfirmation,...(entry.publishedAt??entry.createdAt?{addedAt:entry.publishedAt??entry.createdAt}:{}),...(d.rank===undefined?{}:{rank:d.rank}),...(d.confirmedAt===undefined?{}:{confirmedAt:d.confirmedAt}),...(d.facets?{facets:d.facets}:{})}];
   });
   const collections=document.collections.filter(c=>c.visible).sort((a,b)=>a.position-b.position).map(c=>({...c,productIds:products.filter(p=>p.collectionIds?.includes(c.id)).map(p=>p.id)})).filter(c=>c.productIds.length);
-  return {products,collections};
+  // «Топ-цена»: the best ~12 % of the catalogue by discount × savings, ranked within each category (lib/market/top-deal.ts).
+  const top=topDealIds(products.map(p=>{const savingsUsd=p.referenceUsd&&p.referenceUsd>p.usd?p.referenceUsd-p.usd:0;return {id:p.id,category:p.category,savingsUsd,discount:p.referenceUsd&&savingsUsd>0?Math.round(savingsUsd/p.referenceUsd*100):0}}));
+  return {products:top.size?products.map(p=>top.has(p.id)?{...p,topDeal:true as const}:p):products,collections};
 }
 
 export type CatalogCommand=
