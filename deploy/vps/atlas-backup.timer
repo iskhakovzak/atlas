@@ -1,0 +1,10 @@
+[Unit]
+Description=Nightly Atlas local backup
+
+[Timer]
+OnCalendar=*-*-* 02:15:00 UTC
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

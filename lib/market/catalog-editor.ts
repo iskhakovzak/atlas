@@ -82,7 +82,7 @@ export type CatalogAvailabilityReport=z.infer<typeof catalogAvailabilityReportSc
 export const catalogMaxEntries=2000;
 const bundledCatalogIds=new Set(bundledMerchantFinds.map(item=>item.id));
 export function isBundledCatalogEntry(id:string){return bundledCatalogIds.has(id)}
-export const catalogDocumentSchema=z.object({revision:z.number().int().nonnegative(),entries:z.array(catalogEntrySchema).max(catalogMaxEntries),collections:z.array(collectionSchema).max(30),availabilityReports:z.array(catalogAvailabilityReportSchema).max(300).optional()});
+export const catalogDocumentSchema=z.object({revision:z.number().int().nonnegative(),entries:z.array(catalogEntrySchema).max(catalogMaxEntries),collections:z.array(collectionSchema).max(30),availabilityReports:z.array(catalogAvailabilityReportSchema).max(300).optional(),bundledSyncDisabled:z.boolean().optional()});
 export type CatalogDocument=z.infer<typeof catalogDocumentSchema>;
 export const catalogLifetime=7*24*60*60*1000;
 /** A card is due once a day; the scheduler spreads the work across small runs. */
@@ -130,6 +130,9 @@ export function initialCatalog():CatalogDocument{
 
 /** Adds newly bundled products to an existing D1 catalog without overwriting edits or hidden entries. */
 export function synchronizeBundledCatalog(current:CatalogDocument){
+  // A deliberately reset catalog must stay empty across reads and deployments.
+  // Imported/operator-created entries still use the ordinary catalog flow.
+  if(current.bundledSyncDisabled)return {document:catalogDocumentSchema.parse(structuredClone(current)),added:0,updated:0};
   const next=structuredClone(current);let added=0,updated=0;
   for(const seed of initialCatalog().entries){
     const existing=next.entries.find(entry=>{
