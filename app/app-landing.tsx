@@ -24,7 +24,7 @@ const copy:Record<Locale,{overline:string;title:string;description:string;featur
   ],
   nowTitle:"Пользуйтесь уже сейчас",paste:"Вставить ссылку на товар",catalog:"Каталог",tryLink:"Попробовать по ссылке",
   stores:"Где скачать",appStore:"Открыть в App Store",playStore:"Открыть в Google Play",pending:"Приложение готовится к публикации в App Store и Google Play. Пока сайт atlasmarket.uz работает на телефоне без установки.",
-  same:"Один аккаунт",sameText:"Вход в приложении — теми же способами, что на сайте: Apple, Google, Telegram, телефон или почта. Покупок внутри приложения и подписок нет; оплата заказов на сайте и в приложении не подключена — деньги не списываются.",
+  same:"Один аккаунт",sameText:"Вход в приложении — теми же способами, что на сайте. Покупок внутри приложения и подписок нет; оплата заказов на сайте и в приложении не подключена — деньги не списываются.",
   links:"Документы и помощь",support:"Поддержка",privacy:"Политика конфиденциальности",terms:"Условия использования",del:"Удаление аккаунта",web:"Открыть сайт",
  },
  uz:{
@@ -39,7 +39,7 @@ const copy:Record<Locale,{overline:string;title:string;description:string;featur
   ],
   nowTitle:"Hozirdanoq foydalaning",paste:"Tovar havolasini qo‘yish",catalog:"Katalog",tryLink:"Havola bilan sinab ko‘rish",
   stores:"Qayerdan yuklab olish",appStore:"App Store’da ochish",playStore:"Google Play’da ochish",pending:"Ilova App Store va Google Play’da nashrga tayyorlanmoqda. Hozircha atlasmarket.uz sayti telefonda o‘rnatishsiz ishlaydi.",
-  same:"Bitta akkaunt",sameText:"Ilovaga kirish — saytdagi usullar bilan: Apple, Google, Telegram, telefon yoki pochta. Ilova ichida xaridlar va obunalar yo‘q; saytda va ilovada buyurtma to‘lovi ulanmagan — pul yechilmaydi.",
+  same:"Bitta akkaunt",sameText:"Ilovaga kirish — saytdagi usullar bilan. Ilova ichida xaridlar va obunalar yo‘q; saytda va ilovada buyurtma to‘lovi ulanmagan — pul yechilmaydi.",
   links:"Hujjatlar va yordam",support:"Yordam",privacy:"Maxfiylik siyosati",terms:"Foydalanish shartlari",del:"Akkauntni o‘chirish",web:"Saytni ochish",
  },
  en:{
@@ -54,7 +54,7 @@ const copy:Record<Locale,{overline:string;title:string;description:string;featur
   ],
   nowTitle:"Use Atlas right now",paste:"Paste a product link",catalog:"Catalog",tryLink:"Try it with a link",
   stores:"Where to get it",appStore:"Open in the App Store",playStore:"Open in Google Play",pending:"The app is being prepared for publication in the App Store and Google Play. Meanwhile atlasmarket.uz works on your phone without installing anything.",
-  same:"One account",sameText:"Sign in to the app the same way as on the website: Apple, Google, Telegram, phone or email. There are no in-app purchases or subscriptions; order payment is not connected on the website or in the app — no money is charged.",
+  same:"One account",sameText:"Sign in to the app the same way as on the website. There are no in-app purchases or subscriptions; order payment is not connected on the website or in the app — no money is charged.",
   links:"Documents and help",support:"Support",privacy:"Privacy policy",terms:"Terms of use",del:"Account deletion",web:"Open the website",
  },
 });
