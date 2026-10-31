@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowRight, ChevronDown, Heart, Link2, Search, ShieldCheck, SlidersHorizontal, Store, X, type LucideIcon } from 'lucide-react';
+import { ArrowDownUp, ArrowRight, ChevronDown, Heart, Link2, Search, ShieldCheck, SlidersHorizontal, Store, X, type LucideIcon } from 'lucide-react';
 import Link from '@/components/site-link';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -27,7 +27,7 @@ import {
 import type { Locale } from '@/lib/market/i18n';
 import { CatalogCard, CatalogSkeleton } from './catalog-card';
 import { ActiveFilters, attrLabel, clearedQuery, collectionName, FilterPanel, filterLabel, presentCategories, type Collection } from './catalog-filters';
-import { CatalogPagination } from './catalog-pagination';
+import { CatalogMore, CatalogPagination } from './catalog-pagination';
 import { LazyProductSheet, preloadProductSheet } from './product-sheet-lazy';
 import { useSheetSide } from './use-sheet-side';
 import {uzText} from '@/lib/market/uz-cyrl';
@@ -149,7 +149,28 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   }, [mode, items, favorites, dutyLimitUsd, collections, locale, query, catalogReady]);
   const paged = paginate(list, query.page, query.per);
-  const visible = paged.items;
+  // Phones add the next page under the grid ("Показать ещё 24"): `?page=3` there means the first three pages, so a
+  // reload or a shared link shows the same products. Computers keep page numbers and the page size.
+  const phone = side === 'bottom';
+  const visible = phone ? list.slice(0, paged.end) : paged.items;
+  // A phone opened at `?page=N` (a reload, a shared link) shows pages 1..N once it knows it is a phone: it scrolls once to
+  // the first product of page N, so the reader lands where the address points, not at the top of the longer list. After
+  // "Показать ещё" the focus moves to the first product added (the button it was on has moved below the new cards).
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const landed = useRef(false), focusFrom = useRef<number | null>(null);
+  useEffect(() => {
+    const cards = cardsRef.current;
+    if (!phone || !catalogReady || !cards) return;
+    const at = focusFrom.current;
+    if (at !== null) {
+      focusFrom.current = null;
+      cards.children[at]?.querySelector<HTMLElement>('.pcard-title > button')?.focus();
+      return;
+    }
+    if (landed.current) return;
+    landed.current = true;
+    if (paged.page > 1 && window.scrollY < 8) cards.children[paged.start]?.scrollIntoView({ block: 'start' });
+  }, [phone, catalogReady, paged.page, paged.start, visible.length]);
   const parcels = useMemo(() => ready ? cartParcelStores(state.cart).filter((store) => items.some((item) => item.store === store)) : [], [ready, state.cart, items]);
   // What each product of a store with a parcel in the cart adds to it: priced like the cart, so memoised per catalog and cart.
   const parcelExtras = useMemo(() => {
@@ -179,6 +200,16 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
   }
 
   const showControls = pool.length > 0 || filterCount > 0 || Boolean(query.q);
+  // The phone's search row sticks to the top while the grid scrolls; once it does, it gets a hairline and a shadow.
+  const stuckProbe = useRef<HTMLSpanElement>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const probe = stuckProbe.current;
+    if (!probe || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting && entry.boundingClientRect.top < 0));
+    observer.observe(probe);
+    return () => observer.disconnect();
+  }, [showControls]);
   const dutyHint = allowance && allowance.usedUsd > 0 ? cc.dutyMember(allowance.remainingUsd, allowance.name) : cc.dutyGuest(limitUsd);
   const filtered = list.length !== pool.length;
   const panel = <FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} locale={locale} dutyHint={dutyHint} categories={categories} />;
@@ -196,23 +227,29 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
       detail={allowance.remainingUsd > 0 ? cc.allowanceLeft(allowance.remainingUsd, allowance.name, allowanceMonth(locale), limitUsd) : cc.allowanceSpent(allowance.name, allowanceMonth(locale))}
       action={allowance.remainingUsd > 0 && !query.duty ? <button type="button" className="text-button" onClick={() => setQuery({ ...query, duty: true })}>{cc.allowanceShow}</button> : null}
       more={<Link className="text-link" href="/customs">{cc.allowanceHow}</Link>} />}
-    {showControls && <section className="catalog-bar" aria-label={cc.search}>
-      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input id="catalog-search-input" type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={side === 'bottom' ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
+    {showControls && <span ref={stuckProbe} className="catalog-sticky-probe" aria-hidden="true" />}
+    {/* One row: search, "Фильтры (N)" (a sheet below 1024 px) and the sort. Sticky on phones (app/styles/catalog-pages.css):
+       a sibling of the page's blocks, not inside the toolbar section, so it stays stuck over the whole grid. */}
+    {showControls && <div className="catalog-sticky" role="search" aria-label={cc.search} data-stuck={stuck || undefined}>
+        <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input id="catalog-search-input" type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={side === 'bottom' ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
+        <button type="button" className="catalog-facets-button" aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={18} aria-hidden="true" /><span>{cc.filters}</span>{filterCount > 0 && <b aria-label={String(filterCount)}>{filterCount}</b>}</button>
+        {/* A phone shows the sort as an icon over the native picker (the picker names the chosen order); a dot marks a changed one. */}
+        <label className="catalog-sort" data-changed={query.sort !== 'best' || undefined}><span>{cc.sort}</span><ArrowDownUp size={18} aria-hidden="true" /><select value={query.sort} onChange={(event) => setQuery({ ...query, sort: event.target.value as CatalogSort })}>{(Object.keys(cc.sorts) as CatalogSort[]).map((sort) => <option key={sort} value={sort}>{cc.sorts[sort]}</option>)}</select></label>
+    </div>}
+    {showControls && <section className="catalog-bar" aria-label={cc.filtersTitle}>
       {/* One row of common filters: scrolls sideways on a phone, wraps on a wide screen. */}
       {chips.length > 0 && <div {...chipsRow} className="catalog-categories catalog-quick" role="group" aria-label={cc.quickLabel}>
         {chips.map((chip) => <QuickChipButton key={chip.id} chip={chip} query={query} setQuery={setQuery} cc={cc} collections={collections} locale={locale} />)}
       </div>}
-      <div className="catalog-bar-row">
-        <button type="button" className="catalog-facets-button" aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={18} aria-hidden="true" />{cc.filters}{filterCount > 0 && <b aria-label={String(filterCount)}>{filterCount}</b>}</button>
-        {/* The header already says how many products there are: unfiltered, the count is only announced. */}
-        <span className={'catalog-found' + (filtered ? '' : ' catalog-found-quiet')} role="status">{catalogReady ? filtered ? cc.found(list.length, pool.length) : <span className="sr-only">{cc.found(list.length, pool.length)}</span> : cc.loading}</span>
-        <label className="catalog-sort"><span>{cc.sort}</span><select value={query.sort} onChange={(event) => setQuery({ ...query, sort: event.target.value as CatalogSort })}>{(Object.keys(cc.sorts) as CatalogSort[]).map((sort) => <option key={sort} value={sort}>{cc.sorts[sort]}</option>)}</select></label>
-      </div>
+      {/* The header already says how many products there are: unfiltered, the count is only announced. */}
+      <span className={'catalog-found' + (filtered ? '' : ' catalog-found-quiet')} role="status">{catalogReady ? filtered ? cc.found(list.length, pool.length) : <span className="sr-only">{cc.found(list.length, pool.length)}</span> : cc.loading}</span>
       <ActiveFilters query={query} setQuery={setQuery} cc={cc} collections={collections} locale={locale} brands={facets.brands} />
     </section>}
     <div className={'catalog-layout' + (showControls ? '' : ' catalog-layout-plain')}>
       {showControls && <aside className="catalog-sidebar" aria-label={cc.filtersTitle}>{panel}</aside>}
       <section ref={gridRef} className="catalog-results" aria-label={mode === 'favorites' ? copy.saved : cc.title}>
+        {/* The cards' titles are h3: the grid gets the h2 between them and the page's h1. */}
+        <h2 className="sr-only">{mode === 'favorites' ? copy.saved : cc.results}</h2>
         {recent.length >= 2 && <section className="catalog-recent" aria-labelledby="catalog-recent-title">
           <div className="favorites-suggest-head"><h2 id="catalog-recent-title">{cc.recentTitle}</h2><button type="button" className="text-button" onClick={() => { clearRecentProducts(browserStorage()); setRecentIds([]); }}>{cc.recentClear}</button></div>
           <div className="finds-grid finds-grid-compact catalog-recent-row" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
@@ -220,7 +257,7 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
               saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)} speed={speed} />)}
           </div>
         </section>}
-        {!catalogReady ? <CatalogSkeleton label={cc.loading} /> : visible.length > 0 ? <div className="finds-grid" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
+        {!catalogReady ? <CatalogSkeleton label={cc.loading} /> : visible.length > 0 ? <div ref={cardsRef} className="finds-grid" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
           {visible.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select}
             saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)}
             signals={signalsOf(item)} inCart={inCart(item.product)} speed={speed} />)}
@@ -232,7 +269,9 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
               saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)} speed={speed} />)}
           </div>
         </section>}
-        {catalogReady && visible.length > 0 && <CatalogPagination page={paged.page} pages={paged.pages} start={paged.start} end={paged.end} total={list.length} per={query.per} href={pageHref} onPage={setPage} onPer={(per) => setQuery({ ...query, per })} cc={cc} />}
+        {catalogReady && visible.length > 0 && (phone
+          ? <CatalogMore shown={visible.length} total={list.length} per={query.per} href={pageHref(paged.page + 1)} onMore={() => { focusFrom.current = visible.length; setQueryState({ ...query, page: paged.page + 1 }); }} cc={cc} />
+          : <CatalogPagination page={paged.page} pages={paged.pages} start={paged.start} end={paged.end} total={list.length} per={query.per} href={pageHref} onPage={setPage} onPer={(per) => setQuery({ ...query, per })} cc={cc} />)}
         {visible.length > 0 && <p className="finds-price-note">{copy.priceNote}</p>}
         {status === 'guest' && mode === 'catalog' && <p className="finds-signin"><Link href="/login?return_to=%2Fcatalog"><Heart size={15} />{copy.signin}</Link></p>}
         {mode === 'catalog' && catalogReady && <section className="catalog-end">

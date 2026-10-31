@@ -5,7 +5,7 @@ import { catalogCategories } from '../lib/market/catalog-editor.ts';
 import { catalogAllowance } from '../lib/market/allowance.ts';
 import {
   categorySlugs, readCatalogQuery, catalogQueryString, emptyCatalogQuery, normalizeSize, compareSizes, productSizes,
-  catalogItems, topDealThreshold, applyCatalogQuery, catalogFacets, relaxations, withoutFilter, activeFilterCount, parcelExtra, cartParcelStores, storeLabel, sameCatalogProduct,
+  catalogItems, applyCatalogQuery, catalogFacets, relaxations, withoutFilter, activeFilterCount, parcelExtra, cartParcelStores, storeLabel, sameCatalogProduct,
   paginate, pageNumbers, facetGroupVisible, quickChips, quickChipActive, toggleQuickChip, productAttrs, productStockSizes, defaultPerPage,
 } from '../lib/market/catalog-query.ts';
 import { searchWords } from '../lib/market/catalog-synonyms.ts';
@@ -337,16 +337,80 @@ test('a cart line made by the link order is the catalog product it came from', (
   assert.equal(sameCatalogProduct({ id: 'manual' }, { id: 'manual', sourceUrl: 'https://www.nike.com/t/runner' }), false);
 });
 
-test('"Top price" marks the best fifth by discount, never under 40 %', () => {
-  // 10 items: the best fifth is 2; both are 40 %+ off.
-  assert.equal(topDealThreshold([70, 66, 64, 64, 60, 58, 56, 55, 53, 41]), 66);
-  // Few items still get one badge; ties at the threshold share it.
-  assert.equal(topDealThreshold([50, 45]), 50);
-  assert.deepEqual([70, 66, 66, 10].filter((d) => d >= topDealThreshold([70, 66, 66, 10])), [70]);
-  // Nothing is 40 %+ off: no badge at all.
-  assert.equal(topDealThreshold([39, 20, 0]), Infinity);
-  // Only one item clears 40 %: it alone gets the badge, whatever the share says.
-  assert.equal(topDealThreshold([45, 30, 20, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 45);
+test('"Top price" goes to the best ~12 % by discount × savings, ranked within each category', async () => {
+  const { topDealIds, topDealMinPercent } = await import('../lib/market/top-deal.ts');
+  const item = (id, category, discount, savingsUsd) => ({ id, category, discount, savingsUsd });
+  // 30 products: round(30 × 0.12) = 4 badges.
+  const plain = Array.from({ length: 19 }, (_, index) => item('p' + index, index % 2 ? 'Обувь' : 'Одежда', 0, 0));
+  const deals = [
+    item('jacket', 'Одежда', 40, 60), item('tee', 'Одежда', 60, 12), item('runner', 'Обувь', 50, 70),
+    item('sock', 'Обувь', 35, 4), item('flat', 'Обувь', 20, 200),
+  ];
+  const top = topDealIds([...plain, ...deals, item('lamp', 'Дом и быт', 45, 30), item('mug', 'Дом и быт', 0, 0), item('rug', 'Дом и быт', 0, 0), item('vase', 'Дом и быт', 0, 0), item('pot', 'Дом и быт', 0, 0), item('bin', 'Дом и быт', 0, 0)]);
+  assert.equal(top.size, 4);
+  // Discount × savings, not the bare percent: the $60 jacket at −40 % ranks above the $12 tee at −60 %.
+  // The best of every category comes first (runner, jacket, lamp), then the second best: the tee before the sock.
+  assert.deepEqual([...top].sort(), ['jacket', 'lamp', 'runner', 'tee']);
+  // Under 30 % off is no «Топ-цена», however much it saves.
+  assert.ok(!top.has('flat'));
+  // Under the minimum discount: no badge even when nothing else qualifies.
+  assert.equal(topDealIds([item('a', 'Обувь', topDealMinPercent - 1, 50), item('b', 'Обувь', 0, 0)]).size, 0);
+  // A small catalogue still gets one badge when something qualifies.
+  assert.deepEqual([...topDealIds([item('a', 'Обувь', 50, 40), item('b', 'Обувь', 40, 10), item('c', 'Обувь', 0, 0)])], ['a']);
+});
+
+test('the server marks «Топ-цена» in the public catalogue and the storefront items keep the flag', async () => {
+  const { publicCatalog, importDraft, catalogDocumentSchema } = await import('../lib/market/catalog-editor.ts');
+  const now = Date.now();
+  const extracted = { sourceUrl: 'https://kyliecosmetics.com/products/matte-lip-kit', title: 'Matte Lip Kit', brand: 'Kylie Cosmetics', category: 'Красота и уход', image: 'https://cdn.shopify.com/lip.jpg', images: ['https://cdn.shopify.com/lip.jpg'], price: 35, currency: 'USD', variants: [{ id: 'bare', label: 'Bare', color: 'Bare', available: true, price: 35 }], warnings: [], method: 'Shopify' };
+  const base = importDraft(extracted, [], 'США', now);
+  const entries = Array.from({ length: 8 }, (_, index) => {
+    const draft = { ...base, sourceUrl: base.sourceUrl + '-' + index, ...(index === 5 ? { referencePrice: 90 } : index === 2 ? { referencePrice: 40 } : {}) };
+    return { id: 'kit-' + index, draft, published: draft };
+  });
+  const feed = publicCatalog(catalogDocumentSchema.parse({ revision: 0, collections: [], entries }), tariff, now + 1);
+  assert.equal(feed.products.length, 8);
+  // round(8 × 0.12) = 1 badge: the −61 % kit, not the −13 % one.
+  assert.deepEqual(feed.products.filter((product) => product.topDeal).map((product) => product.id), ['kit-5']);
+  // catalogItems copies the server's flag and never sets one of its own.
+  const items = catalogItems(feed.products, tariff);
+  assert.deepEqual(items.filter((entry) => entry.topDeal).map((entry) => entry.product.id), ['kit-5']);
+  assert.equal(catalogItems(feed.products.map((product) => ({ ...product, topDeal: undefined })), tariff).some((entry) => entry.topDeal), false);
+  // A price older than two weeks keeps its «−N %» but loses «Топ-цена»: on such a catalogue no card has the badge.
+  const { topDealMaxAgeMs, topDealPriceFresh } = await import('../lib/market/top-deal.ts');
+  const later = publicCatalog(catalogDocumentSchema.parse({ revision: 0, collections: [], entries }), tariff, now + topDealMaxAgeMs + 1);
+  assert.equal(later.products.length, 8);
+  assert.equal(later.products.some((product) => product.topDeal), false);
+  assert.equal(topDealPriceFresh({ sourceCheckedAt: now }, now + 1), true);
+  assert.equal(topDealPriceFresh({ sourceCheckedAt: now, priceNeedsConfirmation: true }, now + 1), false);
+  assert.equal(topDealPriceFresh({}, now), false);
+});
+
+test('a card title drops the brand it starts with; the stored name stays whole', async () => {
+  const { nameWithoutBrand } = await import('../lib/market/product-name.ts');
+  assert.equal(nameWithoutBrand('Nike Club · Fleece Hoodie', 'Nike'), 'Club · Fleece Hoodie');
+  assert.equal(nameWithoutBrand('Anker Nano Charger (30W)', 'Anker'), 'Nano Charger (30W)');
+  assert.equal(nameWithoutBrand('APPLE AirTag · 1 pack', 'Apple'), 'AirTag · 1 pack');
+  assert.equal(nameWithoutBrand('Apple iPhone 15', 'Apple'), 'iPhone 15');
+  assert.equal(nameWithoutBrand('Kylie Cosmetics — Matte Lip Kit', 'Kylie Cosmetics'), 'Matte Lip Kit');
+  // Not at a word boundary, nothing meaningful left, no brand, or the brand elsewhere: unchanged.
+  assert.equal(nameWithoutBrand('Nikeland Socks', 'Nike'), 'Nikeland Socks');
+  assert.equal(nameWithoutBrand('Apple 2', 'Apple'), 'Apple 2');
+  assert.equal(nameWithoutBrand('Matte Lip Kit', undefined), 'Matte Lip Kit');
+  assert.equal(nameWithoutBrand('Matte Lip Kit by Kylie', 'Kylie'), 'Matte Lip Kit by Kylie');
+  const { displayBrand } = await import('../lib/market/product-name.ts');
+  assert.equal(displayBrand('kylie-cosmetics', 'Kylie Cosmetics'), 'Kylie Cosmetics');
+  assert.equal(displayBrand("Brand: TONY'S TEXTILES", 'Amazon'), "TONY'S TEXTILES");
+  assert.equal(displayBrand('Nike', 'Nike'), 'Nike');
+  assert.equal(displayBrand('', 'Amazon'), '');
+  assert.equal(displayBrand('  Brand:  ', 'eBay'), '');
+  // A marketplace recorded as the brand is not the maker: empty (the card shows the category); a brand store keeps its name.
+  assert.equal(displayBrand('Amazon', 'Amazon', 'Amazon'), '');
+  assert.equal(displayBrand('Amazon', 'Amazon · Germany', 'Amazon'), '');
+  assert.equal(displayBrand('eBay', 'eBay', 'eBay'), '');
+  assert.equal(displayBrand('Amazon Basics', 'Amazon', 'Amazon'), 'Amazon Basics');
+  assert.equal(displayBrand('Logitech', 'Amazon', 'Amazon'), 'Logitech');
+  assert.equal(displayBrand('Logitech', 'Amazon'), 'Logitech');
 });
 
 test('the admin queue names one reason and one action for a waiting card', async () => {

@@ -10,6 +10,7 @@ export type MerchantFind = Product & {
   /** Operator-set position on the showcase: lower comes first; cards without one follow. */ rank?: number;
   /** The operator confirmed stock themselves (for example by opening the store page) without a store response. */ confirmedAt?: number;
   /** Filter facets derived on the server from the store's data (lib/market/catalog-facets.ts). */ facets?: CatalogFacets;
+  /** «Топ-цена»: among the catalogue's best ~12 % deals, set by the server (lib/market/top-deal.ts). */ topDeal?: true;
 };
 export function catalogOrderVariants(product:Product){
   if(product.sourceVariants?.length)return product.sourceVariants;

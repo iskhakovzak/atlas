@@ -1,49 +1,30 @@
 'use client';
 
 import { useId } from 'react';
-import { ArrowRight, BadgeCheck, Flame, Heart, Info, ShoppingBag } from 'lucide-react';
+import { BadgeCheck, Check, Flame, Heart, Plus, ShoppingBag } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { price, storeShippingHoldUsd, storeShippingUsd, tariff, type DeliverySpeed, type Product } from '@/lib/market/domain';
+import { price, storeShippingUsd, tariff, type DeliverySpeed, type Product } from '@/lib/market/domain';
 import { findOrderUrl } from '@/lib/market/catalog';
 import { catalogDeliverySpeed } from '@/lib/market/deals';
 import { officialStoreBrand, officialStoreText } from '@/lib/market/official-stores';
 import { dealCopy } from '@/lib/market/deal-copy';
-import { catalogCopy, countryLabel, shortDate } from '@/lib/market/catalog-copy';
+import { catalogCopy, shortDate } from '@/lib/market/catalog-copy';
 import { storeLabel, type CatalogItem } from '@/lib/market/catalog-query';
 import type { Signal } from '@/lib/market/catalog-signals';
-import { regionForCountryLabel } from '@/lib/market/store-geo';
-import { deliveryDaysFor } from '@/lib/market/site-content';
-import { deliverySpeedCopy } from '@/lib/market/delivery-speed';
-import { atlasServiceBreakdown } from '@/lib/market/quote-presentation';
-import { formatKg, formatPriceUsd, formatSum } from '@/lib/market/format';
+import { formatPriceUsd, formatSum } from '@/lib/market/format';
 import { browserStorage, rememberPendingFavorite } from '@/lib/market/catalog-links';
 import { loginPath } from '@/lib/auth/return-to';
 import type { Locale } from '@/lib/market/i18n';
 import { brandForHost } from '@/lib/market/store-brands';
+import { displayBrand, nameWithoutBrand } from '@/lib/market/product-name';
 import { useMarket } from '@/lib/market/store';
 import { ProductImage } from './market-ui';
 import { Swatch } from './catalog-swatch';
 import { Money } from './money';
 import { StoreLogo } from './store-logo';
-import {withCyrillic,uzText} from '@/lib/market/uz-cyrl';
+import {uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
 
-const breakdownCopy = /*@__PURE__*/withCyrillic({
-  ru: { item: 'Товар', store: 'Доставка магазина до склада', storeReserve: 'Резерв доставки магазина (отдельно, не в итоге)', storeFree: 'бесплатно', international: 'Доставка в Ташкент', kg: 'кг', service: 'Комиссия Atlas', fee: 'Общий сбор Atlas', reserve: 'Возвратный резерв',
-    storeReserveNote: (amount: string, freeFrom: string) => `Магазин не указал цену доставки до склада: резерв ${amount} удерживается отдельно и в итог не входит — один на заказ из этого магазина. При заказе из магазина больше чем на ${freeFrom} резерв не нужен.`,
-    storeFreeNote: (freeFrom: string) => `Магазин не указал цену доставки до склада, но при заказе больше чем на ${freeFrom} считаем её бесплатной. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.`, reserveNote: 'Возвратный резерв — запас на случай, если посылка окажется тяжелее. Неиспользованная часть вернётся на баланс Atlas, а доплата сверх резерва — только с вашего согласия.',
-    staleNote: 'Оценка по последней записанной цене магазина: Atlas сверит цену при добавлении в корзину.' },
-  uz: { item: 'Tovar', store: 'Do‘kondan omborgacha yetkazish', storeReserve: 'Do‘kon yetkazishi zaxirasi (alohida, jamiga kirmaydi)', storeFree: 'bepul', international: 'Toshkentga yetkazish', kg: 'kg', service: 'Atlas komissiyasi', fee: 'Atlas umumiy yig‘imi', reserve: 'Qaytariladigan zaxira',
-    storeReserveNote: (amount: string, freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan: ${amount} zaxira alohida ushlab turiladi va jamiga kirmaydi — shu do‘kondan bitta buyurtmaga bir marta. Do‘kondan ${freeFrom} dan ortiq buyurtmada zaxira kerak emas.`,
-    storeFreeNote: (freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan, lekin ${freeFrom} dan ortiq buyurtmada uni bepul deb hisoblaymiz. Do‘kon baribir haq olsa, qo‘shimcha to‘lov — faqat roziligingiz bilan.`, reserveNote: 'Qaytariladigan zaxira — jo‘natma og‘irroq chiqsa, ehtiyot uchun. Ishlatilmagan qismi Atlas balansiga qaytadi, zaxiradan ortiq to‘lov — faqat roziligingiz bilan.',
-    staleNote: 'Do‘konning oxirgi yozilgan narxi bo‘yicha baho: Atlas narxni savatga qo‘shishda tekshiradi.' },
-  en: { item: 'Item', store: 'Store delivery to warehouse', storeReserve: 'Store-delivery reserve (separate, not in the total)', storeFree: 'free', international: 'Delivery to Tashkent', kg: 'kg', service: 'Atlas fee', fee: 'General Atlas fee', reserve: 'Refundable reserve',
-    storeReserveNote: (amount: string, freeFrom: string) => `The store did not state delivery to our warehouse: a ${amount} reserve is held separately and is not in the total — once per order from this store. Over ${freeFrom} from the store, no reserve is needed.`,
-    storeFreeNote: (freeFrom: string) => `The store did not state delivery to our warehouse, but on orders over ${freeFrom} we count it as free. If the store still charges, any extra payment needs your consent.`, reserveNote: 'The refundable reserve covers a heavier-than-estimated parcel. Any unused part returns to your Atlas balance; anything above it needs your consent.',
-    staleNote: 'An estimate at the last recorded store price: Atlas checks the price when you add the item to the cart.' },
-});
-type Breakdown = (typeof breakdownCopy)['ru'];
 type Costs = NonNullable<CatalogItem['costs']>;
 
 export function catalogFormatter(locale: Locale) {
@@ -73,14 +54,14 @@ export type CatalogCardProps = {
 };
 
 /**
- * One catalog product. Photo and name always open the product sheet (an unconfirmed price too: the sheet
- * says so and the order flow fetches the price again); the button goes straight to the link order.
+ * One catalog product. The whole card opens the product sheet (an unconfirmed price too: the sheet says so and the
+ * order flow fetches the price again); "В корзину" on a computer and the round "+" on a phone go to the variant choice.
  */
 export function CatalogCard({ item, locale, select, saved, canSave, saving, onSave, signals = [], inCart = false, speed = catalogDeliverySpeed, variant = 'full', guestSave = false }: CatalogCardProps) {
   const { product, referenceUsd, discount } = item;
   const { pricing } = useMarket();
   const copy = dealCopy(locale), cc = catalogCopy[locale];
-  const { fmt, numberLocale } = catalogFormatter(locale);
+  const { fmt } = catalogFormatter(locale);
   const name = product.name;
   const needsPrice = product.priceNeedsConfirmation === true;
   const hasRecordedPrice = needsPrice && product.sourcePrice !== undefined && Boolean(product.sourceCurrency);
@@ -98,10 +79,12 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const storeName = officialText
     ? <Tooltip><TooltipTrigger asChild><span className="find-official" tabIndex={0}><BadgeCheck size={14} aria-hidden="true" /><span aria-hidden="true">{official}</span><span className="sr-only">{officialText.full}</span></span></TooltipTrigger><TooltipContent>{officialText.full}</TooltipContent></Tooltip>
     : storeLabel(item.store, locale) || product.brand || category;
-  const priceId = useId();
-  const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={'find-save ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
+  const priceId = useId(), usdId = useId();
+  // The new card draws its own heart (pcard-save); the compact card keeps the older one.
+  const saveClass = variant === 'compact' ? 'find-save' : 'pcard-save';
+  const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={saveClass + ' ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
     // The address is read on the tap, not while rendering (the card renders on the server too): back to these filters.
-    : guestSave ? <Tooltip><TooltipTrigger asChild><a className="find-save" href={loginPath('/catalog')} aria-label={copy.signinToSave + ': ' + name} onClick={(event) => { rememberPendingFavorite(browserStorage(), product.id, Date.now()); event.currentTarget.href = loginPath(window.location.pathname + window.location.search); }}><Heart size={20} aria-hidden="true" /></a></TooltipTrigger><TooltipContent>{copy.signinToSave}</TooltipContent></Tooltip>
+    : guestSave ? <Tooltip><TooltipTrigger asChild><a className={saveClass} href={loginPath('/catalog')} aria-label={copy.signinToSave + ': ' + name} onClick={(event) => { rememberPendingFavorite(browserStorage(), product.id, Date.now()); event.currentTarget.href = loginPath(window.location.pathname + window.location.search); }}><Heart size={20} aria-hidden="true" /></a></TooltipTrigger><TooltipContent>{copy.signinToSave}</TooltipContent></Tooltip>
     : null;
   // The store discount shows on a dated price too, when that price is the recorded USD one (owner, 12 October 2026).
   const showDiscount = discount > 0 && (!needsPrice || (hasRecordedPrice && product.sourceCurrency === 'USD'));
@@ -126,40 +109,50 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   // The price keeps its date when it is older than the card looks: a stale snapshot, or stock the operator
   // confirmed without the store re-reading the price.
   const priceDated = item.checkedAt > 0 && (needsPrice ? hasRecordedPrice : confirmedAt !== undefined && item.checkedAt < confirmedAt);
-  // One mint element per card: the discount pill wins, so a mint chip next to it turns neutral.
-  // On a dated price the date beside the pill says how old it is.
-  const hasDiscountPill = showDiscount;
-  const storePriceLabel = priceDated ? cc.storePriceOn(shortDate(item.checkedAt, locale)) : cc.storePrice;
-  // The sizes count already sits on the colour line (Variants), so its chip would repeat it.
-  const chips = signals.filter((signal) => !(costs && signal.kind === 'sizes')).slice(0, 2).map((signal) => hasDiscountPill && signal.tone === 'mint' ? { ...signal, tone: 'neutral' as const } : signal);
-  return <article className="find-card" data-stale={needsPrice || undefined} data-saved={saved || undefined}>
-    <div className="find-visual">
-      <button className="find-photo" type="button" onClick={open} aria-label={cc.open(name)}><ProductImage product={product} locale={locale} /></button>
-      {item.topDeal && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}
+  // Direction A (1 November 2026): the brand on its own grey line, the title without it, one big sum in soum. No brand
+  // reads as the category, and so does a marketplace recorded as the brand ("Amazon" over a Sony headset): the store is
+  // the mark on the photo. A single-brand store keeps its name (nike.com: "Nike").
+  const storeBrand = brandForHost(item.store);
+  const brandName = official ?? (displayBrand(product.brand, storeLabel(item.store, locale), storeBrand?.focus === 'marketplace' ? storeBrand.name : undefined) || category);
+  const title = nameWithoutBrand(nameWithoutBrand(name, official ?? product.brand), brandName);
+  const storeText = officialText?.full ?? storeLabel(item.store, locale);
+  // Only the shared-parcel note stays on the card (neutral): the allowance lives in the banner above the grid, the
+  // size count on the colour line, an unconfirmed price in the "≈" and its date.
+  const parcel = signals.find((signal) => signal.kind === 'parcel');
+  return <article className="pcard" data-stale={needsPrice || undefined} data-saved={saved || undefined}>
+    <div className="pcard-visual">
+      <span className="pcard-photo"><ProductImage product={product} decorative locale={locale} /></span>
+      {(showDiscount || item.topDeal) && <span className="pcard-badges">
+        {showDiscount && <em className="pcard-off" title={copy.compareHint}>−{discount}&#x202F;%</em>}
+        {item.topDeal && <span className="pcard-top"><Flame size={13} aria-hidden="true" />{copy.topDeal}</span>}
+      </span>}
+      {brandForHost(item.store) && <span className="pcard-store" title={storeText}><StoreMark host={item.store} /><span className="sr-only">{cc.storeOf(storeText)}</span></span>}
       {save}
+      {/* Phones: no button row; the round "+" does what "В корзину" does on a computer (the variant choice). */}
+      {inCart
+        ? <a className="pcard-plus" data-in-cart="" href="/cart" aria-label={cc.inCart + ': ' + name}><Check size={18} strokeWidth={2.5} aria-hidden="true" /></a>
+        : <a className="pcard-plus" href={orderUrl} aria-label={cc.choose(name)}><Plus size={20} strokeWidth={2.5} aria-hidden="true" /></a>}
     </div>
-    <div className="find-content">
-      <div className="find-meta"><span className="find-store"><StoreMark host={item.store} />{storeName}</span><span>{category}</span></div>
-      <button type="button" className="find-title" onClick={open}>{name}</button>
-      {/* On a phone the label and its date move into the "?" breakdown (the line keeps them for screen readers). */}
-      <div className={'find-store-price' + (needsPrice ? ' needs-confirmation' : '') + (costs ? ' has-breakdown' : '')}>
-        {/* The caption and its date live in the "i" breakdown; screen readers keep them here. */}
-        <span className="find-store-price-label sr-only">{storePriceLabel}</span>
-        {' '}<b>{storePriceText}</b>
-        {showDiscount && <>{' '}<del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>{' '}<em className="find-discount" title={copy.compareHint}>−{discount}&#x202F;%</em></>}
-      </div>
+    <div className="pcard-body">
+      <p className="pcard-brand">{brandName}</p>
+      {/* The title button covers the whole card (::after), so a tap anywhere opens the product; the heart, "+", the
+         store mark and "В корзину" sit above it. */}
+      <h3 className="pcard-title"><button type="button" onClick={open} aria-label={cc.open(name)} aria-describedby={priceId + ' ' + usdId}>{title}</button></h3>
       {costs
-        ? <FindPrice costs={costs} product={product} stale={needsPrice} speed={speed} label={needsPrice ? cc.totalStale : cc.total} shortLabel={needsPrice ? cc.totalStaleShort : cc.totalShort} breakdownLabel={cc.breakdown} fmt={fmt} numberLocale={numberLocale} locale={locale} note='' storeLine={{ label: storePriceLabel, value: storePriceText }} facts={factsText(product, speed, locale, pricing)} />
-        : <div className="find-total"><div className="find-total-head"><span>{cc.totalStale}</span></div><strong className="find-total-pending"><span>{cc.afterCheck}</span></strong><small className="find-total-note" /></div>}
-      {costs ? <Variants item={item} locale={locale} /> : <Facts product={product} speed={speed} locale={locale} />}
-      <div className="find-chips">
-        {/* The hint is a title for the pointer and hidden text for screen readers (a title alone is not read). */}
-        {chips.map((signal) => <span key={signal.kind} className="find-chip" data-tone={signal.tone} data-kind={signal.kind} title={signal.hint}>{signal.text}{signal.hint && <span className="sr-only">. {signal.hint}</span>}</span>)}
-      </div>
-      <div className="find-purchase">
+        ? <p className="pcard-sum" id={priceId}><strong>{needsPrice && <><span aria-hidden="true">≈&#x202F;</span><span className="sr-only">{cc.about} </span></>}<Money value={costs.total} locale={locale} /></strong> <span>{cc.toTashkent}</span></p>
+        : <p className="pcard-sum pcard-sum-pending" id={priceId}>{cc.afterCheck}</p>}
+      <p className="pcard-usd" id={usdId}>
+        {/* Spaces between the parts: the line is also the title's spoken description ("$8, base price $27, as of 13 Sep"). */}
+        <span>{storePriceText}</span>
+        {showDiscount && <>{' '}<del title={copy.referenceLabel}><span className="sr-only">{copy.referenceLabel}: </span>{fmt(referenceUsd!, 'USD')}</del></>}
+        {priceDated && <>{' '}<small>{cc.priceOn(shortDate(item.checkedAt, locale))}</small></>}
+      </p>
+      <Variants item={item} locale={locale} />
+      {parcel && <p className="pcard-note" title={parcel.hint}>{parcel.text}{parcel.hint && <span className="sr-only">. {parcel.hint}</span>}</p>}
+      <div className="pcard-buy">
         {inCart
-          ? <a className="btn secondary" href="/cart"><ShoppingBag size={17} aria-hidden="true" />{cc.inCart}</a>
-          : <a className="btn primary" href={orderUrl}>{cc.order}<ArrowRight size={17} aria-hidden="true" /></a>}
+          ? <a className="btn secondary" href="/cart"><Check size={17} aria-hidden="true" />{cc.inCart}</a>
+          : <a className="btn primary" href={orderUrl}><ShoppingBag size={17} aria-hidden="true" />{cc.addToCart}</a>}
       </div>
     </div>
   </article>;
@@ -172,95 +165,21 @@ function costsAt(item: CatalogItem, speed: DeliverySpeed, pricing = tariff): Cos
   try { return price(item.usd, item.product.weight, 1, storeShippingUsd(item.product), pricing, speed); } catch { return item.costs; }
 }
 
-/** Delivered total in soum with an in-flow "i" button that opens the line-by-line breakdown. */
-function FindPrice({ costs, product, stale, speed, label, shortLabel, breakdownLabel, fmt, numberLocale, locale, note, storeLine, facts }: {
-  costs: Costs; product: Product; stale: boolean; speed: DeliverySpeed; label: string; shortLabel?: string; breakdownLabel: string;
-  fmt: (n: number, currency?: string) => string; numberLocale: string; locale: Locale; note: string;
-  /** The store price with its label and date: on a phone the card shows only the price, the rest lives here. */
-  storeLine?: { label: string; value: string };
-  /** "США · 5–9 раб. дн · ≈ 1,2 кг": a phone card keeps only the days. */
-  facts?: string;
-}) {
-  const { pricing } = useMarket();
-  const bd: Breakdown = breakdownCopy[locale];
-  const parts = atlasServiceBreakdown(costs);
-  const usd = costs.merchandise / pricing.fx;
-  const estimated = product.sourceShippingEstimated === true && (product.sourceShippingUsd ?? 0) > 0;
-  // Unknown store delivery is never in the total: a separate hold up to $50, free above it.
-  const holdUsd = estimated ? storeShippingHoldUsd(product, usd, pricing) : 0;
-  const storeReserve = estimated && holdUsd > 0, storeFree = estimated && holdUsd === 0;
-  const freeFrom = fmt(pricing.storeShippingFreeFromUsd ?? 50, 'USD');
-  return <div className="find-total">
-    <div className="find-total-head">
-      {/* A phone card is too narrow for "С доставкой в Ташкент": it shows "До Ташкента", screen readers keep the full label. */}
-      <span>{shortLabel ? <><span className="find-total-label">{label}</span><span className="find-total-label-short" aria-hidden="true">{shortLabel}</span></> : label}</span>
-      <Popover>
-        <PopoverTrigger asChild><button type="button" className="find-info" aria-label={breakdownLabel}><Info size={18} aria-hidden="true" /></button></PopoverTrigger>
-        <PopoverContent className="find-breakdown-popover" align="end" sideOffset={6} collisionPadding={12}>
-          <p className="find-breakdown-title">{breakdownLabel}</p>
-          <dl>
-            {storeLine && <div className="find-breakdown-store"><dt>{storeLine.label}</dt><dd>{storeLine.value}</dd></div>}
-            <div><dt>{bd.item}</dt><dd>{fmt(costs.merchandise)}</dd></div>
-            {costs.sourceShipping > 0 && <div><dt>{bd.store}</dt><dd>{fmt(costs.sourceShipping)}</dd></div>}
-            {storeReserve && <div><dt>{bd.storeReserve}</dt><dd>{fmt(Math.ceil(holdUsd * pricing.fx))}</dd></div>}
-            {storeFree && <div><dt>{bd.store}</dt><dd>{bd.storeFree}</dd></div>}
-            <div><dt>{bd.international}, {new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 1 }).format(costs.weight)} {bd.kg} · {deliverySpeedCopy[locale].short[speed]}</dt><dd>{fmt(parts.international)}</dd></div>
-            {parts.service > 0 && <div><dt>{bd.service}</dt><dd>{fmt(parts.service)}</dd></div>}
-            {costs.optionalServices > 0 && <div><dt>{bd.fee}</dt><dd>{fmt(costs.optionalServices)}</dd></div>}
-            {costs.reserve > 0 && <div><dt>{bd.reserve}</dt><dd>{fmt(costs.reserve)}</dd></div>}
-          </dl>
-          {storeReserve && <p>{bd.storeReserveNote(fmt(product.sourceShippingUsd ?? 0, 'USD'), freeFrom)}</p>}
-          {storeFree && <p>{bd.storeFreeNote(freeFrom)}</p>}
-          {costs.reserve > 0 && <p>{bd.reserveNote}</p>}
-          {stale && <p>{bd.staleNote}</p>}
-          {facts && <p className="find-breakdown-facts">{facts}</p>}
-        </PopoverContent>
-      </Popover>
-    </div>
-    <strong><Money value={costs.total} locale={locale} /></strong>
-    <small className="find-total-note" title={note || undefined}>{note}</small>
-  </div>;
-}
-
-/** Country, delivery days and weight: days only for a country Atlas dispatches from (never the US by default). */
-function factParts(product: Product, speed: DeliverySpeed, locale: Locale, pricing: typeof tariff) {
-  const cc = catalogCopy[locale];
-  const region = regionForCountryLabel(product.country);
-  const range = region ? deliveryDaysFor(pricing, region, speed) : null;
-  return { country: countryLabel(product.country, locale), days: range ? cc.days(range[0], range[1]) : '', weight: product.weight ? `≈ ${formatKg(product.weight, locale)} ${cc.kg}` : '' };
-}
-/** "США · 5–9 раб. дн · ≈ 1,2 кг". */
-function factsText(product: Product, speed: DeliverySpeed, locale: Locale, pricing: typeof tariff) {
-  const { country, days, weight } = factParts(product, speed, locale, pricing);
-  return [country, days, weight].filter(Boolean).join(' · ');
-}
-
-/** "США · 5–9 раб. дн · ≈ 1,2 кг"; a phone card shows only the days (the rest is in the "?" breakdown). */
-function Facts({ product, speed, locale }: { product: Product; speed: DeliverySpeed; locale: Locale }) {
-  const { pricing } = useMarket();
-  const cc = catalogCopy[locale];
-  const { days } = factParts(product, speed, locale, pricing);
-  const text = factsText(product, speed, locale, pricing);
-  const hint = `${cc.factsHint}; ${product.weightBasis === 'store' ? cc.weightStore : cc.weightEstimate}`;
-  if (!text) return <p className="find-facts" aria-hidden="true" />;
-  return <p className="find-facts" title={hint} data-short={days ? '' : undefined}><span className="find-facts-full">{text}</span>{days && <span className="find-facts-short" aria-hidden="true">{days}</span>}<span className="sr-only">. {hint}</span></p>;
-}
-
-/** Up to five colour dots and the number of sizes the store lists: what the card offers without opening it. */
+/** Up to five colour dots and the number of sizes the store lists, on one line: what the card offers without opening it. */
 function Variants({ item, locale }: { item: CatalogItem; locale: Locale }) {
   const cc = catalogCopy[locale];
   const colors = item.attrs.color ?? [], sizes = item.sizes.length;
-  if (!colors.length && !sizes) return <p className="find-facts find-variants" aria-hidden="true" />;
-  return <p className="find-facts find-variants">
-    {colors.length > 0 && <span className="find-swatches" role="img" aria-label={cc.colorsCount(colors.length)}>{colors.slice(0, 5).map((color) => <Swatch key={color} family={color} />)}{colors.length > 5 && <small aria-hidden="true">+{colors.length - 5}</small>}</span>}
+  if (!colors.length && !sizes) return null;
+  return <p className="pcard-variants">
+    {colors.length > 0 && <span className="pcard-swatches" role="img" aria-label={cc.colorsCount(colors.length)}>{colors.slice(0, 5).map((color) => <Swatch key={color} family={color} />)}{colors.length > 5 && <small aria-hidden="true">+{colors.length - 5}</small>}</span>}
     {sizes > 0 && <span>{cc.sizesCount(sizes)}</span>}
   </p>;
 }
 
-/** Placeholder cards while the catalog loads, so the grid keeps its place. */
-export function CatalogSkeleton({ count = 6, label }: { count?: number; label: string }) {
+/** Placeholder cards in the shape of the new card while the catalog loads, so the grid keeps its place. */
+export function CatalogSkeleton({ count = 8, label }: { count?: number; label: string }) {
   return <div className="finds-grid catalog-skeleton" role="status" aria-label={label}>
-    {Array.from({ length: count }, (_, index) => <div className="find-card catalog-skeleton-card" key={index} aria-hidden="true"><div className="find-visual" /><div className="find-content"><span /><span /><span /></div></div>)}
+    {Array.from({ length: count }, (_, index) => <div className="pcard pcard-skeleton" key={index} aria-hidden="true"><div className="pcard-visual" /><div className="pcard-body"><span /><span /><span /><span /></div></div>)}
   </div>;
 }
 
