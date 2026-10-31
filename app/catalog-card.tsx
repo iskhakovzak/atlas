@@ -115,7 +115,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
           {/* Plain text here: a focusable tooltip trigger inside the card's button would be nested interactive content. */}
           <span className="find-meta"><span className="find-store"><StoreMark host={item.store} />{officialText ? <span className="find-official"><BadgeCheck size={14} aria-hidden="true" />{official}</span> : storeName}</span></span>
           <b className="find-compact-title">{name}</b>
-          <span className="find-compact-price" id={priceId}>{costs ? <><span>{storePriceText}</span><span aria-hidden="true"> → </span>{needsPrice && <span aria-hidden="true">≈ </span>}<Money value={costs.total} locale={locale} /></> : <span>{storePriceText}</span>}</span>
+          <span className="find-compact-price" id={priceId}>{costs ? <><span className="find-compact-store">{storePriceText}</span><span className="find-compact-arrow" aria-hidden="true"> → </span>{needsPrice && <span className="find-compact-approx" aria-hidden="true">≈ </span>}<Money value={costs.total} locale={locale} /></> : <span className="find-compact-store">{storePriceText}</span>}</span>
         </span>
       </button>
       {save}

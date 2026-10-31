@@ -31,6 +31,8 @@ export type HomeCopy = {
     item: string; itemNote: (usd: string) => string; totalUsd: (usd: string) => string;
     /** One «Atlas service» line, as in the real bill (app/cost-lines.tsx); `fee` and `delivery` are its parts. */
     service: string; serviceParts: string; fee: (percent: string) => string;
+    /** Under the «Atlas service» line: what its sum holds (the fee alone read as the whole line, review 1.11.2026). */
+    serviceNote: (percent: string) => string;
     delivery: string; deliveryNote: (weight: string, perKg: string) => string;
     reserve: string; reserveNote: (packaging: string) => string; reserveHelp: string; total: string;
     dutyTitle: (allowance: string) => string; dutyUsed: (used: string, left: string) => string;
@@ -61,7 +63,7 @@ export type HomeCopy = {
 export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     hero: {
-      title: 'Покупки из США, Европы и Китая — в Ташкент',
+      title: 'Покупки из США, Европы и Китая — в Ташкент',
       lead: 'Вставьте ссылку на товар — сразу покажем итог в сумах. Выкупим и привезём сами.',
       label: 'Ссылка на товар', placeholder: 'Вставьте ссылку', calculate: 'Рассчитать',
       invalid: 'Вставьте полную ссылку на страницу товара — она начинается с https://',
@@ -87,6 +89,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       itemNote: usd => `${usd} по курсу Atlas`,
       totalUsd: usd => `≈ ${usd} вместе с доставкой в Ташкент`,
       service: 'Сервис Atlas', serviceParts: 'Состав сервиса', fee: (percent) => `Комиссия ${percent}`,
+      serviceNote: (percent) => `Комиссия ${percent} и доставка до Ташкента`,
       delivery: 'Доставка', deliveryNote: (weight, perKg) => `${weight} кг × ${perKg}`,
       reserve: 'Возвратный резерв', reserveNote: packaging => `В расчёт веса заложено ${packaging} кг запаса на упаковку. После взвешивания неиспользованную сумму вернём на баланс.`,
       reserveHelp: 'Запас на случай, если посылка окажется тяжелее расчётной. После взвешивания на складе неиспользованную часть вернём на ваш баланс Atlas. Если доставка выйдет дороже резерва, сначала согласуем доплату с вами.',
@@ -141,7 +144,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
   },
   uz: {
     hero: {
-      title: 'AQSh, Yevropa va Xitoydan — Toshkentga',
+      title: 'AQSh, Yevropa va Xitoydan — Toshkentga',
       lead: 'Tovar havolasini qo‘ying — yakuniy summani darhol so‘mda ko‘rsatamiz. Sotib olib, o‘zimiz olib kelamiz.',
       label: 'Tovar havolasi', placeholder: 'Havolani qo‘ying', calculate: 'Hisoblash',
       invalid: 'Tovar sahifasining to‘liq havolasini qo‘ying — u https:// bilan boshlanadi',
@@ -167,6 +170,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       itemNote: usd => `${usd}, Atlas kursi bilan`,
       totalUsd: usd => `Toshkentga yetkazish bilan ≈ ${usd}`,
       service: 'Atlas xizmati', serviceParts: 'Xizmat tarkibi', fee: (percent) => `Komissiya ${percent}`,
+      serviceNote: (percent) => `Komissiya ${percent} va Toshkentgacha yetkazish`,
       delivery: 'Yetkazib berish', deliveryNote: (weight, perKg) => `${weight} kg × ${perKg}`,
       reserve: 'Qaytariladigan zaxira', reserveNote: packaging => `Vazn hisobiga qadoq uchun ${packaging} kg zaxira kiritilgan. Omborda tortilgach, ishlatilmagan summa balansga qaytariladi.`,
       reserveHelp: 'Jo‘natma hisoblangandan og‘irroq chiqsa, ehtiyot uchun qo‘yiladi. Omborda tortilgandan keyin ishlatilmagan qismi Atlas balansingizga qaytariladi. Yetkazib berish zaxiradan qimmatroq bo‘lsa, qo‘shimcha to‘lovni avval siz bilan kelishamiz.',
@@ -221,7 +225,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
   },
   en: {
     hero: {
-      title: 'US, Europe and China stores — to Tashkent',
+      title: 'Shop US, European and Chinese stores — delivered to Tashkent',
       lead: 'Paste a product link — we show the total in soum right away. We buy it and bring it to you.',
       label: 'Product link', placeholder: 'Paste a link', calculate: 'Calculate',
       invalid: 'Paste the full product page link — it starts with https://',
@@ -247,6 +251,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       itemNote: usd => `${usd} at the Atlas rate`,
       totalUsd: usd => `≈ ${usd} including delivery to Tashkent`,
       service: 'Atlas service', serviceParts: 'Service breakdown', fee: (percent) => `Fee ${percent}`,
+      serviceNote: (percent) => `${percent} fee and delivery to Tashkent`,
       delivery: 'Delivery', deliveryNote: (weight, perKg) => `${weight} kg × ${perKg}`,
       reserve: 'Refundable reserve', reserveNote: packaging => `Estimated weight includes a ${packaging} kg packaging allowance. Any unused amount returns to your balance after weighing.`,
       reserveHelp: 'A buffer in case the parcel is heavier than estimated. After warehouse weighing, any unused part returns to your Atlas balance. If delivery costs more than the reserve, we agree the extra payment with you first.',

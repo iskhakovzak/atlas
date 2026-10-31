@@ -115,3 +115,49 @@ test('the home example bill is priced like a real order: packed weight plus 0.3 
   assert.equal(quote.shipping, Math.ceil(1.3 * tariff.perKg));
   assert.equal(quote.service, Math.round(quote.merchandise * tariff.margin));
 });
+
+// Source checks for the home page (stage 3, review 1.11.2026): anchors other pages link to, the rates table opening on
+// /#tariffs, five questions that are also the FAQ structured data, and what the example bill's lines say.
+const homeSource = async (path) => (await import('node:fs')).readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+
+test('the home sections keep the anchors the header, the footer and other pages link to', async () => {
+  const sections = await homeSource('app/home-sections.tsx');
+  const catalog = await homeSource('app/home-catalog.tsx');
+  for (const id of ['how', 'tariffs', 'faq', 'bill']) {
+    assert.match(sections, new RegExp(`id="${id}"`), `#${id} is on the home page`);
+    assert.match(catalog, new RegExp(`'${id}'`), `#${id} is scrolled back to after the rail loads`);
+  }
+  assert.match(catalog, /<HomeExample\/>[\s\S]*<HowItWorks\/><DeliveryTariffs\/><TrustSection\/><HomeFaq\/>/);
+});
+
+test('the rates table opens by itself when the address names #tariffs', async () => {
+  const sections = await homeSource('app/home-sections.tsx');
+  const tariffs = sections.slice(sections.indexOf('export function DeliveryTariffs'), sections.indexOf('export function TrustSection'));
+  assert.match(tariffs, /window\.location\.hash==='#tariffs'&&table\.current\)table\.current\.open=true/);
+  assert.match(tariffs, /addEventListener\('hashchange',show\)/);
+  assert.match(tariffs, /<details ref=\{table\} className="home-tariff-all"/);
+});
+
+test('the home page asks five questions and the FAQ structured data lists the same ones', async () => {
+  const sections = await homeSource('app/home-sections.tsx');
+  const faq = sections.slice(sections.indexOf('export function HomeFaq'));
+  const start = faq.indexOf('const items:');
+  const list = faq.slice(start, faq.indexOf('\n ];', start));
+  const entries = list.split(/\r?\n/).slice(1).filter(line => line.trim());
+  assert.equal(entries.length, 5, 'five questions');
+  assert.match(faq, /<JsonLd data=\{faqPage\(items\)\}\/>/);
+  assert.match(faq, /\{items\.map\(item=><details/);
+});
+
+test('the example bill says the «Atlas service» line holds the fee and the delivery, not the fee alone', async () => {
+  const sections = await homeSource('app/home-sections.tsx');
+  assert.match(sections, /<dt>\{c\.example\.service\}<small>\{c\.example\.serviceNote\(fee\)\}<\/small><\/dt>/);
+  assert.match(sections, /<li><span>\{c\.example\.fee\(fee\)\}<\/span><span>\{formatSum\(parts\.service,locale\)\}/);
+  assert.equal(homeCopy.ru.example.serviceNote('9,98%'), 'Комиссия 9,98% и доставка до Ташкента');
+  assert.equal(homeCopy.uz.example.serviceNote('9,98%'), 'Komissiya 9,98% va Toshkentgacha yetkazish');
+  assert.equal(homeCopy.en.example.serviceNote('9.98%'), '9.98% fee and delivery to Tashkent');
+});
+
+test('the home title never starts a line with its dash', () => {
+  for (const locale of ['ru', 'uz', 'en']) assert.match(homeCopy[locale].hero.title, / —/, `${locale}: a no-break space before the dash`);
+});

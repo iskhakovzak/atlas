@@ -168,7 +168,7 @@ function ExampleQuote(){
   <p className="home-bill-head"><span className="home-bill-mark" aria-hidden="true"><StoreMark brandKey="nike" height={14} maxWidth={28}/></span><span className="home-bill-product" aria-hidden="true"><b>{c.trust.trackingProduct}</b><small>nike.com · {usd}</small></span><b id="example-title" className="home-bill-tag">{c.example.title}<span className="sr-only">: {c.example.product(usd)}</span></b></p>
   <dl className="home-bill-lines">
    <div><dt>{c.example.item}<small>{c.example.itemNote(usd)}</small></dt><dd>{formatSum(quote.merchandise,locale)}</dd></div>
-   <div><dt>{c.example.service}<small>{c.example.fee(fee)}</small></dt><dd>{formatSum(parts.service+parts.international,locale)}</dd></div>
+   <div><dt>{c.example.service}<small>{c.example.serviceNote(fee)}</small></dt><dd>{formatSum(parts.service+parts.international,locale)}</dd></div>
    {/* A reserve on top of delivery only while the tariff sets one (none since 5 October 2026). */}
    {quote.reserve>0&&<div><dt><span>{c.example.reserve}<InfoTip locale={locale}>{c.example.reserveHelp}</InfoTip></span><small>{c.example.reserveNote(formatKg(packagingKg,locale))}</small></dt><dd>{formatSum(quote.reserve,locale)}</dd></div>}
   </dl>
