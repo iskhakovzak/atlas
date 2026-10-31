@@ -2,7 +2,7 @@ import {env,waitUntil} from 'cloudflare:workers';
 import {currentUser} from '@/lib/auth/server';
 import {blank,parseState,pricingSchema,tariff,upgradePricing,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
-import {cbuUsdUrl,fxRefreshDue,parseCbuRate,withCbuRate} from './fx';
+import {bankRatesUrl,cbuUsdUrl,fxRefreshDue,parseBankSellRate,parseCbuRate,withCbuRate} from './fx';
 import {foreignOrderIds,writeProjection} from './projection';
 import {apiErrorMessage,requestLocale,serverError} from './i18n';
 import {translateDomainError} from './domain-errors.ts';
@@ -141,19 +141,29 @@ export async function pricingAndPolicy():Promise<{pricing:Pricing;policy:Policy}
 /** A tariff on the Central Bank rate reads it again in the background when it is older than 6 hours. */
 function scheduleFxRefresh(current:Pricing){if(fxRefreshDue(current))deferBackground(refreshCbuFx(),'CBU rate refresh failed');return current}
 /**
- * Read the CBU USD rate and store it in the tariff (rate × markup, new version when the soum rate changes).
+ * Read the USD rate (a bank's selling rate, else the CBU rate) and store it in the tariff (rate × markup, new version when the soum rate changes).
  * One refresh at a time (D1 lease); the write applies only if the tariff did not change meanwhile.
  */
+async function bankSellRate(now:number){
+ const response=await fetch(bankRatesUrl,{headers:{Accept:'text/html','User-Agent':'Mozilla/5.0 (compatible; AtlasRates/1.0)'},redirect:'manual',signal:AbortSignal.timeout(8000)});
+ const text=response.status===200?await response.text():'';
+ // Tashkent's date (UTC+5): the rate is the one banks show today.
+ return text.length<3_000_000?parseBankSellRate(text,new Date(now+5*3600_000).toISOString().slice(0,10)):null;
+}
+async function centralBankRate(){
+ const response=await fetch(cbuUsdUrl,{headers:{Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(8000)});
+ const text=response.status===200?await response.text():'';
+ return text.length<64000?parseCbuRate(JSON.parse(text||'null')):null;
+}
 export async function refreshCbuFx(now=Date.now()):Promise<Pricing|null>{
  const db=database();
  const lease=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=1,expires_at=excluded.expires_at WHERE market_rate_limits.expires_at<? RETURNING key').bind('atlas:fx-refresh:lease',now+120000,now).first<{key:string}>();
  if(!lease)return null;
  // A failed attempt keeps the 2-minute lease, so the bank is not asked again on every request.
  // Workers support only "follow" or "manual": a redirect is not followed and counts as a failed read.
- const response=await fetch(cbuUsdUrl,{headers:{Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(8000)});
- const text=response.status===200?await response.text():'';
- const cbu=text.length<64000?parseCbuRate(JSON.parse(text||'null')):null;
- if(!cbu)throw Error('CBU rate response was not usable');
+ // A bank's selling rate first (bank.uz answers from abroad); the Central Bank rate when that page is unusable.
+ const cbu=await bankSellRate(now).catch(()=>null)??await centralBankRate();
+ if(!cbu)throw Error('USD rate response was not usable');
  const row=await db.prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();
  const current=parsePricingValue(row?.value);
  let result:Pricing|null=current;

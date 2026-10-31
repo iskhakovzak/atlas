@@ -10,7 +10,7 @@ export function PricingSummary({pricing}:{pricing:Pricing}){
  return <section className="surface admin-section admin-pricing-summary" aria-label="Действующий тариф">
   <div className="admin-section-head"><div><h2>Что действует сейчас</h2><p>Версия {s.version}{s.managedBy?` · ${s.managedBy}`:''} · изменено {s.updatedAt?dateTime(s.updatedAt):'—'}</p></div></div>
   <dl className="admin-now">
-   <div><dt>Курс USD</dt><dd>{new Intl.NumberFormat('ru-RU').format(Math.round(s.fx))} сум</dd><small>{s.fxSource}{s.fxDate?` · ЦБ на ${s.fxDate}`:''}{s.fxUpdatedAt?` · обновлён ${dateTime(s.fxUpdatedAt)}`:''}</small></div>
+   <div><dt>Курс USD</dt><dd>{new Intl.NumberFormat('ru-RU').format(Math.round(s.fx))} сум</dd><small>{s.fxSource}{s.fxDate?` · на ${s.fxDate}`:''}{s.fxUpdatedAt?` · обновлён ${dateTime(s.fxUpdatedAt)}`:''}</small></div>
    <div><dt>Экспресс</dt><dd>{usd(s.expressPerKgUsd)} / кг</dd><small>международная доставка</small></div>
    <div><dt>Обычная</dt><dd>{usd(s.standardPerKgUsd)} / кг</dd><small>международная доставка</small></div>
    <div><dt>Комиссия Atlas</dt><dd>{s.marginPercent.toLocaleString('ru-RU')} %</dd><small>только от товаров</small></div>

@@ -2,6 +2,32 @@ import { normalizePricing, type Pricing } from './domain.ts';
 
 /** The Central Bank of Uzbekistan's official USD rate (JSON, no key needed). */
 export const cbuUsdUrl = 'https://cbu.uz/ru/arkhiv-kursov-valyut/json/USD/';
+/**
+ * Banks' USD selling rates (bank.uz lists every Uzbek bank; it answers from the server abroad, cbu.uz does not).
+ * The rate in use is a bank's selling rate × markup; the Central Bank rate stays as the fallback source.
+ */
+export const bankRatesUrl = 'https://bank.uz/currency';
+/** The bank whose selling rate is preferred (National Bank of Uzbekistan); otherwise the middle of all banks' rates. */
+export const preferredBank = 'nbu';
+
+/** Read the USD selling rates from bank.uz's "best rates" USD tab; null if there are too few or they look wrong. */
+export function parseBankSellRate(html: string, today: string): { rate: number; date: string; bank: string } | null {
+  const start = html.indexOf('id="best_USD"');
+  if (start < 0) return null;
+  const end = html.indexOf('role="tabpanel"', start + 20);
+  const tab = html.slice(start, end > start ? end : start + 200_000);
+  const sell = tab.indexOf('bc-inner-blocks-right');
+  if (sell < 0) return null;
+  const rates = [...tab.slice(sell).matchAll(/href="\/currency\/bank\/([a-z0-9-]{1,60})"[\s\S]{0,600}?green-date">\s*(\d{1,3}(?: \d{3})*(?:\.\d{1,4})?)\s*сум/g)]
+    .map((match) => ({ bank: match[1], rate: Number(match[2].replaceAll(' ', '')) }))
+    .filter((row) => Number.isFinite(row.rate) && row.rate >= 1000 && row.rate <= 100_000);
+  if (rates.length < 3) return null;
+  const sorted = rates.map((row) => row.rate).sort((a, b) => a - b);
+  const middle = sorted[Math.floor(sorted.length / 2)];
+  const chosen = rates.find((row) => row.bank === preferredBank && Math.abs(row.rate - middle) / middle < 0.05) ?? { bank: 'median', rate: middle };
+  return { rate: Math.round(chosen.rate * 100) / 100, date: today, bank: chosen.bank };
+}
+
 /** The rate is published once a day; the server asks again after this long. */
 export const fxRefreshAfterMs = 6 * 60 * 60_000;
 

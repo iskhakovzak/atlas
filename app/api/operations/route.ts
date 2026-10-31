@@ -238,7 +238,7 @@ export async function POST(request: Request) {
     }
     if (payload.data.kind === "fx-refresh") {
       const next = await refreshCbuFx().catch(() => null);
-      if (!next) throw new HttpError(502, "Не удалось получить курс ЦБ. Попробуйте позже или задайте курс вручную.");
+      if (!next) throw new HttpError(502, "Не удалось получить курс банка. Попробуйте позже или задайте курс вручную.");
       await recordAudit(user, "pricing.fx-refresh", "settings", "pricing", { version: next.version, fx: next.fx });
       return json({ pricing: next });
     }

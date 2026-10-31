@@ -38,4 +38,4 @@ export function catalogSaleRunner(user:{userId:string;email:string}){
   },
  });
 }
-export function validatedSaleSource(value:string){const source=parseEbayStorefrontUrl(value);if(!source?.seller||!source.categoryId)throw new HttpError(400,'Вставьте ссылку категории подтверждённой витрины eBay, например adidas, с параметром _sacat.');return source.sourceUrl;}
+export function validatedSaleSource(value:string){const source=parseEbayStorefrontUrl(value);if(!source?.seller)throw new HttpError(400,'Вставьте ссылку подтверждённой витрины eBay, например ebay.com/str/adidas, или её категории.');return source.sourceUrl;}

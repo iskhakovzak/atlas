@@ -1,10 +1,12 @@
-import {fetchEbaySellerSearchPage,type EbayBrowseConfig,type EbayFetch} from './ebay.ts';
+import {fetchEbaySellerCategories,fetchEbaySellerSearchPage,type EbayBrowseConfig,type EbayFetch} from './ebay.ts';
 
 // Reviewed against the store's own Contact link:
 // https://www.ebay.com/str/adidas -> /cnt/intermediatedFAQ?requested=adidas_official (25 October 2026).
 // A store's public slug is NOT necessarily its seller username. Never guess unknown usernames.
 const reviewedSellers:Record<string,string>={adidas:'adidas_official'};
 const pageSize=50,maxResults=10_000;
+// eBay US top-level categories (Browse searches one category at a time). A whole-store link walks those the seller lists in.
+const ebayUsRootCategories=['11450','888','26395','11700','293','58058','15032','625','281','220','1','64482','2984','6000','12576','619','1249','267','11232','11233','14339','237','20081','550','11116','45100','172008','870','1281','260','1305','3252','316','10542','99'];
 type Row=Record<string,unknown>;
 const row=(value:unknown):Row|undefined=>value!==null&&typeof value==='object'&&!Array.isArray(value)?value as Row:undefined;
 export type EbayStorefront={sourceUrl:string;store:string;seller?:string;categoryId?:string};
@@ -27,13 +29,29 @@ export function parseEbayStorefrontUrl(value:string):EbayStorefront|undefined {
   return {sourceUrl:canonical.href,store,seller:Object.hasOwn(reviewedSellers,store)?reviewedSellers[store]:undefined,categoryId};
 }
 
-function encodeCursor(sourceUrl:string,offset:number){return btoa(JSON.stringify({v:1,sourceUrl,offset})).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');}
-function offsetFrom(cursor:string|undefined,sourceUrl:string){
-  if(cursor===undefined)return 0;
+const encode=(value:Row)=>btoa(JSON.stringify(value)).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
+function encodeCursor(sourceUrl:string,offset:number){return encode({v:1,sourceUrl,offset});}
+type Position={categories?:string[];index:number;offset:number};
+function positionFrom(cursor:string|undefined,sourceUrl:string,wholeStore:boolean):Position|undefined{
+  if(cursor===undefined)return undefined;
   if(typeof cursor!=='string'||cursor.length>1000||!/^[a-zA-Z0-9_-]+$/.test(cursor))throw new Error('Некорректная страница витрины eBay. Начните импорт заново.');
   let parsed:Row|undefined;try{parsed=row(JSON.parse(atob(cursor.replaceAll('-','+').replaceAll('_','/'))))}catch{}
-  if(parsed?.v!==1||parsed.sourceUrl!==sourceUrl||!Number.isInteger(parsed.offset)||Number(parsed.offset)<50||Number(parsed.offset)>9950||Number(parsed.offset)%pageSize!==0)throw new Error('Страница не относится к этой витрине eBay. Начните импорт заново.');
-  return Number(parsed.offset);
+  const offset=Number(parsed?.offset),offsetOk=Number.isInteger(offset)&&offset>=0&&offset<=9950&&offset%pageSize===0;
+  if(!wholeStore){
+    if(parsed?.v!==1||parsed.sourceUrl!==sourceUrl||!offsetOk||offset<50)throw new Error('Страница не относится к этой витрине eBay. Начните импорт заново.');
+    return {index:0,offset};
+  }
+  const categories=parsed?.categories,index=Number(parsed?.index);
+  if(parsed?.v!==2||parsed.sourceUrl!==sourceUrl||!offsetOk||!Array.isArray(categories)||!categories.length||categories.length>ebayUsRootCategories.length
+    ||!categories.every(id=>typeof id==='string'&&ebayUsRootCategories.includes(id))||new Set(categories).size!==categories.length||!Number.isInteger(index)||index<0||index>=categories.length)
+    throw new Error('Страница не относится к этой витрине eBay. Начните импорт заново.');
+  return {categories:categories as string[],index,offset};
+}
+/** Top-level categories where the seller lists items, most items first; every top-level category when eBay names none. */
+async function storeCategories(config:EbayBrowseConfig,fetcher:EbayFetch,seller:string,store:string){
+  const counts=new Map((await fetchEbaySellerCategories(config,fetcher,{seller,q:store.replace(/[_-]+/g,' ').trim()})).map(row=>[row.categoryId,row.count]));
+  const found=ebayUsRootCategories.filter(id=>counts.has(id)).sort((a,b)=>counts.get(b)!-counts.get(a)!);
+  return found.length?found:[...ebayUsRootCategories];
 }
 function amount(value:unknown){const object=row(value),n=typeof object?.value==='string'||typeof object?.value==='number'?Number(object.value):NaN;return Number.isFinite(n)&&n>0&&n<=1_000_000&&typeof object?.currency==='string'&&/^[A-Z]{3}$/.test(object.currency)?{amount:n,currency:object.currency}:undefined;}
 function listingFor(item:Row){
@@ -60,13 +78,18 @@ function sale(item:Row,seller:string,now:number):EbaySaleEvidence|undefined {
   return {url:`https://www.ebay.com/itm/${id}`,listingId:id,seller,price:price.amount,currency:price.currency,...(referencePrice===undefined?{}:{referencePrice}),...(discountPercentage===undefined?{}:{discountPercentage})};
 }
 
-/** One bounded official page. Callers persist progress and import full listings separately before publication. */
+/**
+ * One bounded official page. Callers persist progress and import full listings separately before publication.
+ * A category link (_sacat) pages through that category; a whole-store link pages through each top-level category in turn.
+ */
 export async function fetchEbayStorefrontSalePage(sourceUrl:string,config:EbayBrowseConfig,fetcher:EbayFetch=fetch,cursor?:string):Promise<EbayStorefrontSalePage>{
   const storefront=parseEbayStorefrontUrl(sourceUrl);
   if(!storefront)throw new Error('Нужна HTTPS-ссылка витрины eBay вида ebay.com/str/магазин.');
   if(!storefront.seller)throw new Error('Продавец этой витрины eBay ещё не подтверждён. Используйте ссылки на товары.');
-  if(!storefront.categoryId)throw new Error('Выберите категорию в витрине eBay и вставьте её ссылку с _sacat.');
-  const offset=offsetFrom(cursor,storefront.sourceUrl),payload=await fetchEbaySellerSearchPage(config,fetcher,{seller:storefront.seller,categoryId:storefront.categoryId,offset});
+  const wholeStore=!storefront.categoryId,position=positionFrom(cursor,storefront.sourceUrl,wholeStore);
+  const categories=wholeStore?position?.categories??await storeCategories(config,fetcher,storefront.seller,storefront.store):[storefront.categoryId!];
+  const index=position?.index??0,offset=position?.offset??0;
+  const payload=await fetchEbaySellerSearchPage(config,fetcher,{seller:storefront.seller,categoryId:categories[index],offset});
   const summaries=Array.isArray(payload.itemSummaries)?payload.itemSummaries:[];
   if(summaries.length>pageSize)throw new Error('eBay вернул слишком большую страницу витрины.');
   const items=[...new Map(summaries.map(value=>row(value)).filter((value):value is Row=>Boolean(value)).map(value=>sale(value,storefront.seller!,Date.now())).filter((value):value is EbaySaleEvidence=>Boolean(value)).map(value=>[value.listingId,value])).values()];
@@ -74,5 +97,11 @@ export async function fetchEbayStorefrontSalePage(sourceUrl:string,config:EbayBr
   // A provider page can be sparse (or temporarily empty) while still supplying a next page.
   // Advance our bounded offset only; never fetch the URL returned in `next`.
   const nextOffset=offset+pageSize,hasMore=(typeof payload.next==='string'&&Boolean(payload.next.trim()))||(summaries.length>0&&total!==undefined&&nextOffset<total);
-  return {sourceUrl:storefront.sourceUrl,seller:storefront.seller,urls:items.map(item=>item.url),items,scanned:summaries.length,matched:items.length,offset,...(total===undefined?{}:{total}),...(hasMore&&nextOffset<maxResults?{nextCursor:encodeCursor(storefront.sourceUrl,nextOffset)}:{}),limited:hasMore&&nextOffset>=maxResults};
+  const limited=hasMore&&nextOffset>=maxResults;
+  const nextCursor=!wholeStore
+    ?(hasMore&&!limited?encodeCursor(storefront.sourceUrl,nextOffset):undefined)
+    :hasMore&&!limited?encode({v:2,sourceUrl:storefront.sourceUrl,categories,index,offset:nextOffset})
+    :index+1<categories.length?encode({v:2,sourceUrl:storefront.sourceUrl,categories,index:index+1,offset:0}):undefined;
+  // A whole store sums several searches, so one category's total is not the store's.
+  return {sourceUrl:storefront.sourceUrl,seller:storefront.seller,urls:items.map(item=>item.url),items,scanned:summaries.length,matched:items.length,offset,...(total===undefined||wholeStore?{}:{total}),...(nextCursor?{nextCursor}:{}),limited};
 }

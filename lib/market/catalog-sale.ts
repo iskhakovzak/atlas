@@ -62,7 +62,7 @@ export function createCatalogSaleRunner(deps:Dependencies){
    if(!job.pending.length&&!job.discoveryDone){
     const page=await deps.discover(job.sourceUrl,job.cursor),seen=new Set(job.seen);
     for(const item of page.items){const checked=evidence.safeParse(item);if(!checked.success||seen.has(item.listingId))continue;seen.add(item.listingId);job.pending.push(checked.data);}
-    job.seen=[...seen];job.scanned+=page.scanned;job.matched=job.seen.length;job.total=page.total;job.cursor=page.nextCursor;job.discoveryDone=!page.nextCursor;job.limited=page.limited;
+    job.seen=[...seen];job.scanned+=page.scanned;job.matched=job.seen.length;job.total=page.total;job.cursor=page.nextCursor;job.discoveryDone=!page.nextCursor;job.limited=job.limited||page.limited;
    }
    // Three full listings fit one bounded request. The next call continues automatically.
    for(let i=0;i<3&&job.pending.length;i++){

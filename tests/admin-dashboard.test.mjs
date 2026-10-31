@@ -155,7 +155,7 @@ test('rules: field validation mirrors the policy schema',()=>{
 
 test('tariff snapshot reads the rates in force; tabs round-trip through ?tab=',()=>{
  const s=pricingSnapshot({...tariff,fxSource:'cbu',fxCbuDate:'2026-10-06',updatedAt:now,version:'managed-1'});
- assert.equal(s.expressPerKgUsd,15.98);assert.equal(s.standardPerKgUsd,13.98);assert.equal(s.marginPercent,9.98);assert.equal(s.customsHelpPercent,4.98);assert.ok(s.fxSource.startsWith('ЦБ'));
+ assert.equal(s.expressPerKgUsd,15.98);assert.equal(s.standardPerKgUsd,13.98);assert.equal(s.marginPercent,9.98);assert.equal(s.customsHelpPercent,4.98);assert.ok(s.fxSource.startsWith('банк'));
  assert.equal(tabFromSearch('?tab=staff'),'staff');
  assert.equal(tabFromSearch('?tab=nope'),'overview');
  assert.equal(tabFromSearch(''),'overview');
