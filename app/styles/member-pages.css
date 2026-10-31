@@ -853,9 +853,6 @@ html[data-theme="dark"] #shipping-rules p.micro a { color: var(--night-jade); }
 /* The closing screen's copy of the form (desktop): as wide as the hero's, under the line of text. */
 .home-stores-label { margin: 0 0 10px; color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
 
-/* Sections. */
-.home-step .home-step-extra { margin-top: 10px; font-size: 14px; }
-
 /* ── app/customer.css ── */
 @media (max-width: 760px) {
   main[data-view="cart"] .breadcrumb, main[data-view="account"] .breadcrumb { display: none; }
@@ -1791,7 +1788,7 @@ html:not([data-theme="dark"]) .recipient-choice-manual strong { color: var(--day
 /* ---------- Catalog cards: long soum totals never leave the card ---------- */
 @media (max-width: 600px) {
   /* "+N soum to the parcel": the store line on top, the amount below it. */
-  :is(.catalog-page, .catalog-teaser) .find-card .find-limit { font-size: 12px; }
+  .catalog-page .find-card .find-limit { font-size: 12px; }
 }
 
 /* Order filters share the width as equal columns instead of running off a narrow screen. */

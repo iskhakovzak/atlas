@@ -1,64 +1,244 @@
-/* Rules of the layout files that only the home page uses. Split out of the layout CSS (14.10.2026) so other pages do not load these rules; they keep the order
-   they had there (layout files in import order, then the home page's files), and every rule a later layout rule of the same
-   weight overrides stayed in the layout. Edit them here. */
+/* The home page (app/home-catalog.tsx, app/home-sections.tsx, app/catalog-teaser.tsx), direction A «Спокойная витрина»
+   (owner, 1.11.2026, plan stage 3). Loaded with the home page only (app/page.tsx). Every colour, size, radius, shadow
+   and control height comes from app/tokens.css; the dark theme only redefines the roles there.
+   Rules sit under .home-main (the home's <main>) so the older layout layers of the same weight never win. */
 
-/* ── app/home.css ── */
-/* Example estimate. */
-.home-example { display: grid; gap: 20px; }
-@media (min-width: 900px) {
-  .home-example { grid-template-columns: 1fr 1.1fr; align-items: start; }
-}
+/* ---------- The first screen: the hero, the product rail, the example bill ---------- */
+.home-main .home-top { position: relative; display: grid; gap: var(--space-6); padding-block: var(--space-5) var(--space-8); }
+.home-main .home-top > * { min-width: 0; }
 
-/* ── app/theme-night.css ── */
-/* ---------- Folio markup (home, cart, link order) in Atlas Night ----------
-   The light theme's look lives in day-folio.css; these rules give the same markup a Night finish. */
-@media (min-width: 1100px) {
-  html[data-theme="dark"] .home-top { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(400px, .92fr); column-gap: 56px; align-items: center; padding-bottom: 40px; }
-  html[data-theme="dark"] .home-top .home-hero { max-width: none; }
-}
-html[data-theme="dark"] .home-top { display: grid; gap: 32px; }
+/* The atmosphere (app/ambient.css) stays behind the first screen only and fades out instead of ending on a line. */
+html[data-view="catalog"] .ambient { -webkit-mask-image: linear-gradient(#000 62%, transparent); mask-image: linear-gradient(#000 62%, transparent); }
 
-/* ── app/day-folio.css ── */
-/* ---------- Home: the hero beside the example bill ---------- */
-.home-top > * { min-width: 0; }
-html:not([data-theme="dark"]) .home-top { display: grid; gap: 32px; padding: 24px 0 calc(var(--day-section) / 2); }
-@media (min-width: 1100px) {
-  html:not([data-theme="dark"]) .home-top { grid-template-columns: minmax(0, 1.08fr) minmax(400px, .92fr); column-gap: 64px; align-items: center; padding: 36px 0 40px; }
-}
-@media (min-width: 761px) and (max-width: 1099px) {
-  html:not([data-theme="dark"]) .home-top { max-width: 720px; }
-}
-/* Stores: a quiet list with their own marks, not a wall of chips. */
-@media (max-width: 600px) {
-  html:not([data-theme="dark"]) .home-top { padding-top: 20px; gap: 32px; }
-}
+.home-main .home-hero { max-width: 720px; }
+.home-main .home-hero h1 { margin: 0; color: var(--text); font-size: var(--fs-30); font-weight: var(--fw-bold); line-height: var(--lh-tight); letter-spacing: var(--tracking-title); text-wrap: balance; }
+.home-main .home-hero-lead { max-width: 600px; margin: var(--space-2) 0 0; color: var(--text-2); font-size: var(--fs-16); line-height: var(--lh-body); }
 
-/* ── app/store-marks.css ── */
-/* Around the home picks (#finds, app/home-sections.tsx): routes sweep behind the cards and show in the gaps. */
-.home-finds-sky { inset: -24px 0 -24px; }
-/* Wide screens: the sheet is a whole screen tall, so the sky gets the room above and below the cards. */
-@media (min-width: 1440px) and (min-height: 820px) {
-  .home-finds-sky { inset: 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
-  .home-finds-sky .sky-spark { zoom: 1.4; }
-}
-.home-finds-sky::before {
-  content: ""; position: absolute; inset: 0; z-index: -1; filter: blur(40px);
-  background:
-    radial-gradient(26% 36% at 16% 20%, rgba(var(--sky-mint), .16), transparent 72%),
-    radial-gradient(24% 36% at 84% 80%, rgba(var(--sky-gold), .14), transparent 72%);
+/* The link field: 56px; the button full width under it on phones, inside it from 761px. */
+.home-main .home-link-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); margin: var(--space-5) 0 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.home-main .home-link-field { display: flex; align-items: center; gap: var(--space-2); min-height: var(--h-lg); padding: 0 var(--space-1) 0 var(--space-4); border: 1px solid var(--field); border-radius: var(--r-control); background-color: var(--surface); box-shadow: var(--shadow-1); color: var(--text-3); }
+.home-main .home-link-field:focus-within { border-color: var(--brand); box-shadow: var(--focus-ring); }
+.home-main .home-link-field > svg { flex: none; }
+.home-main .home-link-field input { flex: 1; width: 100%; min-width: 0; height: calc(var(--h-lg) - 2px); padding: 0; border: 0; background: transparent; color: var(--text); font-size: var(--fs-16); outline: none; box-shadow: none; }
+.home-main .home-link-field input:focus-visible { outline: none; box-shadow: none; }
+.home-main .home-link-field input::placeholder { color: var(--text-3); opacity: 1; }
+/* The dark theme gives every input an inset fill and border (app/theme-night.css): here the field is the box. */
+html[data-theme="dark"] body .home-main .home-link-field input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) { border: 0; background-color: transparent; box-shadow: none; }
+.home-main .home-link-form .btn.home-cta { position: relative; min-height: var(--h-md); padding: 0 var(--space-6); border-radius: var(--r-control); font-size: var(--fs-16); font-weight: var(--fw-semibold); }
+.home-main .home-link-form .home-cta[aria-busy="true"] { cursor: progress; }
+.home-main .home-link-form .home-cta[aria-busy="true"] .home-cta-label { visibility: hidden; }
+.home-main .home-link-form .home-cta-spinner { position: absolute; inset: 0; margin: auto; }
+@media (min-width: 761px) {
+  .home-main .home-link-form { display: flex; align-items: center; gap: var(--space-2); min-height: var(--h-lg); padding: var(--space-1); border: 1px solid var(--field); border-radius: var(--r-control); background-color: var(--surface); box-shadow: var(--shadow-1); }
+  .home-main .home-link-form:focus-within { border-color: var(--brand); box-shadow: var(--focus-ring); }
+  .home-main .home-link-field { flex: 1; min-height: 46px; padding-left: var(--space-3); border: 0; background: transparent; box-shadow: none; }
+  .home-main .home-link-field:focus-within { box-shadow: none; }
+  .home-main .home-link-field input { height: 46px; }
+  .home-main .home-link-form .btn.home-cta { flex: none; min-height: var(--h-md); }
 }
 
-/* ── app/ambient.css ── */
-/* Work screens and the home page on wide screens (it has its own decor, app/home-wide-decor.css) go without it. */
-@media (min-width: 1440px) and (min-height: 820px) {
-  html[data-view="catalog"]:is(html) .ambient { display: none; }
-}
+/* Under the field: two facts with a tick and «Several links at once». */
+.home-main .home-link-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1) var(--space-4); margin-top: var(--space-3); }
+.home-main .home-link-points { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: 0; padding: 0; list-style: none; color: var(--text-2); font-size: var(--fs-13); line-height: var(--lh-snug); }
+.home-main .home-link-points li { display: inline-flex; align-items: center; gap: 6px; }
+.home-main .home-link-points svg { flex: none; color: var(--brand); }
+.home-main .home-link-batch { display: inline-flex; align-items: center; min-height: 32px; color: var(--link); font-size: var(--fs-13); font-weight: var(--fw-semibold); }
+.home-main .home-link-batch:hover { text-decoration: underline; text-underline-offset: 3px; }
+.home-main .home-link-error { margin: var(--space-3) 0 0; color: var(--danger); font-size: var(--fs-14); font-weight: var(--fw-semibold); line-height: var(--lh-body); }
+.home-main .home-link-help { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+.home-main .home-link-help .btn { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; max-width: 100%; padding: var(--space-2) var(--space-4); font-size: var(--fs-14); line-height: var(--lh-snug); text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.home-main .home-link-help .btn :is(svg, .store-logo) { flex: none; }
 
-/* ── app/link-inputs.css ── */
-/* One focus frame around the whole composite field, rather than a second square around the input. */
-html[data-view="catalog"] body .catalog-home #how .hw-demo-input > .paste-button { display: inline-flex; flex: none; width: auto; height: auto; min-height: 44px; padding: 6px; background: transparent; color: inherit; }
-html[data-view="catalog"] body .catalog-home #how .hw-demo-input > button[type="submit"] { min-width: 44px; min-height: 44px; }
-/* A focused link field already supplies the action; the floating duplicate must not cover the keyboard/form. */
+/* The signed-in "continue" card (app/home-resume.tsx) keeps its place while the account loads. */
+.home-main .home-resume-slot { min-height: 56px; margin-top: var(--space-4); }
+
+/* ---------- The product rail (app/catalog-teaser.tsx) and its placeholder ---------- */
+.home-main .home-rail { display: grid; gap: var(--space-3); }
+.home-main .home-rail-head { display: flex; align-items: center; gap: var(--space-3); }
+.home-main .home-rail-head > div { flex: 1; min-width: 0; }
+.home-main .home-rail-head h2 { margin: 0; color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: 0; }
+.home-main .home-rail-head p { display: none; margin: 2px 0 0; color: var(--text-3); font-size: var(--fs-13); line-height: var(--lh-snug); }
+.home-main .home-rail-all { display: inline-flex; flex: none; align-items: center; gap: var(--space-1); min-height: 40px; color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-semibold); white-space: nowrap; }
+.home-main .home-rail-all:hover { text-decoration: underline; text-underline-offset: 3px; }
+.home-main .home-rail-pager { display: none; gap: var(--space-1); }
+.home-main .home-rail-pager .icon-btn { width: 40px; height: 40px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background-color: var(--surface); color: var(--text); }
+.home-main .home-rail-pager .icon-btn:hover:not(:disabled) { background-color: var(--hover); }
+/* Phones: the row bleeds to the screen edges and swipes; about two and a half cards show. */
+.home-main .home-rail-track { display: grid; grid-auto-flow: column; grid-auto-columns: 42%; gap: var(--space-3); margin-inline: -16px; padding: 2px 16px var(--space-3); overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; scrollbar-width: none; }
+.home-main .home-rail-track::-webkit-scrollbar { display: none; }
+.home-main .home-rail-track > * { scroll-snap-align: start; }
+
+/* The rail's cards: white with a shadow, no border; the sum in soum is the main number, the store price small under it. */
+.home-main .home-rail .find-card { border: 0; border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); }
+.home-main .home-rail .find-card .find-visual { background-color: var(--sunken) !important; }
+.home-main .home-rail .find-card.find-card-compact .find-content { gap: 2px; padding: var(--space-2) var(--space-3) var(--space-3); }
+.home-main .home-rail .find-card.find-card-compact .find-meta { color: var(--text-3); font-size: var(--fs-12); }
+.home-main .home-rail .find-card.find-card-compact .find-compact-title { color: var(--text-2); font-size: var(--fs-13); font-weight: var(--fw-medium); }
+.home-main .home-rail .find-card.find-card-compact .find-compact-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; margin-top: 2px; color: var(--text-3); font-size: var(--fs-12); }
+.home-main .home-rail .find-compact-price > span:nth-child(2) { display: none; } /* the "→" between the two prices */
+.home-main .home-rail .find-compact-price > span:nth-child(3):not(.money) { order: -2; color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-bold); } /* "≈" of a price to confirm */
+.home-main .home-rail .find-card.find-card-compact .find-compact-price .money { order: -1; color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-bold); font-feature-settings: var(--tnum); letter-spacing: -.01em; }
+.home-main .home-rail .find-card.find-card-compact .find-compact-price .money-unit { color: var(--text-2); font-size: var(--fs-12); font-weight: var(--fw-semibold); }
+.home-main .home-rail .find-compact-price > span:first-child { flex-basis: 100%; }
+
+/* Placeholder cards while the catalog loads: the same box as a card. */
+.home-main .home-rail-ghost { display: grid; gap: var(--space-2); align-content: start; padding-bottom: var(--space-3); border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); overflow: hidden; }
+.home-main .home-skeleton { display: block; border-radius: var(--r-xs); background-color: var(--sunken); }
+.home-main .home-skeleton-title { width: 160px; height: 22px; }
+.home-main .home-skeleton-photo { aspect-ratio: 1; border-radius: 0; }
+.home-main .home-skeleton-line { width: 70%; height: 12px; margin: var(--space-1) var(--space-3) 0; }
+.home-main .home-skeleton-sum { width: 55%; height: 18px; margin: 0 var(--space-3); }
+@media (prefers-reduced-motion: no-preference) {
+  .home-main .home-skeleton { animation: home-pulse 1.4s ease-in-out infinite; }
+}
+@keyframes home-pulse { 50% { opacity: .55; } }
+
+/* ---------- The example bill: folded under a button on phones and tablets, beside the hero from 1024px ---------- */
+.home-main .home-example-toggle { display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: var(--h-md); padding: 0 var(--space-4); border: 0; border-radius: var(--r-control); background-color: var(--surface); box-shadow: var(--shadow-1); color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-semibold); text-align: left; }
+.home-main .home-example-toggle > svg:first-child { color: var(--brand); }
+.home-main .home-example-chevron { margin-left: auto; color: var(--text-3); transition: transform var(--dur-base) var(--ease-out); }
+.home-main .home-example[data-open] .home-example-chevron { transform: rotate(180deg); }
+.home-main .home-example:not([data-open]) .home-bill { display: none; }
+.home-main .home-example[data-open] .home-bill { margin-top: var(--space-2); }
+
+.home-main .home-bill { display: grid; gap: var(--space-3); padding: var(--space-4); border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); }
+.home-main .home-bill-head { display: flex; align-items: center; gap: var(--space-3); margin: 0; padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+.home-main .home-bill-mark { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: var(--r-control); background-color: var(--sunken); color: var(--text); }
+.home-main .home-bill-product { display: grid; flex: 1; min-width: 0; line-height: var(--lh-snug); }
+.home-main .home-bill-product b { color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-semibold); }
+.home-main .home-bill-product small { color: var(--text-3); font-size: var(--fs-12); }
+.home-main .home-bill-tag { flex: none; padding: 2px var(--space-2); border-radius: var(--r-pill); background-color: var(--sunken); color: var(--text-2); font-size: var(--fs-12); font-weight: var(--fw-semibold); }
+.home-main .home-bill-lines { display: grid; gap: var(--space-2); margin: 0; }
+.home-main .home-bill-lines > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.home-main .home-bill-lines dt { display: grid; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-medium); line-height: var(--lh-snug); }
+.home-main .home-bill-lines dt > span { display: inline-flex; align-items: center; gap: 2px; }
+.home-main .home-bill-lines dt small { color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-regular); }
+.home-main .home-bill-lines dd { margin: 0; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-semibold); font-feature-settings: var(--tnum); white-space: nowrap; }
+.home-main .home-bill-parts > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; color: var(--link); font-size: var(--fs-13); font-weight: var(--fw-semibold); cursor: pointer; list-style: none; }
+.home-main .home-bill-parts > summary::-webkit-details-marker { display: none; }
+.home-main .home-bill-parts > summary::after { content: ""; width: 6px; height: 6px; margin-top: -3px; border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(45deg); transition: transform var(--dur-base) var(--ease-out), margin var(--dur-base) var(--ease-out); }
+.home-main .home-bill-parts[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
+.home-main .home-bill-parts ul { display: grid; gap: var(--space-1); margin: var(--space-1) 0 0; padding: var(--space-3); border-radius: var(--r-control); background-color: var(--sunken); list-style: none; color: var(--text-2); font-size: var(--fs-13); }
+.home-main .home-bill-parts li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.home-main .home-bill-parts li small { color: var(--text-3); font-size: var(--fs-12); }
+.home-main .home-bill-parts li > span:last-child { font-feature-settings: var(--tnum); white-space: nowrap; }
+.home-main .home-bill-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-1) var(--space-3); margin: 0; padding-top: var(--space-3); border-top: 1px solid var(--line); }
+.home-main .home-bill-total > span { color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-semibold); }
+.home-main .home-bill-total strong { color: var(--text); font-size: var(--fs-30); font-weight: var(--fw-bold); line-height: var(--lh-tight); letter-spacing: -.01em; font-feature-settings: var(--tnum); white-space: nowrap; }
+.home-main .home-bill-total .money-unit { color: var(--text-2); font-size: var(--fs-16); font-weight: var(--fw-semibold); }
+.home-main .home-bill-note { margin: calc(var(--space-2) * -1) 0 0; color: var(--text-3); font-size: var(--fs-12); line-height: var(--lh-snug); }
+.home-main .home-bill-duty { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--r-control); background-color: var(--sunken); color: var(--text-2); font-size: var(--fs-12); line-height: var(--lh-snug); }
+.home-main .home-bill-duty b { display: block; color: var(--text); font-weight: var(--fw-semibold); }
+.home-main .home-bill-duty > svg { flex: none; margin-top: 1px; color: var(--brand); }
+html[data-theme="dark"] .home-main :is(.home-bill-duty > svg, .home-example-toggle > svg:first-child, .home-link-points svg) { color: var(--link); }
+
+/* ---------- Sections below the first screen: a flat canvas ---------- */
+.home-main .home-section { padding-block: var(--space-8); border: 0; scroll-margin-top: 72px; }
+.home-main .home-section > h2 { margin: 0 0 var(--space-2); color: var(--text); font-size: var(--fs-24); font-weight: var(--fw-semibold); line-height: var(--lh-tight); letter-spacing: var(--tracking-title); }
+.home-main .home-section-lead { max-width: 640px; margin: 0 0 var(--space-5); color: var(--text-2); font-size: var(--fs-16); line-height: var(--lh-body); }
+.home-main .home-note { margin: var(--space-3) 0 0; color: var(--text-3); font-size: var(--fs-13); line-height: var(--lh-body); }
+
+/* How it works: three white cards. */
+.home-main .home-steps { display: grid; gap: var(--space-3); margin: var(--space-4) 0 0; padding: 0; list-style: none; counter-reset: none; }
+.home-main .home-step { position: relative; display: grid; align-content: start; gap: var(--space-2); padding: var(--space-5); border: 0; border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); }
+.home-main .home-step-number { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-pill); background-color: var(--selected); color: var(--brand); font-size: var(--fs-14); font-weight: var(--fw-bold); font-feature-settings: var(--tnum); }
+html[data-theme="dark"] .home-main .home-step-number { color: var(--link); }
+.home-main .home-step h3 { margin: var(--space-1) 0 0; color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
+.home-main .home-step p { margin: 0; color: var(--text-2); font-size: var(--fs-14); line-height: var(--lh-body); }
+.home-main .home-step-link { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 40px; color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-semibold); }
+.home-main .home-step-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.home-main .home-payments { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--space-1) 0 0; padding: 0; list-style: none; }
+.home-main .home-payments li { padding: 3px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); color: var(--text); font-size: var(--fs-13); font-weight: var(--fw-medium); }
+/* Crypto (legal status to be confirmed by the owner) last and quieter than the card and local methods. */
+.home-main .home-payments li.home-payment-minor { border-style: dashed; color: var(--text-3); }
+.home-main .home-courier-note { margin: var(--space-2) 0 0; color: var(--text-3); font-size: var(--fs-13); }
+
+/* Rates in short: one card per speed, the table by country behind «All rates and times». */
+.home-main .home-speeds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.home-main .home-speed { display: grid; align-content: start; gap: var(--space-1); padding: var(--space-4); border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); }
+.home-main .home-speed-name { color: var(--text-2); font-size: var(--fs-14); font-weight: var(--fw-semibold); }
+.home-main .home-speed-price { display: flex; align-items: baseline; gap: 2px; color: var(--text-3); font-size: var(--fs-14); }
+.home-main .home-speed-price b { color: var(--text); font-size: var(--fs-24); font-weight: var(--fw-bold); line-height: var(--lh-tight); font-feature-settings: var(--tnum); }
+.home-main .home-speed-meta, .home-main .home-speed-faster { color: var(--text-3); font-size: var(--fs-13); line-height: var(--lh-snug); }
+.home-main .home-speed-faster { color: var(--text-2); font-weight: var(--fw-medium); }
+.home-main .home-tariff-all { margin-top: var(--space-4); border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); }
+.home-main .home-tariff-all > summary { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--h-md); padding: 0 var(--space-4); color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-semibold); cursor: pointer; list-style: none; }
+.home-main .home-tariff-all > summary::-webkit-details-marker { display: none; }
+.home-main .home-tariff-all > summary > svg { transition: transform var(--dur-base) var(--ease-out); }
+.home-main .home-tariff-all[open] > summary > svg { transform: rotate(180deg); }
+.home-main .home-tariff-all > summary:focus-visible { border-radius: var(--r-card); }
+.home-main .home-tariff-all > :not(summary) { margin-inline: var(--space-4); }
+.home-main .home-tariff-all > .home-note { margin-bottom: var(--space-4); }
+.home-main .home-tariff-table { width: calc(100% - 2 * var(--space-4)); border-collapse: collapse; font-size: var(--fs-14); }
+.home-main .home-tariff-table th, .home-main .home-tariff-table td { padding: var(--space-2) var(--space-2) var(--space-2) 0; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+.home-main .home-tariff-table thead th { border-top: 0; color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-semibold); }
+.home-main .home-tariff-table tbody th { color: var(--text); font-weight: var(--fw-medium); }
+.home-main .home-tariff-table td { color: var(--text-2); font-feature-settings: var(--tnum); }
+.home-main .home-tariff-table td small { display: block; color: var(--text-3); font-size: var(--fs-12); }
+.home-main .home-tariff-country { display: inline-flex; align-items: center; gap: var(--space-2); hyphens: manual; }
+.home-main .home-tariff-pending { color: var(--warn); }
+
+/* Money and guarantees: three cards. */
+.home-main .home-counter { margin: 0 0 var(--space-4); color: var(--text-2); font-size: var(--fs-16); }
+.home-main .home-counter strong { margin-right: 6px; color: var(--text); font-size: var(--fs-30); font-weight: var(--fw-bold); font-feature-settings: var(--tnum); }
+.home-main .home-trust-cards { display: grid; gap: var(--space-3); margin: var(--space-4) 0 0; padding: 0; list-style: none; }
+.home-main .home-trust-cards li { display: grid; align-content: start; gap: var(--space-2); padding: var(--space-5); border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); }
+.home-main .home-trust-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-control); background-color: var(--sunken); color: var(--brand); }
+html[data-theme="dark"] .home-main .home-trust-icon { color: var(--link); }
+.home-main .home-trust-cards h3 { margin: var(--space-1) 0 0; color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
+.home-main .home-trust-cards p { margin: 0; color: var(--text-2); font-size: var(--fs-14); line-height: var(--lh-body); }
+.home-main :is(.home-reviews, .home-parcels) { margin-top: var(--space-6); }
+.home-main :is(.home-reviews, .home-parcels) h3 { margin: 0 0 var(--space-3); color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); }
+.home-main .home-reviews figure { margin: 0 0 var(--space-3); padding: var(--space-4); border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); }
+.home-main .home-reviews blockquote { margin: 0; color: var(--text); font-size: var(--fs-16); line-height: var(--lh-body); }
+.home-main .home-reviews figcaption { margin-top: var(--space-2); color: var(--text-3); font-size: var(--fs-13); }
+.home-main .home-parcels ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.home-main .home-parcels img { display: block; width: 100%; height: auto; border-radius: var(--r-card); }
+
+/* Questions: the shared .home-faq list (app/home.css, also on /support) and the way to the rest. */
+.home-main #faq .home-faq { margin-top: var(--space-4); }
+.home-main .home-faq-more { margin: var(--space-4) 0 0; }
+.home-main .home-faq-more a { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 44px; color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-semibold); }
+.home-main .home-faq-more a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Phones: the number or icon beside the card's title, so each card is a few lines shorter. */
 @media (max-width: 760px) {
-  html[data-view="catalog"]:has(#finds-product-url:focus, #how-product-url:focus) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 8px); }
+  .home-main :is(.home-step, .home-trust-cards li) { grid-template-columns: auto minmax(0, 1fr); column-gap: var(--space-3); padding: var(--space-4); }
+  .home-main :is(.home-step, .home-trust-cards li) > :not(.home-step-number, .home-trust-icon, h3) { grid-column: 1 / -1; }
+  .home-main :is(.home-step, .home-trust-cards li) h3 { align-self: center; margin: 0; }
+}
+
+/* ---------- Tablets ---------- */
+@media (min-width: 761px) {
+  .home-main .home-top { gap: var(--space-8); padding-block: var(--space-8) var(--space-10); }
+  .home-main .home-hero h1 { font-size: var(--fs-40); }
+  .home-main .home-hero-lead { font-size: var(--fs-18); }
+  .home-main .home-rail-head h2 { font-size: var(--fs-20); }
+  .home-main .home-rail-head p { display: block; }
+  .home-main .home-rail-track { grid-auto-columns: calc((100% - 3 * var(--space-4)) / 4); gap: var(--space-4); margin-inline: 0; padding-inline: 2px; scroll-padding-inline: 0; }
+  .home-main .home-section { padding-block: var(--space-10); }
+  .home-main .home-section > h2 { font-size: var(--fs-30); }
+  .home-main .home-steps, .home-main .home-trust-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+  .home-main .home-speeds { max-width: 720px; gap: var(--space-4); }
+  .home-main .home-speed { padding: var(--space-5); }
+  .home-main .home-tariff-all { max-width: 720px; }
+  .home-main .home-bill { max-width: 520px; }
+}
+
+/* ---------- Wide screens: the bill beside the hero, the rail under both ---------- */
+@media (min-width: 1024px) {
+  .home-main .home-top { grid-template-columns: minmax(0, 1fr) minmax(360px, 420px); grid-template-areas: "hero bill" "rail rail"; column-gap: var(--space-16); align-items: center; padding-block: var(--space-10) var(--space-10); }
+  .home-main .home-hero { grid-area: hero; }
+  .home-main .home-example { grid-area: bill; }
+  .home-main .home-rail { grid-area: rail; }
+  .home-main .home-example-toggle { display: none; }
+  .home-main .home-example:not([data-open]) .home-bill, .home-main .home-example .home-bill { display: grid; margin-top: 0; }
+  .home-main .home-bill { max-width: none; padding: var(--space-5); }
+  .home-main .home-rail-pager { display: inline-flex; }
+  .home-main .home-rail-track { grid-auto-columns: calc((100% - 5 * var(--space-4)) / 6); }
+  .home-main .home-rail .find-card.find-card-compact .find-compact-price .money { font-size: var(--fs-20); }
+}
+@media (min-width: 1024px) and (max-height: 860px) {
+  /* A laptop: the rail still starts on the first screen. */
+  .home-main .home-top { padding-block: var(--space-6) var(--space-8); row-gap: var(--space-6); }
 }

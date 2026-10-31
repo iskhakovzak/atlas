@@ -101,20 +101,6 @@ test('script errors from before the beacon mounts are kept, up to five, and hand
   }
 });
 
-test('ribbon marks out of view at the start are asked for once the page has settled, never drawn as solid blocks', () => {
-  const css = source('app/store-marks.css');
-  assert.match(css, /^\.store-mark\[data-mark="later"\] \{ background: none; \}$/m);
-  const logo = source('app/store-logo.tsx');
-  assert.match(logo, /\.\.\.\(later \? \{\} : \{ '--mark': `url\(\/store-marks\/\$\{brandKey\}\.svg\)` \}\)/);
-  assert.match(logo, /data-mark=\{later \? 'later' : undefined\}/);
-  const marquee = source('app/store-marquee.tsx');
-  assert.match(marquee, /const firstMarks=14,lastMarks=6;/);
-  assert.match(marquee, /index<firstMarks\|\|\(reverse&&index>=count-lastMarks\)/);
-  assert.match(marquee, /requestIdleCallback\(show,\{timeout:1500\}\)/);
-  // It keeps moving under the pointer: no pause on hover.
-  assert.doesNotMatch(css, /:hover[^{]*\.store-marquee-track[^{]*\{[^}]*paused/);
-});
-
 test('the bottom bar pages are warmed after the first scroll or touch, or after 8 s', () => {
   const link = source('components/site-link.tsx');
   assert.match(link, /export const warmLinkEvents = \["scroll", "touchstart", "pointerdown", "keydown"\] as const;/);

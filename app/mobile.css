@@ -5,7 +5,7 @@
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { -webkit-tap-highlight-color: transparent; }
 /* Pressed state instead of the tap flash. */
-:is(.btn, .store-tile, .stores-popular button, .catalog-categories > button, .home-stores a, .mobile-nav a):active { transform: scale(.98); }
+:is(.btn, .store-tile, .stores-popular button, .catalog-categories > button, .mobile-nav a):active { transform: scale(.98); }
 
 /* Touch screens keep :hover after a tap; lifted cards would stay lifted. */
 
@@ -40,22 +40,12 @@ body { -webkit-tap-highlight-color: transparent; }
   html[data-theme="dark"] body:has(.basket-sticky:not(.is-hidden)) .mobile-nav a.mobile-nav-link .mobile-nav-icon { box-shadow: 0 0 0 3px var(--bg), 0 4px 12px rgba(0, 0, 0, .4); }
   /* The page ends above the bar. */
   body:has(.mobile-nav) .site-main { padding-bottom: calc(var(--atlas-mobile-nav-clearance) + 12px); }
-  .home-sticky.above-nav { bottom: calc(var(--atlas-mobile-nav-clearance) + 10px); }
   /* +22 px: the centre "Ссылка" circle rises 16 px over the bar, the notice clears it. */
   body:has(.mobile-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 22px); }
-  /* ...and above a sticky total or call-to-action bar (cart and link-order total ~69px, home dock 68px), so their buttons stay tappable. */
-  body:has(.home-sticky.above-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 84px); }
 
   /* Header: the bottom bar carries navigation and sign-in, so the top bar stays light (app/shell.css). */
 
   /* Checkboxes: 22px boxes with a 44px target, app/checkbox.css. */
-
-  /* How it works: four short rows instead of four tall cards. */
-  .home-steps { gap: 8px; }
-  .home-step { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; padding: 14px 16px; }
-  .home-step h3 { margin: 2px 28px 4px 0; font-size: 16px; }
-  .home-step p { font-size: 14px; line-height: 1.45; }
-  .home-step > :is(ul, .home-step-extra, .home-missing) { grid-column: 2; }
 }
 
 /* Footer links in two columns on phones instead of one long list. */

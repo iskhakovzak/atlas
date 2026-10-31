@@ -11,21 +11,18 @@ import { applyCatalogQuery, catalogItems, emptyCatalogQuery } from '@/lib/market
 import { courierAllowanceUsd } from '@/lib/market/customs';
 import type { Locale } from '@/lib/market/i18n';
 import { CatalogCard } from './catalog-card';
-import { DeliverySky, type Spark } from './delivery-sky';
 import { preloadProductSheet } from './product-sheet-lazy';
 // Styles of this lazily loaded part: they arrive with its chunk, before it renders.
 import './styles/catalog-cards.css';
-
-const findsRoutes = ['M-40 130 C 300 -10, 760 30, 1240 170','M-40 640 C 380 520, 820 720, 1240 560','M180 -30 C 420 250, 800 290, 1080 -30'];
-const findsSparks: Spark[] = [[3,12,8,0,false],[18,4,6,2.6,true],[47,6,7,4.2,false],[71,3,6,1.4,true],[96,14,8,3.4,false],[2,92,6,5.2,true],[38,97,7,1.9,false],[64,95,6,3.9,true],[97,90,7,.7,false]];
 
 /** Below this many products the link reads "Full catalog" without a count that would only underline how few there are. */
 const countFrom = 12;
 
 /**
- * One horizontal row of up to 8 recommended products (compact cards: photo, name, store price → total)
- * on the home page with a link to the whole catalog. The order is the storefront's: the operator's position,
- * then a confirmed price, then the larger discount. Phones swipe the row; wider screens also get ‹ › buttons.
+ * The home page's first-screen rail: up to 8 recommended products (compact cards: photo, name, the sum in soum with
+ * delivery to Tashkent as the main number, the store price small under it) and a link to the whole catalog. The order
+ * is the storefront's: the operator's position, then a confirmed price, then the larger discount. Phones swipe the row;
+ * wider screens also get ‹ › buttons when it overflows.
  */
 export function CatalogTeaser({ select }: { select: (product: Product) => void }) {
   const { state, pricing, ready, act, catalogProducts } = useMarket();
@@ -33,17 +30,17 @@ export function CatalogTeaser({ select }: { select: (product: Product) => void }
   const [saving, setSaving] = useState<string | null>(null);
   const items = useMemo(() => applyCatalogQuery(catalogItems(catalogProducts, pricing), emptyCatalogQuery, { dutyLimitUsd: courierAllowanceUsd }), [catalogProducts, pricing]);
   const shown = items.slice(0, 8);
-  const gridId = useId();
-  const grid = useRef<HTMLDivElement>(null);
+  const trackId = useId();
+  const track = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: true, scrolls: false });
   const measure = useCallback(() => {
-    const el = grid.current;
+    const el = track.current;
     if (!el) return;
     const scrolls = el.scrollWidth > el.clientWidth + 1;
     setEdges({ scrolls, start: el.scrollLeft <= 1, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 1 });
   }, []);
   useEffect(() => {
-    const el = grid.current;
+    const el = track.current;
     if (!el) return;
     el.addEventListener('scroll', measure, { passive: true });
     // Measured when the browser has laid the row out (and on every resize), not right after mounting: reading the
@@ -54,37 +51,21 @@ export function CatalogTeaser({ select }: { select: (product: Product) => void }
     return () => { el.removeEventListener('scroll', measure); ro.disconnect(); };
   }, [measure, shown.length]);
   const page = useCallback((direction: 1 | -1) => {
-    const el = grid.current;
+    const el = track.current;
     if (!el) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     el.scrollBy({ left: direction * el.clientWidth, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
-  // Owner, 7.10.2026: ← / → page the picks while this sheet holds the middle of the window. Fields, sliders, tabs,
-  // menus and open dialogs keep their own arrows.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
-      const el = grid.current, section = el?.closest('section');
-      if (!el || !section || el.scrollWidth <= el.clientWidth + 1) return;
-      const target = e.target instanceof Element ? e.target : null;
-      if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="slider"], [role="tablist"], [role="radiogroup"], [role="listbox"], [role="menu"], [role="menubar"], [role="grid"], dialog[open], [aria-modal="true"]')) return;
-      if (document.querySelector('dialog[open], [aria-modal="true"]')) return;
-      const box = section.getBoundingClientRect(), middle = window.innerHeight / 2;
-      if (box.top > middle || box.bottom < middle) return;
-      e.preventDefault();
-      page(e.key === 'ArrowRight' ? 1 : -1);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [page]);
   async function save(product: Product) {
     setSaving(product.id);
     try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }
   }
-  return <TooltipProvider delayDuration={300}><section className="catalog-teaser finds-page" id="finds" data-chapter="finds" aria-labelledby="finds-title">
-   {/* Owner, 7.10.2026: the delivery sky around the picks (app/delivery-sky.tsx). */}
-   <DeliverySky className="home-finds-sky" viewBox="0 0 1200 700" routes={findsRoutes} sparks={findsSparks}/>
-    <header><div><h2 id="finds-title">{cc.teaserTitle}</h2><p>{cc.teaserIntro}</p></div><div className="finds-actions"><Link className="btn secondary" href="/catalog">{items.length >= countFrom ? cc.viewAll(items.length) : cc.viewAllShort}<ArrowRight size={17} aria-hidden="true" /></Link>{edges.scrolls && <span className="finds-pager"><button type="button" className="icon-btn" aria-label={cc.teaserPrev} aria-controls={gridId} disabled={edges.start} onClick={() => page(-1)}><ChevronLeft size={20} aria-hidden="true" /></button><button type="button" className="icon-btn" aria-label={cc.teaserNext} aria-controls={gridId} disabled={edges.end} onClick={() => page(1)}><ChevronRight size={20} aria-hidden="true" /></button></span>}</div></header>
-    <div className="finds-grid finds-grid-compact" id={gridId} ref={grid} onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>{shown.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select} variant="compact" saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)} />)}</div>
+  return <TooltipProvider delayDuration={300}><section className="home-rail" id="finds" aria-labelledby="finds-title">
+    <div className="home-rail-head">
+      <div><h2 id="finds-title">{cc.teaserTitle}</h2><p>{cc.teaserIntro}</p></div>
+      {edges.scrolls && <span className="home-rail-pager"><button type="button" className="icon-btn" aria-label={cc.teaserPrev} aria-controls={trackId} disabled={edges.start} onClick={() => page(-1)}><ChevronLeft size={20} aria-hidden="true" /></button><button type="button" className="icon-btn" aria-label={cc.teaserNext} aria-controls={trackId} disabled={edges.end} onClick={() => page(1)}><ChevronRight size={20} aria-hidden="true" /></button></span>}
+      <Link className="home-rail-all" href="/catalog">{items.length >= countFrom ? cc.viewAll(items.length) : cc.viewAllShort}<ArrowRight size={16} aria-hidden="true" /></Link>
+    </div>
+    <div className="home-rail-track" id={trackId} ref={track} onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>{shown.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select} variant="compact" saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)} />)}</div>
   </section></TooltipProvider>;
 }

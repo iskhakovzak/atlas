@@ -39,9 +39,6 @@
 /* ---------- Loading, empty and end ---------- */
 @keyframes catalog-pulse { 50% { opacity: .55; } }
 
-/* ---------- Home teaser ---------- */
-.catalog-teaser > header p { max-width: 52ch; margin: 0; color: var(--cat-muted); line-height: 1.55; }
-
 /* ---------- Filter panel (sidebar and sheet), 31.10.2026 ----------
    Collapsible groups (details/summary), real checkboxes and radios; sizes are checkboxes drawn as chips.
    catalog.css loads before the page's split files (app/styles/catalog-pages.css), so these rules carry the page prefix. */

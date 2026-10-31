@@ -10,7 +10,6 @@ body:has([role=dialog][data-state=open],[role=listbox][data-state=open]) .storag
   .page-heading p{font-size:16px;line-height:1.5}
   .site-main :is(.field input:not([type=checkbox]):not([type=radio]),.field textarea,.select-control,.field select){font-size:16px;min-height:48px;line-height:1.4}
   .site-main :is(.btn,.text-button,.icon-btn){min-height:44px}
-  .catalog-home :is(.find-save,.price-info){min-width:44px;min-height:44px;width:44px;height:44px}
   .site-main :is(.notice,.status-notice,.customer-badge){overflow-wrap:anywhere}
   .atlas-modal{width:calc(100vw - 24px);max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;padding:24px 18px;scroll-padding-block:24px;overscroll-behavior-y:contain}
   .atlas-modal .modal-title{padding-right:32px;font-size:24px;overflow-wrap:anywhere}
@@ -22,8 +21,8 @@ body:has([role=dialog][data-state=open],[role=listbox][data-state=open]) .storag
 }
 /* Sideways rows settle on the edge of a card or chip instead of stopping halfway (proximity: a short flick
    still stops where the finger leaves it). The product gallery and the home catalog row snap on their own. */
-:is(.home-stores ul,.find-collections,.catalog-sets,.stores-chips,.orders-recipients,.notice-filters,.product-gallery-thumbnails,.import-gallery,.catalog-photo-gallery>div,.audit-folders,.admin-tabs,.legal-nav){scroll-snap-type:x proximity;scroll-padding-inline:16px}
-:is(.home-stores ul,.find-collections,.catalog-sets,.stores-chips,.orders-recipients,.notice-filters,.product-gallery-thumbnails,.import-gallery,.catalog-photo-gallery>div,.audit-folders,.admin-tabs,.legal-nav)>*{scroll-snap-align:start}
+:is(.find-collections, .catalog-sets, .stores-chips, .orders-recipients, .notice-filters, .product-gallery-thumbnails, .import-gallery, .catalog-photo-gallery>div, .audit-folders, .admin-tabs, .legal-nav){scroll-snap-type:x proximity;scroll-padding-inline:16px}
+:is(.find-collections, .catalog-sets, .stores-chips, .orders-recipients, .notice-filters, .product-gallery-thumbnails, .import-gallery, .catalog-photo-gallery>div, .audit-folders, .admin-tabs, .legal-nav)>*{scroll-snap-align:start}
 /* Sideways rows fade at an edge only while more is hidden that way, so a row that ends at the screen edge reads as
    "there is more". No script: a scroll-driven animation moves the fade; a row that fits, an older browser, or a row
    with its own mask (home stores) shows no fade at all. */

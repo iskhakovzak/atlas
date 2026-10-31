@@ -63,14 +63,12 @@ const PAGES = {
 };
 /** Lazily loaded parts: their CSS comes with their chunk, before they render. */
 const LAZY = {
-  'app/home-decor.tsx': ['home-decor.css'],
-  'app/home-rail.tsx': ['home-rail.css'],
   'app/home-resume.tsx': ['home-resume.css'],
   'app/catalog-teaser.tsx': [CARDS],
   'app/product-sheet.tsx': [CARDS],
 };
 /** Rules that need a width of 481px or more: linked with media, so on phones they do not block the first paint. */
-const DESKTOP = { 'app/layout.tsx': ['layoutDesktopHref', 'layout-desktop.css'], 'app/page.tsx': ['homeDesktopHref', 'home-desktop.css'] };
+const DESKTOP = { 'app/layout.tsx': ['layoutDesktopHref', 'layout-desktop.css'] };
 
 const splitOf = (file) => cssImports(file).map((spec) => resolve(file, spec)).filter(isSplit).map((p) => p.slice('app/styles/'.length));
 

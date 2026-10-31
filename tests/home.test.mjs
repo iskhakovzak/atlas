@@ -23,7 +23,7 @@ test('home copy has the same keys in Uzbek, Russian and English, with no empty s
       else if (value && typeof value === 'object') for (const [key, inner] of Object.entries(value)) walk(inner, `${path}.${key}`);
     };
     walk(copy, '');
-    assert.equal(copy.how.steps.length, 4, `${locale}: four "how it works" steps`);
+    assert.equal(copy.how.steps.length, 3, `${locale}: three "how it works" steps`);
   }
 });
 

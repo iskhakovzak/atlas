@@ -728,14 +728,6 @@ html[data-theme="dark"] .admin-grid td.admin-zero{color:var(--night-muted)}
 .batch-import .batch-link-count.is-over{color:var(--day-warn,var(--c-warn));font-weight:600}
 html[data-theme="dark"] .batch-import .batch-link-count.is-over{color:var(--night-warn-ink,#e8bd70)}
 
-/* ── app/home-polish.css ── */
-.catalog-home .find-origin { margin-bottom:12px; }
-@media (max-width:600px) {
-  .catalog-home .catalog-filter-disclosure { width:auto!important; position:static; }
-  .catalog-home .catalog-filter-disclosure>summary { min-width:0!important; min-height:48px!important; padding-inline:11px!important; }
-  .catalog-home .find-origin a { font-size:12px; }
-}
-
 /* Hero link form: the primary "paste a link → calculate" action. */
 /* Catalog card: price breakdown and honest action labels. */
 .find-breakdown { margin-top:6px; font-size:13px; }
@@ -1054,13 +1046,6 @@ html[data-theme="dark"] .catalog-refresh-status.success { color: var(--night-jad
   .catalog-refresh-diagnostics dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* ── app/mobile-polish.css ── */
-/* The informational notice returns when the dialog closes; it cannot cover a trapped form. */
-@media (max-width:600px) {
-  /* Let copy reflow instead of creating hidden page overflow. */
-  .catalog-home .find-origin a{min-height:44px;display:flex;align-items:center;overflow-wrap:anywhere;font-size:13px}
-}
-
 /* ── app/customer-mobile.css ── */
 @media (max-width: 600px) {
   .batch-import,
@@ -1190,11 +1175,11 @@ html[data-theme="dark"] .field-vitals td[data-verdict="slow"] { color: var(--nig
 /* ---------- Catalog cards: long soum totals never leave the card ---------- */
 @media (max-width: 600px) {
   /* "+N soum to the parcel": the store line on top, the amount below it. */
-  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: start; padding: 7px 8px; font-size: 12px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel > svg { width: 15px; height: 15px; margin-top: 1px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel > span { overflow-wrap: normal; word-break: normal; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-breakdown { font-size: 12px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-breakdown dd { white-space: nowrap; }
+  .catalog-page .find-card .find-parcel { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: start; padding: 7px 8px; font-size: 12px; }
+  .catalog-page .find-card .find-parcel > svg { width: 15px; height: 15px; margin-top: 1px; }
+  .catalog-page .find-card .find-parcel > span { overflow-wrap: normal; word-break: normal; }
+  .catalog-page .find-card .find-breakdown { font-size: 12px; }
+  .catalog-page .find-card .find-breakdown dd { white-space: nowrap; }
 }
 
 /* ── app/checkbox.css ── */
