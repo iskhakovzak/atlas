@@ -40,3 +40,38 @@ export function variantsForSourceColor<T extends { color?: string }>(
   const exactColor = variants.filter(variant => variant.color?.trim() === color);
   return exactColor.length ? exactColor : variants;
 }
+
+/**
+ * An option the page listed without a price but with its own store page (Amazon: every ASIN but the open one). The
+ * order form loads that page when the option is chosen, instead of borrowing another option's price.
+ */
+export function priceLoadable(variant: Pick<ProductVariant,'price'|'sourceUrl'> | undefined, source?: string): boolean {
+  return Boolean(variant && variant.price === undefined && variant.sourceUrl && (!source || safeVariantSourceUrl(variant.sourceUrl, source)));
+}
+
+/**
+ * The options of a sibling page merged into the ones on screen, by store ID: a price, stock answer or photo the new
+ * page gives replaces the unknown one, and options the first page left out (its other colours' sizes) are added
+ * after their colour. Nothing known is overwritten with "unknown".
+ */
+export function mergeLoadedVariants(current: ProductVariant[], loaded: ProductVariant[], limit = 600): ProductVariant[] {
+  const byId = new Map(loaded.filter(item => item.id).map(item => [item.id!, item]));
+  const merged = current.map(item => {
+    const fresh = item.id ? byId.get(item.id) : undefined;
+    if (!fresh) return item;
+    byId.delete(item.id!);
+    return {
+      ...item,
+      price: fresh.price ?? item.price,
+      compareAtPrice: fresh.compareAtPrice ?? item.compareAtPrice,
+      ...(fresh.availabilityKnown !== false || item.availabilityKnown === false ? {available: fresh.available, availabilityKnown: fresh.availabilityKnown} : {}),
+      image: item.image ?? fresh.image,
+    };
+  });
+  for (const fresh of byId.values()) {
+    if (merged.length >= limit || merged.some(item => item.label === fresh.label)) continue;
+    const after = merged.map(item => item.color).lastIndexOf(fresh.color);
+    merged.splice(after < 0 ? merged.length : after + 1, 0, fresh);
+  }
+  return merged;
+}
