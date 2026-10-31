@@ -1,4 +1,4 @@
-import {dedupeSafeImages, type Extracted, type ProductVariant} from './extract.ts';
+import {boundedAspects, dedupeSafeImages, type Extracted, type ProductVariant} from './extract.ts';
 import {isSupportedStoreHost} from './stores.ts';
 import {sameMerchantRedirect} from './source-identity.ts';
 
@@ -55,6 +55,9 @@ export function normalizeMerchantVariants(extracted: Extracted): Extracted {
     const axes=variant.options.map(option=>`${option.name}: ${option.value}`).join(' · ');
     variant.label=[axes.slice(0,90)||variant.label.slice(0,90),identity.slice(0,45)].filter(Boolean).join(' · ');
   }
-  return {...extracted,variants,variantScope:extracted.variantScope??(extracted.selectedVariantColor?'color':'item'),
+  const aspects=extracted.aspects?boundedAspects(extracted.aspects):undefined;
+  const categoryPath=typeof extracted.categoryPath==='string'?extracted.categoryPath.trim().slice(0,300)||undefined:undefined;
+  const rest={...extracted};delete rest.aspects;delete rest.categoryPath;
+  return {...rest,...(aspects?{aspects}:{}),...(categoryPath?{categoryPath}:{}),variants,variantScope:extracted.variantScope??(extracted.selectedVariantColor?'color':'item'),
     variantsComplete:extracted.variantsComplete===true&&(extracted.variants?.length??0)<=250};
 }

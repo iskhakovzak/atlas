@@ -1,5 +1,5 @@
-import {database,HttpError} from './server';
-import {catalogDocumentSchema,initialCatalog,synchronizeBundledCatalog,type CatalogDocument,canonicalCatalogUrl,catalogMaxEntries,customerLinkDraft} from './catalog-editor';
+import {database,deferBackground,HttpError} from './server';
+import {catalogDocumentSchema,initialCatalog,synchronizeBundledCatalog,type CatalogDocument,canonicalCatalogUrl,catalogMaxEntries,customerLinkDraft,catalogEntryNeedsFacets,planCatalogFacetBackfill,applyCatalogFacetBackfill} from './catalog-editor';
 import type {Product} from './domain';
 import type {Extracted} from '../importer/extract';
 import {prepareCatalogStorage,decodeCatalogStorage,catalogStorageChunkKeys,CatalogCapacityError} from './catalog-storage';
@@ -58,7 +58,13 @@ async function writeCatalog(next:CatalogDocument,previous:string|null,user:{user
   return {changed:true,value:prepared.value};
 }
 
-export async function readCatalog(){
+/** `backfill` only from read-only paths: a background facet write would make a concurrent editor's CAS fail. */
+export async function readCatalog(options?:{backfill?:boolean}){
+  const result=await readCatalogOnce();
+  if(options?.backfill)scheduleCatalogFacetBackfill(result.document);
+  return result;
+}
+async function readCatalogOnce(){
   const db=database();
   for(let attempt=0;attempt<2;attempt++){
     const row=await db.prepare("SELECT value FROM market_settings WHERE key='catalog'").first<{value:string}>();
@@ -72,6 +78,51 @@ export async function readCatalog(){
   if(!row)return {raw:null,document:initialCatalog()};
   return {raw:row.value,document:await readStoredCatalogDocument(row.value,db)};
 }
+// ---------- Facet backfill ----------
+// Cards published before filter facets existed (or derived by an older rule set) get them in the background, a bounded
+// batch per run: one run at a time (D1 lease), at most one look per isolate a minute, the same CAS write as the editor.
+const facetBackfillActor={userId:'system:catalog-facets',email:'system@atlas.invalid'};
+const facetBackfillLease='atlas:catalog-facets:lease';
+let facetBackfillLookedAt=0;
+function scheduleCatalogFacetBackfill(document:CatalogDocument,now=Date.now()){
+  if(now-facetBackfillLookedAt<60_000)return;
+  facetBackfillLookedAt=now;
+  if(!document.entries.some(catalogEntryNeedsFacets))return;
+  try{deferBackground(backfillCatalogFacets(),'Catalog facet backfill failed')}catch{/* no request context (tests, scripts) */}
+}
+const facetBackfillLeaseMs=300_000,facetBackfillNetworkMs=150_000;
+export async function backfillCatalogFacets(now=Date.now()){
+  const db=database(),token=1+Math.floor(Math.random()*2_000_000_000);
+  // The token makes the release delete only this run's lease, never one a later run took after this one expired.
+  const lease=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET count=excluded.count,expires_at=excluded.expires_at WHERE market_rate_limits.expires_at<? RETURNING key').bind(facetBackfillLease,token,now+facetBackfillLeaseMs,now).first<{key:string}>();
+  if(!lease)return {changed:0,read:0};
+  try{
+    const {document}=await readCatalogOnce(),plan=planCatalogFacetBackfill(document);
+    if(!plan.offline.length&&!plan.network.length)return {changed:0,read:0};
+    // Cards whose stored data says too little are read again from the store (eBay item specifics), two at a time.
+    const store=new Map<string,{aspects?:{name:string;value:string}[];categoryPath?:string;category?:string}>();
+    if(plan.network.length){
+      const [{fetchProduct},{catalogMerchantRequest}]=await Promise.all([import('../importer/fetch'),import('../importer/worker-fetch')]);
+      const queue=[...plan.network],deadline=Date.now()+facetBackfillNetworkMs;
+      await Promise.all([0,1].map(async()=>{for(let id=queue.shift();id&&Date.now()<deadline;id=queue.shift()){
+        const url=document.entries.find(entry=>entry.id===id)?.draft.sourceUrl;if(!url)continue;
+        try{const data=await fetchProduct(url,catalogMerchantRequest);store.set(id,{aspects:data.aspects,categoryPath:data.categoryPath,category:data.category})}
+        catch(error){console.warn('[catalog-facets] store read failed '+JSON.stringify({id,reason:(error as Error)?.name??'error'}))}
+      }}));
+    }
+    for(let attempt=0;attempt<3;attempt++){
+      const latest=await readCatalogOnce();
+      const changed=applyCatalogFacetBackfill(latest.document,[...plan.offline,...plan.network],store);
+      if(!changed)return {changed:0,read:store.size};
+      try{await persistCatalog(latest.document,latest.raw,facetBackfillActor,'catalog.facets.backfill',{changed,read:store.size});return {changed,read:store.size}}
+      catch(error){if(!(error instanceof HttpError)||error.status!==409||attempt===2)throw error}
+    }
+    return {changed:0,read:store.size};
+  }finally{
+    try{await db.prepare('DELETE FROM market_rate_limits WHERE key=? AND count=?').bind(facetBackfillLease,token).run()}catch{}
+  }
+}
+
 export async function persistCatalog(next:CatalogDocument,previous:string|null,user:{userId:string;email:string},action:string,details?:Record<string,unknown>){
   const result=await writeCatalog(next,previous,user,action,details);
   if(!result.changed)throw new HttpError(409,'Каталог изменён в другой вкладке. Обновите список и повторите действие.');

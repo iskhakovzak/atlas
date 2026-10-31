@@ -2,10 +2,11 @@ import {z} from 'zod';
 import {bundledMerchantFinds, type MerchantFind} from './catalog.ts';
 import {toUsd,paddedWeight,currencies} from './world.ts';
 import {tariff,sourceVariantSchema,sourceColorwayGallerySchema,type Pricing,type Product} from './domain.ts';
-import {dedupeSafeImages,safeImage,type Extracted} from '../importer/extract.ts';
+import {dedupeSafeImages,inferProductCategory,safeImage,type Extracted} from '../importer/extract.ts';
 import {isManualEntryStoreHost,isSupportedStoreHost} from '../importer/stores.ts';
 import {isOrderableVariant} from '../importer/variant-normalization.ts';
-import {estimatedBoxedWeight} from './weight.ts';
+import {estimateBoxedWeight} from './weight.ts';
+import {catalogFacetsSchema,catalogFacetsVersion,categoryFromFacets,deriveCatalogFacets,weightForFacets,type CatalogFacets} from './catalog-facets.ts';
 
 export const catalogCategories=['Обувь','Одежда','Электроника','Аксессуары','Красота и уход','Дом и быт','Спорт','Другое'] as const;
 const text=z.string().trim();
@@ -35,6 +36,12 @@ export const catalogDraftSchema=z.object({
   confirmedBy:z.enum(['operator']).optional(),confirmedAt:z.number().int().nonnegative().optional(),
   /** Colors and sizes the operator took off the card (10.10.2026); store refreshes keep them off. */
   excludedOptions:z.object({colors:z.array(text.max(140)).max(100).default([]),sizes:z.array(text.max(140)).max(100).default([])}).optional(),
+  /** Filter facets derived on the server (lib/market/catalog-facets.ts); refreshed by imports and the background backfill. */
+  facets:catalogFacetsSchema.optional(),
+  /** The store's item specifics and category trail the facets were derived from, kept so a new derivation needs no store read. */
+  aspects:z.array(z.object({name:text.max(80),value:text.max(140)})).max(24).optional(),categoryPath:text.max(300).optional(),
+  /** 'operator' once the editor chose the category: imports and the backfill then keep it. */
+  categoryBasis:z.enum(['operator']).optional(),
 });
 export type CatalogDraft=z.infer<typeof catalogDraftSchema>;
 type CatalogVariant=CatalogDraft['variants'][number];
@@ -158,6 +165,23 @@ export function synchronizeBundledCatalog(current:CatalogDocument){
   if(added||updated)next.revision++;
   return {document:catalogDocumentSchema.parse(next),added,updated};
 }
+export type CatalogCategory=typeof catalogCategories[number];
+const asCatalogCategory=(value:string|undefined,fallback:CatalogCategory):CatalogCategory=>catalogCategories.includes(value as CatalogCategory)?value as CatalogCategory:fallback;
+/** What the facets of a stored card are derived from: its name, category, kept store specifics and every option. */
+export function catalogFacetInput(draft:Pick<CatalogDraft,'name'|'category'|'brand'|'categoryPath'|'aspects'|'variants'>){
+  return {title:draft.name,category:draft.category,brand:draft.brand,categoryPath:draft.categoryPath,aspects:draft.aspects,variants:draft.variants.map(v=>({color:v.color,label:v.label,options:v.options}))};
+}
+const isEbaySource=(url:string)=>{try{return /(^|\.)ebay\.[a-z.]+$/i.test(new URL(url).hostname)}catch{return false}};
+/**
+ * The importer, not the editor, set this card's category, so a facet derivation may move it. Cards from before facets
+ * carry no provenance: only a category the old importer would have given (eBay's "Clothing, Shoes & ..." root read as
+ * shoes, or the plain name match) counts as automatic; any other was an editor's fix and stays.
+ */
+export function catalogCategoryIsAutomatic(draft:Pick<CatalogDraft,'name'|'brand'|'category'|'categoryBasis'|'categoryPath'|'facets'|'sourceUrl'>){
+  if(draft.categoryBasis==='operator')return false;
+  if(draft.facets)return true;
+  return (draft.category==='Обувь'&&isEbaySource(draft.sourceUrl))||draft.category===inferProductCategory([draft.name,draft.categoryPath].filter(Boolean).join(' '),draft.brand);
+}
 export function importDraft(data:Extracted,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
  const images=dedupeSafeImages([data.image??'',...(data.images??[])],data.sourceUrl,12);
  const soldOut=Boolean(data.variants?.length&&data.variants.every(variant=>!variant.available&&variant.availabilityKnown!==false));
@@ -166,7 +190,12 @@ export function importDraft(data:Extracted,collectionIds:string[],country:string
  // Shipping the store itself quoted to a US address in USD (eBay Browse for the warehouse, JSON-LD shippingDetails) replaces the $10 placeholder; the operator still sees the editor.
  const statedShippingUsd=typeof data.shipping==='number'&&Number.isFinite(data.shipping)&&data.shipping>=0&&data.shipping<=10000
   &&(data.shippingCurrency??data.currency)?.toUpperCase()==='USD'&&(!data.shippingDestination||/^(US|USA|United States)$/i.test(data.shippingDestination.trim()))?data.shipping:undefined;
- return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,groupId:data.groupId,variantScope:data.variantScope,variantsComplete:data.variantsComplete,colorwayImages:data.colorwayImages?.map(g=>({color:g.color,colorId:g.colorId,images:dedupeSafeImages(g.images,data.sourceUrl,12)})),price:data.price,currency:data.currency??'',referencePrice,country:data.country||country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),weightBasis:data.boxedWeight===undefined?'estimate':'store',sourceShippingUsd:statedShippingUsd??10,sourceShippingEstimated:statedShippingUsd===undefined,variants:(data.variants??[]).map(v=>({...v,id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,...(v.sizeAlternates?{sizeAlternates:v.sizeAlternates}:{}),...(v.quantity===undefined?{}:{quantity:v.quantity}),...(v.quantityMoreThan===undefined?{}:{quantityMoreThan:v.quantityMoreThan}),color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl),...(v.images?{images:dedupeSafeImages(v.images,data.sourceUrl,12)}:{})})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut});
+ // Filter facets; the derived item type corrects the category (socks are clothes, not shoes) and sizes the weight estimate.
+ const storeCategory=asCatalogCategory(data.category,'Другое'),aspects=data.aspects?.slice(0,24),categoryPath=data.categoryPath?.slice(0,300)||undefined;
+ const facets=deriveCatalogFacets({title:data.title??'',category:storeCategory,brand:data.brand,categoryPath,aspects,variants:data.variants});
+ const category=asCatalogCategory(categoryFromFacets(facets,storeCategory),storeCategory);
+ const estimatedWeight=weightForFacets(facets)??estimateBoxedWeight(category,data.title??'').kg;
+ return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category,facets,...(aspects?.length?{aspects}:{}),...(categoryPath?{categoryPath}:{}),image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,groupId:data.groupId,variantScope:data.variantScope,variantsComplete:data.variantsComplete,colorwayImages:data.colorwayImages?.map(g=>({color:g.color,colorId:g.colorId,images:dedupeSafeImages(g.images,data.sourceUrl,12)})),price:data.price,currency:data.currency??'',referencePrice,country:data.country||country,boxedWeight:data.boxedWeight??estimatedWeight,weightBasis:data.boxedWeight===undefined?'estimate':'store',sourceShippingUsd:statedShippingUsd??10,sourceShippingEstimated:statedShippingUsd===undefined,variants:(data.variants??[]).map(v=>({...v,id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,...(v.sizeAlternates?{sizeAlternates:v.sizeAlternates}:{}),...(v.quantity===undefined?{}:{quantity:v.quantity}),...(v.quantityMoreThan===undefined?{}:{quantityMoreThan:v.quantityMoreThan}),color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl),...(v.images?{images:dedupeSafeImages(v.images,data.sourceUrl,12)}:{})})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut});
 }
 
 /** Keep a supported merchant link reviewable when its public importer is blocked. */
@@ -331,10 +360,17 @@ export function recheckedDraft(previous:CatalogDraft,store:CatalogDraft){
   const name=previous.name||fresh.name;
   if(fresh.name&&fresh.name!==name)reasons.push(`Название в магазине: ${fresh.name}`.slice(0,240));
   const storeWeight=fresh.weightBasis==='store'&&(previous.weightBasis==='store'||previous.weightBasis==='estimate');
+  // A better estimate (from the item type) replaces an earlier estimate; an operator's weight always stays.
+  const estimateWeight=fresh.weightBasis==='estimate'&&previous.weightBasis==='estimate';
+  // The store's category follows the derived item type unless the editor chose one; an unknown type keeps the card's.
+  const automatic=catalogCategoryIsAutomatic(previous),category=automatic&&fresh.facets?.type?fresh.category:previous.category;
+  // Facets follow what the card keeps (excluded options gone, the editor's name and category), not the store's full answer.
+  const brand=previous.brand||fresh.brand,aspects=fresh.aspects??previous.aspects,categoryPath=fresh.categoryPath??previous.categoryPath;
+  const facets=fresh.facets?deriveCatalogFacets(catalogFacetInput({name,category,brand,categoryPath,aspects,variants:fresh.variants})):previous.facets;
   if(fresh.weightBasis==='store'&&fresh.boxedWeight!==previous.boxedWeight)reasons.push(`Вес магазина: ${previous.boxedWeight} → ${fresh.boxedWeight} кг${storeWeight?'':' (оставлен вес редактора)'}`);
   const image=previous.image||fresh.image,images=previous.images.length?previous.images:fresh.images;
   // A fresh store answer outranks the operator's own stock confirmation, so confirmedBy/confirmedAt are not carried over.
-  return catalogDraftSchema.parse({...fresh,name,brand:previous.brand||fresh.brand,category:previous.category,country:previous.country||fresh.country,image,images,boxedWeight:storeWeight?fresh.boxedWeight:previous.boxedWeight,weightBasis:storeWeight?'store':previous.weightBasis,referencePrice:fresh.referencePrice??previous.referencePrice,sourceShippingUsd:previous.sourceShippingUsd??10,sourceShippingEstimated:previous.sourceShippingEstimated??true,description:previous.description,collectionIds:previous.collectionIds,rank:previous.rank,reviewReasons:reasons,lastCheckError:undefined,confirmedBy:undefined,confirmedAt:undefined,excludedOptions});
+  return catalogDraftSchema.parse({...fresh,name,brand,category,categoryBasis:automatic?previous.categoryBasis:'operator',facets,aspects,categoryPath,country:previous.country||fresh.country,image,images,boxedWeight:storeWeight||estimateWeight?fresh.boxedWeight:previous.boxedWeight,weightBasis:storeWeight?'store':previous.weightBasis,referencePrice:fresh.referencePrice??previous.referencePrice,sourceShippingUsd:previous.sourceShippingUsd??10,sourceShippingEstimated:previous.sourceShippingEstimated??true,description:previous.description,collectionIds:previous.collectionIds,rank:previous.rank,reviewReasons:reasons,lastCheckError:undefined,confirmedBy:undefined,confirmedAt:undefined,excludedOptions});
 }
 
 export function catalogRefreshDueAt(entry:CatalogEntry){
@@ -498,7 +534,7 @@ export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.
     const hasRecordedPrice=typeof d.price==='number'&&d.price>0&&Boolean(pricing.rates[d.currency]);
     const recordedUsd=hasRecordedPrice?toUsd(d.price!,d.currency,pricing.rates):undefined;
     const sourceShippingUsd=d.sourceShippingUsd??10,sourceShippingEstimated=d.sourceShippingEstimated??true;
-    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:recordedUsd??1,sourcePrice:hasRecordedPrice?d.price:undefined,sourceCurrency:hasRecordedPrice?d.currency:undefined,referenceUsd:(!priceNeedsConfirmation||(hasRecordedPrice&&d.currency==='USD'))&&d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:sourceImages[0]??'',sourceImages,sourceVariants,sourceColorwayImages:d.colorwayImages?.map(g=>({color:g.color,colorId:g.colorId,images:dedupeSafeImages(g.images,d.sourceUrl,12)})),sourceUrl:d.sourceUrl,sourceGroupId:d.groupId,sourceVariantScope:d.variantScope,sourceVariantsComplete:d.variantsComplete,description:cleanGeneratedCatalogDescription(d.description),country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:priceNeedsConfirmation?['Уточнить вариант в магазине']:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:sourceShippingUsd,sourceShippingUsd,sourceShippingCurrency:'USD',sourceShippingEstimated,shippingKnown:!sourceShippingEstimated,sourceExpiresAt:Math.max(d.checkedAt,d.confirmedAt??0)+catalogLifetime,sourceCheckedAt:d.checkedAt,collectionIds:d.collectionIds,priceNeedsConfirmation,...(entry.publishedAt??entry.createdAt?{addedAt:entry.publishedAt??entry.createdAt}:{}),...(d.rank===undefined?{}:{rank:d.rank}),...(d.confirmedAt===undefined?{}:{confirmedAt:d.confirmedAt})}];
+    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:recordedUsd??1,sourcePrice:hasRecordedPrice?d.price:undefined,sourceCurrency:hasRecordedPrice?d.currency:undefined,referenceUsd:(!priceNeedsConfirmation||(hasRecordedPrice&&d.currency==='USD'))&&d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:sourceImages[0]??'',sourceImages,sourceVariants,sourceColorwayImages:d.colorwayImages?.map(g=>({color:g.color,colorId:g.colorId,images:dedupeSafeImages(g.images,d.sourceUrl,12)})),sourceUrl:d.sourceUrl,sourceGroupId:d.groupId,sourceVariantScope:d.variantScope,sourceVariantsComplete:d.variantsComplete,description:cleanGeneratedCatalogDescription(d.description),country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:priceNeedsConfirmation?['Уточнить вариант в магазине']:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:sourceShippingUsd,sourceShippingUsd,sourceShippingCurrency:'USD',sourceShippingEstimated,shippingKnown:!sourceShippingEstimated,sourceExpiresAt:Math.max(d.checkedAt,d.confirmedAt??0)+catalogLifetime,sourceCheckedAt:d.checkedAt,collectionIds:d.collectionIds,priceNeedsConfirmation,...(entry.publishedAt??entry.createdAt?{addedAt:entry.publishedAt??entry.createdAt}:{}),...(d.rank===undefined?{}:{rank:d.rank}),...(d.confirmedAt===undefined?{}:{confirmedAt:d.confirmedAt}),...(d.facets?{facets:d.facets}:{})}];
   });
   const collections=document.collections.filter(c=>c.visible).sort((a,b)=>a.position-b.position).map(c=>({...c,productIds:products.filter(p=>p.collectionIds?.includes(c.id)).map(p=>p.id)})).filter(c=>c.productIds.length);
   return {products,collections};
@@ -542,6 +578,9 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     draft.confirmedBy=entry.draft.confirmedBy;draft.confirmedAt=entry.draft.confirmedAt;
     // Weight provenance is server-owned: a changed weight is the operator's and outranks later store refreshes.
     draft.weightBasis=draft.boxedWeight!==entry.draft.boxedWeight?'operator':entry.draft.weightBasis;
+    // Category provenance and facets are server-owned too: a changed category is the editor's; facets follow the edited card.
+    draft.categoryBasis=draft.category!==entry.draft.category||!catalogCategoryIsAutomatic(entry.draft)?'operator':entry.draft.categoryBasis;
+    draft.aspects=entry.draft.aspects;draft.categoryPath=entry.draft.categoryPath;
     draft.image=safeImage(draft.image,draft.sourceUrl)??'';
     draft.images=draft.images.map(i=>safeImage(i,draft.sourceUrl)).filter((i):i is string=>!!i);
     if(draft.collectionIds.some(id=>!next.collections.some(c=>c.id===id)))throw Error('Подборка не найдена');
@@ -555,8 +594,9 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     if(entry.published&&draft.excludedOptions){
       const shown=withoutExcludedOptions(entry.published.variants,draft.excludedOptions);
       if(!shown.length){delete entry.published;delete entry.publishedAt;entry.queueState='queued'}
-      else if(shown.length!==entry.published.variants.length)entry.published={...entry.published,variants:shown,excludedOptions:draft.excludedOptions,...(entry.autoManaged?{price:lowestVariantPrice(shown)??entry.published.price}:{})};
+      else if(shown.length!==entry.published.variants.length)entry.published={...entry.published,variants:shown,excludedOptions:draft.excludedOptions,...(entry.autoManaged?{price:lowestVariantPrice(shown)??entry.published.price}:{}),...(entry.published.facets?{facets:deriveCatalogFacets(catalogFacetInput({...entry.published,variants:shown}))}:{})};
     }
+    draft.facets=deriveCatalogFacets(catalogFacetInput(draft));
     entry.draft=draft;
     // The showcase position is ordering, not a claim about the product, so a published card takes it at once.
     if(entry.published){if(draft.rank===undefined)delete entry.published.rank;else entry.published.rank=draft.rank}
@@ -589,4 +629,65 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     if(report&&!report.published&&report.skipped.length)throw Error(report.skipped.slice(0,5).join('; ')+(report.skipped.length>5?` и ещё ${report.skipped.length-5}`:''));
   }
   next.revision++;return catalogDocumentSchema.parse(next);
+}
+
+// ---------- Facet backfill (cards published before facets existed, or derived by an older rule set) ----------
+
+/** Cards a background run may re-read from the store when their stored data says too little; the rest are derived offline. */
+export const catalogFacetNetworkBatch=5;
+/** Cards a run derives from stored data (about 2-4 ms of CPU each, more for cards with many options). */
+export const catalogFacetOfflineBatch=120;
+const staleFacets=(draft?:CatalogDraft)=>Boolean(draft&&(!draft.facets||draft.facets.v<catalogFacetsVersion));
+/** The card (or its public copy) has no facets yet, or facets from an older derivation. */
+export function catalogEntryNeedsFacets(entry:CatalogEntry){return staleFacets(entry.draft)||staleFacets(entry.published)}
+/** Too little to filter by: no item type, or no "for whom" on clothes, shoes and accessories. */
+export function poorCatalogFacets(facets:CatalogFacets){
+  if(!facets.type)return true;
+  return !facets.department&&['Обувь','Одежда','Аксессуары'].includes(categoryFromFacets(facets,''));
+}
+/** Which cards a run derives from stored data and which (eBay, too little data) it re-reads from the store first. */
+export function planCatalogFacetBackfill(document:CatalogDocument,networkLimit=catalogFacetNetworkBatch,offlineLimit=catalogFacetOfflineBatch){
+  const offline:string[]=[],network:string[]=[];
+  for(const entry of document.entries){
+    if(offline.length>=offlineLimit)break;
+    if(!catalogEntryNeedsFacets(entry))continue;
+    const poor=poorCatalogFacets(deriveCatalogFacets(catalogFacetInput(entry.published??entry.draft)));
+    if(poor&&isEbaySource(entry.draft.sourceUrl)&&!entry.draft.aspects?.length){if(network.length<networkLimit)network.push(entry.id);continue}
+    offline.push(entry.id);
+  }
+  return {offline,network};
+}
+type FacetSource={aspects?:{name:string;value:string}[];categoryPath?:string;category?:string};
+/**
+ * Facets for one stored snapshot; may also correct its category (unless the editor chose it or it is a bundled card) and
+ * an estimated weight. Price, publication, rank, collections and every operator edit stay as they are.
+ */
+function backfilledSnapshot(draft:CatalogDraft,keepCategory:boolean,store?:FacetSource,derived=new Map<string,CatalogFacets>()):CatalogDraft{
+  const aspects=draft.aspects??store?.aspects?.slice(0,24),categoryPath=draft.categoryPath??(store?.categoryPath?.slice(0,300)||undefined);
+  // The public copy is usually the draft as published: derive once for both.
+  const input=catalogFacetInput({...draft,aspects,categoryPath}),key=JSON.stringify(input);
+  const facets=derived.get(key)??deriveCatalogFacets(input);derived.set(key,facets);
+  const automatic=catalogCategoryIsAutomatic(draft),fixed=keepCategory||!automatic?draft.category:asCatalogCategory(categoryFromFacets(facets,facets.type?draft.category:asCatalogCategory(store?.category,draft.category)),draft.category);
+  const typed=weightForFacets(facets),moved=fixed!==draft.category;
+  const kg=draft.weightBasis==='estimate'?typed??(moved?estimateBoxedWeight(fixed,draft.name).kg:undefined):undefined;
+  // An editor's category from before facets keeps its provenance once the card has facets.
+  return {...draft,facets,category:fixed,...(automatic?{}:{categoryBasis:'operator' as const}),...(aspects?.length?{aspects}:{}),...(categoryPath?{categoryPath}:{}),...(kg!==undefined?{boxedWeight:kg}:{})};
+}
+/**
+ * Apply one backfill run to a document in place: the planned cards get current facets (from the store answer when one
+ * was read for them). Returns how many cards changed; the revision moves only when something did.
+ */
+export function applyCatalogFacetBackfill(document:CatalogDocument,ids:string[],store:Map<string,FacetSource>=new Map()){
+  let changed=0;
+  for(const id of ids){
+    const entry=document.entries.find(item=>item.id===id);
+    if(!entry||!catalogEntryNeedsFacets(entry))continue;
+    const keepCategory=entry.origin==='bundled'||isBundledCatalogEntry(entry.id),source=store.get(id);
+    const before=JSON.stringify([entry.draft,entry.published]),derived=new Map<string,CatalogFacets>();
+    entry.draft=catalogDraftSchema.parse(backfilledSnapshot(entry.draft,keepCategory,source,derived));
+    if(entry.published)entry.published=catalogDraftSchema.parse(backfilledSnapshot(entry.published,keepCategory,source,derived));
+    if(JSON.stringify([entry.draft,entry.published])!==before)changed++;
+  }
+  if(changed)document.revision++;
+  return changed;
 }

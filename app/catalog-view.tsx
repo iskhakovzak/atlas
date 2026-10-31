@@ -9,7 +9,6 @@ import { type Product } from '@/lib/market/domain';
 import { catalogDeliverySpeed, catalogQuoteSpeed } from '@/lib/market/deals';
 import { useMarket } from '@/lib/market/store';
 import { useRowAtStart } from '@/lib/market/row-start';
-import { retryOriginal, sizedImage } from '@/lib/market/image-size';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { catalogCopy, allowanceMonth } from '@/lib/market/catalog-copy';
 import { catalogAllowance } from '@/lib/market/allowance';
@@ -17,31 +16,27 @@ import { courierAllowanceUsd } from '@/lib/market/customs';
 import { storeBrands } from '@/lib/market/store-brands';
 import { signalsFor } from '@/lib/market/catalog-signals';
 import { searchWords } from '@/lib/market/catalog-synonyms';
-import { browserStorage, clearRecentProducts, distinctCovers, readRecentProducts, rememberRecentProduct, itemParam, pendingFavoriteToSave, takePendingFavorite, withoutItemParam } from '@/lib/market/catalog-links';
+import { browserStorage, clearRecentProducts, readRecentProducts, rememberRecentProduct, itemParam, pendingFavoriteToSave, takePendingFavorite, withoutItemParam } from '@/lib/market/catalog-links';
 import { toast } from '@/lib/market/toast';
 import {
-  activeFilterCount, activeFilters, applyCatalogQuery, catalogFacets, catalogItems, catalogQueryString, cartParcelStores,
-  categorySlugs, emptyCatalogQuery, parcelExtra, priceBands, readCatalogQuery, relaxations, sameCatalogProduct, sizedCategories, storeLabel, withoutFilter,
-  type CatalogContext, type CatalogItem, type CatalogQuery, type CatalogSort, type FilterKey,
+  activeFilterCount, applyCatalogQuery, catalogFacets, catalogItems, catalogQueryString, cartParcelStores, emptyCatalogQuery, filterId,
+  paginate, parcelExtra, quickChipActive, quickChips, readCatalogQuery, relaxations, sameCatalogProduct, toggleQuickChip, withoutFilter,
+  type CatalogContext, type CatalogItem, type CatalogQuery, type CatalogSort, type QuickChip,
 } from '@/lib/market/catalog-query';
 import type { Locale } from '@/lib/market/i18n';
-import { CatalogCard, CatalogSkeleton, StoreMark } from './catalog-card';
+import { CatalogCard, CatalogSkeleton } from './catalog-card';
+import { ActiveFilters, attrLabel, clearedQuery, collectionName, FilterPanel, filterLabel, presentCategories, type Collection } from './catalog-filters';
+import { CatalogPagination } from './catalog-pagination';
 import { LazyProductSheet, preloadProductSheet } from './product-sheet-lazy';
 import { useSheetSide } from './use-sheet-side';
 import {uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
 
-const pageSize = 12;
 // Stores as the directory counts them: brands, with their country storefronts as one store.
 const storeCount = storeBrands.length;
-const thirtyDays = 30 * 24 * 60 * 60 * 1000;
 // The monthly duty-free allowance the page counts with: the same figure `catalogAllowance` subtracts orders from.
 const limitUsd = courierAllowanceUsd;
 type Copy = (typeof catalogCopy)['ru'];
-type Facets = ReturnType<typeof catalogFacets>;
-type Collection = { id: string; name: string; nameUz?: string; nameEn?: string; productIds: string[] };
-/** A set on the strip: a query preset with the products it shows and its collage (photos the sets before it did not use). */
-type CatalogSet = { id: string; name: string; patch: Partial<CatalogQuery>; items: CatalogItem[]; cover: string[] };
 
 /** Drops `?item=` from the address once its sheet is closed (or its product is gone); the filters stay. */
 function dropItemParam() {
@@ -49,25 +44,34 @@ function dropItemParam() {
   if (next !== window.location.pathname + window.location.search + window.location.hash) window.history.replaceState(window.history.state, '', next);
 }
 
-const collectionName = (set: { name: string; nameUz?: string; nameEn?: string }, locale: Locale) => locale === 'en' ? set.nameEn || set.name : isUzbek(locale) ? uzText(locale, set.nameUz || set.name) : set.name;
+function quickLabel(chip: QuickChip, cc: Copy, collections: Collection[], locale: Locale) {
+  switch (chip.kind) {
+    case 'category': return cc.categories[chip.value] ?? chip.value;
+    case 'attr': return attrLabel(chip.key, chip.value, locale);
+    case 'discount': return cc.quickOff(chip.value);
+    case 'priceMax': return cc.quickPrice(chip.value);
+    case 'collection': { const set = collections.find((item) => item.id === chip.value); return set ? collectionName(set, locale) : cc.chip.collection; }
+  }
+}
+
+function QuickChipButton({ chip, query, setQuery, cc, collections, locale }: { chip: QuickChip; query: CatalogQuery; setQuery: (query: CatalogQuery) => void; cc: Copy; collections: Collection[]; locale: Locale }) {
+  return <button type="button" aria-pressed={quickChipActive(query, chip)} onClick={() => setQuery(toggleQuickChip(query, chip))}>{quickLabel(chip, cc, collections, locale)}</button>;
+}
 
 /**
- * The catalog and the saved-products page. Filters live in the URL (`?cat=shoes&size=9`), so a
+ * The catalog and the saved-products page. Filters, sort and page live in the URL (`?cat=shoes&size=9&page=2`), so a
  * selection can be shared and survives a reload; counts next to every option say what it shows.
  */
-export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; initial?: CatalogQuery }) {
+export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favorites'; initial?: CatalogQuery; lang?: string }) {
   const { state, pricing, ready, status, act, catalogProducts, catalogReady, collections, catalogError, loadCatalog } = useMarket();
   const locale = state.communication.language as Locale;
   const cc = catalogCopy[locale], copy = dealCopy(locale);
   const [query, setQueryState] = useState<CatalogQuery>(initial ?? emptyCatalogQuery);
-  const [limit, setLimit] = useState(pageSize);
   const [selected, setSelected] = useState<Product | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [setsOpen, setSetsOpen] = useState(false);
-  const setsId = useId();
-  const setsToggleRef = useRef<HTMLButtonElement>(null);
   const [saving, setSaving] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
+  const gridRef = useRef<HTMLElement>(null);
   const side = useSheetSide();
   // "Recently viewed": ids kept on this device, read after hydration so the first render matches the server's.
   const [recentIds, setRecentIds] = useState<string[]>([]);
@@ -80,7 +84,18 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
     const next = window.location.pathname + catalogQueryString(query, new URLSearchParams(window.location.search)) + window.location.hash;
     if (next !== window.location.pathname + window.location.search + window.location.hash) window.history.replaceState(window.history.state, '', next);
   }, [query]);
-  const setQuery = (next: CatalogQuery) => { setQueryState(next); setLimit(pageSize); };
+  // Any change of filters, sort or page size starts again at page 1; only the pager keeps the page.
+  const setQuery = (next: CatalogQuery) => setQueryState({ ...next, page: 1 });
+  const setPage = (page: number) => {
+    setQueryState({ ...query, page });
+    requestAnimationFrame(() => {
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      gridRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    });
+  };
+  // Page links keep the language address (`?lang=en`, the hreflang version); the server passes it so both renders agree.
+  const langParam = lang && /^[a-z]{2}(-[a-z]{2,4})?$/i.test(lang) ? lang : undefined;
+  const pageHref = (page: number) => catalogQueryString({ ...query, page }, langParam ? new URLSearchParams({ lang: langParam }) : undefined) || '?';
 
   const items = useMemo(() => catalogItems(catalogProducts, pricing), [catalogProducts, pricing]);
   // `?item=<id>` (a product row of a store card) opens that product's sheet once the catalog is in; the sheet drops it on close.
@@ -103,12 +118,31 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
     const id = pendingFavoriteToSave(takePendingFavorite(browserStorage()), { now: Date.now(), catalogIds: new Set(items.map((item) => item.product.id)), favorites: state.favorites });
     if (id) void act({ type: 'favorite', id }).then((ok) => { if (ok) toast.success(copy.savedAfterLogin); });
   }, [ready, catalogReady, items, state.favorites, act, copy.savedAfterLogin]);
-  const pool = mode === 'favorites' ? items.filter((item) => state.favorites.includes(item.product.id)) : items;
+
+  const favorites = state.favorites;
   const allowance = ready ? catalogAllowance(state, pricing.fx) : null;
-  const context: CatalogContext = { dutyLimitUsd: allowance?.remainingUsd ?? courierAllowanceUsd, collections, words: (item) => [cc.categories[item.product.category] ?? '', searchWords(item, locale)].join(' ') };
-  const list = applyCatalogQuery(pool, query, context);
-  const facets = catalogFacets(pool, query, context);
-  const visible = list.slice(0, limit);
+  const dutyLimitUsd = allowance?.remainingUsd ?? courierAllowanceUsd;
+  // Everything that walks the products sits in one memo (a few thousand products, one pass per filter group): it reruns
+  // when the products, the favourites, the query or the allowance change, not on every render. The context stays inside
+  // it, so nothing outside can change what the memo was built from.
+  const { pool, list, facets, chips, categories, suggest, options } = useMemo(() => {
+    const pool = mode === 'favorites' ? items.filter((item) => favorites.includes(item.product.id)) : items;
+    const context: CatalogContext = { dutyLimitUsd, collections, words: (item) => [catalogCopy[locale].categories[item.product.category] ?? '', searchWords(item, locale)].join(' ') };
+    const list = applyCatalogQuery(pool, query, context);
+    return {
+      pool, list, facets: catalogFacets(pool, query, context),
+      chips: mode === 'catalog' ? quickChips(pool, context) : [],
+      categories: presentCategories(pool.map((item) => item.product.category)),
+      // An empty "Saved" is not a dead end: the catalog's discounted products, ready to save.
+      suggest: mode === 'favorites' && catalogReady && pool.length === 0 ? applyCatalogQuery(items, { ...emptyCatalogQuery, discount: 1 }, { ...context, collections: [] }).slice(0, 4) : [],
+      options: list.length === 0 && pool.length > 0 ? relaxations(pool, query, context) : [],
+    };
+  // The build does not run the React Compiler, so this memo is what keeps the passes off every render; the lint rule only
+  // reports that the compiler would skip the component (the results are never mutated).
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  }, [mode, items, favorites, dutyLimitUsd, collections, locale, query, catalogReady]);
+  const paged = paginate(list, query.page, query.per);
+  const visible = paged.items;
   const parcels = useMemo(() => ready ? cartParcelStores(state.cart).filter((store) => items.some((item) => item.store === store)) : [], [ready, state.cart, items]);
   // What each product of a store with a parcel in the cart adds to it: priced like the cart, so memoised per catalog and cart.
   const parcelExtras = useMemo(() => {
@@ -120,14 +154,12 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   // A cart line made by the link order carries its own id (`<url>#<option>`): the source URL says it is this product.
   const inCart = (product: Product) => ready && state.cart.some((line) => sameCatalogProduct(line.product, product));
   const signalsOf = (item: CatalogItem) => signalsFor(item, { locale, pricing, parcel: parcelExtras.get(item.product.id) ?? null, inCart: inCart(item.product), member: Boolean(allowance), remainingUsd: allowance ? allowance.remainingUsd : null, dutyLimitUsd: limitUsd });
-  const filterCount = activeFilterCount(query) - Number(Boolean(query.category)) - Number(Boolean(query.collection));
-  const storesInCatalog = new Set(items.map((item) => item.store)).size;
-  const sets = mode === 'catalog' ? buildSets(pool, context, collections, Boolean(allowance && allowance.remainingUsd > 0), cc, locale) : [];
-  // An empty "Saved" is not a dead end: the first products of the catalog's own "On sale" set, ready to save.
-  const suggest = mode === 'favorites' && catalogReady && pool.length === 0 ? applyCatalogQuery(items, { ...emptyCatalogQuery, sale: true }, context).slice(0, 4) : [];
-  const setsRow = useRowAtStart<HTMLElement>(sets.map((set) => set.id).join(' '));
+  const filterCount = activeFilterCount(query);
+  const storesInCatalog = useMemo(() => new Set(items.map((item) => item.store)).size, [items]);
+  // An empty "Saved" is not a dead end: the catalog's discounted products, ready to save.
+  const chipsRow = useRowAtStart<HTMLDivElement>(chips.map((chip) => chip.id).join(' '));
   // Shown on the unfiltered catalog once two or more opened products are still in it; the one open now waits for the next visit.
-  const recent = mode === 'catalog' && catalogReady && activeFilterCount(query) === 0 && !query.q ? recentIds.filter((id) => id !== selected?.id).map((id) => items.find((item) => item.product.id === id)).filter((item): item is CatalogItem => Boolean(item)).slice(0, 8) : [];
+  const recent = mode === 'catalog' && catalogReady && filterCount === 0 && !query.q && query.page === 1 ? recentIds.filter((id) => id !== selected?.id).map((id) => items.find((item) => item.product.id === id)).filter((item): item is CatalogItem => Boolean(item)).slice(0, 8) : [];
 
   async function save(product: Product) {
     setSaving(product.id);
@@ -138,26 +170,17 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
     setRetrying(true);
     try { await loadCatalog(true); } finally { setRetrying(false); }
   }
-  // A set is a preset: it replaces the filters (the search stays); the active one toggles off, clearing only its own keys.
-  function toggleSet(set: CatalogSet) {
-    if (setsOpen) setsToggleRef.current?.focus();
-    setSetsOpen(false);
-    if (!setActive(query, set.patch)) { setQuery({ ...emptyCatalogQuery, q: query.q, ...set.patch }); return; }
-    const cleared = Object.fromEntries((Object.keys(set.patch) as (keyof CatalogQuery)[]).map((key) => [key, emptyCatalogQuery[key]]));
-    setQuery({ ...query, ...cleared });
-  }
 
-  // Every category of this page stays visible (with its count under the other filters), so the current one never disappears.
-  const categoryEntries = Object.keys(categorySlugs).filter((category) => pool.some((item) => item.product.category === category)).map((category) => [category, facets.categories.get(category) ?? 0] as const);
-  const categoryAll = [...facets.categories.values()].reduce((sum, count) => sum + count, 0);
-  const showControls = pool.length > 0 || activeFilterCount(query) > 0 || Boolean(query.q);
+  const showControls = pool.length > 0 || filterCount > 0 || Boolean(query.q);
   const dutyHint = allowance && allowance.usedUsd > 0 ? cc.dutyMember(allowance.remainingUsd, allowance.name) : cc.dutyGuest(limitUsd);
+  const filtered = list.length !== pool.length;
+  const panel = <FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} locale={locale} dutyHint={dutyHint} categories={categories} />;
 
   return <TooltipProvider delayDuration={300}><div className="catalog-page finds-page" data-mode={mode}>
     <header className="catalog-head">
       <div><h1>{mode === 'favorites' ? copy.savedTitle : cc.title}</h1><p>{mode === 'favorites' ? copy.savedIntro : cc.intro}</p></div>
-      {/* The row is there from the first paint (empty until the catalog arrives), so the collections and the search below
-         do not move down 40 px when the stats appear (mobile CLS, 26 October 2026). */}
+      {/* The row is there from the first paint (empty until the catalog arrives), so the search below
+         does not move down 40 px when the stats appear (mobile CLS, 26 October 2026). */}
       {mode === 'catalog' && <div className="catalog-head-side">{catalogReady && items.length > 0 && <><p className="catalog-stats"><Store size={16} aria-hidden="true" />{cc.stats(items.length, storesInCatalog)}</p>{ready && <Link className="catalog-saved" href="/favorites"><Heart size={16} aria-hidden="true" /><span className="catalog-saved-label">{copy.saved}</span><b>{state.favorites.filter((id) => items.some((item) => item.product.id === id)).length}</b></Link>}</>}</div>}
     </header>
     {catalogError && <div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? (locale === 'ru' ? 'Обновляем…' : isUzbek(locale) ? uzText(locale, 'Yangilanmoqda…') : 'Refreshing…') : (locale === 'ru' ? 'Повторить' : isUzbek(locale) ? uzText(locale, 'Qayta urinish') : 'Retry')}</button></div>}
@@ -166,35 +189,23 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       detail={allowance.remainingUsd > 0 ? cc.allowanceLeft(allowance.remainingUsd, allowance.name, allowanceMonth(locale), limitUsd) : cc.allowanceSpent(allowance.name, allowanceMonth(locale))}
       action={allowance.remainingUsd > 0 && !query.duty ? <button type="button" className="text-button" onClick={() => setQuery({ ...query, duty: true })}>{cc.allowanceShow}</button> : null}
       more={<Link className="text-link" href="/customs">{cc.allowanceHow}</Link>} />}
-    {/* On a phone the collections toggle sits beside the search (one row instead of two); on a wider screen this
-       wrapper does not exist for the layout (display: contents) and the tiles stay above the search. */}
-    <div className="catalog-controls" data-sets={sets.length > 0 || undefined}>
-    {sets.length > 0 && <div className="catalog-collections">
-      <button ref={setsToggleRef} type="button" className="catalog-sets-toggle" aria-expanded={setsOpen} aria-controls={setsId} onClick={() => setSetsOpen((open) => !open)}>{cc.collections}<ChevronDown size={18} aria-hidden="true" /></button>
-      <nav {...setsRow} id={setsId} className="catalog-sets" data-open={setsOpen || undefined} aria-label={cc.collections}>
-      {sets.map((set) => <button type="button" key={set.id} className="catalog-set" aria-pressed={setActive(query, set.patch)} onClick={() => toggleSet(set)}>
-        <SetCover images={set.cover} />
-        <b>{set.name}</b><span>{cc.setCount(set.items.length)}</span>
-      </button>)}
-      </nav>
-    </div>}
     {showControls && <section className="catalog-bar" aria-label={cc.search}>
-      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={side === 'bottom' && sets.length > 0 ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
-      {categoryEntries.length > 1 && <div className="catalog-categories" role="group" aria-label={cc.categoriesLabel}>
-        <button type="button" aria-pressed={!query.category} onClick={() => setQuery({ ...query, category: '', sizes: [] })}>{cc.all}<span>{categoryAll}</span></button>
-        {categoryEntries.map(([category, count]) => <button type="button" key={category} data-empty={count === 0 || undefined} aria-pressed={query.category === category} onClick={() => setQuery({ ...query, category: query.category === category ? '' : category, sizes: [] })}>{cc.categories[category] ?? category}<span>{count}</span></button>)}
+      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={side === 'bottom' ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
+      {/* One row of common filters: scrolls sideways on a phone, wraps on a wide screen. */}
+      {chips.length > 0 && <div {...chipsRow} className="catalog-categories catalog-quick" role="group" aria-label={cc.quickLabel}>
+        {chips.map((chip) => <QuickChipButton key={chip.id} chip={chip} query={query} setQuery={setQuery} cc={cc} collections={collections} locale={locale} />)}
       </div>}
       <div className="catalog-bar-row">
         <button type="button" className="catalog-facets-button" aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={18} aria-hidden="true" />{cc.filters}{filterCount > 0 && <b aria-label={String(filterCount)}>{filterCount}</b>}</button>
-        <span className="catalog-found" role="status">{catalogReady ? cc.found(list.length, pool.length) : cc.loading}</span>
+        {/* The header already says how many products there are: unfiltered, the count is only announced. */}
+        <span className={'catalog-found' + (filtered ? '' : ' catalog-found-quiet')} role="status">{catalogReady ? filtered ? cc.found(list.length, pool.length) : <span className="sr-only">{cc.found(list.length, pool.length)}</span> : cc.loading}</span>
         <label className="catalog-sort"><span>{cc.sort}</span><select value={query.sort} onChange={(event) => setQuery({ ...query, sort: event.target.value as CatalogSort })}>{(Object.keys(cc.sorts) as CatalogSort[]).map((sort) => <option key={sort} value={sort}>{cc.sorts[sort]}</option>)}</select></label>
       </div>
-      <ActiveFilters query={query} setQuery={setQuery} cc={cc} collections={collections} locale={locale} />
+      <ActiveFilters query={query} setQuery={setQuery} cc={cc} collections={collections} locale={locale} brands={facets.brands} />
     </section>}
-    </div>
     <div className={'catalog-layout' + (showControls ? '' : ' catalog-layout-plain')}>
-      {showControls && <aside className="catalog-sidebar" aria-label={cc.filtersTitle}><FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} locale={locale} dutyHint={dutyHint} /></aside>}
-      <section className="catalog-results" aria-label={mode === 'favorites' ? copy.saved : cc.title}>
+      {showControls && <aside className="catalog-sidebar" aria-label={cc.filtersTitle}>{panel}</aside>}
+      <section ref={gridRef} className="catalog-results" aria-label={mode === 'favorites' ? copy.saved : cc.title}>
         {recent.length >= 2 && <section className="catalog-recent" aria-labelledby="catalog-recent-title">
           <div className="favorites-suggest-head"><h2 id="catalog-recent-title">{cc.recentTitle}</h2><button type="button" className="text-button" onClick={() => { clearRecentProducts(browserStorage()); setRecentIds([]); }}>{cc.recentClear}</button></div>
           <div className="finds-grid finds-grid-compact catalog-recent-row" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
@@ -206,7 +217,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
           {visible.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select}
             saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)}
             signals={signalsOf(item)} inCart={inCart(item.product)} speed={speed} />)}
-        </div> : <EmptyResult mode={mode} empty={!pool.length} query={query} setQuery={setQuery} cc={cc} copy={copy} options={relaxations(pool, query, context)} collections={collections} locale={locale} />}
+        </div> : <EmptyResult mode={mode} empty={!pool.length} query={query} setQuery={setQuery} cc={cc} copy={copy} options={options} collections={collections} locale={locale} />}
         {suggest.length > 0 && <section className="favorites-suggest" aria-labelledby="favorites-suggest-title">
           <div className="favorites-suggest-head"><h2 id="favorites-suggest-title">{copy.suggestTitle}</h2><Link className="text-link" href="/catalog?sale=1">{copy.suggestAll}<ArrowRight size={16} aria-hidden="true" /></Link></div>
           <div className="finds-grid finds-grid-compact" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
@@ -214,7 +225,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
               saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)} speed={speed} />)}
           </div>
         </section>}
-        {visible.length < list.length && <div className="finds-pagination"><span role="status">{cc.showing(visible.length, list.length)}</span><button type="button" className="btn secondary" onClick={() => setLimit(limit + pageSize)}>{cc.more}<ChevronDown size={17} aria-hidden="true" /></button></div>}
+        {catalogReady && visible.length > 0 && <CatalogPagination page={paged.page} pages={paged.pages} start={paged.start} end={paged.end} total={list.length} per={query.per} href={pageHref} onPage={setPage} onPer={(per) => setQuery({ ...query, per })} cc={cc} />}
         {visible.length > 0 && <p className="finds-price-note">{copy.priceNote}</p>}
         {status === 'guest' && mode === 'catalog' && <p className="finds-signin"><Link href="/login?return_to=%2Fcatalog"><Heart size={15} />{copy.signin}</Link></p>}
         {mode === 'catalog' && catalogReady && <section className="catalog-end">
@@ -226,58 +237,12 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
     <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
       <SheetContent side={side} showCloseButton={false} className={'catalog-sheet catalog-sheet-' + side}>
         <header><SheetTitle>{cc.filtersTitle}</SheetTitle><SheetDescription className="sr-only">{cc.found(list.length, pool.length)}</SheetDescription><button type="button" className="icon-btn" aria-label={cc.close} onClick={() => setFiltersOpen(false)}><X size={20} /></button></header>
-        <div className="catalog-sheet-scroll"><FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} locale={locale} dutyHint={dutyHint} /></div>
-        <footer>{filterCount > 0 && <button type="button" className="btn secondary" onClick={() => setQuery({ ...emptyCatalogQuery, q: query.q, category: query.category, sort: query.sort, collection: query.collection })}>{cc.reset}</button>}<button type="button" className="btn primary" onClick={() => setFiltersOpen(false)}>{cc.show(list.length)}</button></footer>
+        <div className="catalog-sheet-scroll">{panel}</div>
+        <footer>{filterCount > 0 && <button type="button" className="btn secondary" onClick={() => setQuery(clearedQuery(query))}>{cc.reset}</button>}<button type="button" className="btn primary" onClick={() => setFiltersOpen(false)}>{cc.show(list.length)}</button></footer>
       </SheetContent>
     </Sheet>
     <LazyProductSheet product={selected} onClose={() => { setSelected(null); dropItemParam(); }} />
   </div></TooltipProvider>;
-}
-
-/** The query matches a set's preset: every patched key has the preset's value (lists compared as a whole). */
-function setActive(query: CatalogQuery, patch: Partial<CatalogQuery>) {
-  return (Object.keys(patch) as (keyof CatalogQuery)[]).every((key) => {
-    const current = query[key], wanted = patch[key];
-    return Array.isArray(current) && Array.isArray(wanted) ? current.join() === wanted.join() : current === wanted;
-  });
-}
-
-/**
- * The sets strip: the operator's collections first, then presets on the existing filters (the allowance
- * for a customer with a known remainder, under 300k, on sale, newest first while something was added in
- * the last 30 days, the stores with the most products). A set needs at least three products to show, and
- * its count is what the preset shows.
- */
-function buildSets(pool: CatalogItem[], context: CatalogContext, collections: Collection[], withAllowance: boolean, cc: Copy, locale: Locale): CatalogSet[] {
-  const now = Date.now();
-  const of = (patch: Partial<CatalogQuery>) => applyCatalogQuery(pool, { ...emptyCatalogQuery, ...patch }, context);
-  const storeCounts = new Map<string, number>();
-  for (const item of pool) storeCounts.set(item.store, (storeCounts.get(item.store) ?? 0) + 1);
-  const topStores = [...storeCounts].filter(([, count]) => count >= 3).sort((a, b) => b[1] - a[1] || storeLabel(a[0], locale).localeCompare(storeLabel(b[0], locale))).slice(0, 4);
-  const hasRecent = pool.some((item) => item.addedAt >= now - thirtyDays);
-  const sets: Omit<CatalogSet, 'cover'>[] = [
-    ...collections.map((set) => ({ id: 'set:' + set.id, name: collectionName(set, locale), patch: { collection: set.id }, items: of({ collection: set.id }) })),
-    ...(withAllowance ? [{ id: 'limit', name: cc.sets.limit(limitUsd), patch: { duty: true }, items: of({ duty: true }) }] : []),
-    { id: 'cheap', name: cc.sets.cheap, patch: { price: 'to-300k' as const }, items: of({ price: 'to-300k' }) },
-    { id: 'sale', name: cc.sets.sale, patch: { sale: true }, items: of({ sale: true }) },
-    ...(hasRecent ? [{ id: 'new', name: cc.sets.new, patch: { sort: 'new' as const }, items: of({ sort: 'new' }) }] : []),
-    ...topStores.map(([store]) => ({ id: 'store:' + store, name: cc.sets.from(storeLabel(store, locale)), patch: { stores: [store] }, items: of({ stores: [store] }) })),
-  ];
-  const shown = sets.filter((set) => set.items.length >= 3);
-  const covers = distinctCovers(shown);
-  return shown.map((set, index) => ({ ...set, cover: covers[index] }));
-}
-
-/** A 2×2 collage of the set's first four photos on a white stage; fewer than four (a failed one dropped) shows the first large. */
-function SetCover({ images }: { images: string[] }) {
-  const [failed, setFailed] = useState<string[]>([]);
-  const live = images.filter((src) => !failed.includes(src));
-  const single = live.length < 4;
-  return <span className="catalog-set-cover" data-single={single || undefined} aria-hidden="true">
-    {/* Merchant photos stay direct public URLs, like everywhere on the storefront; a photo the store no longer serves leaves the collage. */}
-    {/* eslint-disable-next-line @next/next/no-img-element */}
-    {(single ? live.slice(0, 1) : live).map((src, index) => <img key={src + index} src={sizedImage(src, single ? 240 : 160)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { if (!retryOriginal(event.currentTarget, src)) setFailed((list) => list.includes(src) ? list : [...list, src]); }} />)}
-  </span>;
 }
 
 /** One line (icon, short text, action); the full sentence and the "how it works" link open on tap. */
@@ -294,75 +259,13 @@ function CompactBanner({ tone, icon: Icon, short, detail, action, more, cc }: { 
   </div>;
 }
 
-function FilterPanel({ query, setQuery, facets, cc, pool, dutyHint, locale }: { query: CatalogQuery; setQuery: (query: CatalogQuery) => void; facets: Facets; cc: Copy; pool: number; dutyHint: string; locale: Locale }) {
-  const id = useId();
-  const [allStores, setAllStores] = useState(false);
-  const stores = facets.stores.filter(([store, count]) => count > 0 || query.stores.includes(store));
-  const shownStores = allStores ? stores : stores.slice(0, 6);
-  const toggle = (list: string[], value: string) => list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
-  const sized = sizedCategories.has(query.category);
-  const anySized = facets.sizes.length > 0;
-  if (!pool) return null;
-  return <div className="catalog-facets">
-    {stores.length > 1 && <fieldset><legend>{cc.store}</legend>
-      {shownStores.map(([store, count]) => <label key={store} className="catalog-check"><input type="checkbox" checked={query.stores.includes(store)} onChange={() => setQuery({ ...query, stores: toggle(query.stores, store) })} /><StoreMark host={store} /><span>{storeLabel(store, locale)}</span><span className="catalog-count">{count}</span></label>)}
-      {stores.length > 6 && <button type="button" className="text-button" aria-expanded={allStores} onClick={() => setAllStores(!allStores)}>{allStores ? cc.storesLess : cc.storesMore(stores.length - 6)}</button>}
-    </fieldset>}
-    <fieldset><legend>{cc.price}</legend><div className="catalog-chips">
-      {priceBands.map((band) => { const count = facets.prices.get(band.id) ?? 0; if (!count && query.price !== band.id) return null; return <button type="button" key={band.id} aria-pressed={query.price === band.id} onClick={() => setQuery({ ...query, price: query.price === band.id ? '' : band.id })}>{cc.bands[band.id]}<span>{count}</span></button>; })}
-    </div></fieldset>
-    {(anySized || query.sizes.length > 0) && <fieldset><legend>{cc.size}</legend>
-      {sized ? <><div className="catalog-chips catalog-sizes">{facets.sizes.map(([size, count]) => <button type="button" key={size} aria-pressed={query.sizes.includes(size)} onClick={() => setQuery({ ...query, sizes: toggle(query.sizes, size) })}>{size}<span>{count}</span></button>)}</div><p className="catalog-note">{cc.sizeNote}</p></> : <p className="catalog-note">{cc.sizeHint}</p>}
-    </fieldset>}
-    {/* All three conditions stay in place; one that shows nothing is disabled with its zero, not hidden. */}
-    <fieldset><legend>{cc.special}</legend>
-      <Switch id={id + 'duty'} checked={query.duty} onChange={(duty) => setQuery({ ...query, duty })} title={cc.duty} hint={dutyHint} count={facets.duty} />
-      <Switch id={id + 'sale'} checked={query.sale} onChange={(sale) => setQuery({ ...query, sale })} title={cc.sale} hint={cc.saleHint} count={facets.sale} />
-      <Switch id={id + 'fresh'} checked={query.fresh} onChange={(fresh) => setQuery({ ...query, fresh })} title={cc.fresh} hint={cc.freshHint} count={facets.fresh} />
-    </fieldset>
-  </div>;
-}
-
-function Switch({ id, checked, onChange, title, hint, count }: { id: string; checked: boolean; onChange: (value: boolean) => void; title: string; hint: string; count: number }) {
-  const disabled = count === 0 && !checked;
-  return <label className="catalog-switch" htmlFor={id} data-disabled={disabled || undefined}>
-    <input id={id} type="checkbox" role="switch" checked={checked} disabled={disabled} aria-describedby={id + '-hint'} onChange={(event) => onChange(event.target.checked)} />
-    <span className="catalog-switch-track" aria-hidden="true" />
-    <span className="catalog-switch-text"><b>{title}</b><small id={id + '-hint'}>{hint}</small></span>
-    <span className="catalog-count">{count}</span>
-  </label>;
-}
-
-function filterLabel(key: FilterKey, query: CatalogQuery, cc: Copy, collections: Collection[], locale: Locale) {
-  switch (key.kind) {
-    case 'q': return `${cc.chip.search}: ${query.q.trim()}`;
-    case 'collection': { const set = collections.find((item) => item.id === query.collection); return set ? collectionName(set, locale) : cc.chip.collection; }
-    case 'category': return cc.categories[query.category] ?? query.category;
-    case 'store': return storeLabel(key.value, locale);
-    case 'price': return query.price ? cc.bands[query.price] : cc.chip.price;
-    case 'size': return `${cc.chip.size} ${key.value}`;
-    case 'duty': return cc.duty;
-    case 'sale': return cc.sale;
-    case 'fresh': return cc.fresh;
-  }
-}
-
-function ActiveFilters({ query, setQuery, cc, collections, locale }: { query: CatalogQuery; setQuery: (query: CatalogQuery) => void; cc: Copy; collections: Collection[]; locale: Locale }) {
-  const keys = activeFilters(query).filter((key) => key.kind !== 'q' && key.kind !== 'category');
-  if (!keys.length) return null;
-  return <div className="catalog-active">
-    {keys.map((key) => { const label = filterLabel(key, query, cc, collections, locale); return <button type="button" key={key.kind + ('value' in key ? key.value : '')} aria-label={`${cc.remove}: ${label}`} onClick={() => setQuery(withoutFilter(query, key))}><span>{label}</span><X size={14} aria-hidden="true" /></button>; })}
-    {keys.length > 1 && <button type="button" className="text-button" onClick={() => setQuery({ ...emptyCatalogQuery, q: query.q, category: query.category, sort: query.sort })}>{cc.resetAll}</button>}
-  </div>;
-}
-
 function EmptyResult({ mode, empty, query, setQuery, cc, copy, options, collections, locale }: { mode: 'catalog' | 'favorites'; empty: boolean; query: CatalogQuery; setQuery: (query: CatalogQuery) => void; cc: Copy; copy: ReturnType<typeof dealCopy>; options: ReturnType<typeof relaxations>; collections: Collection[]; locale: Locale }) {
   if (mode === 'favorites' && empty) return <Panel title={copy.emptySaved} text={copy.emptySavedHint}><Link className="btn primary" href="/catalog">{copy.catalog}<ArrowRight size={17} /></Link></Panel>;
   // Nothing published yet (a fresh launch): no filters to relax, only the link order.
   if (mode === 'catalog' && empty) return <Panel title={cc.catalogEmptyTitle} text={cc.catalogEmptyHint}><Link className="btn primary" href="/order-by-link">{cc.endLink}<ArrowRight size={17} /></Link></Panel>;
   return <Panel title={cc.emptyTitle} text={cc.emptyHint}>
-    {options.map(({ key, count }) => <button type="button" className="btn secondary" key={key.kind + ('value' in key ? key.value : '')} onClick={() => setQuery(withoutFilter(query, key))}>{cc.without(filterLabel(key, query, cc, collections, locale), count)}</button>)}
-    {activeFilterCount(query) + Number(Boolean(query.q.trim())) > 1 && <button type="button" className="btn secondary" onClick={() => setQuery({ ...emptyCatalogQuery, sort: query.sort })}>{cc.resetAll}</button>}
+    {options.map(({ key, count }) => <button type="button" className="btn secondary" key={filterId(key)} onClick={() => setQuery(withoutFilter(query, key))}>{cc.without(filterLabel(key, query, cc, collections, locale), count)}</button>)}
+    {activeFilterCount(query) + Number(Boolean(query.q.trim())) > 1 && <button type="button" className="btn secondary" onClick={() => setQuery({ ...clearedQuery(query), q: '' })}>{cc.resetAll}</button>}
     {mode === 'catalog' && <Link className="btn primary" href="/order-by-link">{cc.endLink}<ArrowRight size={17} /></Link>}
   </Panel>;
 }

@@ -21,5 +21,6 @@ export async function generateMetadata({ searchParams }: Search): Promise<Metada
 // mobile simulation count more script before first paint (85 → 79, 14.10.2026), while the skeleton's shift (CLS 0.038
 // phone, 0.078 desktop) is already in the good range and costs no score.
 export default async function Page({ searchParams }: Search) {
-  return <Marketplace view="products"><CatalogView mode="catalog" initial={readCatalogQuery(await searchParams)} /></Marketplace>;
+  const params = await searchParams;
+  return <Marketplace view="products"><CatalogView mode="catalog" initial={readCatalogQuery(params)} lang={typeof params.lang === 'string' ? params.lang : undefined} /></Marketplace>;
 }
