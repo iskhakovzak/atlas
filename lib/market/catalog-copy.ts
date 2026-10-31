@@ -1,7 +1,7 @@
 import type { Locale } from './i18n.ts';
 import { tashkentMonth } from './world.ts';
 import { storeCountryNames } from './store-brands.ts';
-import type { CatalogSort, PriceBand } from './catalog-query.ts';
+import type { CatalogSort } from './catalog-query.ts';
 import {withCyrillic,uzText} from './uz-cyrl.ts';
 import {isUzbek} from './i18n.ts';
 
@@ -20,9 +20,7 @@ const ru = {
   bannerLimit: (left: number, limit: number) => `Без пошлины: осталось ${usd(left)} из ${usd(limit)}`,
   bannerLimitSpent: 'Беспошлинный лимит исчерпан',
   details: 'Подробнее', collapse: 'Свернуть',
-  // Sets strip: the operator's collections first, then presets on the existing filters.
-  sets: { limit: (limit: number) => `В лимите ${usd(limit)}`, cheap: 'До 300 тыс. сум', sale: 'Со скидкой', new: 'Новое', from: (store: string) => `Из ${store}` },
-  setCount: (count: number) => `${count} ${plural(count, ['товар', 'товара', 'товаров'])}`,
+  quickLabel: 'Быстрые фильтры', quickOff: (percent: number) => `−${percent} % и больше`, quickPrice: (max: number) => `До ${compactSum(max, 'ru')}`,
   // Card 2.0.
   storePrice: 'Цена магазина',
   storePriceOn: (date: string) => `Цена магазина · ${date}`,
@@ -43,18 +41,23 @@ const ru = {
   all: 'Все', categoriesLabel: 'Категории', collections: 'Подборки', recentTitle: 'Вы смотрели', recentClear: 'Очистить',
   filters: 'Фильтры', filtersTitle: 'Фильтры', show: (count: number) => count ? `Показать ${count} ${plural(count, ['товар', 'товара', 'товаров'])}` : 'Ничего не найдено',
   reset: 'Сбросить', resetAll: 'Сбросить всё', close: 'Закрыть',
-  sort: 'Сортировка', sorts: { best: 'Рекомендуем', cheap: 'Дешевле', expensive: 'Дороже', new: 'Новые' } as Record<CatalogSort, string>,
-  store: 'Магазин', storesMore: (count: number) => `Ещё ${count}`, storesLess: 'Свернуть',
-  price: 'Цена с доставкой',
-  bands: { 'to-300k': 'до 300 тыс.', '300k-600k': '300–600 тыс.', '600k-1m': '600 тыс. – 1 млн', '1m-2m': '1–2 млн', 'from-2m': 'от 2 млн' } as Record<PriceBand, string>,
-  size: 'Размер', sizeHint: 'Выберите обувь или одежду — появятся размеры, которые есть в магазинах.', sizeNote: 'По списку размеров магазина; выбранный размер Atlas сверит с магазином при добавлении в корзину.',
+  sort: 'Сортировка', sorts: { best: 'Популярные', cheap: 'Дешевле', expensive: 'Дороже', discount: 'Больше скидка', new: 'Новые' } as Record<CatalogSort, string>,
+  store: 'Магазин', storesMore: (count: number) => `Ещё ${count}`, storesLess: 'Свернуть', category: 'Категория', brand: 'Бренд',
+  price: 'Цена с доставкой', priceFrom: 'от', priceTo: 'до', priceMinLabel: 'Цена с доставкой от, сум', priceMaxLabel: 'Цена с доставкой до, сум',
+  priceChip: (min: number, max: number) => priceText(min, max, 'ru'),
+  discount: 'Скидка', discountAny: 'Не важно', discountSome: 'Любая скидка', discountFrom: (percent: number) => `от ${percent} %`,
+  size: 'Размер', sizeShoes: 'Обувь', sizeClothes: 'Одежда и аксессуары', sizeNote: 'По списку размеров магазина; выбранный размер Atlas сверит с магазином при добавлении в корзину.',
+  stock: 'Размер в наличии', stockHint: 'Только товары, где выбранный размер магазин показывает в наличии сейчас.',
+  selected: (count: number) => `выбрано: ${count}`,
+  perPage: 'Показывать по', pages: 'Страницы каталога', prevPage: 'Предыдущая страница', nextPage: 'Следующая страница', page: (page: number) => `Страница ${page}`,
+  range: (from: number, to: number, total: number) => `Показано ${from}–${to} из ${total}`,
+  sizesCount: (count: number) => `${count} ${plural(count, ['размер', 'размера', 'размеров'])}`, colorsMore: (count: number) => `ещё ${count} ${plural(count, ['цвет', 'цвета', 'цветов'])}`, colors: 'Цвета', colorsCount: (count: number) => `${count} ${plural(count, ['цвет', 'цвета', 'цветов'])}`,
   special: 'Условия',
   duty: 'Без пошлины', dutyGuest: (limit: number) => `Цена товара до ${usd(limit)} — беспошлинный лимит на получателя в месяц.`,
   dutyMember: (left: number, name: string) => `Цена товара не больше остатка лимита: ${usd(left)} для ${name}.`,
-  sale: 'Со скидкой', saleHint: 'Магазин снизил цену относительно своей базовой.',
+  sale: 'Со скидкой',
   fresh: 'Актуальная цена', freshHint: 'Цена подтверждена магазином недавно.',
   found: (count: number, total: number) => count === total ? `${count} ${plural(count, ['товар', 'товара', 'товаров'])}` : `Найдено ${count} из ${total}`,
-  showing: (shown: number, total: number) => `Показано ${shown} из ${total}`, more: 'Показать ещё',
   catalogEmptyTitle: 'Каталог скоро пополнится', catalogEmptyHint: 'Пока закажите любой товар по ссылке из магазина — покажем итог в сумах с доставкой в Ташкент.',
   emptyTitle: 'Ничего не нашлось', emptyHint: 'Уберите один из фильтров или закажите нужный товар по ссылке.',
   without: (label: string, count: number) => `Без «${label}» — ${count}`,
@@ -64,7 +67,7 @@ const ru = {
   allowanceSpent: (name: string, month: string) => `Беспошлинный лимит для ${name} в ${month} исчерпан: новые заказы облагаются пошлиной.`,
   allowanceShow: 'Показать подходящие', allowanceHow: 'Как считается',
   loading: 'Загружаем каталог…',
-  chip: { store: 'Магазин', price: 'Цена', size: 'Размер', search: 'Поиск', collection: 'Подборка', category: 'Категория' },
+  chip: { store: 'Магазин', price: 'Цена', size: 'Размер', search: 'Поиск', collection: 'Подборка', category: 'Категория', discount: (percent: number) => percent > 1 ? `Скидка от ${percent} %` : 'Со скидкой' },
   remove: 'Убрать фильтр',
   categories: { 'Обувь': 'Обувь', 'Одежда': 'Одежда', 'Электроника': 'Электроника', 'Аксессуары': 'Аксессуары', 'Красота и уход': 'Красота и уход', 'Дом и быт': 'Дом и быт', 'Спорт': 'Спорт', 'Другое': 'Другое' } as Record<string, string>,
 };
@@ -81,8 +84,7 @@ const uz: Copy = {
   bannerLimit: (left: number, limit: number) => `Bojsiz: ${usd(limit)} dan ${usd(left)} qoldi`,
   bannerLimitSpent: 'Bojsiz limit tugadi',
   details: 'Batafsil', collapse: 'Yig‘ish',
-  sets: { limit: (limit: number) => `${usd(limit)} limit ichida`, cheap: '300 minggacha', sale: 'Chegirmali', new: 'Yangi', from: (store: string) => `${store} dan` },
-  setCount: (count: number) => `${count} ta tovar`,
+  quickLabel: 'Tezkor filtrlar', quickOff: (percent: number) => `−${percent} % va undan ko‘p`, quickPrice: (max: number) => uzJoin(compactSum(max, 'uz'), 'gacha'),
   storePrice: 'Do‘kon narxi',
   storePriceOn: (date: string) => `Do‘kon narxi · ${date}`,
   checkPrice: 'Narxni aniqlash',
@@ -101,18 +103,23 @@ const uz: Copy = {
   all: 'Barchasi', categoriesLabel: 'Toifalar', collections: 'To‘plamlar', recentTitle: 'Siz ko‘rgan tovarlar', recentClear: 'Tozalash',
   filters: 'Filtrlar', filtersTitle: 'Filtrlar', show: (count: number) => count ? `${count} ta tovarni ko‘rsatish` : 'Hech narsa topilmadi',
   reset: 'Tozalash', resetAll: 'Hammasini tozalash', close: 'Yopish',
-  sort: 'Saralash', sorts: { best: 'Tavsiya etamiz', cheap: 'Arzonroq', expensive: 'Qimmatroq', new: 'Yangilari' },
-  store: 'Do‘kon', storesMore: (count: number) => `Yana ${count} ta`, storesLess: 'Yig‘ish',
-  price: 'Yetkazish bilan narx',
-  bands: { 'to-300k': '300 minggacha', '300k-600k': '300–600 ming', '600k-1m': '600 ming – 1 mln', '1m-2m': '1–2 mln', 'from-2m': '2 mln dan' },
-  size: 'O‘lcham', sizeHint: 'Poyabzal yoki kiyimni tanlang — do‘konlardagi o‘lchamlar chiqadi.', sizeNote: 'Do‘kon o‘lchamlari ro‘yxati bo‘yicha; tanlangan o‘lchamni Atlas savatga qo‘shishda do‘kon bilan solishtiradi.',
+  sort: 'Saralash', sorts: { best: 'Ommabop', cheap: 'Arzonroq', expensive: 'Qimmatroq', discount: 'Chegirma kattaroq', new: 'Yangilari' },
+  store: 'Do‘kon', storesMore: (count: number) => `Yana ${count} ta`, storesLess: 'Yig‘ish', category: 'Toifa', brand: 'Brend',
+  price: 'Yetkazish bilan narx', priceFrom: 'dan', priceTo: 'gacha', priceMinLabel: 'Yetkazish bilan eng kam narx, so‘m', priceMaxLabel: 'Yetkazish bilan eng yuqori narx, so‘m',
+  priceChip: (min: number, max: number) => priceText(min, max, 'uz'),
+  discount: 'Chegirma', discountAny: 'Farqi yo‘q', discountSome: 'Har qanday chegirma', discountFrom: (percent: number) => `${percent} % dan`,
+  size: 'O‘lcham', sizeShoes: 'Poyabzal', sizeClothes: 'Kiyim va aksessuarlar', sizeNote: 'Do‘kon o‘lchamlari ro‘yxati bo‘yicha; tanlangan o‘lchamni Atlas savatga qo‘shishda do‘kon bilan solishtiradi.',
+  stock: 'O‘lcham mavjud', stockHint: 'Faqat tanlangan o‘lcham do‘konda hozir mavjud bo‘lgan tovarlar.',
+  selected: (count: number) => `tanlandi: ${count}`,
+  perPage: 'Har sahifada', pages: 'Katalog sahifalari', prevPage: 'Oldingi sahifa', nextPage: 'Keyingi sahifa', page: (page: number) => `${page}-sahifa`,
+  range: (from: number, to: number, total: number) => `${total} tadan ${from}–${to} ko‘rsatildi`,
+  sizesCount: (count: number) => `${count} ta o‘lcham`, colorsMore: (count: number) => `yana ${count} ta rang`, colors: 'Ranglar', colorsCount: (count: number) => `${count} ta rang`,
   special: 'Shartlar',
   duty: 'Bojsiz', dutyGuest: (limit: number) => `Tovar narxi ${usd(limit)} gacha — qabul qiluvchiga oyiga bojsiz limit.`,
   dutyMember: (left: number, name: string) => `Tovar narxi limit qoldig‘idan oshmaydi: ${name} uchun ${usd(left)}.`,
-  sale: 'Chegirmali', saleHint: 'Do‘kon narxni o‘zining asosiy narxidan pasaytirgan.',
+  sale: 'Chegirmali',
   fresh: 'Dolzarb narx', freshHint: 'Narx yaqinda do‘kon tomonidan tasdiqlangan.',
   found: (count: number, total: number) => count === total ? `${count} ta tovar` : `${total} tadan ${count} ta topildi`,
-  showing: (shown: number, total: number) => `${total} tadan ${shown} ta ko‘rsatildi`, more: 'Yana ko‘rsatish',
   catalogEmptyTitle: 'Katalog tez orada to‘ldiriladi', catalogEmptyHint: 'Hozircha istalgan tovarga do‘kon havolasi orqali buyurtma bering — Toshkentgacha yetkazish bilan jami summani so‘mda ko‘rsatamiz.',
   emptyTitle: 'Hech narsa topilmadi', emptyHint: 'Filtrlardan birini olib tashlang yoki kerakli tovarga havola orqali buyurtma bering.',
   without: (label: string, count: number) => `«${label}» filtrisiz — ${count}`,
@@ -122,7 +129,7 @@ const uz: Copy = {
   allowanceSpent: (name: string, month: string) => `${name} uchun ${month} oyidagi bojsiz limit tugadi: yangi buyurtmalarga boj hisoblanadi.`,
   allowanceShow: 'Mos tovarlarni ko‘rsatish', allowanceHow: 'Qanday hisoblanadi',
   loading: 'Katalog yuklanmoqda…',
-  chip: { store: 'Do‘kon', price: 'Narx', size: 'O‘lcham', search: 'Qidiruv', collection: 'To‘plam', category: 'Toifa' },
+  chip: { store: 'Do‘kon', price: 'Narx', size: 'O‘lcham', search: 'Qidiruv', collection: 'To‘plam', category: 'Toifa', discount: (percent: number) => percent > 1 ? `${percent} % dan chegirma` : 'Chegirmali' },
   remove: 'Filtrni olib tashlash',
   categories: { 'Обувь': 'Poyabzal', 'Одежда': 'Kiyim', 'Электроника': 'Elektronika', 'Аксессуары': 'Aksessuarlar', 'Красота и уход': 'Go‘zallik va parvarish', 'Дом и быт': 'Uy va ro‘zg‘or', 'Спорт': 'Sport', 'Другое': 'Boshqa' },
 };
@@ -138,8 +145,7 @@ const en: Copy = {
   bannerLimit: (left: number, limit: number) => `Duty-free: ${usd(left)} of ${usd(limit)} left`,
   bannerLimitSpent: 'Duty-free allowance used up',
   details: 'Details', collapse: 'Collapse',
-  sets: { limit: (limit: number) => `Within the ${usd(limit)} allowance`, cheap: 'Under 300k soum', sale: 'On sale', new: 'New', from: (store: string) => `From ${store}` },
-  setCount: (count: number) => `${count} ${count === 1 ? 'product' : 'products'}`,
+  quickLabel: 'Quick filters', quickOff: (percent: number) => `${percent}% off or more`, quickPrice: (max: number) => `Under ${compactSum(max, 'en')}`,
   storePrice: 'Store price',
   storePriceOn: (date: string) => `Store price · ${date}`,
   checkPrice: 'Check current price',
@@ -158,18 +164,23 @@ const en: Copy = {
   all: 'All', categoriesLabel: 'Categories', collections: 'Collections', recentTitle: 'Recently viewed', recentClear: 'Clear',
   filters: 'Filters', filtersTitle: 'Filters', show: (count: number) => count ? `Show ${count} ${count === 1 ? 'product' : 'products'}` : 'No matches',
   reset: 'Clear', resetAll: 'Clear all', close: 'Close',
-  sort: 'Sort', sorts: { best: 'Recommended', cheap: 'Lowest price', expensive: 'Highest price', new: 'Newest' },
-  store: 'Store', storesMore: (count: number) => `${count} more`, storesLess: 'Show less',
-  price: 'Price with delivery',
-  bands: { 'to-300k': 'under 300k', '300k-600k': '300k–600k', '600k-1m': '600k–1m', '1m-2m': '1m–2m', 'from-2m': '2m and up' },
-  size: 'Size', sizeHint: 'Choose shoes or clothing to see the sizes stores list.', sizeNote: 'Based on the store’s size list; Atlas checks the chosen size with the store when you add it to the cart.',
+  sort: 'Sort', sorts: { best: 'Popular', cheap: 'Lowest price', expensive: 'Highest price', discount: 'Biggest discount', new: 'Newest' },
+  store: 'Store', storesMore: (count: number) => `${count} more`, storesLess: 'Show less', category: 'Category', brand: 'Brand',
+  price: 'Price with delivery', priceFrom: 'from', priceTo: 'to', priceMinLabel: 'Lowest price with delivery, soum', priceMaxLabel: 'Highest price with delivery, soum',
+  priceChip: (min: number, max: number) => priceText(min, max, 'en'),
+  discount: 'Discount', discountAny: 'Any', discountSome: 'Any discount', discountFrom: (percent: number) => `${percent}% or more`,
+  size: 'Size', sizeShoes: 'Shoes', sizeClothes: 'Clothing & accessories', sizeNote: 'Based on the store’s size list; Atlas checks the chosen size with the store when you add it to the cart.',
+  stock: 'Size in stock', stockHint: 'Only products where the store lists the chosen size as available now.',
+  selected: (count: number) => `${count} selected`,
+  perPage: 'Per page', pages: 'Catalog pages', prevPage: 'Previous page', nextPage: 'Next page', page: (page: number) => `Page ${page}`,
+  range: (from: number, to: number, total: number) => `Showing ${from}–${to} of ${total}`,
+  sizesCount: (count: number) => `${count} ${count === 1 ? 'size' : 'sizes'}`, colorsMore: (count: number) => `${count} more ${count === 1 ? 'colour' : 'colours'}`, colors: 'Colours', colorsCount: (count: number) => `${count} ${count === 1 ? 'colour' : 'colours'}`,
   special: 'Conditions',
   duty: 'Duty-free', dutyGuest: (limit: number) => `Product price up to ${usd(limit)} — the monthly duty-free allowance per recipient.`,
   dutyMember: (left: number, name: string) => `Product price within the remaining allowance: ${usd(left)} for ${name}.`,
-  sale: 'On sale', saleHint: 'The store lowered the price from its base price.',
+  sale: 'On sale',
   fresh: 'Current price', freshHint: 'The store confirmed the price recently.',
   found: (count: number, total: number) => count === total ? `${count} ${count === 1 ? 'product' : 'products'}` : `${count} of ${total} found`,
-  showing: (shown: number, total: number) => `Showing ${shown} of ${total}`, more: 'Show more',
   catalogEmptyTitle: 'The catalog is being filled', catalogEmptyHint: 'For now, order any product by its store link and we’ll show the total in soum with delivery to Tashkent.',
   emptyTitle: 'Nothing found', emptyHint: 'Remove a filter or order the product you need by link.',
   without: (label: string, count: number) => `Without “${label}” — ${count}`,
@@ -179,10 +190,28 @@ const en: Copy = {
   allowanceSpent: (name: string, month: string) => `The ${month} duty-free allowance for ${name} is used up: new orders are subject to duty.`,
   allowanceShow: 'Show what fits', allowanceHow: 'How it works',
   loading: 'Loading the catalog…',
-  chip: { store: 'Store', price: 'Price', size: 'Size', search: 'Search', collection: 'Collection', category: 'Category' },
+  chip: { store: 'Store', price: 'Price', size: 'Size', search: 'Search', collection: 'Collection', category: 'Category', discount: (percent: number) => percent > 1 ? `${percent}% off or more` : 'On sale' },
   remove: 'Remove filter',
   categories: { 'Обувь': 'Shoes', 'Одежда': 'Clothing', 'Электроника': 'Electronics', 'Аксессуары': 'Accessories', 'Красота и уход': 'Beauty & care', 'Дом и быт': 'Home & living', 'Спорт': 'Sports', 'Другое': 'Other' },
 };
+
+/** "300 тыс.", "1,2 млн", "300 ming", "300k": a delivered-total bound as a chip prints it. */
+export function compactSum(value: number, locale: 'ru' | 'uz' | 'en') {
+  // Decided after rounding: 999 600 is "1 млн", not "1000 тыс.".
+  const million = value >= 999_500;
+  const amount = million ? Math.round(value / 100_000) / 10 : Math.round(value / 1000);
+  const text = locale === 'en' ? String(amount) : String(amount).replace('.', ',');
+  if (locale === 'ru') return `${text} ${million ? 'млн' : 'тыс.'}`;
+  if (locale === 'uz') return `${text} ${million ? 'mln' : 'ming'}`;
+  return `${text}${million ? 'm' : 'k'}`;
+}
+const uzJoin = (amount: string, suffix: string) => amount.endsWith('ming') ? amount + suffix : amount + ' ' + suffix;
+function priceText(min: number, max: number, locale: 'ru' | 'uz' | 'en') {
+  const [from, to] = [compactSum(min, locale), compactSum(max, locale)];
+  if (min && max) return `${from} – ${to}`;
+  if (max) return locale === 'ru' ? `до ${to}` : locale === 'uz' ? uzJoin(to, 'gacha') : `under ${to}`;
+  return locale === 'ru' ? `от ${from}` : locale === 'uz' ? uzJoin(from, 'dan') : `${from} and up`;
+}
 
 function plural(count: number, [one, few, many]: [string, string, string]) {
   const tens = count % 100, units = count % 10;

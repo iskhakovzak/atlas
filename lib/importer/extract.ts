@@ -59,6 +59,10 @@ export type Extracted = {
   title?: string;
   brand?: string;
   category?: ProductCategory;
+  /** The store's own category trail, root first and joined with "|" (eBay categoryPath, page breadcrumbs). */
+  categoryPath?: string;
+  /** Item specifics as the store names them (eBay aspects, adidas attributes), bounded; read by the catalog filters. */
+  aspects?: {name:string;value:string}[];
   declarationDescription?: string;
   image?: string;
   images?: string[];
@@ -768,6 +772,45 @@ export function breadcrumbCategory(nodes: readonly Record<string, unknown>[]): P
   }
 }
 
+/** The crumb names of a JSON-LD BreadcrumbList, root first, joined with "|". */
+export function breadcrumbPath(nodes: readonly Record<string, unknown>[]): string | undefined {
+  const list = nodes.find(node => [node['@type']].flat().includes('BreadcrumbList') && Array.isArray(node.itemListElement));
+  if (!list) return;
+  const names = (list.itemListElement as unknown[]).flatMap(item => {
+    if (!item || typeof item !== 'object') return [];
+    const entry = item as Record<string, unknown>, nested = entry.item && typeof entry.item === 'object' ? entry.item as Record<string, unknown> : undefined;
+    const name = clean(entry.name ?? nested?.name).replace(/\|/g, '/').slice(0, 80);
+    return name ? [{name, position: Number(entry.position) || 0}] : [];
+  }).sort((a, b) => a.position - b.position).slice(0, 8).map(crumb => crumb.name);
+  return names.length ? names.join('|').slice(0, 300) : undefined;
+}
+
+export const maxExtractedAspects = 40;
+/** Item specifics without blanks or repeated names, short enough to keep with a card. */
+export function boundedAspects(pairs: readonly {name?: unknown; value?: unknown}[]): {name: string; value: string}[] | undefined {
+  const seen = new Set<string>(), out: {name: string; value: string}[] = [];
+  for (const pair of pairs) {
+    const raw = Array.isArray(pair?.value) ? pair.value.filter(v => typeof v === 'string').join(', ') : pair?.value;
+    const name = clean(pair?.name).slice(0, 80), value = clean(raw).slice(0, 140);
+    if (!name || !value || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase()); out.push({name, value});
+    if (out.length >= maxExtractedAspects) break;
+  }
+  return out.length ? out : undefined;
+}
+
+const optionalFields = <T extends Record<string, unknown>>(fields: T) => Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined)) as Partial<T>;
+/** JSON-LD Product facts a filter can use: gender, material and the store's additionalProperty rows. */
+function structuredAspects(p: Record<string, unknown> | undefined) {
+  if (!p) return undefined;
+  const audience = p.audience && typeof p.audience === 'object' ? p.audience as Record<string, unknown> : undefined;
+  return boundedAspects([
+    {name: 'Department', value: p.gender ?? audience?.suggestedGender},
+    {name: 'Material', value: p.material},
+    ...(Array.isArray(p.additionalProperty) ? p.additionalProperty.slice(0, 40).map(row => row && typeof row === 'object' ? row as Record<string, unknown> : {}) : []),
+  ]);
+}
+
 export function declarationFor(
   category: ProductCategory,
   title: string,
@@ -1215,6 +1258,24 @@ export function adidasListingFamily(listingValue: unknown, id: string): {item?: 
   return {item, family};
 }
 
+const adidasGenders: Record<string, string> = {m: 'Men', w: 'Women', u: 'Unisex', k: 'Kids', j: 'Kids', y: 'Kids', b: 'Kids', g: 'Kids', i: 'Baby', men: 'Men', women: 'Women', unisex: 'Unisex', kids: 'Kids', youth: 'Kids', boys: 'Kids', girls: 'Kids', infant: 'Baby', infants: 'Baby', baby: 'Baby'};
+/** Who the article is for, its kind and sport, when the product API names them (attribute_list) or the card's subtitle does. */
+function adidasAspects(product: AdidasApiRecord, selected: AdidasApiRecord) {
+  const attributes = [product.attribute_list, product.attributes, selected.attribute_list].find((value): value is AdidasApiRecord => Boolean(value && typeof value === 'object' && !Array.isArray(value))) ?? {};
+  const list = (value: unknown) => (Array.isArray(value) ? value : [value]).map(clean).filter(Boolean).slice(0, 4).join(', ');
+  const gender = list(attributes.gender ?? product.gender ?? selected.gender);
+  return boundedAspects([
+    {name: 'Department', value: adidasGenders[gender.toLowerCase()] ?? gender},
+    {name: 'Type', value: list(attributes.productType ?? attributes.product_type)},
+    {name: 'Category', value: list(attributes.category ?? product.category ?? selected.category)},
+    {name: 'Sport', value: list(attributes.sport ?? attributes.sports)},
+    {name: 'Product Line', value: list(attributes.brand ?? attributes.productLine)},
+    {name: 'Style', value: clean(selected.subTitle)},
+    {name: 'Closure', value: list(attributes.closure)},
+    {name: 'Fit', value: list(attributes.fit)},
+  ]);
+}
+
 export function extractAdidasProduct(productValue: unknown, listingValue: unknown, sourceUrl: string, siblingValues: unknown[] = []): Extracted | undefined {
   if (!productValue || typeof productValue !== 'object') return;
   const product = productValue as AdidasApiRecord;
@@ -1227,6 +1288,7 @@ export function extractAdidasProduct(productValue: unknown, listingValue: unknow
   const color = clean(product.color ?? selected.color) || undefined;
   const brand = 'adidas';
   const category = inferProductCategory([title, clean(product.category ?? selected.category), clean(selected.subTitle)].filter(Boolean).join(' '), brand);
+  const aspects = adidasAspects(product, selected);
   const imageValues = [product.image, product.pdpImage, product.secondImage, ...(Array.isArray(product.images) ? product.images : []), selected.image, selected.secondImage, ...(Array.isArray(selected.images) ? selected.images : [])];
   const images = [...new Set(imageValues.map(value => extractAdidasImage(value, sourceUrl)).filter((value): value is string => Boolean(value)))].slice(0, 12);
   const price = number(selected.salePrice ?? product.salePrice ?? selected.price ?? product.price);
@@ -1292,6 +1354,7 @@ export function extractAdidasProduct(productValue: unknown, listingValue: unknow
     country,
     warnings,
     sourceUrl,
+    ...(aspects ? {aspects} : {}),
     sku: id, variantScope: colorwayImages.length > 1 ? 'group' : 'color', variantsComplete: false,
     ...(colorwayImages.length > 1 ? {colorwayImages, selectedVariantColor: color} : {}),
     method: 'Adidas product data',
@@ -1752,6 +1815,7 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     title,
     brand,
     category,
+    ...optionalFields({categoryPath: breadcrumbPath(nodes), aspects: structuredAspects(p as Record<string, unknown> | undefined)}),
     declarationDescription: declarationFor(category, title ?? "", brand),
     image,
     images,

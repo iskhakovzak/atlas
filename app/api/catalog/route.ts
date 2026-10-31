@@ -36,7 +36,7 @@ export async function GET(request:Request){try{
   const admin=new URL(request.url).searchParams.get('admin')==='1';
   let saleJob,batchJob;
   if(admin){const user=await identity();await requirePermission(user,'catalog.manage');[saleJob,batchJob]=await Promise.all([catalogSaleRunner(user).read(user.userId).then(publicSaleJob),readBatch(user.userId).then(row=>publicBatchJob(row?.job))]);}
-  const [{document},currentPricing]=await Promise.all([readCatalog(),pricing()]);
+  const [{document},currentPricing]=await Promise.all([readCatalog({backfill:!admin}),pricing()]);
   return json(admin?{document,saleJob,batchJob,catalogFormat:'chunks-v2',storeHealth:await readStoreHealth()}:{...publicCatalog(document,currentPricing),pricing:withoutAuthor(currentPricing)});
 }catch(error){return failure(error,request)}}
 export async function POST(request:Request){try{

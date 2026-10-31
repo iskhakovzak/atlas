@@ -1,10 +1,13 @@
 import {
+  boundedAspects,
   dedupeSafeImages,
   inferProductCategory,
   safeImage,
   type Extracted,
+  type ProductCategory,
   type ProductVariant,
 } from './extract.ts';
+import {categoryFromFacets, deriveCatalogFacets} from '../market/catalog-facets.ts';
 
 export type EbayBrowseConfig = {
   clientId?: string;
@@ -376,6 +379,24 @@ function aspectsFor(item: EbayItem) {
   return aspects;
 }
 
+// Item specifics the catalog filters read; they go first so a bounded option list never loses them.
+const facetAspectOrder = [/^department$|^gender$|^age group$/i, /^type$|^product type$|^item type$/i, /^style$/i, /sport|activity/i, /^material$|material$|^fabric/i, /^size type$/i, /^sleeve/i, /^closure$|^fastening$/i, /^fit$/i, /^product line$|^model$|^theme$/i, /^number of items|^pack|^unit (?:quantity|type)$/i, /^storage capacity$|^volume$|^capacity$/i, /^shoe width$/i];
+function facetRank(name: string) {
+  const index = facetAspectOrder.findIndex(pattern => pattern.test(name));
+  return index < 0 ? facetAspectOrder.length : index;
+}
+/** Aspects with the given axes (colour, size) first, then the ones the catalog filters read, then the rest. */
+function orderedAspects(aspects: Map<string, string>, axes: string[] = []) {
+  return [...aspects].map(([name, value], index) => ({name, value, rank: axes.includes(name) ? -1 : facetRank(name), index}))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index).map(({name, value}) => ({name, value}));
+}
+/** Item-level specifics of a listing: the item's own, then names only its variations carry. */
+function listingAspects(items: EbayItem[]) {
+  const merged = new Map<string, string>();
+  for (const item of items.slice(0, 50)) for (const [name, value] of aspectsFor(item)) if (!merged.has(name)) merged.set(name, value);
+  return boundedAspects(orderedAspects(merged));
+}
+
 function variationId(item: EbayItem, listingId: string) {
   const match = clean(item.itemId, 100).match(/^v1\|([^|]+)\|([^|]+)$/);
   if (!match || match[1] !== listingId) return undefined;
@@ -506,9 +527,19 @@ function itemCountry(item: EbayItem) {
   return countryByCode[code] ?? 'Другая страна';
 }
 
-function inferCategory(item: EbayItem, title: string) {
-  const category = clean(item.categoryPath, 300);
-  return inferProductCategory([title, category].filter(Boolean).join(' '), clean(item.brand, 80));
+const ebayCategoryRoot = /^clothing, shoes (?:&|and) accessories$/i;
+/**
+ * eBay's root "Clothing, Shoes & Accessories" names every apparel listing, so it is skipped: the deepest crumb that
+ * names a kind of goods wins, then the title, and the item type (socks, caps, sneakers) read from the aspects corrects it.
+ */
+function inferCategory(item: EbayItem, title: string, aspects: {name: string; value: string}[] = []): ProductCategory {
+  const path = clean(item.categoryPath, 300), brand = clean(item.brand, 80);
+  const crumbs = path.split('|').map(part => part.trim()).filter(part => part && !ebayCategoryRoot.test(part)).reverse();
+  const category = crumbs.map(part => inferProductCategory(part)).find(value => value !== 'Другое') ?? inferProductCategory(title, brand);
+  return categoryFromFacets(deriveCatalogFacets({title, category, brand, categoryPath: path, aspects}), category) as ProductCategory;
+}
+function categoryPathOf(item: EbayItem) {
+  return clean(item.categoryPath, 300) || undefined;
 }
 
 /** The seller's eBay username (`seller.username`), kept so the card can name an official brand store; never guessed. */
@@ -553,7 +584,7 @@ function groupVariants(items: EbayItem[], listingId: string, sourceUrl: string, 
     const images = itemImages(item, sourceUrl);
     variants.push({
       id: variationId(item, listingId),
-      productId: listingId, options: [...aspects].map(([name,value])=>({name,value})), images,
+      productId: listingId, options: orderedAspects(aspects, [colorKey, sizeKey].filter((key): key is string => Boolean(key))).slice(0, 16), images,
       ...(sellerOf(item) ? {sellerId: sellerOf(item)} : {}),
       label: label.slice(0, 140),
       ...(size ? {size, sizeLabel: sizeKey?.slice(0, 100)} : {}),
@@ -592,7 +623,8 @@ function mapSingleItem(item: EbayItem, listingId: string, url: URL, shipToCountr
   if (status.known && !status.available) throw new EbayListingUnavailableError(undefined, 'item_data', 200);
   if (!title || !price || !price.currency) throw new EbayManualReviewError('eBay не вернул полные данные объявления.', 'item_data', 200);
   const brand = clean(item.brand, 80) || undefined;
-  const category = inferCategory(item, title);
+  const aspects = listingAspects([item]);
+  const category = inferCategory(item, title, aspects);
   const variant: ProductVariant = {
     id: variationId(item, listingId) ?? (itemId === `v1|${listingId}|0` ? itemId : undefined),
     productId: listingId,
@@ -611,6 +643,8 @@ function mapSingleItem(item: EbayItem, listingId: string, url: URL, shipToCountr
     variant.sizeLabel = sizeAspect[0].slice(0, 100);
     variant.label = [clean(item.color, 100), sizeAspect[1]].filter(Boolean).join(' · ');
   }
+  const colorKey = [...aspectsFor(item).keys()].find(name => /colou?r/i.test(name));
+  variant.options = orderedAspects(aspectsFor(item), [colorKey, sizeAspect?.[0]].filter((key): key is string => Boolean(key))).slice(0, 16);
   const currency = price.currency;
   const context = listingContext(item, shipToCountry);
   const referencePrice = referencePriceFor(item, price);
@@ -619,6 +653,8 @@ function mapSingleItem(item: EbayItem, listingId: string, url: URL, shipToCountr
     title,
     brand,
     category,
+    categoryPath: categoryPathOf(item),
+    ...(aspects ? {aspects} : {}),
     image: images[0],
     images,
     price: price.amount,
@@ -732,13 +768,16 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
   }).flatMap(value=>itemImages(value,url.href)),url.href,MAX_IMAGES)})).filter(gallery=>gallery.images.length);
   const selectedGallery=colorwayImages.find(gallery=>gallery.color===selectedColor);if(selectedGallery?.images.length)images=selectedGallery.images;
   if(!images.length)console.warn('[eBay images] '+JSON.stringify({fields:Object.keys(item).filter(key=>/image|picture|photo/i.test(key)),imageType:typeof item.image,imageKeys:Object.keys(record(item.image)??{}),hosts:[...new Set([item,...exactItems.slice(0,4)].flatMap(value=>[value.image,...(Array.isArray(value.additionalImages)?value.additionalImages:[])]).map(value=>{try{return new URL(String(record(value)?.imageUrl??'')).hostname}catch{return ''}}).filter(Boolean))]}));
-  const category = inferCategory(item, title);
+  const aspects = listingAspects([item, ...exactItems]);
+  const category = inferCategory(item, title, aspects);
   const context = listingContext(item, shipToCountry);
   return {
     sku: listingId,
     title,
     brand: clean(item.brand, 80) || undefined,
     category,
+    categoryPath: categoryPathOf(item),
+    ...(aspects ? {aspects} : {}),
     image: images[0],
     images,
     colorwayImages,

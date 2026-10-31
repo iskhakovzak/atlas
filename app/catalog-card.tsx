@@ -23,6 +23,7 @@ import type { Locale } from '@/lib/market/i18n';
 import { brandForHost } from '@/lib/market/store-brands';
 import { useMarket } from '@/lib/market/store';
 import { ProductImage } from './market-ui';
+import { Swatch } from './catalog-swatch';
 import { Money } from './money';
 import { StoreLogo } from './store-logo';
 import {withCyrillic,uzText} from '@/lib/market/uz-cyrl';
@@ -93,8 +94,9 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   // The brand's own eBay store reads as such, not as "eBay" (owner, 30 October 2026); the eBay mark stays beside it.
   const official = officialStoreBrand({ ...product, store: item.store });
   const officialText = official ? officialStoreText(official, locale) : undefined;
+  // Short ("✓ adidas") so a long title is not squeezed; the full "official store on eBay" is the tooltip and the spoken text.
   const storeName = officialText
-    ? <span className="find-official" title={officialText.full}>{officialText.short}<BadgeCheck size={14} aria-hidden="true" /><span className="sr-only"> · {officialText.full}</span></span>
+    ? <Tooltip><TooltipTrigger asChild><span className="find-official" tabIndex={0}><BadgeCheck size={14} aria-hidden="true" /><span aria-hidden="true">{official}</span><span className="sr-only">{officialText.full}</span></span></TooltipTrigger><TooltipContent>{officialText.full}</TooltipContent></Tooltip>
     : storeLabel(item.store, locale) || product.brand || category;
   const priceId = useId();
   const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={'find-save ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
@@ -110,7 +112,8 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <button type="button" className="find-compact" onClick={open} aria-label={cc.open(name)} aria-describedby={costs ? priceId : undefined}>
         <span className="find-visual"><span className="find-photo"><ProductImage product={product} decorative locale={locale} /></span>{(item.topDeal || showDiscount) && <span className="find-photo-badges">{item.topDeal && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}{showDiscount && <em className="find-discount">−{discount}&#x202F;%</em>}</span>}</span>
         <span className="find-content">
-          <span className="find-meta"><span className="find-store"><StoreMark host={item.store} />{storeName}</span></span>
+          {/* Plain text here: a focusable tooltip trigger inside the card's button would be nested interactive content. */}
+          <span className="find-meta"><span className="find-store"><StoreMark host={item.store} />{officialText ? <span className="find-official"><BadgeCheck size={14} aria-hidden="true" />{official}</span> : storeName}</span></span>
           <b className="find-compact-title">{name}</b>
           <span className="find-compact-price" id={priceId}>{costs ? <><span>{storePriceText}</span><span aria-hidden="true"> → </span>{needsPrice && <span aria-hidden="true">≈ </span>}<Money value={costs.total} locale={locale} /></> : <span>{storePriceText}</span>}</span>
         </span>
@@ -127,7 +130,8 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   // On a dated price the date beside the pill says how old it is.
   const hasDiscountPill = showDiscount;
   const storePriceLabel = priceDated ? cc.storePriceOn(shortDate(item.checkedAt, locale)) : cc.storePrice;
-  const chips = signals.slice(0, 2).map((signal) => hasDiscountPill && signal.tone === 'mint' ? { ...signal, tone: 'neutral' as const } : signal);
+  // The sizes count already sits on the colour line (Variants), so its chip would repeat it.
+  const chips = signals.filter((signal) => !(costs && signal.kind === 'sizes')).slice(0, 2).map((signal) => hasDiscountPill && signal.tone === 'mint' ? { ...signal, tone: 'neutral' as const } : signal);
   return <article className="find-card" data-stale={needsPrice || undefined} data-saved={saved || undefined}>
     <div className="find-visual">
       <button className="find-photo" type="button" onClick={open} aria-label={cc.open(name)}><ProductImage product={product} locale={locale} /></button>
@@ -139,14 +143,15 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <button type="button" className="find-title" onClick={open}>{name}</button>
       {/* On a phone the label and its date move into the "?" breakdown (the line keeps them for screen readers). */}
       <div className={'find-store-price' + (needsPrice ? ' needs-confirmation' : '') + (costs ? ' has-breakdown' : '')}>
-        <span className="find-store-price-label">{storePriceLabel}</span>
+        {/* The caption and its date live in the "i" breakdown; screen readers keep them here. */}
+        <span className="find-store-price-label sr-only">{storePriceLabel}</span>
         {' '}<b>{storePriceText}</b>
         {showDiscount && <>{' '}<del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>{' '}<em className="find-discount" title={copy.compareHint}>−{discount}&#x202F;%</em></>}
       </div>
       {costs
         ? <FindPrice costs={costs} product={product} stale={needsPrice} speed={speed} label={needsPrice ? cc.totalStale : cc.total} shortLabel={needsPrice ? cc.totalStaleShort : cc.totalShort} breakdownLabel={cc.breakdown} fmt={fmt} numberLocale={numberLocale} locale={locale} note='' storeLine={{ label: storePriceLabel, value: storePriceText }} facts={factsText(product, speed, locale, pricing)} />
         : <div className="find-total"><div className="find-total-head"><span>{cc.totalStale}</span></div><strong className="find-total-pending"><span>{cc.afterCheck}</span></strong><small className="find-total-note" /></div>}
-      <Facts product={product} speed={speed} locale={locale} />
+      {costs ? <Variants item={item} locale={locale} /> : <Facts product={product} speed={speed} locale={locale} />}
       <div className="find-chips">
         {/* The hint is a title for the pointer and hidden text for screen readers (a title alone is not read). */}
         {chips.map((signal) => <span key={signal.kind} className="find-chip" data-tone={signal.tone} data-kind={signal.kind} title={signal.hint}>{signal.text}{signal.hint && <span className="sr-only">. {signal.hint}</span>}</span>)}
@@ -239,6 +244,17 @@ function Facts({ product, speed, locale }: { product: Product; speed: DeliverySp
   const hint = `${cc.factsHint}; ${product.weightBasis === 'store' ? cc.weightStore : cc.weightEstimate}`;
   if (!text) return <p className="find-facts" aria-hidden="true" />;
   return <p className="find-facts" title={hint} data-short={days ? '' : undefined}><span className="find-facts-full">{text}</span>{days && <span className="find-facts-short" aria-hidden="true">{days}</span>}<span className="sr-only">. {hint}</span></p>;
+}
+
+/** Up to five colour dots and the number of sizes the store lists: what the card offers without opening it. */
+function Variants({ item, locale }: { item: CatalogItem; locale: Locale }) {
+  const cc = catalogCopy[locale];
+  const colors = item.attrs.color ?? [], sizes = item.sizes.length;
+  if (!colors.length && !sizes) return <p className="find-facts find-variants" aria-hidden="true" />;
+  return <p className="find-facts find-variants">
+    {colors.length > 0 && <span className="find-swatches" role="img" aria-label={cc.colorsCount(colors.length)}>{colors.slice(0, 5).map((color) => <Swatch key={color} family={color} />)}{colors.length > 5 && <small aria-hidden="true">+{colors.length - 5}</small>}</span>}
+    {sizes > 0 && <span>{cc.sizesCount(sizes)}</span>}
+  </p>;
 }
 
 /** Placeholder cards while the catalog loads, so the grid keeps its place. */

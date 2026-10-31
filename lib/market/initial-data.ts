@@ -52,7 +52,7 @@ export async function initialSettings():Promise<{pricing:Pricing|null;siteConten
  */
 export async function initialPublicCatalog():Promise<CatalogSeedValue|null>{
  try{
-  const [{document},pricing]=await Promise.all([readCatalog(),currentPricing()]);
+  const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
   return catalogSeed(document,pricing);
  }catch{return null}
 }
