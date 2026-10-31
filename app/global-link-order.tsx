@@ -60,7 +60,7 @@ import { StoreLogo } from "./store-logo";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
 import {isOrderableVariant, isStockUnconfirmed} from '@/lib/importer/variant-normalization';
 import { optionStock } from "@/lib/market/link-order-stock";
-import { variantsForSourceColor, variantSourceUrl, variantGallery, variantDisplayPrices } from "@/lib/importer/link-selection";
+import { variantsForSourceColor, variantSourceUrl, variantGallery, variantDisplayPrices, priceLoadable, mergeLoadedVariants } from "@/lib/importer/link-selection";
 import { findNikeFootwearSizeRow, getNikeFootwearSizeRows, inferNikeFootwearSizeSystem } from "@/lib/market/nike-size-chart";
 import { estimateBoxedWeight, estimatedBoxedWeight, validBoxedWeight, weightCategories } from "@/lib/market/weight";
 import {
@@ -379,6 +379,9 @@ export function GlobalLinkOrder() {
   const draftDecided = useRef<string | null>(null);
   // Only the latest request to the store fills the form: an older answer arriving late is dropped.
   const loadSeq = useRef(0);
+  // Option pages asked for their price (Amazon ASINs), so each is loaded once per link.
+  const optionLoads = useRef(new Set<string>());
+  const [optionPricing, setOptionPricing] = useState<string[]>([]);
   const automaticallyLoaded = useRef<string | null>(null);
   const focusLinkField = useRef(false);
   // "Поделиться → Atlas" brought text without a web link (app/share/route.ts): say so once and drop the mark from the address.
@@ -557,6 +560,27 @@ export function GlobalLinkOrder() {
     setPicked(current=>({...current,[label]:quantity}));
 
   }
+  // The option being looked at (or already chosen) has no price on this page but has its own store page: load it,
+  // and take its price, stock and sizes into the options on screen. One page at a time, each once per link.
+  useEffect(()=>{
+    if(!source||optionPricing.length)return;
+    const browsed=variants.find(item=>item.label===variant)??(selectedColor&&selectedSize?variants.find(item=>item.color===selectedColor&&item.size===selectedSize):undefined);
+    const ofColor=selectedColor?variants.filter(item=>item.color===selectedColor):[];
+    const target=[browsed,...Object.keys(picked).map(label=>variants.find(item=>item.label===label)),!ofColor.some(item=>item.price!==undefined)?ofColor[0]:undefined]
+      .find(item=>priceLoadable(item,source)&&!optionLoads.current.has(item!.sourceUrl!));
+    if(!target?.sourceUrl)return;
+    const url=target.sourceUrl,seq=loadSeq.current;
+    optionLoads.current.add(url);setOptionPricing([url]);
+    void (async()=>{
+      try{
+        const response=await requestImport({url},{isCancelled:()=>seq!==loadSeq.current,maxWaitMs:30_000});
+        const data=response.ok?await response.json() as {currency?:string;variants?:ProductVariant[]}:undefined;
+        if(seq!==loadSeq.current)return;
+        if(data&&Array.isArray(data.variants)&&(!data.currency||data.currency===currency))setVariants(current=>mergeLoadedVariants(current,data.variants!));
+      }catch{/* The option stays without a price: the add button says so. */}
+      finally{if(seq===loadSeq.current)setOptionPricing([]);}
+    })();
+  },[source,variants,variant,selectedColor,selectedSize,picked,optionPricing.length,currency]);
   function selectColorway(color:string){
     setFormIssue("");
     const choices=variants.filter(item=>item.color===color);
@@ -571,7 +595,7 @@ export function GlobalLinkOrder() {
     setSelectedColor(color);setSelectedSize('');setVariant('');
     setImages(nextImages);
     setImage(first?.image&&nextImages.includes(first.image)?first.image:nextImages[0]??'');
-    if(choices.some(item=>item.price!==undefined))setAmount('');
+    if(choices.some(item=>item.price!==undefined||priceLoadable(item)))setAmount('');
     if(!choices.some(item=>item.size)&&first){applyVariantChoice(first);setPicked(current=>manyMode?{...current,[first.label]:current[first.label]??1}:{[first.label]:current[first.label]??1})}
   }
   /** What the customer has chosen now, to apply again after a reload. */
@@ -815,7 +839,8 @@ export function GlobalLinkOrder() {
       const importedVariants = variantsForSourceColor(allImportedVariants,data.selectedVariantColor,data.sourceUrl,data.variantScope);
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
       
-      const selectableVariants=safeVariants.filter(isOrderableVariant).filter(item=>{const value=item.price??(data.variantScope==='group'?undefined:data.price);return typeof value==='number'&&Number.isFinite(value)&&value>0;});
+      const selectableVariants=safeVariants.filter(isOrderableVariant).filter(item=>{const value=item.price??(data.variantScope==='group'?undefined:data.price);return typeof value==='number'&&Number.isFinite(value)&&value>0||knownCurrency&&priceLoadable(item,data.sourceUrl);});
+      optionLoads.current=new Set();setOptionPricing([]);
       setVariants(selectableVariants);
       // Every option the store lists at this link is sold out: said as such, not as a price still to come.
       setStoreSoldOut(optionStock(safeVariants)==='sold-out');
@@ -1006,7 +1031,8 @@ export function GlobalLinkOrder() {
     ? Object.entries(picked).filter(([label]) => variants.some(item => item.label === label))
     : variant.trim() ? [[variant.trim(), manualQuantity]] : [];
   const pickedVariant = (label: string) => variants.find(item => item.label === label);
-  const priceOf = (label: string) => pickedVariant(label)?.price ?? storeBasePrice ?? Number(amount);
+  // An option whose price is still to be loaded from its own page never borrows another option's price.
+  const priceOf = (label: string) => priceLoadable(pickedVariant(label)) ? NaN : pickedVariant(label)?.price ?? storeBasePrice ?? Number(amount);
   const units = picks.reduce((sum, [, quantity]) => sum + quantity, 0);
   // Priced exactly as the cart would price these lines on their own: one parcel, one store-delivery hold.
   const previewFor = (lines: [string, number][]): CartItem[] => {
@@ -1104,8 +1130,10 @@ export function GlobalLinkOrder() {
   // The heading follows the colour/size being viewed. The quote below still totals all cart picks.
   const pickPrices = [...new Set(picks.map(([label]) => priceOf(label)).filter(value => value > 0))].sort((a, b) => a - b);
   const displayPrices=variantDisplayPrices(complexVariants&&variants.find(v=>v.label===variant)?variants.filter(v=>v.label===variant):variants,selectedColor,selectedSize);
-  const headAmount = displayPrices.length === 1 ? displayPrices[0] : displayPrices.length ? NaN : Number(amount);
-  const storePriceText = displayPrices.length > 1 ? `${sourceFormat(displayPrices[0])} – ${sourceFormat(displayPrices[displayPrices.length - 1])}` : headAmount > 0 ? sourceFormat(headAmount) : "—";
+  // The option on screen waits for its own page: no other option's price is shown meanwhile.
+  const browsedPending = priceLoadable(variants.find(v=>v.label===variant)) || Boolean(selectedColor) && !displayPrices.length && variants.some(v=>v.color===selectedColor&&priceLoadable(v));
+  const headAmount = browsedPending ? 0 : displayPrices.length === 1 ? displayPrices[0] : displayPrices.length ? NaN : Number(amount);
+  const storePriceText = browsedPending ? (optionPricing.length ? tx("уточняем…","aniqlanmoqda…","checking…") : "—") : displayPrices.length > 1 ? `${sourceFormat(displayPrices[0])} – ${sourceFormat(displayPrices[displayPrices.length - 1])}` : headAmount > 0 ? sourceFormat(headAmount) : optionPricing.length ? tx("уточняем…","aniqlanmoqda…","checking…") : "—";
   // The catalog's price before the store's discount (USD cards), crossed out here and kept with the cart item.
   // Then the chosen option's own "before" price, then the one the store gave for the whole product.
   const optionReference = variants.find(item => item.price !== undefined && item.price === Number(amount) && item.compareAtPrice)?.compareAtPrice;
@@ -1519,6 +1547,7 @@ export function GlobalLinkOrder() {
                 {id:'name',invalid:!name.trim(),message:tx('Введите название товара.','Tovar nomini kiriting.','Enter the item name.')},
                 {id:'variant',invalid:!picks.length,message:tx('Выберите или укажите цвет, размер либо модель.','Rang, o‘lcham yoki modelni tanlang yoki kiriting.','Choose or enter a color, size, or model.')},
                 {id:'variant',invalid:picks.some(([label,quantity])=>{const left=pickedVariant(label)?.quantity;return left!==undefined&&quantity>left}),message:tx('Для одного из вариантов выбрано больше, чем осталось у магазина.','Variantlardan biri uchun do‘konda qolganidan ko‘p tanlangan.','One option is chosen in a larger quantity than the store has left.')},
+                {id:'variant',invalid:picks.some(([label])=>priceLoadable(pickedVariant(label))),message:optionPricing.length?tx('Уточняем у магазина цену выбранного варианта — пара секунд.','Do‘kondan tanlangan variant narxini aniqlayapmiz — bir necha soniya.','Checking the chosen option’s price with the store, a few seconds.'):tx('Магазин не назвал цену этого варианта. Выберите другой или вставьте ссылку на него со страницы магазина.','Do‘kon bu variant narxini aytmadi. Boshqasini tanlang yoki do‘kon sahifasidagi havolasini qo‘ying.','The store gave no price for this option. Choose another or paste its link from the store page.')},
                 {id:'other-country',invalid:country==='Другая страна'&&!otherCountry.trim(),message:tx('Укажите страну фактической отправки.','Haqiqiy jo‘natish mamlakatini kiriting.','Enter the actual dispatch country.')},
                 {id:'amount',invalid:picks.length?picks.some(([label])=>!(priceOf(label)>0)):!(Number(amount)>0),message:tx('Укажите цену товара больше нуля.','Tovar narxini noldan katta kiriting.','Enter an item price greater than zero.')},
                 {id:'shipping',invalid:!shippingFree&&!shippingTyped,message:tx('Укажите доставку магазина до склада Atlas; 0 — только если она бесплатная.','Do‘kondan Atlas omborigacha yetkazishni kiriting; 0 faqat bepul bo‘lsa.','Enter store-to-Atlas shipping; use 0 only when it is free.')},

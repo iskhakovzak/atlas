@@ -1,6 +1,6 @@
 import {PUMA_GRAPHQL, applyPumaSizes, pumaGuestLogonBody, pumaGuestToken, pumaHeaders, pumaProductId, pumaSizesBody} from './puma.ts';
 import {normalizeMerchantVariants} from './variant-normalization.ts';
-import {declarationFor,dedupeSafeImages,extractAdidasProduct,extractProduct,inferProductCategory,safeImage,type Extracted} from './extract.ts';
+import {adidasListingFamily,declarationFor,dedupeSafeImages,extractAdidasProduct,extractProduct,inferProductCategory,safeImage,type Extracted} from './extract.ts';
 import {extractTarget, targetRequest} from './target.ts';
 import {extractShopify, isShopifyStorefrontPage, shopifyEndpoints, shopifyPageCurrency, shopifyProductEndpoints} from './shopify.ts';
 import {shopifyShopHandle} from './brand-name.ts';
@@ -579,7 +579,17 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
           ? 'Adidas не ответил вовремя. Данные можно заполнить вручную; Atlas должен подтвердить цену, валюту и выбранный вариант перед добавлением.'
           : undefined);
       }
-      const extracted = extractAdidasProduct(productData, listingData, url.href);
+      // The model's other colours, each from its own public product record (the listing names them; at most 11, in
+      // parallel, 4 s each). A colour that does not answer is simply left out.
+      const articleId = String((productData as Record<string, unknown>).id ?? '');
+      const colours = adidasListingFamily(listingData, articleId).family?.colorVariations;
+      const siblingIds = Array.isArray(colours) ? [...new Set(colours.map(String))].filter(value => value !== articleId && /^[A-Z0-9]{4,12}$/i.test(value)).slice(0, 11) : [];
+      const siblings = (await Promise.allSettled(siblingIds.map(async sibling => {
+        const endpoint = new URL(adidas.product.href.replace(/\/product\/[^/?]+/, `/product/${encodeURIComponent(sibling)}`));
+        const response = await readPublic(endpoint, AbortSignal.any([controller.signal, AbortSignal.timeout(4_000)]), 'json', adidasRequest, fetcher);
+        return JSON.parse(response.text) as unknown;
+      }))).flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
+      const extracted = extractAdidasProduct(productData, listingData, url.href, siblings);
       if (!extracted) { const e = new Error('Adidas не вернул карточку товара. Проверьте ссылку и повторите проверку.'); e.name = 'AbortError'; throw e; }
       return finalizeExtraction(extracted,url.href);
     }

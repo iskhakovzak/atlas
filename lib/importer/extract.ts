@@ -865,6 +865,128 @@ function extractAnker(html: string, sourceUrl: string): Extracted | undefined {
   } catch { return; }
 }
 
+/** The JSON object or array that starts at `start` (strings and escapes respected); undefined when it does not parse. */
+function balancedJsonAt(text: string, start: number): unknown {
+  const open = text[start];
+  if (open !== '{' && open !== '[') return undefined;
+  let depth = 0, quoted = false, escaped = false;
+  for (let i = start; i < text.length && i - start < 3_000_000; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (c === '\\') escaped = true;
+      else if (c === '"') quoted = false;
+      continue;
+    }
+    if (c === '"') quoted = true;
+    else if (c === '{' || c === '[') depth++;
+    else if ((c === '}' || c === ']') && --depth === 0) {
+      try { return JSON.parse(text.slice(start, i + 1)); } catch { return undefined; }
+    }
+  }
+  return undefined;
+}
+
+/** `"key" : {…}` or `"key" : […]` at or after `from`. */
+function jsonAfterKey(text: string, key: string, from = 0): unknown {
+  const pattern = new RegExp(`"${key}"\\s*:\\s*(?=[\\[{])`, 'g');
+  pattern.lastIndex = from;
+  const match = pattern.exec(text);
+  return match ? balancedJsonAt(text, match.index + match[0].length) : undefined;
+}
+
+const amazonDimensionNames: Record<string, string> = {size_name: 'Size', color_name: 'Color', style_name: 'Style', pattern_name: 'Pattern', configuration_name: 'Configuration', item_package_quantity: 'Pack', material_type: 'Material', flavor_name: 'Flavor', scent_name: 'Scent'};
+
+/**
+ * Amazon's twister script lists every child ASIN of the listing with its dimension values (size, colour, style…)
+ * and a gallery per colour. Only the open ASIN's price is on the page: the others are left without a price and carry
+ * their own /dp/ link, which the order form loads when that option is chosen. Stock is known only where the page's
+ * swatches say so (the open colour's sizes); other combinations stay "to be confirmed".
+ */
+function amazonTwister(html: string, sourceUrl: string, landing: {price?: number; available: boolean; availabilityKnown: boolean}) {
+  const anchor = html.search(/"currentAsin"\s*:\s*"[A-Z0-9]{10}"/);
+  if (anchor < 0) return;
+  const selectedId = html.slice(anchor).match(/"currentAsin"\s*:\s*"([A-Z0-9]{10})"/)?.[1];
+  const dimensions = jsonAfterKey(html, 'dimensions', anchor);
+  const display = jsonAfterKey(html, 'dimensionValuesDisplayData', anchor);
+  if (!selectedId || !Array.isArray(dimensions) || !dimensions.length || dimensions.length > 4 || !display || typeof display !== 'object') return;
+  const dims = dimensions.map(value => clean(value));
+  const unslash = (value: string) => clean(value.replace(/\\\//g, '/'));
+  const rows = Object.entries(display as Record<string, unknown>)
+    .filter((entry): entry is [string, unknown[]] => /^[A-Z0-9]{10}$/.test(entry[0]) && Array.isArray(entry[1]) && entry[1].length === dims.length)
+    .map(([asin, values]) => ({asin, values: values.map(value => unslash(String(value ?? '')))}));
+  if (rows.length < 2 || !rows.some(row => row.asin === selectedId)) return;
+  // Swatches of the open page: `data-initiallyUnavailable` is the store's own stock answer for that exact ASIN.
+  const stock = new Map<string, boolean>();
+  for (const match of html.matchAll(/<li\b[^>]*\bdata-asin="([A-Z0-9]{10})"[^>]*\bdata-initiallyUnavailable="(true|false)"/gi)) stock.set(match[1], match[2] === 'false');
+  const colorImagesRaw = jsonAfterKey(html, 'colorImages', Math.max(0, html.indexOf('"landingAsinColor"')));
+  const galleries = new Map<string, string[]>();
+  if (colorImagesRaw && typeof colorImagesRaw === 'object' && !Array.isArray(colorImagesRaw)) {
+    for (const [color, list] of Object.entries(colorImagesRaw as Record<string, unknown>)) {
+      if (!Array.isArray(list)) continue;
+      const gallery = dedupeSafeImages(list.map(item => {
+        const image = item as Record<string, unknown>;
+        return clean(image?.hiRes) || clean(image?.large);
+      }).filter(Boolean), sourceUrl, 12);
+      if (gallery.length) galleries.set(unslash(color), gallery);
+    }
+  }
+  const colorAt = dims.indexOf('color_name') >= 0 ? dims.indexOf('color_name') : dims.findIndex(name => /^(style|pattern)_name$/.test(name));
+  const sizeAt = dims.indexOf('size_name');
+  const rest = dims.map((_, index) => index).filter(index => index !== colorAt && index !== sizeAt);
+  const selectedRow = rows.find(row => row.asin === selectedId)!;
+  const selectedColor = colorAt >= 0 ? selectedRow.values[colorAt] : undefined;
+  // The store's own order of each dimension's values (sizes 4 … 14, colours as on the page).
+  const order = jsonAfterKey(html, 'variationValues', anchor) as Record<string, unknown> | undefined;
+  const rank = (index: number, value: string) => {
+    const list = order && Array.isArray(order[dims[index]]) ? (order[dims[index]] as unknown[]).map(item => unslash(String(item ?? ''))) : [];
+    const at = list.indexOf(value);
+    return at < 0 ? list.length : at;
+  };
+  const sortKey = (row: {values: string[]}) => [colorAt, ...dims.map((_, index) => index).filter(index => index !== colorAt)].filter(index => index >= 0).map(index => rank(index, row.values[index]));
+  const sorted = [...rows].sort((a, b) => {
+    const open = Number(colorAt >= 0 && b.values[colorAt] === selectedColor) - Number(colorAt >= 0 && a.values[colorAt] === selectedColor);
+    if (open) return open;
+    const left = sortKey(a), right = sortKey(b);
+    return left.reduce((diff, value, index) => diff || value - right[index], 0);
+  });
+  // A large listing (34 colours × 20 sizes) does not fit the 250-option bound: the open colour keeps all its sizes and
+  // every other colour one option, the one its swatch links to. Choosing that colour loads its page, which brings
+  // its own sizes the same way.
+  const swatchAsins = new Set(stock.keys());
+  const bounded = sorted.length <= 250 || colorAt < 0 ? sorted.slice(0, 250) : [
+    ...sorted.filter(row => row.values[colorAt] === selectedColor),
+    ...[...new Set(sorted.map(row => row.values[colorAt]))].filter(color => color !== selectedColor).map(color => {
+      const ofColor = sorted.filter(row => row.values[colorAt] === color);
+      return ofColor.find(row => swatchAsins.has(row.asin)) ?? ofColor[0];
+    }),
+  ].slice(0, 250);
+  const variants: ProductVariant[] = bounded.map(({asin, values}) => {
+    const color = colorAt >= 0 ? values[colorAt] || undefined : undefined;
+    const sizeParts = [sizeAt, ...rest].filter(index => index >= 0).map(index => values[index]).filter(Boolean);
+    const size = sizeParts.join(' · ') || undefined;
+    const own = asin === selectedId;
+    const known = own ? landing.availabilityKnown : stock.has(asin);
+    const gallery = color ? galleries.get(color) : undefined;
+    return {
+      id: asin,
+      sourceUrl: `https://www.amazon.com/dp/${asin}?th=1&psc=1`,
+      color,
+      size,
+      sizeLabel: sizeAt >= 0 ? 'Размер' : undefined,
+      options: dims.map((name, index) => ({name: amazonDimensionNames[name] ?? clean(name.replace(/_name$/, '').replace(/_/g, ' ')), value: values[index]})).filter(option => option.value),
+      label: values.filter(Boolean).join(' · '),
+      // An unknown combination stays offered (it exists as a child ASIN); the live check confirms it before the cart.
+      available: own ? landing.available : stock.get(asin) ?? true,
+      availabilityKnown: known,
+      price: own ? landing.price : undefined,
+      image: gallery?.[0],
+    };
+  });
+  const colorwayImages = [...galleries].map(([color, images]) => ({color, images}));
+  return {variants, colorwayImages, selectedId, selectedColor, complete: bounded.length === rows.length ? undefined : false};
+}
+
 function extractAmazon(html: string, sourceUrl: string): Extracted | undefined {
   const source = new URL(sourceUrl);
   if (!/(^|\.)amazon\.com$/i.test(source.hostname)) return;
@@ -882,16 +1004,22 @@ function extractAmazon(html: string, sourceUrl: string): Extracted | undefined {
   const images = [...new Set([imageAttr('data-old-hires'), imageAttr('src'), ...dynamicImages]
     .map(value => safeImage(value, sourceUrl)).filter((value): value is string => Boolean(value)))].slice(0, 12);
   if (!title && price === undefined && !images.length) return;
-  const byline = clean(html.match(/id=["']bylineInfo["'][^>]*>([\s\S]*?)<\//i)?.[1]);
-  const brand = (byline.match(/(?:Visit|Shop)\s+the\s+(.+?)\s+Store/i)?.[1] ?? byline).slice(0, 80) || 'Amazon';
+  // The brand byline: a text link ("Visit the adidas Store", "Brand: adidas") or, on premium brand pages, a logo whose
+  // title says it. The wrapper's own attributes also contain `bylineInfo` and it starts with a <style> block.
+  const bylineLink = clean(html.match(/<a\s[^>]*\bid=["']bylineInfo["'][^>]*>([\s\S]*?)<\/a>/i)?.[1]);
+  const bylineLogo = html.match(/<img\s[^>]*\bid=["']brandLogoHiResByline["'][^>]*>/i)?.[0].match(/\btitle=["']([^"']{1,120})["']/i)?.[1] ?? '';
+  const byline = bylineLink || clean(bylineLogo);
+  const brand = (byline.match(/(?:Visit|Shop)\s+the\s+(.+?)\s+Store/i)?.[1] ?? byline.match(/^Brand:\s*(.+)$/i)?.[1] ?? byline).slice(0, 80) || 'Amazon';
   const category = inferProductCategory(title ?? '', brand);
   const unavailable = /id=["']availability["'][\s\S]{0,1200}(?:out of stock|currently unavailable|unavailable)/i.test(html);
   const availabilityBlock = /id=["']availability["']/i.test(html);
-  const variants: ProductVariant[] = title ? [{label: 'Выбранный вариант', available: !unavailable, availabilityKnown: availabilityBlock, price, image: images[0]}] : [];
+  const twister = title ? amazonTwister(html, sourceUrl, {price, available: !unavailable, availabilityKnown: availabilityBlock}) : undefined;
+  const variants: ProductVariant[] = twister?.variants ?? (title ? [{label: 'Выбранный вариант', available: !unavailable, availabilityKnown: availabilityBlock, price, image: images[0]}] : []);
   const warnings: string[] = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.'];
   if (price === undefined) warnings.unshift('Цена не найдена в американском блоке Amazon: укажите её со страницы выбранного варианта.');
   if (unavailable) warnings.push('Amazon сообщает, что выбранный товар недоступен.');
   return {
+    ...(twister ? {colorwayImages: twister.colorwayImages, selectedVariantId: twister.selectedId, selectedVariantColor: twister.selectedColor, variantScope: 'group' as const, variantsComplete: twister.complete} : {}),
     title,
     brand,
     category,
@@ -1077,18 +1205,23 @@ function extractAdidasImage(value: unknown, sourceUrl: string) {
  * currently available size list. Keep this parser separate from JSON-LD so a
  * challenge page can never be presented as a successful import.
  */
-export function extractAdidasProduct(productValue: unknown, listingValue: unknown, sourceUrl: string): Extracted | undefined {
-  if (!productValue || typeof productValue !== 'object') return;
-  const product = productValue as AdidasApiRecord;
-  const listing = listingValue && typeof listingValue === 'object' ? listingValue as AdidasApiRecord : undefined;
-  const raw = listing?.raw as AdidasApiRecord | undefined;
+/** The listing card of this article, or of another colour of the same model (its card lists this article among its colours). */
+export function adidasListingFamily(listingValue: unknown, id: string): {item?: AdidasApiRecord; family?: AdidasApiRecord} {
+  const raw = listingValue && typeof listingValue === 'object' ? (listingValue as AdidasApiRecord).raw as AdidasApiRecord | undefined : undefined;
   const itemList = raw?.itemList as AdidasApiRecord | undefined;
   const items = Array.isArray(itemList?.items) ? itemList.items.filter((value): value is AdidasApiRecord => Boolean(value && typeof value === 'object')) : [];
+  const item = items.find(value => clean(value.productId ?? value.id) === id);
+  const family = item ?? items.find(value => Array.isArray(value.colorVariations) && value.colorVariations.map(clean).includes(id));
+  return {item, family};
+}
+
+export function extractAdidasProduct(productValue: unknown, listingValue: unknown, sourceUrl: string, siblingValues: unknown[] = []): Extracted | undefined {
+  if (!productValue || typeof productValue !== 'object') return;
+  const product = productValue as AdidasApiRecord;
   const id = clean(product.id ?? product.productId);
   const article = new URL(sourceUrl).pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '');
   if (!article || !id || id.toUpperCase() !== article.toUpperCase()) return;
-  const item = items.find(value => clean(value.productId ?? value.id) === id);
-  if (!id && !item) return;
+  const {item, family} = adidasListingFamily(listingValue, id);
   const selected = item ?? product;
   const title = clean(product.name ?? selected.displayName ?? selected.altText).slice(0, 140) || undefined;
   const color = clean(product.color ?? selected.color) || undefined;
@@ -1099,25 +1232,48 @@ export function extractAdidasProduct(productValue: unknown, listingValue: unknow
   const price = number(selected.salePrice ?? product.salePrice ?? selected.price ?? product.price);
   const locale = new URL(sourceUrl).pathname.split('/').filter(Boolean)[0]?.toLowerCase() ?? '';
   const currency = ({us: 'USD', ca: 'CAD', gb: 'GBP', uk: 'GBP', de: 'EUR', es: 'EUR', fr: 'EUR', it: 'EUR', nl: 'EUR', pl: 'PLN', se: 'SEK', dk: 'DKK', no: 'NOK', tr: 'TRY', au: 'AUD', jp: 'JPY', ae: 'AED', qa: 'QAR', bh: 'BHD', om: 'OMR'} as Record<string, string>)[locale];
-  const availableSizes = [...new Set((Array.isArray(selected.availableSizes) ? selected.availableSizes : []).map(clean).filter(size => size && size.toLowerCase() !== 'hidden'))];
+  // This article's own card lists its sizes in stock. When only another colour's card came back, its list is the
+  // model's size run: offered, with stock to be confirmed by the live check.
+  const sizeSource = item ?? family;
+  const listedSizes = [...new Set((Array.isArray(sizeSource?.availableSizes) ? sizeSource.availableSizes : []).map(clean).filter(size => size && size.toLowerCase() !== 'hidden'))];
+  // The card lists sizes in no order ("11 12.5 11.5 …"); numeric runs are put in order, others kept as given.
+  const availableSizes = listedSizes.every(size => Number.isFinite(Number(size))) ? listedSizes.sort((a, b) => Number(a) - Number(b)) : listedSizes;
   // The API has returned both numeric and boolean orderability flags. An
   // explicit false from either source must not become a purchasable variant.
   const unavailable = selected.orderable === 0 || selected.orderable === false || product.orderable === 0 || product.orderable === false;
   const available = !unavailable;
   // An empty list alone does not establish that a generic, unsized option is
   // in stock; downstream ordering must treat that fallback as unconfirmed.
-  const availabilityKnown = unavailable || availableSizes.length > 0;
+  const availabilityKnown = unavailable || (Boolean(item) && availableSizes.length > 0);
   const variants: ProductVariant[] = availableSizes.map(size => ({
     size,
     sizeLabel: 'Размер',
     color,
+    colorId: id,
     label: [color, size].filter(Boolean).join(' · '),
     available,
     availabilityKnown,
     price,
     image: images[0],
   }));
-  if (!variants.length) variants.push({label: color ?? 'Выбранный вариант', color, available, availabilityKnown, price, image: images[0]});
+  if (!variants.length) variants.push({label: color ?? 'Выбранный вариант', color, colorId: id, available, availabilityKnown, price, image: images[0]});
+  // Other colours of the model: each its own article page, price and photos; sizes as the model's run, stock unconfirmed.
+  const colorwayImages: ProductColorwayGallery[] = color && images.length ? [{color, colorId: id, images}] : [];
+  const siblingUrl = (sibling: string) => { const url = new URL(sourceUrl); url.search = ''; url.hash = ''; url.pathname = url.pathname.replace(/[^/]+\.html$/i, `${sibling}.html`); return url.href; };
+  for (const value of siblingValues.slice(0, 15)) {
+    if (!value || typeof value !== 'object') continue;
+    const sibling = value as AdidasApiRecord, siblingId = clean(sibling.id ?? sibling.productId), siblingColor = clean(sibling.color);
+    if (!/^[A-Z0-9]{4,12}$/i.test(siblingId) || siblingId === id || !siblingColor || siblingColor === color || variants.some(variant => variant.colorId === siblingId)) continue;
+    const siblingImages = [...new Set([...(Array.isArray(sibling.images) ? sibling.images : []), sibling.image].map(image => extractAdidasImage(image, sourceUrl)).filter((image): image is string => Boolean(image)))].slice(0, 12);
+    const siblingPrice = number(sibling.salePrice ?? sibling.price);
+    const siblingAvailable = !(sibling.orderable === 0 || sibling.orderable === false);
+    if (siblingImages.length) colorwayImages.push({color: siblingColor, colorId: siblingId, images: siblingImages});
+    for (const size of availableSizes.length ? availableSizes : [undefined]) variants.push({
+      size, sizeLabel: size ? 'Размер' : undefined, color: siblingColor, colorId: siblingId, sourceUrl: siblingUrl(siblingId),
+      label: [siblingColor, size].filter(Boolean).join(' · '),
+      available: siblingAvailable, availabilityKnown: !siblingAvailable, price: siblingPrice, image: siblingImages[0],
+    });
+  }
   const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
   if (!availableSizes.length) warnings.push('Adidas не отдал список размеров. Проверьте вариант на странице магазина.');
   if (price === undefined) warnings.unshift('Цена не найдена в данных Adidas: укажите её со страницы выбранного варианта.');
@@ -1136,7 +1292,8 @@ export function extractAdidasProduct(productValue: unknown, listingValue: unknow
     country,
     warnings,
     sourceUrl,
-    sku: id, variantScope: 'color', variantsComplete: false,
+    sku: id, variantScope: colorwayImages.length > 1 ? 'group' : 'color', variantsComplete: false,
+    ...(colorwayImages.length > 1 ? {colorwayImages, selectedVariantColor: color} : {}),
     method: 'Adidas product data',
   };
 }
