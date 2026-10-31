@@ -18,6 +18,7 @@ import { signalsFor } from '@/lib/market/catalog-signals';
 import { searchWords } from '@/lib/market/catalog-synonyms';
 import { browserStorage, clearRecentProducts, readRecentProducts, rememberRecentProduct, itemParam, pendingFavoriteToSave, takePendingFavorite, withoutItemParam } from '@/lib/market/catalog-links';
 import { toast } from '@/lib/market/toast';
+import { focusSearchKey } from '@/lib/market/shell-search';
 import {
   activeFilterCount, applyCatalogQuery, catalogFacets, catalogItems, catalogQueryString, cartParcelStores, emptyCatalogQuery, filterId,
   paginate, parcelExtra, quickChipActive, quickChips, readCatalogQuery, relaxations, sameCatalogProduct, toggleQuickChip, withoutFilter,
@@ -78,6 +79,12 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
   useEffect(() => { queueMicrotask(() => setRecentIds(readRecentProducts(browserStorage()))); }, []);
   const select = (product: Product) => { setSelected(product); setRecentIds(rememberRecentProduct(browserStorage(), product.id)); };
   useEffect(() => { void loadCatalog(); }, [loadCatalog]);
+  // The header's search icon led here (app/marketplace.tsx): the search field takes the focus once.
+  useEffect(() => {
+    let asked = false;
+    try { asked = sessionStorage.getItem(focusSearchKey) === '1'; sessionStorage.removeItem(focusSearchKey); } catch { /* private mode */ }
+    if (asked) document.getElementById('catalog-search-input')?.focus({ preventScroll: false });
+  }, []);
   // Pages rendered without a server query (or opened from history) take it from the address.
   useEffect(() => { if (!initial) queueMicrotask(() => setQueryState(readCatalogQuery(window.location.search))); }, [initial]);
   useEffect(() => {
@@ -190,7 +197,7 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
       action={allowance.remainingUsd > 0 && !query.duty ? <button type="button" className="text-button" onClick={() => setQuery({ ...query, duty: true })}>{cc.allowanceShow}</button> : null}
       more={<Link className="text-link" href="/customs">{cc.allowanceHow}</Link>} />}
     {showControls && <section className="catalog-bar" aria-label={cc.search}>
-      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={side === 'bottom' ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
+      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input id="catalog-search-input" type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={side === 'bottom' ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
       {/* One row of common filters: scrolls sideways on a phone, wraps on a wide screen. */}
       {chips.length > 0 && <div {...chipsRow} className="catalog-categories catalog-quick" role="group" aria-label={cc.quickLabel}>
         {chips.map((chip) => <QuickChipButton key={chip.id} chip={chip} query={query} setQuery={setQuery} cc={cc} collections={collections} locale={locale} />)}

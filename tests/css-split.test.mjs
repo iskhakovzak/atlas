@@ -27,6 +27,7 @@ const LAYOUT_CSS = [
   './customer.css', './theme-night.css', './catalog.css', './stores.css', './mobile.css', './refine.css', './day-folio.css',
   './native.css', './store-marks.css', './ambient.css', './checkbox.css', './press.css', './header-panel.css', './motion.css',
   './link-inputs.css',
+  './shell.css',
 ];
 
 const OPERATOR = 'operator.css', CATALOG = 'catalog-pages.css', STORES = 'stores-pages.css', LINK = 'link-pages.css',

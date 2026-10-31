@@ -204,22 +204,6 @@ html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .sheet-total str
   color: var(--night-ink);
 }
 
-html[data-theme="dark"] .mobile-nav {
-  background: rgb(20 30 25 / 94%);
-  border-color: var(--atlas-line);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-}
-
-html[data-theme="dark"] .mobile-nav a,
-html[data-theme="dark"] .mobile-nav a.active {
-  color: var(--night-ink-2);
-}
-
-html[data-theme="dark"] .mobile-nav a.active:before {
-  background: var(--brand);
-}
-
 html[data-theme="dark"] .storage-notice {
   background: var(--night-surface);
   border-color: var(--atlas-line);
@@ -394,20 +378,6 @@ html[data-theme="dark"] .status-badge.needs-action {
 
 html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .sheet-total strong, html[data-theme="dark"] .product-facts b, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .change-amount > strong {
   color: var(--night-ink-2);
-}
-
-html[data-theme="dark"] .mobile-nav {
-  background: rgb(39 41 46 / 96%);
-  border-color: var(--atlas-line);
-}
-
-html[data-theme="dark"] .mobile-nav a,
-html[data-theme="dark"] .mobile-nav a.active {
-  color: var(--night-jade);
-}
-
-html[data-theme="dark"] .mobile-nav a.active:before {
-  background: var(--brand);
 }
 
 html[data-theme="dark"] .storage-notice {
@@ -985,16 +955,6 @@ html[data-theme="dark"] .cart-link {
   box-shadow: none;
 }
 html[data-theme="dark"] .cart-link b { background: var(--night-on-ivory); color: var(--night-ivory); }
-html[data-theme="dark"] .mobile-nav {
-  background: linear-gradient(180deg, rgba(12, 17, 15, 0.82), rgba(10, 14, 12, 0.94));
-  -webkit-backdrop-filter: saturate(160%) blur(20px);
-  backdrop-filter: saturate(160%) blur(20px);
-  border-top: 1px solid var(--night-line);
-}
-html[data-theme="dark"] .mobile-nav a { color: var(--night-faint); }
-html[data-theme="dark"] .mobile-nav a.active { color: var(--night-ink); }
-html[data-theme="dark"] .mobile-nav a.active::before { background: var(--night-jade); }
-html[data-theme="dark"] .mobile-nav a b { background: var(--brand); color: var(--on-brand); }
 
 /* ---------- Surfaces ---------- */
 html[data-theme="dark"] :is(.surface, .cabinet-card, .cabinet-tiles a, .basket-summary, .basket-parcel, .basket-empty, .lo-card, .lo-product, .order-x, .home-quote, .home-step, .home-tracking, .home-reviews, .home-legal, .home-faq details, .home-table-wrap, .notice-x, .docs-recipient, .find-card, .store-card, .stores-directory, .login-card, .notice-settings, .cabinet-next.done, .lo-source) {
@@ -1061,7 +1021,7 @@ html[data-theme="dark"] :is(input:not([type="checkbox"]):not([type="radio"]), se
   box-shadow: var(--night-ring);
 }
 /* Fields that live inside a framed control stay transparent. */
-html[data-theme="dark"] :is(.home-link-field, .lo-link-field, .rf-phone, .finds-search, .stores-search, .search-field) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) { border-color: transparent; background: transparent; box-shadow: none; }
+html[data-theme="dark"] :is(.home-link-field, .lo-link-field, .rf-phone, .finds-search, .stores-search, .search-field, .link-sheet-field, .shell-search) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) { border-color: transparent; background: transparent; box-shadow: none; }
 html[data-theme="dark"] :is(.home-link-form, .lo-link) {
   border-color: var(--line-strong);
   background: linear-gradient(180deg, rgba(22, 29, 25, 0.92), rgba(15, 20, 18, 0.92));

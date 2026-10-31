@@ -1,0 +1,148 @@
+/* The page shell (app/marketplace.tsx, 1.11.2026): the header, its profile menu, the breadcrumb and the footer on phones.
+   The bottom bar itself is in mobile.css. Loaded last of the layout files, on the role tokens of app/tokens.css, so one
+   rule serves the light and the dark theme. The header keeps the class .site-header (view transition, scripts); its own
+   rules start with `:root .site-header.shell-header` (0,3,0), which beats the old (0,2,1) theme rules of the earlier
+   layers (day-folio.css, theme-night.css) without !important.
+
+   Wide screens (64 px): logo · Каталог · Магазины · Купить по ссылке · Доставка · [search or link] · language · ♥ · cart · profile.
+   Phones (56 px): logo · search · language (the bell for members); the bottom bar carries the rest. */
+
+:root .site-header.shell-header {
+  display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 64px;
+  border-bottom: 1px solid var(--line); background: var(--surface); box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+:root .site-header.shell-header .wordmark { flex: none; display: inline-flex; align-items: center; min-height: 44px; font-size: 30px; line-height: 1; }
+:root .site-header.shell-header .wordmark svg { width: 24px; height: 24px; }
+
+/* ---------- Main links ---------- */
+.shell-nav { display: flex; flex: none; align-items: center; gap: 2px; margin-left: 12px; }
+.shell-nav a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: var(--r-control); color: var(--text-2); font-size: var(--fs-14); font-weight: var(--fw-medium); white-space: nowrap; text-decoration: none; transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease; }
+.shell-nav a:hover { background: var(--hover); color: var(--text); }
+.shell-nav a.active { background: var(--selected); color: var(--link); font-weight: var(--fw-semibold); }
+.shell-nav a:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+/* ---------- Search: words go to the catalog, a store link to its calculation ---------- */
+.shell-search { position: relative; display: flex; flex: 1 1 320px; align-items: center; gap: 4px; min-width: 160px; max-width: 460px; height: 44px; margin-left: auto; padding: 0 14px 0 4px; border: 1px solid transparent; border-radius: var(--r-pill); background: var(--sunken); color: var(--text-3); transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease; }
+.shell-search:hover { border-color: var(--line-strong); }
+.shell-search:focus-within { border-color: var(--link); background: var(--surface); box-shadow: var(--focus-ring); }
+html body .shell-search input { flex: 1 1 auto; min-width: 0; min-height: 0; height: 40px; padding: 0; border: 0; outline: none; box-shadow: none; background: transparent; color: var(--text); font: inherit; font-size: var(--fs-14); }
+.shell-search input::placeholder { color: var(--text-3); }
+.shell-search input::-webkit-search-cancel-button { display: none; }
+.shell-search-submit { display: grid; flex: none; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-3); cursor: pointer; }
+.shell-search-submit:hover, .shell-search:focus-within .shell-search-submit { color: var(--link); }
+.shell-search-submit:hover { background: var(--hover); }
+.shell-search-submit:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+
+/* ---------- Actions on the right ---------- */
+.shell-actions { display: flex; flex: none; align-items: center; gap: 6px; margin-left: 8px; }
+.shell-header .shell-search ~ .shell-actions { margin-left: 8px; }
+.shell-wide { display: inline-flex; }
+.shell-icon { position: relative; display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-control); color: var(--text-2); text-decoration: none; transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease; }
+.shell-icon:hover { background: var(--hover); color: var(--text); }
+.shell-icon.active { background: var(--selected); color: var(--link); }
+.shell-icon:focus-visible, .shell-cart:focus-visible, .shell-signin:focus-visible, .shell-profile-trigger:focus-visible, .shell-operator:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+/* The search icon stands in for the field where the field does not fit (up to 1023 px). */
+.shell-search-icon { display: none; }
+:root .site-header.shell-header .shell-help { min-height: 44px; color: var(--text-2); font-size: var(--fs-14); font-weight: var(--fw-medium); }
+:root .site-header.shell-header .shell-help:hover { background: var(--hover); color: var(--text); }
+:root .site-header.shell-header .shell-operator { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; border-radius: var(--r-control); color: var(--text-2); font-size: var(--fs-14); font-weight: var(--fw-medium); text-decoration: none; white-space: nowrap; }
+:root .site-header.shell-header .shell-operator:hover { background: var(--hover); color: var(--text); }
+/* The language button (app/header-language.tsx) in the header's round shape. */
+:root .site-header.shell-header .lang-trigger { border-color: var(--line-strong); border-radius: var(--r-pill); color: var(--text); }
+:root .site-header.shell-header .lang-trigger:hover, :root .site-header.shell-header .lang-trigger[aria-expanded="true"] { background: var(--hover); }
+/* Inputs inside a framed field stay bare in both themes (theme-night.css rings every focused input). */
+html[data-theme="dark"] body :is(.link-sheet-field, .shell-search) input:not([type="checkbox"]):not([type="radio"]):focus-visible { border-color: transparent; box-shadow: none; }
+/* The bell (app/notifications-panel.tsx) takes the same 44 px square as the other icons. */
+:root .site-header.shell-header .notice-link { width: 44px; height: 44px; color: var(--text-2); }
+
+/* The cart: an outlined button with its name; the count is a filled pill. */
+.shell-cart { position: relative; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--surface); color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-semibold); text-decoration: none; white-space: nowrap; transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease; }
+.shell-cart:hover { background: var(--hover); }
+.shell-cart.active { border-color: var(--selected-line); background: var(--selected); color: var(--link); }
+.shell-cart > b { min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--r-pill); background: var(--brand); color: var(--on-brand); font-size: var(--fs-12); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 20px; text-align: center; }
+
+/* A guest's sign-in: the outlined brand button it always was. */
+.shell-signin { align-items: center; min-height: 44px; padding: 0 18px; border: 1.5px solid var(--brand); border-radius: var(--r-pill); color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-semibold); text-decoration: none; white-space: nowrap; }
+.shell-signin:hover { background: var(--selected); }
+html[data-theme="dark"] .shell-signin { border-color: var(--selected-line); }
+
+/* ---------- Profile menu (app/profile-menu.tsx) ---------- */
+.shell-profile { position: relative; display: inline-flex; }
+.shell-profile-trigger { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px 0 4px; border: 1px solid transparent; border-radius: var(--r-pill); background: transparent; color: var(--text); font: inherit; font-size: var(--fs-14); font-weight: var(--fw-semibold); cursor: pointer; transition: background-color var(--dur-fast) ease; }
+.shell-profile-trigger:hover, .shell-profile-trigger[aria-expanded="true"] { background: var(--hover); }
+.shell-profile-icon { position: relative; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--sunken); color: var(--text-2); }
+.shell-profile-trigger.active .shell-profile-icon { background: var(--selected); color: var(--link); }
+.shell-chevron { color: var(--text-3); transition: transform var(--dur-fast) ease; }
+.shell-profile-trigger[aria-expanded="true"] .shell-chevron { transform: rotate(180deg); }
+/* An order waits for the customer: a small warm dot on the profile (header and bottom bar), ringed with the bar's colour. */
+.shell-dot { position: absolute; top: 1px; right: 1px; width: 10px; height: 10px; border-radius: 50%; background: #d4623f; box-shadow: 0 0 0 2px var(--surface); }
+.mobile-nav .shell-dot { top: 2px; right: 12px; }
+html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg); }
+.shell-menu-list { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; display: grid; gap: 2px; min-width: 260px; padding: 6px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--raised); box-shadow: var(--shadow-3); }
+.shell-menu-list[hidden] { display: none; }
+.site-header:has(.shell-menu-list:not([hidden])) { position: relative; z-index: 45; }
+.shell-menu-list > a, .shell-menu-signout { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--text); font: inherit; font-size: var(--fs-14); font-weight: var(--fw-medium); text-align: left; text-decoration: none; cursor: pointer; }
+.shell-menu-list > a > svg, .shell-menu-signout > svg { flex: none; color: var(--text-3); }
+.shell-menu-list > a > span { flex: 1 1 auto; }
+.shell-menu-list > a > small { color: var(--text-2); font-size: var(--fs-13); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.shell-menu-list > a:hover, .shell-menu-signout:hover { background: var(--hover); }
+.shell-menu-list > a.active { background: var(--selected); color: var(--link); }
+.shell-menu-list > a.active > svg { color: var(--link); }
+.shell-menu-list > a:focus-visible, .shell-menu-signout:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; }
+.shell-menu-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; margin-top: 4px; padding: 0 4px 0 12px; border-top: 1px solid var(--line); color: var(--text-2); font-size: var(--fs-14); }
+.shell-menu-row .theme-toggle { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; }
+.shell-menu-signout { border-top: 1px solid var(--line); border-radius: 0 0 var(--r-control) var(--r-control); color: var(--text-2); }
+
+/* ---------- Narrower wide screens ---------- */
+@media (max-width: 1279px) {
+  .shell-cart-label, .shell-profile-label, :root .site-header.shell-header .shell-help > span, :root .site-header.shell-header .shell-operator > span { display: none; }
+  .shell-cart { padding: 0 12px; }
+  :root .site-header.shell-header .shell-operator { width: 44px; justify-content: center; padding: 0; }
+}
+/* "Доставка" (an anchor on the home page, also in the footer) makes room for the field: up to 1365 px, and up to 1439 px
+   in Uzbek, whose menu is the longest (Cyrillic «Ҳавола орқали харид · Етказиб бериш»). Measured signed in, 1.11.2026. */
+@media (max-width: 1365px) {
+  .shell-nav a[data-nav="tariffs"] { display: none; }
+}
+@media (max-width: 1439px) {
+  html[lang^="uz"] .shell-nav a[data-nav="tariffs"] { display: none; }
+}
+/* The field gives way to its icon; the menu keeps every other link. */
+@media (max-width: 1199px) {
+  .shell-search { display: none; }
+  .shell-search-icon { display: inline-grid; }
+  .shell-actions { margin-left: auto; }
+  .shell-nav { margin-left: 4px; }
+  .shell-nav a { padding: 0 10px; }
+}
+/* Tablets: "Магазины" is in the footer and on the home page; the heart is in the profile menu (a guest's needs sign-in). */
+@media (min-width: 761px) and (max-width: 1023px) {
+  .shell-nav a[data-nav="stores"] { display: none; }
+  .shell-actions > .shell-icon.shell-wide { display: none; }
+}
+@media (min-width: 761px) and (max-width: 900px) {
+  .shell-actions { gap: 2px; }
+  :root .site-header.shell-header { gap: 8px; }
+}
+
+/* ---------- Phones: logo · search · language (· bell) ---------- */
+@media (max-width: 760px) {
+  :root .site-header.shell-header { gap: 4px; min-height: 56px; padding-top: env(safe-area-inset-top); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  :root .site-header.shell-header .wordmark { font-size: 26px; }
+  :root .site-header.shell-header .wordmark svg { width: 21px; height: 21px; }
+  .shell-nav, .shell-wide, :root .site-header.shell-header .shell-help { display: none; }
+  .shell-actions { gap: 2px; }
+  /* Pages start under the header without the breadcrumb (its JSON-LD stays in the page). */
+  .site-main > .breadcrumb { display: none; }
+  .site-main > .breadcrumb + * { margin-top: 16px; }
+  /* A shorter footer: no links the bottom bar has, no tagline, a smaller wordmark. */
+  .home-footer .footer-dup, .home-footer-brand p { display: none; }
+  .home-footer .home-footer-brand .wordmark { font-size: 28px; }
+  .home-footer .home-footer-brand .wordmark svg { width: 20px; height: 20px; }
+}
+@media (max-width: 359px) {
+  :root .site-header.shell-header { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); }
+  :root .site-header.shell-header .wordmark { font-size: 24px !important; }
+  .shell-actions { gap: 0; }
+}

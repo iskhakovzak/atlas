@@ -47,6 +47,7 @@ import "./press.css";
 import "./header-panel.css";
 import "./motion.css";
 import "./link-inputs.css";
+import "./shell.css";
 // Shared rules that need a width of 481px or more, linked with media in <head>: on phones they do not block the first paint.
 import layoutDesktopHref from "./styles/layout-desktop.css?url";
 import { MarketProvider } from "@/lib/market/store";
