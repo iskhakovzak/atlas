@@ -484,7 +484,8 @@ html:not([data-theme="dark"]) .store-dialog-all { color: var(--day-accent); }
 html:not([data-theme="dark"]) .store-tile-mark { background: var(--day-ink); border-color: var(--day-surface); }
 /* Phones: the Day hero card keeps the compact padding and the 24px title of stores.css (the page h1 size is a token), so the stores start sooner. */
 @media (max-width: 599px) {
-  html:not([data-theme="dark"]) .stores-hero { --day-h1-size: 24px; padding: 14px 14px 12px; }
+  html:not([data-theme="dark"]) .stores-hero { padding: 14px 14px 12px; }
+  html:root .stores-hero { --day-h1-size: var(--fs-24); }
 }
 
 /* "Your stores" outline while the account loads: tiles of the same size as the real buttons. */

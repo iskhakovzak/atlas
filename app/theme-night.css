@@ -466,7 +466,6 @@ html[data-theme="dark"] :is(
   .catalog-draft,
   .finds-disclosure,
   .find-demo,
-  .find-top-deal,
   .finds-own-link,
   .admin-shortcut-grid > *,
   .admin-metrics article,
@@ -930,7 +929,7 @@ html body { font-family: var(--font-sans); font-optical-sizing: auto; text-rende
 html .wordmark { font-family: "Manrope Variable", "Manrope", var(--font-sans); }
 html :is(button, input, select, textarea) { font-family: inherit; }
 html :is(h1, h2, h3) { letter-spacing: -.02em; }
-html h1 { font-weight: 800; }
+html h1 { font-weight: 750; }
 html :is(h2, h3) { font-weight: 750; }
 html :is(.wordmark) { font-weight: 800; letter-spacing: -0.045em; }
 html :is(.basket-total strong, .wallet-amount, .home-quote-total strong, .cabinet-customs-value, .order-x-total, .find-total > strong) { font-feature-settings: "tnum" 1; }
@@ -974,8 +973,8 @@ html[data-theme="dark"] :is(.notices-page .notice-filters button.active, .orders
   box-shadow: none;
 }
 /* The price under a chosen colour sits on the ivory button: it takes the button's dark ink, not the muted night grey. */
-html[data-theme="dark"] .header-account { border-color: rgba(235, 228, 210, 0.5); color: var(--night-ink); }
-html[data-theme="dark"] .header-account:hover { background: rgba(235, 228, 210, 0.08); border-color: var(--night-ivory); }
+html[data-theme="dark"] .header-account { border-color: var(--line-strong); color: var(--night-ink); }
+html[data-theme="dark"] .header-account:hover { background: var(--hover); border-color: var(--field); }
 html[data-theme="dark"] :is(.site-header .icon-btn, .site-header .wallet-link) { color: var(--night-ink-2); }
 html[data-theme="dark"] .site-header :is(.icon-btn, .wallet-link):hover { background: rgba(255, 255, 255, 0.05); color: var(--night-ink); }
 html[data-theme="dark"] .notice-link b { background: #c8503f; color: #fff; box-shadow: 0 0 0 2px var(--night-canvas); }
@@ -1064,11 +1063,11 @@ html[data-theme="dark"] :is(input:not([type="checkbox"]):not([type="radio"]), se
 /* Fields that live inside a framed control stay transparent. */
 html[data-theme="dark"] :is(.home-link-field, .lo-link-field, .rf-phone, .finds-search, .stores-search, .search-field) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) { border-color: transparent; background: transparent; box-shadow: none; }
 html[data-theme="dark"] :is(.home-link-form, .lo-link) {
-  border-color: rgba(235, 228, 210, 0.55);
+  border-color: var(--line-strong);
   background: linear-gradient(180deg, rgba(22, 29, 25, 0.92), rgba(15, 20, 18, 0.92));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 30px 70px -36px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(0, 0, 0, 0.4);
 }
-html[data-theme="dark"] :is(.home-link-form, .lo-link):focus-within { border-color: var(--night-ivory); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 4px rgba(235, 228, 210, 0.12), 0 30px 70px -36px rgba(0, 0, 0, 0.95); }
+html[data-theme="dark"] :is(.home-link-form, .lo-link):focus-within { border-color: var(--link); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--focus-ring), 0 30px 70px -36px rgba(0, 0, 0, 0.95); }
 html[data-theme="dark"] :is(.basket-consent, .consent) { border-color: var(--night-line-strong); }
 /* A ticked option lights up as a whole, not only its small box. */
 html[data-theme="dark"] :is(.basket-consent, .consent, .basket-balance, .basket-service):has([data-slot="checkbox"][data-state="checked"]) { border-color: rgba(128, 208, 172, 0.55); background: var(--night-jade-soft); }
@@ -1192,8 +1191,8 @@ html[data-theme="dark"] .bill-days { margin: -8px 0 0; color: var(--night-muted)
 html[data-theme="dark"] .bill { display: grid; gap: 14px; margin: 0; }
 html[data-theme="dark"] .bill > div { display: grid; grid-template-columns: minmax(0, auto) minmax(16px, 1fr) auto; column-gap: 8px; align-items: baseline; padding: 0; border: 0; }
 html[data-theme="dark"] .bill > div::before { content: ""; grid-column: 2; grid-row: 1; align-self: end; margin-bottom: .32em; border-bottom: 1px dotted var(--night-line-strong); }
-html[data-theme="dark"] .bill dt { display: block; grid-column: 1; grid-row: 1; margin: 0; color: var(--night-ink); font-size: 14px; font-weight: 500; }
-html[data-theme="dark"] .bill dd { grid-column: 3; grid-row: 1; margin: 0; color: var(--night-ink); font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+html[data-theme="dark"] .bill dt { display: block; grid-column: 1; grid-row: 1; margin: 0; color: var(--night-ink); font-size: var(--fs-16); font-weight: 500; }
+html[data-theme="dark"] .bill dd { grid-column: 3; grid-row: 1; margin: 0; color: var(--night-ink); font-size: var(--fs-16); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
 html[data-theme="dark"] .bill dd.bill-note { grid-column: 1 / -1; grid-row: 2; margin-top: 2px; color: var(--night-muted); font-size: 13px; font-weight: 400; white-space: normal; }
 html[data-theme="dark"] .bill-total { display: grid; gap: 2px; margin: 0; padding-top: 14px; border-top: 1.5px solid var(--night-line-strong); }
 html[data-theme="dark"] .bill-total > span { color: var(--night-ink-2); font-size: 14px; font-weight: 600; }

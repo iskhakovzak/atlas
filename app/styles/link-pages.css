@@ -159,8 +159,8 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .basket-summary h2 { margin: 0; color: var(--home-ink); font-size: 20px; font-weight: 800; }
 .basket-lines { display: grid; }
 .basket-line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; min-height: 44px; padding: 6px 0; border-bottom: 1px dashed var(--home-line); }
-.basket-line-label { flex: 1 1 0; min-width: 0; color: var(--home-ink); font-size: 14px; line-height: 1.4; }
-.basket-line > b { color: var(--home-ink); font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.basket-line-label { flex: 1 1 0; min-width: 0; color: var(--home-ink); font-size: var(--fs-16); line-height: 1.4; }
+.basket-line > b { color: var(--home-ink); font-size: var(--fs-16); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .basket-help { display: inline-grid; place-items: center; width: 44px; height: 44px; margin: -12px -10px -12px -8px; vertical-align: middle; border: 0; border-radius: 50%; background: transparent; color: var(--home-accent); cursor: pointer; }
 .basket-help[aria-expanded="true"] { color: var(--home-ink); }
 .basket-help:focus-visible { outline: 2px solid var(--home-accent); outline-offset: -6px; }
@@ -203,7 +203,7 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 @media (max-width: 760px) {
   /* Tab never leaves a control under the fixed total and the bottom bar (WCAG 2.4.11). */
   html:has(main[data-view="cart"] .basket-sticky:not(.is-hidden)) { scroll-padding-bottom: calc(var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))) + 84px); }
-  .basket-sticky { position: fixed; z-index: 45; right: 0; bottom: var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))); left: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--home-line); background: var(--home-surface); box-shadow: var(--shadow-2); }
+  .basket-sticky { position: fixed; z-index: 45; right: 0; bottom: var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))); left: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--home-line); background: var(--home-surface); box-shadow: var(--shadow-up); }
   .basket-sticky > div { display: grid; min-width: 0; }
   .basket-sticky span { color: var(--home-muted); font-size: 12px; }
   .basket-sticky strong { color: var(--home-ink); font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -233,7 +233,7 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .cabinet-empty { margin: 0 0 12px; padding: 14px; border-radius: var(--r-control); background: var(--home-soft); color: var(--home-muted); font-size: 14px; }
 
 /* ---------- Orders, balance, notifications ---------- */
-.orders-head p { max-width: 72ch; margin: 4px 0 0; color: var(--home-muted); font-size: 14px; }
+.orders-head p { max-width: 72ch; margin: 4px 0 0; color: var(--home-muted); font-size: var(--fs-16); }
 .orders-head .btn { min-height: 44px; border-radius: var(--r-control); }
 
 /* Notifications. */
@@ -406,7 +406,7 @@ html[data-theme="dark"] .lo-speed-chip { border-color: var(--night-line); backgr
 @media (min-width: 960px) and (min-height: 560px) {
   .lo-side { position: sticky; top: calc(var(--sticky-top, 88px) + 8px); max-height: var(--lo-side-room, calc(100vh - var(--sticky-top, 88px) - 24px)); margin: -6px -6px 0; padding: 6px 6px 0; }
   .lo-side:not([data-fits]) { overflow-y: auto; scrollbar-width: thin; }
-  .lo-side:not([data-fits]) > .lo-confirm { position: sticky; bottom: 0; z-index: 1; box-shadow: var(--shadow-2); }
+  .lo-side:not([data-fits]) > .lo-confirm { position: sticky; bottom: 0; z-index: 1; box-shadow: var(--shadow-up); }
 }
 /* In the narrow right column the item data blocks stack one per row. */
 @media (min-width: 960px) {
@@ -639,7 +639,7 @@ html[data-theme="dark"] .site-main .lo-page .find-save.lo-save.saved { --fav-ink
 .lo-facts > div:focus { outline: none; }
 .lo-facts > div:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; border-radius: var(--r-sm); }
 .lo-facts dt { color: var(--home-muted); font-size: 13px; line-height: 1.4; }
-.lo-facts dd { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; max-width: 100%; margin: 0 0 0 auto; color: var(--home-ink); font-size: 14px; font-weight: 700; line-height: 1.4; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.lo-facts dd { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; max-width: 100%; margin: 0 0 0 auto; color: var(--home-ink); font-size: var(--fs-16); font-weight: 700; line-height: 1.4; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .lo-facts dd svg { flex: none; align-self: center; color: var(--home-muted); }
 /* The product name: label above, the name below, in the same frame as the blocks. */
 .lo-facts.stack { margin-bottom: 10px; padding: 10px 14px; border: 1px solid var(--home-line); border-radius: var(--r-card); }
@@ -809,7 +809,7 @@ html[data-theme="dark"] .basket-summary { background: var(--night-sheen), var(--
 html[data-theme="dark"] .docs-recipient.selected { border-color: var(--night-jade); box-shadow: var(--shadow-2), 0 0 0 3px rgba(128, 208, 172, 0.14); }
 
 /* ---------- Cart, account, orders, money ---------- */
-html[data-theme="dark"] .basket-sticky { border-top-color: var(--night-line); background: rgba(13, 18, 16, 0.94); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: var(--shadow-3); }
+html[data-theme="dark"] .basket-sticky { border-top-color: var(--night-line); background: rgba(13, 18, 16, 0.94); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); box-shadow: var(--shadow-up); }
 html[data-theme="dark"] .notice-x.unread { border-color: rgba(128, 208, 172, 0.28); background: radial-gradient(120% 160% at 0% 0%, rgba(79, 185, 139, 0.1), transparent 60%), var(--night-surface); }
 html[data-theme="dark"] .notice-x-icon { background: var(--night-jade-soft); color: var(--night-jade); }
 html[data-theme="dark"] .lo-note.warn { background: var(--night-warn-bg); }
@@ -1230,7 +1230,7 @@ html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, var(--ni
 .lo-cat-chips > button:hover { border-color: var(--home-accent); }
 .lo-cat-chips > button[aria-checked="true"] { border-color: var(--home-accent); background: var(--home-accent); color: var(--home-accent-ink, #fff); }
 .lo-cat-chips > button:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
-html[data-theme="dark"] .lo-cat-chips > button[aria-checked="true"] { background: var(--night-jade, var(--night-jade)); border-color: var(--night-jade, var(--night-jade)); color: #0d1411; }
+html[data-theme="dark"] .lo-cat-chips > button[aria-checked="true"] { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
 @media (max-width: 639px) {
   /* Phones: a field and its note stack, the field no wider than an amount needs. */
   .lo-page .lo-data .lo-block-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }

@@ -130,8 +130,8 @@
   .review-layout { display: flex; flex-direction: column; gap: 12px; }
   .review-aside { display: contents; }
   .review-aside > .btn.primary.full, .review-confirm-bar { position: sticky; bottom: 0; z-index: 2; }
-  .review-aside > .btn.primary.full { margin-bottom: env(safe-area-inset-bottom); box-shadow: 0 0 0 8px var(--background, #fff), 0 -10px 24px 8px rgba(20, 35, 68, .1); }
-  .review-confirm-bar { display: flex; flex-direction: column; align-items: stretch; gap: 0; margin: 0 -12px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--day-line, var(--c-line)); background: var(--background, #fff); box-shadow: var(--shadow-2); }
+  .review-aside > .btn.primary.full { margin-bottom: env(safe-area-inset-bottom); box-shadow: 0 0 0 8px var(--background, #fff), var(--shadow-up); }
+  .review-confirm-bar { display: flex; flex-direction: column; align-items: stretch; gap: 0; margin: 0 -12px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--day-line, var(--c-line)); background: var(--background, #fff); box-shadow: var(--shadow-up); }
   .review-confirm-bar > .btn.primary.full { position: static; flex: none; width: 100%; max-width: none; min-height: 48px; margin: 0; box-shadow: none; }
   .review-confirm-bar .checkout-trust { margin-top: 6px; }
 }
@@ -185,7 +185,7 @@ html[data-theme="dark"] .review-check-mark { background: var(--night-jade-soft);
 html[data-theme="dark"] .review-details { border-top-color: var(--night-line); }
 html[data-theme="dark"] .review-details > summary { color: var(--night-jade); }
 html[data-theme="dark"] .review-colour { color: var(--night-muted); }
-html[data-theme="dark"] .review-confirm-bar { border-top-color: var(--night-line); background: var(--night-raised); box-shadow: var(--shadow-2); }
+html[data-theme="dark"] .review-confirm-bar { border-top-color: var(--night-line); background: var(--night-raised); box-shadow: var(--shadow-up); }
 @media (max-width: 923px) {
   html[data-theme="dark"] .review-aside > .btn.primary.full { box-shadow: 0 0 0 8px var(--night-raised), 0 -10px 24px 8px rgba(0, 0, 0, .35); }
 }

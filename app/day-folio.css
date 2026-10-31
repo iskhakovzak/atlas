@@ -6,16 +6,18 @@
    One typeface (Inter) everywhere; the wordmark keeps Manrope. Every rule is scoped to the light theme; Atlas Night keeps its own look. */
 
 /* One vertical rhythm: 56px between sections on desktop, 36px on phones (--day-section, app/tokens.css). */
-/* ---------- Type: Inter, heavy and tight in titles ---------- */
-html:not([data-theme="dark"]) main.site-main:not([data-view="admin"]):not([data-view="operations"]):not([data-view="analytics"]) h1 {
+/* ---------- Type: Inter, heavy titles, never tighter than --tracking-title ---------- */
+/* Title sizes are the same in both themes: "html:root" weighs as much as the light-only "html:not([data-theme=dark])"
+   it replaced, so the older per-page sizes it used to beat stay beaten. Colours stay per theme. */
+html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):not([data-view="analytics"]) h1 {
   font-family: var(--day-sans); font-weight: 750;
-  font-size: var(--day-h1-size, var(--day-fs-h1-page)); line-height: var(--day-h1-leading, 1.1); letter-spacing: var(--day-h1-tracking, -.028em);
+  font-size: var(--day-h1-size, var(--day-fs-h1-page)); line-height: var(--day-h1-leading, 1.1); letter-spacing: var(--tracking-title);
   text-wrap: balance;
 }
-html:not([data-theme="dark"]) .site-main :is(.home-section > h2, .home-trust-money > h2, .home-faq-head > h2, .catalog-teaser > header h2) {
-  font-family: var(--day-sans); font-weight: 750; font-size: var(--day-fs-h2); line-height: 1.12; letter-spacing: -.02em; text-wrap: balance;
+html:root .site-main :is(.home-section > h2, .home-trust-money > h2, .home-faq-head > h2, .catalog-teaser > header h2) {
+  font-family: var(--day-sans); font-weight: 750; font-size: var(--day-fs-h2); line-height: 1.12; letter-spacing: var(--tracking-title); text-wrap: balance;
 }
-html:not([data-theme="dark"]) .site-main h3 { font-family: var(--day-sans); font-weight: 700; letter-spacing: -.01em; }
+html:root .site-main h3 { font-family: var(--day-sans); font-weight: 700; letter-spacing: -.01em; }
 /* Overlines repeat what the title says and are typed in capitals: the light theme leaves them out. */
 html:not([data-theme="dark"]) .page-heading .eyebrow { display: none; }
 html:not([data-theme="dark"]) :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .cabinet-eyebrow, .order-x-eyebrow, .store-dialog-section h3, .legal-document > header span) {
@@ -52,7 +54,8 @@ html:not([data-theme="dark"]) .header-account { border: 1.5px solid var(--day-ac
 html:not([data-theme="dark"]) .header-account:hover { background: var(--day-tint); }
 
 /* ---------- Home: the hero beside the example bill ---------- */
-html:not([data-theme="dark"]) .home-hero { max-width: none; padding: 0; --day-h1-size: var(--day-fs-h1); --day-h1-leading: 1.04; --day-h1-tracking: -.03em; }
+html:not([data-theme="dark"]) .home-hero { max-width: none; padding: 0; }
+html:root .home-hero { --day-h1-size: var(--day-fs-h1); --day-h1-leading: 1.04; }
 html:not([data-theme="dark"]) .home-hero h1 { max-width: 13em; color: var(--day-ink); }
 html:not([data-theme="dark"]) .home-hero-lead { max-width: 34em; margin-top: 20px; font-size: var(--day-fs-lead); line-height: 1.55; color: var(--day-muted); }
 /* The link form: the one raised object beside the folio. */
@@ -108,8 +111,8 @@ html:not([data-theme="dark"]) .bill-days { margin: -8px 0 0; font-size: 13px; co
 html:not([data-theme="dark"]) .bill { display: grid; gap: 14px; margin: 0; }
 html:not([data-theme="dark"]) .bill > div { display: grid; grid-template-columns: minmax(0, auto) minmax(16px, 1fr) auto; column-gap: 8px; align-items: baseline; padding: 0; border: 0; }
 html:not([data-theme="dark"]) .bill > div::before { content: ""; grid-column: 2; grid-row: 1; align-self: end; margin-bottom: .32em; border-bottom: 1px dotted var(--day-leader); }
-html:not([data-theme="dark"]) .bill dt { display: block; grid-column: 1; grid-row: 1; margin: 0; font-size: 14px; font-weight: 500; line-height: 1.35; color: var(--day-ink); }
-html:not([data-theme="dark"]) .bill dd { grid-column: 3; grid-row: 1; margin: 0; font-size: 14px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--day-ink); }
+html:not([data-theme="dark"]) .bill dt { display: block; grid-column: 1; grid-row: 1; margin: 0; font-size: var(--fs-16); font-weight: 500; line-height: 1.35; color: var(--day-ink); }
+html:not([data-theme="dark"]) .bill dd { grid-column: 3; grid-row: 1; margin: 0; font-size: var(--fs-16); font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--day-ink); }
 html:not([data-theme="dark"]) .bill dd.bill-note { grid-column: 1 / -1; grid-row: 2; margin-top: 2px; font-size: 13px; font-weight: 400; line-height: 1.4; white-space: normal; color: var(--day-muted); }
 html:not([data-theme="dark"]) .bill .home-tip-button { width: 36px; height: 36px; margin: -10px -6px; }
 /* Total: a ruled line, then the amount large in ink. */
@@ -161,7 +164,7 @@ html:not([data-theme="dark"]) .home-step-station { position: absolute; left: 0; 
 html:not([data-theme="dark"]) .home-step:first-child .home-step-station { border-color: var(--day-accent); background: var(--day-accent); color: #fff; }
 html:not([data-theme="dark"]) .home-steps::before { content: ""; position: absolute; left: 14px; top: 15px; bottom: 15px; width: 2px; background: linear-gradient(var(--day-accent) 0 25%, var(--day-line-strong-2) 25% 100%); }
 html:not([data-theme="dark"]) .home-step h3 { margin: 4px 0 6px; font-size: var(--day-fs-h3); color: var(--day-ink); }
-html:not([data-theme="dark"]) .home-step p { max-width: 30ch; font-size: 14px; line-height: 1.55; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-step p { max-width: 30ch; font-size: var(--fs-16); line-height: 1.55; color: var(--day-muted); }
 /* On phones mobile.css lays a step out as a grid: the station takes the old icon column in both themes. */
 .home-step-station { grid-row: 1 / span 3; }
 @media (max-width: 1023px) { html:not([data-theme="dark"]) .home-steps { grid-template-columns: minmax(0, 1fr); } }

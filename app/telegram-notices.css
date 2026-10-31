@@ -12,7 +12,7 @@
 :root body .tg-notices-body > p:first-child { color: var(--home-ink, var(--c-ink)); font-size: 14px; }
 
 /* The switch: one button, role="switch"; the label stays, aria-checked carries the state. 44 px target. */
-:root body .tg-switch { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 48px; padding: 6px 12px 6px 14px; border: 1px solid var(--home-line, var(--c-line)); border-radius: var(--r-control); background: var(--home-surface, #fff); color: var(--home-ink, var(--c-ink)); font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+:root body .tg-switch { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 48px; padding: 6px 12px 6px 14px; border: 1px solid var(--home-line, var(--c-line)); border-radius: var(--r-control); background: var(--home-surface, #fff); color: var(--home-ink, var(--c-ink)); font: inherit; font-size: var(--fs-16); font-weight: 600; text-align: left; cursor: pointer; }
 :root body .tg-switch:disabled { cursor: default; opacity: .65; }
 :root body .tg-switch[aria-busy="true"] { cursor: progress; }
 :root body .tg-switch:focus-visible { outline: 2px solid var(--home-accent, var(--c-brand)); outline-offset: 2px; }

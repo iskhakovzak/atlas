@@ -47,7 +47,7 @@ html[data-theme="dark"] .home-link-error { color: #ffb4a8; }
 .home-link-points svg { flex: none; }
 /* After plain words: where to go instead (the store they name, the catalog). White buttons with a border, never mint. */
 .home-link-help { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
-.home-link-help .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; max-width: 100%; margin: 0; padding: 8px 14px; font-size: 14px; line-height: 1.25; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.home-link-help .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; max-width: 100%; margin: 0; padding: 8px 14px; font-size: var(--fs-16); line-height: 1.25; text-align: left; white-space: normal; overflow-wrap: anywhere; }
 .home-link-help .btn svg, .home-link-help .btn .store-logo { flex: none; }
 /* The closing screen's copy of the form (desktop): as wide as the hero's, under the line of text. */
 .home-closing .home-closing-form { justify-self: stretch; width: min(100%, 640px); min-width: 0; }

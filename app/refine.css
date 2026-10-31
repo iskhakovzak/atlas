@@ -59,7 +59,7 @@ html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: va
   .site-main :is(.home-section, .home-example-copy, .catalog-teaser > header) h2 { font-size: 20px; line-height: 1.2; font-weight: 740; letter-spacing: -.02em; }
   .site-main :is(.catalog-end, .catalog-empty, .surface, .communication-heading, .cabinet-next-body) h2 { font-size: 18px; line-height: 1.25; }
   .home-hero { padding: 20px 0 26px; }
-  .home-hero-lead, .catalog-teaser > header p, .page-heading p, .stores-intro { font-size: 14px; line-height: 1.5; }
+  .home-hero-lead, .catalog-teaser > header p, .page-heading p, .stores-intro { font-size: var(--fs-16); line-height: 1.5; }
   .home-hero-lead { margin-top: 12px; }
   .home-link-form { margin-top: 18px; }
   .home-link-field input { font-size: 16px; }

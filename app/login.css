@@ -5,7 +5,7 @@
 /* Telegram bot sign-in: one wide Telegram-blue button (kept in the layout for the phone button heights). */
 .btn.tg-login{width:100%;min-height:52px;border-radius:var(--r-control);background:#1679bf;border-color:#1679bf;color:#fff;font-size:16px;font-weight:600;gap:10px}
 /* Sign-in methods: Telegram first, then "or" and one full-width button per method, spaced, never in one cramped row. */
-.btn.login-choice{width:100%;min-height:52px;border-radius:var(--r-control);justify-content:center;gap:10px;font-size:14px;font-weight:600}
+.btn.login-choice{width:100%;min-height:52px;border-radius:var(--r-control);justify-content:center;gap:10px;font-size:var(--fs-16);font-weight:600}
 .btn.login-choice svg{flex-shrink:0}
 .btn.apple{background:#000;border-color:#000;color:#fff;font-weight:600;gap:10px}
 .btn.apple:hover{background:#1a1a1a}

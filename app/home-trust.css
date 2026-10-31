@@ -18,7 +18,7 @@ html[data-theme="dark"] #trust { --tr-card: var(--night-sheen), var(--night-surf
   border: 1px solid var(--tr-line); border-radius: var(--tr-radius); background: var(--tr-card); box-shadow: var(--tr-shadow); }
 :root body #trust .home-fact-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-control); background: var(--tr-icon-bg); color: var(--tr-icon); }
 :root body #trust .home-fact-cards h3 { margin: 0; color: var(--tr-ink); font-size: 16px; font-weight: 650; line-height: 1.3; letter-spacing: 0; }
-:root body #trust .home-fact-cards p { grid-column: 1 / -1; margin: 0; color: var(--tr-text); font-size: 14px; line-height: 1.55; }
+:root body #trust .home-fact-cards p { grid-column: 1 / -1; margin: 0; color: var(--tr-text); font-size: var(--fs-16); line-height: 1.55; }
 
 /* The tracking demo: the store's mark on a tile, the product and order number, and where the parcel is now. */
 :root body #trust .home-tracking-item { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin: 14px 0 24px; color: var(--tr-ink); font-size: 14px; }

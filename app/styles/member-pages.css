@@ -168,7 +168,7 @@
 }
 .customs-grid{display:grid;grid-template-columns:1fr 1fr;gap:25px}
 .customs-limit{font-size:40px;font-weight:500;letter-spacing:-.02em;display:block;margin:18px 0}
-.customs-grid p{font-size:14px}
+.customs-grid p{font-size:var(--fs-16)}
 .customs-text{margin-top:26px}
 .customs-text h2{margin-bottom:14px}
 .customs-text p+h2{margin-top:30px}
@@ -230,8 +230,8 @@
 .order-timeline .complete:before{background:#9bada4}
 .order-timeline .current b{border-color:var(--c-brand);color:var(--c-brand);background:#eef4ee}
 .order-timeline .current span{color:var(--c-brand)}
-.settlement-box:not(.attention){background:#eef3fc}
-.order-tabs{background:#e9eef7!important;border-color:var(--atlas-line);border-radius:var(--r-control)}
+.settlement-box:not(.attention){background:var(--sunken)}
+.order-tabs{background:var(--sunken)!important;border-color:var(--atlas-line);border-radius:var(--r-control)}
 .order-tabs [data-slot=tabs-trigger]{color:#51645a}
 .order-tabs b{background:#dbe8db;color:#265c46}
 .order-tabs [data-state=active]{background:white;color:var(--c-ink)}
@@ -411,9 +411,9 @@
 .atlas-modal:has(.basket-checkout){transition-property:opacity,transform !important}
 /* The held bar never covers the field in focus (Tab, or the first wrong field after "Next"): the dialog scrolls a field
    clear of the bar's measured height plus a little air (WCAG 2.4.11). */
-.basket-checkout .checkout-next{position:sticky;bottom:0;z-index:2;display:grid;gap:10px;margin-top:6px;padding:10px 0 calc(16px + env(safe-area-inset-bottom));background:var(--background,#fff);box-shadow:var(--shadow-2)}
+.basket-checkout .checkout-next{position:sticky;bottom:0;z-index:2;display:grid;gap:10px;margin-top:6px;padding:10px 0 calc(16px + env(safe-area-inset-bottom));background:var(--background,#fff);box-shadow:var(--shadow-up)}
 :root body .basket-checkout .checkout-next .payment-preview{margin:0}
-html[data-theme="dark"] .basket-checkout .checkout-next{background:var(--night-raised);box-shadow:var(--shadow-2)}
+html[data-theme="dark"] .basket-checkout .checkout-next{background:var(--night-raised);box-shadow:var(--shadow-up)}
 @media (max-width:720px) {
   /* One row on a phone: the amount on the left, the button on the right. */
   .basket-checkout .checkout-next{grid-template-columns:auto minmax(0,1fr);align-items:center;gap:12px;padding:10px 0 calc(12px + env(safe-area-inset-bottom))}
@@ -422,7 +422,7 @@ html[data-theme="dark"] .basket-checkout .checkout-next{background:var(--night-r
   .basket-checkout .checkout-next .payment-preview b{display:none}
   :root body .basket-checkout .checkout-next .payment-preview>strong{font-size:16px;line-height:1.2}
   /* A long amount leaves the button less room: its label wraps inside the 48 px instead of running out of it. */
-  .basket-checkout .checkout-next .btn.primary.full{min-height:48px;margin:0;padding-inline:10px;gap:6px;font-size:14px;line-height:1.2;text-wrap:balance}
+  .basket-checkout .checkout-next .btn.primary.full{min-height:48px;margin:0;padding-inline:10px;gap:6px;font-size:var(--fs-16);line-height:1.2;text-wrap:balance}
 }
 @media (max-width:360px) {
   .basket-checkout .checkout-next{grid-template-columns:1fr;gap:8px}
@@ -543,7 +543,7 @@ html[data-theme="dark"] .checkout-served small{color:var(--night-muted)}
 
 /* ── app/login.css ── */
 .login-card{max-width:520px;margin:32px auto 72px;padding:clamp(22px,5vw,44px);display:flex;flex-direction:column;gap:16px}
-.login-intro{color:#51645a;font-size:14px;line-height:1.6}
+.login-intro{color:#51645a;font-size:var(--fs-16);line-height:1.6}
 .login-status{display:flex;align-items:center;gap:12px;color:#51645a}
 .login-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px;padding:4px;border-radius:var(--r-control);background:#eef2f7}
 .login-tabs button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:42px;border:0;border-radius:var(--r-sm);background:transparent;font:inherit;font-weight:600;color:#3f4d46;cursor:pointer}
@@ -555,7 +555,7 @@ html[data-theme="dark"] .checkout-served small{color:var(--night-muted)}
 .login-form .field input{width:100%}
 .login-form .btn,.login-google .btn{justify-content:center}
 .login-code{font-size:20px!important;letter-spacing:.35em;text-align:center;font-variant-numeric:tabular-nums}
-.login-sent{display:flex;flex-wrap:wrap;align-items:center;gap:6px;color:#3f4d46;font-size:14px}
+.login-sent{display:flex;flex-wrap:wrap;align-items:center;gap:6px;color:#3f4d46;font-size:var(--fs-16)}
 .login-sent .text-button{display:inline-flex;align-items:center;gap:4px}
 .login-resend{align-self:center}
 .login-resend:disabled{opacity:.55;cursor:default}
@@ -606,7 +606,7 @@ html[data-theme="dark"] .login-providers p{color:var(--night-muted)}
   .login-benefits{display:flex;flex-direction:column;gap:14px;padding:28px}
   .login-benefits h2{margin:0;font-size:20px;line-height:1.3;letter-spacing:-.015em}
   .login-benefits ul{display:grid;gap:14px;margin:0;padding:0;list-style:none}
-  .login-benefits li{display:flex;gap:12px;align-items:flex-start;color:#3f4d46;font-size:14px;line-height:1.5}
+  .login-benefits li{display:flex;gap:12px;align-items:flex-start;color:#3f4d46;font-size:var(--fs-16);line-height:1.5}
   .login-benefits svg{flex:none;color:var(--c-brand);margin-top:2px}
 }
 html[data-theme="dark"] .login-benefits li{color:var(--night-muted)}
@@ -864,7 +864,7 @@ html[data-theme="dark"] #shipping-rules p.micro a { color: var(--night-jade); }
 /* ---------- Cart ---------- */
 .basket-page { padding-top: 8px; }
 .basket-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 8px 0 16px; }
-.basket-head p { margin: 0; color: var(--home-muted); font-size: 14px; }
+.basket-head p { margin: 0; color: var(--home-muted); font-size: var(--fs-16); }
 
 .basket-steps { display: flex; gap: 6px; margin: 0 0 20px; padding: 0; list-style: none; counter-reset: none; }
 .basket-steps li { display: flex; flex: 1 1 0; align-items: center; gap: 8px; min-width: 0; color: var(--home-muted); font-size: 13px; font-weight: 600; }
@@ -921,7 +921,7 @@ html[data-theme="dark"] #shipping-rules p.micro a { color: var(--night-jade); }
 .basket-qty output { min-width: 28px; color: var(--home-ink); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
 .basket-meta .basket-source { min-height: 44px; margin: -12px 0; font-size: 14px; font-weight: 600; }
 .basket-controls .remove-item { min-height: 44px; margin-left: auto; }
-.basket-continue { justify-self: start; font-size: 14px; }
+.basket-continue { justify-self: start; font-size: var(--fs-16); }
 @media (min-width: 640px) {
   .basket-item { grid-template-columns: 96px minmax(0, 1fr) auto; grid-template-areas: "photo info price" "photo controls controls" "services services services"; padding: 18px 20px; }
   .basket-photo { width: 96px; height: 96px; }
@@ -957,7 +957,7 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 /* "Atlas service" (owner, 10.10.2026): one amount; the fee and international delivery fold under it (app/calc-summary.tsx).
    The breakdown reuses .cost-service-breakdown from the item card; its rows are quieter than the bill's own lines. */
 .basket-balance { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 12px; border-radius: var(--r-control); background: var(--home-soft); }
-.basket-balance label { display: grid; color: var(--home-ink); font-size: 14px; font-weight: 600; cursor: pointer; }
+.basket-balance label { display: grid; color: var(--home-ink); font-size: var(--fs-16); font-weight: 600; cursor: pointer; }
 .basket-balance small { color: var(--home-muted); font-size: 13px; font-weight: 400; }
 .basket-expiry { display: flex; align-items: flex-start; gap: 8px; margin: -6px 0 0; color: var(--home-muted); font-size: 14px; line-height: 1.45; }
 .basket-expiry svg { flex: none; margin-top: 2px; }
@@ -1053,7 +1053,7 @@ html[data-theme="dark"] .basket-reorder { border-color: var(--night-line); backg
 .cabinet-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin: 8px 0 18px; }
 .cabinet-avatar { display: grid; flex-shrink: 0; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--home-accent); color: var(--home-accent-ink); font-size: 20px; font-weight: 800; }
 .cabinet-identity { flex: 1; min-width: 0; }
-.cabinet-identity p { margin: 4px 0 0; overflow-wrap: anywhere; color: var(--home-muted); font-size: 14px; }
+.cabinet-identity p { margin: 4px 0 0; overflow-wrap: anywhere; color: var(--home-muted); font-size: var(--fs-16); }
 .cabinet-identity b { color: var(--home-ink); }
 .cabinet-identity small { display: block; margin-top: 2px; font-size: 13px; }
 .cabinet-manage { min-height: 44px; }
@@ -1079,7 +1079,7 @@ html[data-theme="dark"] .basket-reorder { border-color: var(--night-line); backg
 /* "Now important" on a white day card: the icon keeps a quiet tile, as it has in the night theme (theme-night.css). */
 html:not([data-theme="dark"]) .cabinet-next.info .cabinet-next-icon { background: var(--day-soft, var(--c-sunken)); }
 .cabinet-next h2 { margin: 0; color: var(--home-ink); font-size: 20px; font-weight: 800; line-height: 1.25; }
-.cabinet-next-body p { margin: 2px 0 0; overflow-wrap: anywhere; color: var(--home-muted); font-size: 14px; }
+.cabinet-next-body p { margin: 2px 0 0; overflow-wrap: anywhere; color: var(--home-muted); font-size: var(--fs-16); }
 .cabinet-progress { display: grid; gap: 6px; }
 .cabinet-progress small { color: var(--home-muted); font-size: 13px; }
 /* Stages as separate segments: done ones filled, the current one half-lit with a soft pulse, the rest empty. */
@@ -1234,7 +1234,7 @@ html[data-theme="dark"] .cabinet-next-thumb { border-color: var(--night-line); b
 .order-x-details { display: grid; margin: 0; }
 .order-x-details > div:last-child { border-bottom: 0; }
 .order-x-details dt { color: var(--home-muted); font-size: 14px; }
-.order-x-details dd { display: grid; justify-items: start; gap: 2px; margin: 0; overflow-wrap: anywhere; color: var(--home-ink); font-size: 14px; }
+.order-x-details dd { display: grid; justify-items: start; gap: 2px; margin: 0; overflow-wrap: anywhere; color: var(--home-ink); font-size: var(--fs-16); }
 .order-x-details small { color: var(--home-muted); font-size: 13px; }
 .order-x-id { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; font-weight: 700; }
 .order-x-details dd:has(.order-x-id) { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
@@ -1253,7 +1253,7 @@ html[data-theme="dark"] .cabinet-next-thumb { border-color: var(--night-line); b
 .order-x-agreements small { margin-left: auto; color: var(--home-muted); font-variant-numeric: tabular-nums; }
 
 .order-x-body .customer-warehouse-services, .order-x-body .order-documents, .order-x-more { border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); }
-.order-x-body .customer-warehouse-services > summary, .order-x-body .order-documents > summary, .order-x-more > summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; color: var(--home-ink); font-size: 14px; font-weight: 700; cursor: pointer; list-style: none; }
+.order-x-body .customer-warehouse-services > summary, .order-x-body .order-documents > summary, .order-x-more > summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; color: var(--home-ink); font-size: var(--fs-16); font-weight: 700; cursor: pointer; list-style: none; }
 .order-x-body .customer-warehouse-services > summary::-webkit-details-marker, .order-x-body .order-documents > summary::-webkit-details-marker, .order-x-more > summary::-webkit-details-marker { display: none; }
 .order-x-more > summary::after { content: "+"; color: var(--home-accent); font-size: 20px; font-weight: 400; }
 .order-x-more[open] > summary::after { content: "−"; }
@@ -1308,7 +1308,7 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .wallet-entries li:last-child { border-bottom: 0; }
 .wallet-entry-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-control); background: var(--home-soft); color: var(--home-muted); }
 .wallet-entry-icon.credit { background: var(--cx-ok-soft); color: var(--cx-ok); }
-.wallet-entries b { display: block; color: var(--home-ink); font-size: 14px; line-height: 1.35; }
+.wallet-entries b { display: block; color: var(--home-ink); font-size: var(--fs-16); line-height: 1.35; }
 .wallet-entries small { color: var(--home-muted); font-size: 13px; }
 .wallet-entries small a { display: inline-flex; align-items: center; min-height: 44px; margin: -12px 0; color: var(--home-accent); font-weight: 700; }
 .wallet-entries strong { color: var(--home-ink); font-size: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -1857,7 +1857,7 @@ html[data-theme="dark"] .cabinet-tiles a:hover { box-shadow: var(--shadow-3); }
 
 /* ---------- Order placed ---------- */
 .checkout-placed h1 { margin: 8px 0 0; font-size: clamp(24px, 3vw, 30px); line-height: 1.15; letter-spacing: -.02em; }
-.checkout-placed p { max-width: 40ch; margin: 0; color: var(--day-muted, var(--c-ink-2)); font-size: 14px; line-height: 1.5; }
+.checkout-placed p { max-width: 40ch; margin: 0; color: var(--day-muted, var(--c-ink-2)); font-size: var(--fs-16); line-height: 1.5; }
 .checkout-placed-mark { width: 72px; height: 72px; }
 .checkout-placed-mark circle { fill: var(--day-tint, var(--c-selected)); stroke: var(--day-ok, var(--c-ok)); stroke-width: 3; stroke-dasharray: 183; stroke-dashoffset: 183; transform: rotate(-90deg); transform-origin: center; animation: atlas-draw .6s cubic-bezier(.65, 0, .35, 1) .1s forwards; }
 .checkout-placed-mark path { fill: none; stroke: var(--day-ok, var(--c-ok)); stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: atlas-draw .4s cubic-bezier(.65, 0, .35, 1) .55s forwards; }
