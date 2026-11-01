@@ -8,7 +8,7 @@ import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight} from '@/lib/market/world';
 import {deliveryCopy} from '@/lib/market/delivery-copy';
 import {deliverySpeedCopy} from '@/lib/market/delivery-speed';
-import {tariffRows,type TariffRow} from '@/lib/market/home-facts';
+import {tariffRows,tariffUniformity,type TariffRow} from '@/lib/market/home-facts';
 import {formatKg,formatSum,formatUsd} from '@/lib/market/format';
 import {regionCountryCode} from '@/lib/market/store-geo';
 import {storeBrands,storeCountryNames} from '@/lib/market/store-brands';
@@ -33,12 +33,13 @@ export function DeliveryView(){
  const locale=state.communication.language as Locale;
  const c=deliveryCopy[locale],speed=deliverySpeedCopy[locale];
  const rows=tariffRows(pricing);
+ const uniform=tariffUniformity(rows);
  const allowance=formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale);
  const courier=siteContent.courierNote?pickLocale(siteContent.courierNote,locale):null;
  return <div className="delivery-page">
   <header className="delivery-head">
    <h1>{c.title}</h1>
-   <p>{c.lead}</p>
+   <p>{c.lead(uniform.samePrice,uniform.sameDays)}</p>
   </header>
 
   <section className="delivery-section" aria-labelledby="delivery-countries-title">

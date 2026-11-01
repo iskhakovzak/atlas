@@ -20,6 +20,20 @@ export function tariffRows(pricing: Pricing): TariffRow[] {
   });
 }
 
+/**
+ * Whether every region shows the same price per kg (each speed) and the same days (each speed; an unknown window counts
+ * as different). /delivery words its lead from this (owner, 2 November 2026): «своя цена у каждой страны» only while the
+ * tariff (pricing.countryOverrides) really prices a country apart.
+ */
+export function tariffUniformity(rows: TariffRow[]): { samePrice: boolean; sameDays: boolean } {
+  const same = <T>(values: T[]) => values.every((value) => value === values[0]);
+  const of = (speed: DeliverySpeed) => rows.map(row => row.options.find(option => option.speed === speed));
+  return {
+    samePrice: deliverySpeeds.every((speed: DeliverySpeed) => same(of(speed).map(option => option ? Math.round(option.usd * 100) : -1))),
+    sameDays: deliverySpeeds.every((speed: DeliverySpeed) => same(of(speed).map(option => option?.days ? option.days.join('-') : 'unknown'))),
+  };
+}
+
 /** Lowest and highest price per kg of a speed across the regions; null when no region has it. */
 export function speedPriceRange(rows: TariffRow[], speed: DeliverySpeed): { min: number; max: number } | null {
   const prices = rows.flatMap(row => row.options.filter(option => option.speed === speed).map(option => option.usd));
