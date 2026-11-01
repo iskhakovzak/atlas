@@ -72,13 +72,19 @@
   .delivery-page { gap: var(--space-6); padding-top: var(--space-4); }
   .delivery-head h1 { font-size: var(--fs-30); }
   .delivery-section > h2 { font-size: var(--fs-20); }
-  .delivery-countries { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
-  .delivery-country { padding: var(--space-4); gap: var(--space-3); }
-  /* Phones: the two speeds side by side, so six countries take half the scroll. */
+  /* Phones (review of stage 8): the countries are compact rows of one card — flag and name, then both speeds side by
+     side — so the calculator is not six full cards further down. */
+  .delivery-countries { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0 var(--space-4); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
+  .delivery-country { gap: var(--space-2); padding: var(--space-3) 0; border-top: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
+  .delivery-country:first-child { border-top: 0; }
+  .delivery-country header { gap: var(--space-2); }
+  .delivery-country header svg { width: 22px; }
+  .delivery-country h3 { font-size: var(--fs-16); }
   .delivery-country dl { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
-  .delivery-country dl > div { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: var(--space-3) 0 0; }
+  .delivery-country dl > div { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0; border-top: 0; }
+  .delivery-country dt { font-size: var(--fs-13); }
   .delivery-rate { grid-column: 1; grid-row: auto; text-align: left; }
-  .delivery-rate b { font-size: var(--fs-18); }
+  .delivery-rate b { font-size: var(--fs-16); }
   .delivery-card { padding: var(--space-5) var(--space-4); }
   .delivery-calc-fields { grid-template-columns: minmax(0, 1fr); }
 }

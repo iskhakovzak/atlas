@@ -565,6 +565,8 @@ html[data-theme="dark"] .pcard-save:not(.saved) { background-color: rgba(255, 25
 .store-about h2 { margin: 0; color: var(--text); font-size: var(--fs-24); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-title); }
 .store-about h3 { margin: 0 0 var(--space-1); color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); }
 .store-about-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
+/* A store with one storefront and no note has nothing for a second column: one card, at a reading width. */
+.store-about-grid.is-single { grid-template-columns: minmax(0, 760px); }
 .store-about-card { display: grid; gap: var(--space-3); justify-items: start; padding: var(--space-6); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
 .store-about-card > * { width: 100%; }
 .store-about-card > .text-link { width: auto; display: inline-flex; align-items: center; gap: var(--space-1); color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-semibold); }
@@ -605,7 +607,8 @@ html[data-theme="dark"] .pcard-save:not(.saved) { background-color: rgba(255, 25
   .catalog-stores-row :is(button, a) { width: 68px; min-height: 88px; }
   .catalog-stores-logo { width: 52px; height: 52px; }
   .catalog-stores-logo .store-logo { width: 44px !important; height: 44px !important; }
-  .store-head { gap: var(--space-3); margin: 0 0 var(--space-4); padding: var(--space-4); }
+  /* The breadcrumbs are hidden on phones: the card keeps a gap under the site header instead of touching it. */
+  .store-head { gap: var(--space-3); margin: var(--space-3) 0 var(--space-4); padding: var(--space-4); }
   .store-head-id { gap: var(--space-3); }
   .store-head-id > .store-logo { width: 52px !important; height: 52px !important; }
   .store-head h1 { font-size: var(--fs-24); }
@@ -622,6 +625,13 @@ html[data-theme="dark"] .pcard-save:not(.saved) { background-color: rgba(255, 25
   .store-about h2 { font-size: var(--fs-20); }
   .store-about-grid { grid-template-columns: minmax(0, 1fr); }
   .store-about-card { padding: var(--space-4); }
+  .store-about-grid.is-single { grid-template-columns: minmax(0, 1fr); }
 }
+/* Narrow phones: the paste button is its icon (the word stays its accessible name), so the link field keeps its width. */
+@media (max-width: 480px) {
+  .store-link .paste-button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+/* A store's own page is one store: the store mark on each card would repeat its header. */
+.store-page .pcard-store { display: none; }
 /* The dark theme gives every input a filled background (theme-night.css); the store field is one composite control. */
 html[data-theme="dark"] .store-link .store-link-field > input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) { border: 0; background: transparent; box-shadow: none; }

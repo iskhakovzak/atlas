@@ -18,7 +18,9 @@ const ru = {
   storesLink: 'Магазины страны',
   perKg: '/кг',
   pending: 'срок уточняется',
-  days: (min: number, max: number) => `${min}–${max} раб. дней`,
+  // Written out in full, as on the home rates table and in the store descriptions (review of stage 8: one form for prose;
+  // the abbreviated «раб. дней» stays only in compact controls such as the cart's speed switch and the store header chips).
+  days: (min: number, max: number) => `${min}–${max} ${ruPlural(max, ['рабочий день', 'рабочих дня', 'рабочих дней'])}`,
   limitTitle: (limit: string) => `Без пошлины до ${limit} в месяц`,
   limitText: (limit: string) => `Лимит считается на каждого получателя за календарный месяц. Сверх ${limit} — таможенный платёж; его сумму покажем в корзине до оплаты.`,
   limitLink: 'Как считается пошлина',

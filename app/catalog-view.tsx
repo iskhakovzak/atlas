@@ -14,7 +14,8 @@ import { catalogCopy, allowanceMonth } from '@/lib/market/catalog-copy';
 import { catalogAllowance } from '@/lib/market/allowance';
 import { courierAllowanceUsd } from '@/lib/market/customs';
 import { storeBrands } from '@/lib/market/store-brands';
-import { storeSlugOfHost } from '@/lib/market/store-pages';
+import { storeBySlug, storeSlugOfHost } from '@/lib/market/store-pages';
+import { storePath } from '@/lib/seo/routes';
 import { signalsFor } from '@/lib/market/catalog-signals';
 import { searchWords } from '@/lib/market/catalog-synonyms';
 import { browserStorage, clearRecentProducts, readRecentProducts, rememberRecentProduct, itemParam, pendingFavoriteToSave, productPath, takePendingFavorite, withoutItemParam } from '@/lib/market/catalog-links';
@@ -154,6 +155,8 @@ export function CatalogView({ mode, initial, lang, store }: { mode: 'catalog' | 
 
   const favorites = state.favorites;
   const storeSlug = store?.slug;
+  // On a store's page the search is inside that store: «Товар в Nike», not «товар, бренд или магазин».
+  const storeName = storeSlug ? storeBySlug(storeSlug)?.name : undefined;
   const allowance = ready ? catalogAllowance(state, pricing.fx) : null;
   const dutyLimitUsd = allowance?.remainingUsd ?? courierAllowanceUsd;
   // Everything that walks the products sits in one memo (a few thousand products, one pass per filter group): it reruns
@@ -260,7 +263,7 @@ export function CatalogView({ mode, initial, lang, store }: { mode: 'catalog' | 
     {/* One row: search, "Фильтры (N)" (a sheet below 1024 px) and the sort. Sticky on phones (app/styles/catalog-pages.css):
        a sibling of the page's blocks, not inside the toolbar section, so it stays stuck over the whole grid. */}
     {showControls && <div className="catalog-sticky" role="search" aria-label={cc.search} data-stuck={stuck || undefined}>
-        <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input id="catalog-search-input" type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={side === 'bottom' ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
+        <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input id="catalog-search-input" type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={storeName ? cc.searchInStore(storeName) : side === 'bottom' ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
         <button type="button" className="catalog-facets-button" aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={18} aria-hidden="true" /><span>{cc.filters}</span>{filterCount > 0 && <b aria-label={String(filterCount)}>{filterCount}</b>}</button>
         {/* A phone shows the sort as an icon over the native picker (the picker names the chosen order); a dot marks a changed one. */}
         <label className="catalog-sort" data-changed={query.sort !== 'best' || undefined}><span>{cc.sort}</span><ArrowDownUp size={18} aria-hidden="true" /><select value={query.sort} onChange={(event) => setQuery({ ...query, sort: event.target.value as CatalogSort })}>{(Object.keys(cc.sorts) as CatalogSort[]).map((sort) => <option key={sort} value={sort}>{cc.sorts[sort]}</option>)}</select></label>
@@ -304,7 +307,7 @@ export function CatalogView({ mode, initial, lang, store }: { mode: 'catalog' | 
           ? <CatalogMore shown={visible.length} total={list.length} per={query.per} href={pageHref(paged.page + 1)} onMore={() => { focusFrom.current = visible.length; setQueryState({ ...query, page: paged.page + 1 }); }} cc={cc} />
           : <CatalogPagination page={paged.page} pages={paged.pages} start={paged.start} end={paged.end} total={list.length} per={query.per} href={pageHref} onPage={setPage} onPer={(per) => setQuery({ ...query, per })} cc={cc} />)}
         {visible.length > 0 && <p className="finds-price-note">{copy.priceNote}</p>}
-        {status === 'guest' && mode === 'catalog' && <p className="finds-signin"><Link href="/login?return_to=%2Fcatalog"><Heart size={16} />{copy.signin}</Link></p>}
+        {status === 'guest' && mode === 'catalog' && <p className="finds-signin"><Link href={'/login?return_to=' + encodeURIComponent(storeSlug ? storePath(storeSlug) : '/catalog')}><Heart size={16} />{copy.signin}</Link></p>}
         {mode === 'catalog' && !store && catalogReady && <section className="catalog-end">
           <div><h2>{cc.endTitle}</h2><p>{cc.endText(storeCount)}</p></div>
           <div><Link className="btn primary" href="/order-by-link"><Link2 size={18} aria-hidden="true" />{cc.endLink}</Link><Link className="btn secondary" href="/stores"><Store size={18} aria-hidden="true" />{cc.endStores}</Link></div>

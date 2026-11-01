@@ -71,6 +71,8 @@ export type StoreCountryTerms = {
   region: DeliveryRegion | null;
   /** "5–9 раб. дней", or null without a region. */
   expressDays: string | null;
+  /** The express days as numbers (a description spells them out in full words), or null without a region. */
+  expressRange: readonly [number, number] | null;
   /** "$15,98/кг", or null without a region. */
   expressPerKg: string | null;
   standardDays: string | null;
@@ -85,7 +87,7 @@ export function storeCountryTerms(pricing: Pricing, code: StoreCountry, locale: 
   const { region, currency } = storeGeo[code];
   const copy = deliverySpeedCopy[locale];
   const currencySupported = Boolean(currency && pricing.rates[currency]);
-  if (!region) return { region: null, expressDays: null, expressPerKg: null, standardDays: null, standardPerKg: null, currency, currencySupported };
+  if (!region) return { region: null, expressDays: null, expressRange: null, expressPerKg: null, standardDays: null, standardPerKg: null, currency, currencySupported };
   const label = regionLabel(region);
   const days = (speed: 'express' | 'standard') => {
     const range = deliveryDaysFor(pricing, region, speed);
@@ -95,6 +97,7 @@ export function storeCountryTerms(pricing: Pricing, code: StoreCountry, locale: 
   return {
     region,
     expressDays: days('express'),
+    expressRange: deliveryDaysFor(pricing, region, 'express'),
     expressPerKg: perKg('express'),
     standardDays: days('standard'),
     standardPerKg: perKg('standard'),

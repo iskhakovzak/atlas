@@ -94,7 +94,7 @@ test('terms follow the tariff: admin windows and per-country rates, no digits wi
   assert.equal(storeCountryTerms(custom, 'de', 'ru').expressPerKg, '$15,98/кг');
 
   const fr = storeCountryTerms(tariff, 'fr', 'ru');
-  assert.deepEqual(fr, { region: null, expressDays: null, expressPerKg: null, standardDays: null, standardPerKg: null, currency: 'EUR', currencySupported: true });
+  assert.deepEqual(fr, { region: null, expressDays: null, expressRange: null, expressPerKg: null, standardDays: null, standardPerKg: null, currency: 'EUR', currencySupported: true });
   const se = storeCountryTerms(tariff, 'se', 'ru');
   assert.equal(se.region, null);
   assert.equal(se.currency, 'SEK');

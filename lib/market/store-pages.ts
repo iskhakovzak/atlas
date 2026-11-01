@@ -1,4 +1,5 @@
 import { brandForHost, popularBrandKeys, storeBrands, type StoreBrand } from './store-brands.ts';
+import { storePath } from '../seo/routes.ts';
 
 // Store pages (/stores/[slug], redesign stage 8, 1 November 2026): the slug is the brand key of the store directory
 // (lib/market/store-brands.ts), so amazon.com, amazon.de and amazon.co.jp share /stores/amazon.
@@ -31,10 +32,45 @@ export function storePageIndexable(brand: Pick<StoreBrand, 'key'>, catalogCount:
 export function catalogCountsBySlug(products: readonly { sourceUrl?: string; store?: string }[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const product of products) {
-    const slug = storeSlugOfHost(productHost(product));
+    const slug = productStoreSlug(product);
     if (slug) counts.set(slug, (counts.get(slug) ?? 0) + 1);
   }
   return counts;
+}
+
+/** The store a published product belongs to, by slug ('' for a host outside the store list). */
+export function productStoreSlug(product: { sourceUrl?: string; store?: string }): string {
+  return storeSlugOfHost(productHost(product));
+}
+
+/**
+ * The ids of one store's published products, in catalog order: the store page's CollectionPage lists them from the whole
+ * catalog, so it does not depend on whether the catalog fits into the HTML (review of stage 8, 1 November 2026).
+ */
+export function storeProductIds(products: readonly { id: string; sourceUrl?: string; store?: string }[], slug: string): string[] {
+  return products.filter((product) => productStoreSlug(product) === slug).map((product) => product.id);
+}
+
+/**
+ * The one address of a store page, for a request that reaches it another way (middleware.ts answers 308): an old
+ * `/stores?brand=nike` link (the store card it opened is now the page; `?lang` is kept, the directory's own filters are
+ * not) and a slug in another case or with stray characters (`/stores/NIKE`, a duplicate of `/stores/nike`). Null when the
+ * address is already the page's own or names no store (the page answers 404 itself).
+ */
+export function storePageRedirect(pathname: string, search: URLSearchParams): string | null {
+  if (pathname === '/stores') {
+    const named = search.get('brand');
+    const brand = named ? storeBySlug(named) : undefined;
+    if (!brand) return null;
+    const lang = search.get('lang');
+    return storePath(brand.key) + (lang ? '?lang=' + encodeURIComponent(lang) : '');
+  }
+  const match = /^\/stores\/([^/]+)$/.exec(pathname);
+  if (!match) return null;
+  const brand = storeBySlug(match[1]);
+  if (!brand || match[1] === brand.key) return null;
+  const query = search.toString();
+  return storePath(brand.key) + (query ? '?' + query : '');
 }
 
 /** The store host of a published product, as the catalog reads it (catalog-query.ts storeHost: the link's host, else `store`). */

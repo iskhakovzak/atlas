@@ -34,6 +34,8 @@ const pageText: Record<PublicPage, Record<Locale, { title: string; description: 
     ru: { title: 'Магазины США, Европы и Китая с доставкой в Ташкент', description: 'Магазины США, Европы, Китая и других стран: Atlas выкупит товар по вашей ссылке и доставит в Ташкент. Для каждого магазина — срок, цена за 1 кг и валюта.' },
     en: { title: 'US, EU and Chinese stores with delivery to Tashkent', description: 'Stores in the US, Europe, China and beyond: Atlas buys the item from your link and delivers it to Tashkent. Delivery time, price per kg and currency.' },
   }),
+  // The six countries are named by hand here; tests/store-pages.test.mjs keeps them equal to the page's own list
+  // (deliveryDescriptionRegions = the regions of tariffRows): a country added to the tariff fails the test until this text names it.
   delivery: /*@__PURE__*/withCyrillic({
     uz: { title: 'Toshkentga yetkazish: tariflar va muddatlar', description: 'AQSh, Britaniya, Xitoy, Germaniya, Italiya va Ispaniyadan Toshkentga yetkazish: 1 kg narxi, ekspress va oddiy muddat, bojsiz limit va kalkulyator.' },
     ru: { title: 'Доставка в Ташкент: тарифы и сроки по странам', description: 'Доставка из США, Великобритании, Китая, Германии, Италии и Испании в Ташкент: цена за 1 кг, сроки экспресс и обычной, беспошлинный лимит, калькулятор.' },
@@ -114,7 +116,7 @@ export function productMetadata(product: { id: string; name: string; brand?: str
 /** What a store page's description states: the delivery time from its country and its catalog count, both in the page language. */
 export type StoreFacts = { days: string | null; products: string | null };
 const storeText: Record<Locale, (name: string, domain: string, facts: StoreFacts) => { title: string; description: string }> = /*@__PURE__*/withCyrillic({
-  uz: (name, domain, { days, products }) => ({ title: `${name} — Toshkentga yetkazib berish`, description: `${domain} dan Toshkentga xarid${days ? `, yetkazish ${days}` : ''}: havolani qo‘ying va yakuniy narxni so‘mda ko‘ring.${products ? ` Atlas katalogida: ${products}.` : ''} Atlas tovarni sotib olib, Toshkentga yetkazadi.` }),
+  uz: (name, domain, { days, products }) => ({ title: `${name}: Toshkentga yetkazib berish`, description: `${domain} saytidan Toshkentga xarid${days ? `, yetkazish ${days}` : ''}: havolani qo‘ying va yakuniy narxni so‘mda ko‘ring.${products ? ` Atlas katalogida: ${products}.` : ''} Atlas tovarni sotib olib, Toshkentga yetkazadi.` }),
   ru: (name, domain, { days, products }) => ({ title: `${name} с доставкой в Ташкент`, description: `Покупки на ${domain} с доставкой в Ташкент${days ? ` за ${days}` : ''}: вставьте ссылку и узнайте итог в сумах.${products ? ` В каталоге Atlas: ${products}.` : ''} Atlas выкупит товар и привезёт его в Ташкент.` }),
   en: (name, domain, { days, products }) => ({ title: `${name} with delivery to Tashkent`, description: `Shop ${domain} with delivery to Tashkent${days ? ` in ${days}` : ''}: paste a link and see the total in soum.${products ? ` In the Atlas catalog: ${products}.` : ''} Atlas buys the item and brings it to Tashkent.` }),
 });
@@ -173,3 +175,6 @@ export function rootMetadata(locale: Locale, codes: SiteVerification = {}): Meta
     appleWebApp: { capable: true, title: 'Atlas', statusBarStyle: 'default' },
   };
 }
+
+/** The dispatch countries the /delivery description names, in its order: the same list the page prints (tariffRows). */
+export const deliveryDescriptionRegions = ['us', 'uk', 'cn', 'de', 'it', 'es'] as const;

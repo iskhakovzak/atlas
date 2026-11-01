@@ -84,7 +84,7 @@ function StoreLinkBox({ slug, domain, label }: { slug: string; domain: string; l
     <label htmlFor={id} className="store-link-label">{label}</label>
     <div className="store-link-row">
       <span className="store-link-field"><Link2 size={20} aria-hidden="true" />
-        <input id={id} type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.dialogPaste(domain)} aria-invalid={!!error} aria-describedby={error ? id + '-error' : undefined} onChange={(event) => { setUrl(event.target.value); setError(''); }} />
+        <input id={id} type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.linkFrom(domain)} aria-invalid={!!error} aria-describedby={error ? id + '-error' : undefined} onChange={(event) => { setUrl(event.target.value); setError(''); }} />
         <PasteButton targetId={id} locale={state.communication.language} onPaste={(text) => { setUrl(text); setError(''); }} />
       </span>
       <button type="submit" className="btn primary"><span className="store-link-go">{c.calculate}</span><ArrowRight size={18} aria-hidden="true" /></button>
@@ -103,7 +103,7 @@ export function StoreAbout({ slug }: { slug: string }) {
   const locale = state.communication.language as Locale;
   const brand = storeBySlug(slug);
   if (!brand) return null;
-  const c = storesCopy[locale], speed = deliverySpeedCopy[locale];
+  const c = storesCopy[locale];
   const main = brand.storefronts[0];
   const t = storeCountryTerms(pricing, main.country, locale);
   const allowanceUsd = allowanceToday(pricing);
@@ -111,33 +111,37 @@ export function StoreAbout({ slug }: { slug: string }) {
   const note = storeNote(brand.key, locale, { days: t.expressDays, limit: formatUsd(allowanceUsd, locale) });
   const similar = storeBrands.filter((other) => other.focus === brand.focus && other.key !== brand.key)
     .sort((a, b) => Number(b.country === brand.country) - Number(a.country === brand.country) || byRank(a, b)).slice(0, 8);
+  const fronts = brand.storefronts.length > 1;
+  const howto = <details className="store-about-howto"><summary>{c.howtoTitle}<ChevronDown size={18} aria-hidden="true" /></summary>
+    <ul>{c.howto.map(([device, hint]) => <li key={device}><b>{device}</b><span>{hint}</span></li>)}</ul>
+  </details>;
+  // One storefront and no note leave only "how to copy a link" for a second column: it joins the terms card instead
+  // (review of stage 8: a lone folded row beside a long table). The days and price per kg are in the header above.
+  const single = !fronts && !note;
   return <section className="store-about" aria-labelledby="store-about-title">
     <h2 id="store-about-title">{c.pageAbout(brand.name)}</h2>
-    <div className="store-about-grid">
+    <div className={'store-about-grid' + (single ? ' is-single' : '')}>
       <div className="store-about-card">
         <h3>{t.region ? c.termsTitle(c.fromCountry[t.region]) : c.termsGeneric}</h3>
         {t.region ? <dl>
-          <div><dt>{speed.names.express}</dt><dd>{t.expressDays ?? c.pendingTerms} · {t.expressPerKg}</dd></div>
-          <div><dt>{speed.names.standard}</dt><dd>{t.standardDays ?? c.pendingTerms} · {t.standardPerKg}</dd></div>
           <div><dt>{c.termsLabels.weight}</dt><dd>{c.minParcel}</dd></div>
           <div><dt>{c.termsLabels.storeShipping}</dt><dd>{c.storeShippingRule(formatUsd(freeFromUsd, locale), formatUsd(unknownStoreShippingUsd, locale))}</dd></div>
           <div><dt>{c.termsLabels.customs}</dt><dd>{c.dutyLimit(formatUsd(allowanceUsd, locale))}</dd></div>
         </dl> : <p>{c.termsPending}</p>}
         {!t.currencySupported && t.currency && <p className="store-about-warn">{c.currencyUnsupported(t.currency)}</p>}
         <Link className="text-link" href="/delivery">{routeDelivery(locale)}<ArrowRight size={16} aria-hidden="true" /></Link>
+        {single && howto}
       </div>
-      <div className="store-about-card">
-        {brand.storefronts.length > 1 && <>
+      {!single && <div className="store-about-card">
+        {fronts && <>
           <h3>{c.storefronts}</h3>
           <ul className="store-about-fronts">{brand.storefronts.map((front) => <li key={front.root}>
             <a href={storefrontUrl(front.root)} target="_blank" rel="noopener noreferrer"><CountryFlag code={front.country} /><span>{storeCountryNames[front.country][locale]}</span><small>{front.root}</small><ArrowUpRight size={16} aria-hidden="true" /><span className="sr-only"> ({c.newTab})</span></a>
           </li>)}</ul>
         </>}
         {note && <p className="store-about-note"><Info size={18} aria-hidden="true" /><span>{note}</span></p>}
-        <details className="store-about-howto"><summary>{c.howtoTitle}<ChevronDown size={18} aria-hidden="true" /></summary>
-          <ul>{c.howto.map(([device, hint]) => <li key={device}><b>{device}</b><span>{hint}</span></li>)}</ul>
-        </details>
-      </div>
+        {howto}
+      </div>}
     </div>
     {similar.length > 0 && <nav className="store-about-similar" aria-labelledby="store-similar-title">
       <h3 id="store-similar-title">{c.similar}</h3>

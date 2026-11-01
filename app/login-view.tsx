@@ -140,8 +140,10 @@ export function LoginView(){
   {error&&<div className="notice error" role="alert">{error}</div>}
   {!methods&&!failed&&<div className="login-skeleton" role="status"><span className="sr-only">{c.loading}</span><i aria-hidden="true"/><b aria-hidden="true"/><i aria-hidden="true"/><i aria-hidden="true"/></div>}
   {(failed||(methods&&!tabs.length))&&<div className="notice" role="status">{c.none}</div>}
-  {/* Every method in view, each one the same row (stage 8, 1 November 2026: the visitor picks any, none is pushed);
-      Telegram keeps its own blue button on top. Phone and email open their form, Google and Apple their flow. */}
+  {/* Every method in view. When Telegram sign-in is on it stays the one blue button on top (the main way to sign in, as
+      before stage 8), then «или»; phone, email, Google and Apple are equal rows under it, none filled (stage 8,
+      1 November 2026). Without Telegram only the equal rows remain. Phone and email open their form, Google and Apple
+      their flow. */}
   {methods&&(tab===null||tab==='telegram'||tab==='google'||tab==='apple')?<div className="login-panel">
    {methods.telegram&&(methods.telegramBot?<TelegramBotLogin locale={locale} onDone={done} onError={showError}/>:<TelegramLogin bot={methods.telegram} hint={c.telegramHint} onDone={done} onError={showError}/>)}
    {methods.telegram&&tabs.length>1&&<div className="login-or" role="separator"><span>{w.or}</span></div>}

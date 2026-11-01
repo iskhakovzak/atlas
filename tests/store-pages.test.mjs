@@ -2,9 +2,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { catalogCountsBySlug, storeBySlug, storePageIndexable, storeSlugOfHost } from '../lib/market/store-pages.ts';
+import { catalogCountsBySlug, storeBySlug, storePageIndexable, storePageRedirect, storeProductIds, storeSlugOfHost } from '../lib/market/store-pages.ts';
 import { popularBrandKeys, storeBrands } from '../lib/market/store-brands.ts';
-import { storeMetadata, publicMetadata } from '../app/route-metadata.ts';
+import { storeMetadata, publicMetadata, deliveryDescriptionRegions } from '../app/route-metadata.ts';
 import { tariffRows } from '../lib/market/home-facts.ts';
 import { tariff } from '../lib/market/domain.ts';
 import { deliveryCopy } from '../lib/market/delivery-copy.ts';
@@ -82,4 +82,60 @@ test('a store page without catalog products is only its header: no empty grid', 
   assert.match(view, /const storeEmpty = Boolean\(store\) && \(catalogReady \? pool\.length === 0 : store\?\.count === 0\);/);
   assert.match(view, /\{!storeEmpty && <div className=\{'catalog-layout'/);
   assert.match(view, /mode === 'catalog' && !store && <CatalogStoreRow/);
+});
+
+// Review of stage 8 (1 November 2026).
+test('old ?brand= links and another case reach the store page by a server redirect (middleware 308)', () => {
+  const q = (text) => new URLSearchParams(text);
+  assert.equal(storePageRedirect('/stores', q('brand=nike')), '/stores/nike');
+  assert.equal(storePageRedirect('/stores', q('brand=NIKE&lang=ru&focus=shoes')), '/stores/nike?lang=ru', 'the language is kept, the directory filters are not');
+  assert.equal(storePageRedirect('/stores', q('brand=no-such-store')), null, 'an unknown brand stays on the directory');
+  assert.equal(storePageRedirect('/stores', q('focus=shoes')), null);
+  assert.equal(storePageRedirect('/stores/NIKE', q('lang=en&cat=shoes')), '/stores/nike?lang=en&cat=shoes');
+  assert.equal(storePageRedirect('/stores/nike', q('lang=en')), null, 'the page’s own address');
+  assert.equal(storePageRedirect('/stores/no-such-store', q('')), null, 'an unknown store answers 404 itself');
+  assert.equal(storePageRedirect('/stores/nike/extra', q('')), null);
+  const middleware = source('middleware.ts');
+  assert.match(middleware, /const store = storePageRedirect\(request\.nextUrl\.pathname, request\.nextUrl\.searchParams\);\n    if \(store\) return NextResponse\.redirect\(new URL\(store, request\.nextUrl\.origin\), 308\);/);
+});
+
+test('a store’s products are listed from the whole catalog, in its order', () => {
+  const products = [{ id: 'a', sourceUrl: 'https://www.nike.com/t/a' }, { id: 'b', sourceUrl: 'https://amazon.de/x' }, { id: 'c', store: 'nike.com' }];
+  assert.deepEqual(storeProductIds(products, 'nike'), ['a', 'c']);
+  assert.deepEqual(storeProductIds(products, 'zara'), []);
+});
+
+test('a failed catalog read does not turn a store page noindex', () => {
+  const page = source('app/stores/[slug]/page.tsx');
+  assert.match(page, /const indexable = counts === null \|\| storePageIndexable\(brand, count\);/);
+  // The description writes the days out in full, as the home rates table does.
+  assert.match(page, /days: range \? deliveryCopy\[shown\]\.days\(range\[0\], range\[1\]\) : null/);
+  assert.equal(deliveryCopy.ru.days(5, 9), '5–9 рабочих дней');
+  assert.equal(deliveryCopy.ru.days(2, 3), '2–3 рабочих дня');
+});
+
+test('the /delivery description names the countries the page lists', () => {
+  assert.deepEqual(tariffRows(tariff).map((row) => row.region.id), [...deliveryDescriptionRegions]);
+});
+
+test('Uzbek store title and copy: one title shape, «saytidan» after a domain', () => {
+  const meta = storeMetadata({ slug: 'nike', name: 'Nike', domain: 'nike.com' }, () => ({ days: null, products: null }), true, 'uz', 'uz');
+  assert.equal(meta.title, 'Nike: Toshkentga yetkazib berish');
+  assert.equal(storesCopy.uz.pageTitle('Nike'), meta.title);
+  assert.match(meta.description, /^nike\.com saytidan /);
+  for (const text of [storesCopy.uz.linkFrom('nike.com'), storesCopy.uz.pageMissing('nike.com'), storesCopy.uz.pageEmpty('nike.com')]) assert.doesNotMatch(text, /nike\.com d(an|agi)/, text);
+});
+
+test('store page details: short field on phones, one column without a second card, return to the store after sign-in', () => {
+  const css = source('app/styles/catalog-pages.css');
+  assert.match(css, /@media \(max-width: 480px\) \{\n  \.store-link \.paste-button > span \{ position: absolute;/);
+  assert.match(css, /\.store-page \.pcard-store \{ display: none; \}/);
+  assert.match(css, /\.store-about-grid\.is-single \{ grid-template-columns: minmax\(0, 760px\); \}/);
+  const about = source('app/store-page.tsx');
+  assert.match(about, /const single = !fronts && !note;/);
+  assert.doesNotMatch(about, /<dt>\{speed\.names\.express\}<\/dt>/, 'the days and price per kg are only in the header');
+  assert.equal(storesCopy.ru.linkFrom('zara.com'), 'Ссылка с zara.com');
+  const view = source('app/catalog-view.tsx');
+  assert.match(view, /'\/login\?return_to=' \+ encodeURIComponent\(storeSlug \? storePath\(storeSlug\) : '\/catalog'\)/);
+  assert.match(view, /storeName \? cc\.searchInStore\(storeName\)/);
 });
