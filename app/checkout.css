@@ -6,14 +6,15 @@
  */
 
 /* ---------- Page and layout ---------- */
-.co-page { width: min(1120px, 100%); margin: 0 auto; padding: var(--space-4) 0 var(--space-10); color: var(--text); }
+.co-page { padding: var(--space-4) 0 var(--space-10); color: var(--text); }
 /* The pinned pay bar never covers the end of the page or the footer. */
 main.site-main[data-view="checkout"]:has(.co-paybar) { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
 .co-head { display: grid; gap: var(--space-2); margin-bottom: var(--space-5); }
 .co-head h1 { margin: 0; font-size: var(--fs-30); font-weight: var(--fw-bold); line-height: var(--lh-tight); letter-spacing: var(--tracking-title); }
 .co-back { display: inline-flex; align-items: center; gap: 6px; justify-self: start; min-height: 44px; color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-medium); text-decoration: none; }
 .co-back:hover { text-decoration: underline; text-underline-offset: 3px; }
-.co-layout { display: grid; grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr); gap: var(--space-6); align-items: start; }
+/* The cart's grid (.basket-layout): the page's own left edge, a 380 px summary column. */
+.co-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--space-6); align-items: start; }
 .co-main { display: grid; gap: var(--space-4); min-width: 0; }
 
 /* ---------- Numbered blocks ---------- */

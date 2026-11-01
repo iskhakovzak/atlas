@@ -209,7 +209,7 @@ html[data-theme="dark"] .home-main .home-trust-icon { color: var(--link); }
   .home-main .home-hero-lead { font-size: var(--fs-18); }
   .home-main .home-rail-head h2 { font-size: var(--fs-20); }
   .home-main .home-rail-head p { display: block; }
-  .home-main .home-rail-track { grid-auto-columns: calc((100% - 3 * var(--space-4)) / 4); gap: var(--space-4); margin-inline: 0; padding-inline: 2px; scroll-padding-inline: 0; }
+  .home-main .home-rail-track { grid-auto-columns: calc((100% - 3 * var(--space-4)) / 4); gap: var(--space-4); margin-inline: -2px; padding-inline: 2px; scroll-padding-inline: 2px; }
   .home-main .home-section { padding-block: var(--space-10); }
   .home-main .home-section > h2 { font-size: var(--fs-30); }
   .home-main .home-steps, .home-main .home-trust-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }

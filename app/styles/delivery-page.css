@@ -61,7 +61,7 @@
 .delivery-calc-empty { color: var(--danger); }
 .delivery-calc-cta { width: 100%; min-height: var(--h-md); justify-content: center; }
 
-.delivery-note { display: flex; gap: var(--space-2); max-width: 860px; margin: 0; color: var(--text-2); font-size: var(--fs-13); line-height: var(--lh-body); }
+.delivery-note { display: flex; gap: var(--space-2); max-width: 72ch; margin: 0; color: var(--text-2); font-size: var(--fs-13); line-height: var(--lh-body); }
 .delivery-note svg { flex: none; margin-top: 2px; }
 
 @media (max-width: 1100px) {

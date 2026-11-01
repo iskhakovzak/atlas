@@ -157,7 +157,7 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
 .shell-attention-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .shell-attention svg { flex: none; }
 /* Its text starts where the header's logo does (layout-desktop.css: the header's padding-inline), not 10 px left of it. */
-@media (min-width: 761px) { .shell-attention { padding-inline: max(clamp(20px, 4.7vw, 72px), calc((100% - 1500px) / 2 + 72px)); } }
+@media (min-width: 761px) { .shell-attention { padding-left: max(var(--gutter), calc((100% - 1500px) / 2 + 72px), env(safe-area-inset-left)); padding-right: max(var(--gutter), calc((100% - 1500px) / 2 + 72px), env(safe-area-inset-right)); } }
 @media (max-width: 760px) { .shell-attention { padding: 0 16px; font-size: var(--fs-13); } }
 
 /* A product under the catalog: its long name ends the breadcrumb on one line (app/marketplace.tsx `crumb`). */

@@ -5,7 +5,7 @@
 /* ── app/home.css ── */
 /* The header's edges line up with the page content (site-main: max 1500px, padding clamp(20px, 4.7vw, 72px)). */
 @media (min-width: 761px) {
-  html .site-header { padding-inline: max(clamp(20px, 4.7vw, 72px), calc((100% - 1500px) / 2 + 72px)); }
+  html .site-header { padding-left: max(var(--gutter), calc((100% - 1500px) / 2 + 72px), env(safe-area-inset-left)); padding-right: max(var(--gutter), calc((100% - 1500px) / 2 + 72px), env(safe-area-inset-right)); }
 }
 /* Wide screens: the title on top, the questions in two columns as wide as the other sections (their container sets it). */
 @media (min-width: 1024px) {
@@ -16,13 +16,19 @@
 /* Compact: brand + tagline on the left, link groups on the right, one bottom line. Groups are a flex row, so a
    missing contacts group leaves no empty column. */
 @media (min-width: 761px) {
-  .home-footer { grid-template-columns: minmax(200px, 1fr) auto; column-gap: 48px; align-items: start; }
+  .home-footer { grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr); column-gap: 48px; align-items: start; }
   /* Each group is one aligned row: a fixed title column, then its links in a line. */
   .home-footer-groups { grid-column: 2; display: grid; gap: 6px; align-content: start; }
   .home-footer-groups > * { display: grid; grid-template-columns: 180px minmax(0, 1fr); column-gap: 24px; align-items: baseline; min-width: 0; }
   .home-footer-groups .home-footer-title { margin: 0; padding-top: 12px; }
   .home-footer :is(nav, section) ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
   .home-footer-bottom { grid-column: 1 / -1; }
+}
+/* Tablets: the brand on top, the groups under it at the full width (no squeezed pairs of links). */
+@media (min-width: 761px) and (max-width: 1023px) {
+  .home-footer { grid-template-columns: minmax(0, 1fr); }
+  .home-footer-groups { grid-column: 1; }
+  .home-footer-groups > * { grid-template-columns: 160px minmax(0, 1fr); }
 }
 
 /* ── app/customer.css ── */

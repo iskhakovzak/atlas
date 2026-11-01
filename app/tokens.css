@@ -96,6 +96,9 @@
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px;
   --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px; --space-16: 64px;
 
+  /* Page gutter from 601 px: the header, the content and the footer share it (a notch inset wins in landscape). */
+  --gutter: clamp(20px, 4.7vw, 72px);
+
   /* Control heights */
   --h-sm: 40px; --h-md: 48px; --h-lg: 56px;
 

@@ -9,7 +9,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline:3px solid #
 
 /* Commerce direction A: shared scale and a calmer shopping surface. */
 body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
-.site-main{max-width:1500px;padding-inline:clamp(20px,4.7vw,72px)}
+.site-main{max-width:1500px;padding-left:max(var(--gutter),env(safe-area-inset-left));padding-right:max(var(--gutter),env(safe-area-inset-right))}
 .site-header{min-height:80px;border-bottom:1px solid var(--atlas-line);box-shadow:none}
 .eyebrow{color:var(--c-ink-2);font-size:var(--atlas-type-meta);letter-spacing:.02em}
 .page-heading h1{font-size:var(--atlas-type-page);line-height:1.08;letter-spacing:-.02em}
