@@ -40,6 +40,8 @@ export type ProductDetailCopy = {
   datedNote: (date: string) => string;
   checkPrice: string;
   approx: string;
+  /** The bottom bar's label over a dated card's estimate ("≈" before the sum). */
+  approxTotal: string;
 };
 
 export const productDetailCopy: Record<Locale, ProductDetailCopy> = /*@__PURE__*/withCyrillic({
@@ -73,6 +75,7 @@ export const productDetailCopy: Record<Locale, ProductDetailCopy> = /*@__PURE__*
     datedNote: date => `Цена на ${date}. Сверим её и варианты с магазином — это несколько секунд.`,
     checkPrice: 'Сверить цену',
     approx: 'около',
+    approxTotal: 'Примерная сумма',
   },
   uz: {
     toTashkent: 'Toshkentgacha, hammasi kiritilgan',
@@ -104,6 +107,7 @@ export const productDetailCopy: Record<Locale, ProductDetailCopy> = /*@__PURE__*
     datedNote: date => `Narx ${date} holatiga. Uni va variantlarni do‘kon bilan tekshiramiz — bir necha soniya.`,
     checkPrice: 'Narxni tekshirish',
     approx: 'taxminan',
+    approxTotal: 'Taxminiy summa',
   },
   en: {
     toTashkent: 'to Tashkent, all included',
@@ -135,5 +139,6 @@ export const productDetailCopy: Record<Locale, ProductDetailCopy> = /*@__PURE__*
     datedNote: date => `Price as of ${date}. We’ll check it and the options with the store — a few seconds.`,
     checkPrice: 'Check the price',
     approx: 'about',
+    approxTotal: 'Estimated total',
   },
 });

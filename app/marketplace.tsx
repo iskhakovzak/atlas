@@ -90,7 +90,8 @@ function HeaderSearch({nav}:{nav:NavCopy}){
   </form>;
 }
 
-export default function Marketplace({view,children}:{view:string;children?:ReactNode}) {
+/** `crumb`: a page under its section (a catalog product): the breadcrumb then reads Home / section / this page. */
+export default function Marketplace({view,children,crumb}:{view:string;children?:ReactNode;crumb?:string}) {
   const {state,ready,status,error,user,refresh,setLocale,sessionHint,siteContent}=useMarket();
   const supportBot=siteContent.contacts.telegramSupport;
   const {theme}=useTheme();
@@ -176,7 +177,7 @@ export default function Marketplace({view,children}:{view:string;children?:React
   {view==='catalog'&&<HomeRailSlot/>}{view==='catalog'&&<HomeMagnet/>}
   <CartAnnouncer count={count} ready={ready} locale={locale}/>
   {/* Phones hide the breadcrumb (app/shell.css); its JSON-LD stays for search engines. */}
-  <main className={view==='catalog'?'site-main catalog-home':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span><span aria-current="page">{routeTitle(state.communication.language,view)}</span></nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
+  <main className={view==='catalog'?'site-main catalog-home':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span>{crumb&&publicViewPaths[view]?<><Link href={publicViewPaths[view]}>{routeTitle(state.communication.language,view)}</Link><span aria-hidden="true">/</span><span className="breadcrumb-leaf" aria-current="page">{crumb}</span></>:<span aria-current="page">{routeTitle(state.communication.language,view)}</span>}</nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
   <AccessView view={view}>{children}</AccessView>
    {/* Home: the closing call and the footer share the last sheet (app/home-chapters.css). */}
    {view==='catalog'?<div className="home-end" data-chapter="end"><Suspense fallback={null}><HomeClosing/></Suspense><SiteFooter/></div>:<SiteFooter/>}

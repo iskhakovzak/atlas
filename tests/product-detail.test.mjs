@@ -43,6 +43,11 @@ test('the product page address, its metadata and its JSON-LD', () => {
   assert.equal(ld.offers.availability, undefined, 'stock is never promised');
   assert.equal(ld.aggregateRating, undefined);
   assert.equal(productLd({ id: 'x', name: 'X', images: [] }, 'uz').offers, undefined);
+  // Without a requested language the address is the canonical one, without ?lang; a photo is listed once.
+  const plain = productLd({ id: 'find-1', name: 'Matte Lip Kit', images: ['https://cdn.example/a.jpg', 'https://cdn.example/a.jpg', 'https://cdn.example/b.jpg'], totalSoum: 1 });
+  assert.equal(plain['@id'], 'https://atlasmarket.uz/catalog/p/find-1');
+  assert.equal(plain.offers.url, 'https://atlasmarket.uz/catalog/p/find-1');
+  assert.deepEqual(plain.image, ['https://cdn.example/a.jpg', 'https://cdn.example/b.jpg']);
 });
 
 test('the product page copy exists in every language, Uzbek "dan" after the sum', () => {
@@ -86,4 +91,27 @@ test('wiring: the catalog opens the shared product page in place, without asking
   const page = source('app/catalog/p/[id]/page.tsx');
   assert.match(page, /if \(!found\) notFound\(\);/);
   assert.match(page, /<ProductOrder mode="catalog" product=\{product\} \/>/);
+});
+
+test('review fixes: a browsed catalog card leaves no draft, the dated sum is an estimate, the brand is clean, a guest can save', () => {
+  const engine = source('app/global-link-order.tsx');
+  // A catalog card's draft is written only after an add was tried (or one was left by an earlier try).
+  assert.match(engine, /if\(catalogMode&&addTriedFor!==draftKey&&!draftRestored\.current\)return;/);
+  assert.match(engine, /if \(catalogMode\) setAddTriedFor\(draftKey\);/);
+  // The bottom bar names a dated sum as an estimate, with "≈".
+  assert.match(engine, /datedSums \? pd\.approxTotal : heroFrom/);
+  assert.match(engine, /\(datedSums \? "≈ " : ""\) \+ formatSum\(heroTotal, lang\)/);
+  // The brand line goes through displayBrand, as on the catalog card.
+  assert.match(engine, /displayBrand\(brand, storeName,/);
+  assert.match(engine, /<p className="pd-brand">\{brandLine\}<\/p>/);
+  // A guest's heart signs in and saves the card afterwards.
+  assert.match(engine, /rememberPendingFavorite\(catalogStorage\(\), guestFavoriteId, Date\.now\(\)\)/);
+  assert.match(engine, /loginPath\(catalogItemHref\("\/catalog", guestFavoriteId\)\)/);
+  const css = source('app/styles/link-pages.css');
+  assert.match(css, /\.pd-dated \{ display: grid;/);
+  assert.match(css, /\.pd-in-sheet \.pd-dated \.btn \{ display: none; \}/);
+  for (const locale of ['ru', 'uz', 'oz', 'en']) assert.ok(productDetailCopy[locale].approxTotal, locale);
+  const page = source('app/catalog/p/[id]/page.tsx');
+  assert.match(page, /const findProduct = cache\(/, 'one catalog read per request');
+  assert.match(page, /<Marketplace view="products" crumb=\{product\.name\}>/);
 });

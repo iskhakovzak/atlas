@@ -373,7 +373,6 @@ html[data-theme="dark"] .lo-page .lo-guest { background: none; }
 .lo-speed-label { color: var(--home-muted); font-size: 13px; }
 .lo-speed-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border: 1px solid var(--home-line); border-radius: var(--r-pill); background: var(--home-surface); color: var(--home-ink); font-size: 13px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .lo-speed-chip .speed-option-star { margin: 0 0 0 4px; }
-.lo-speed-days { white-space: pre; }
 .lo-speed small { flex-basis: 100%; color: var(--home-muted); font-size: 12px; line-height: 1.45; }
 html[data-theme="dark"] .lo-speed-chip { border-color: var(--night-line); background: var(--night-surface); color: var(--night-ink); }
 /* "To pay, from": the lowest-priced option until one is chosen; the amount stays whole, "from" lives in the label. */
@@ -1341,6 +1340,14 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 .lo-page .pd-confirm .lo-cta-row.has-cart .btn { width: auto; flex: 1; }
 @media (max-width: 760px) { .lo-page .pd-confirm .lo-cta-row { display: none; } }
 .pd-in-sheet .pd-confirm .lo-cta-row { display: none; }
+/* A dated catalog card: the note on a quiet panel, the icon beside the text; its "Сверить цену" button only where the
+   page has no bottom bar (wide pages), as the add button above. */
+.pd-dated { display: grid; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--r-control); background-color: var(--sunken); }
+.pd-dated p { display: flex; gap: 8px; margin: 0; color: var(--text-2); font-size: var(--fs-14); line-height: var(--lh-snug); }
+.pd-dated svg { flex: none; margin-top: 2px; color: var(--link); }
+.lo-page .pd-dated .btn { justify-self: start; min-height: var(--h-md); }
+@media (max-width: 760px) { .lo-page .pd-dated .btn { display: none; } }
+.pd-in-sheet .pd-dated .btn { display: none; }
 .lo-page .pd-confirm:not(:has(> *:not(.lo-cta-row))) { display: none; }
 @media (min-width: 761px) { .lo-page:not(.pd-in-sheet) .pd-confirm:not(:has(> *:not(.lo-cta-row))) { display: grid; } }
 
@@ -1348,14 +1355,15 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 .lo-page .pd-section > h2 { margin: 0; color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: -.01em; }
 .pd-about-text { margin: 0; color: var(--text); font-size: var(--fs-14); line-height: var(--lh-body); white-space: pre-line; overflow-wrap: anywhere; }
 .pd-about-text.muted { color: var(--text-2); }
-.pd-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3) var(--space-4); margin: 0; }
-.pd-facts > div { display: grid; gap: 2px; min-width: 0; margin: 0; padding: 0; border: 0; }
-.pd-facts dt { color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-medium); }
-.pd-facts dd { margin: 0; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-medium); line-height: var(--lh-snug); text-align: left; white-space: normal; overflow-wrap: anywhere; }
 .lo-page .pd-source { display: inline-flex; align-items: center; gap: 6px; width: fit-content; min-height: 40px; color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-semibold); }
 .lo-page .pd-section .lo-data { margin: 0; }
 .lo-page .pd-section .basket-assurance { margin: 0; }
 .lo-page .pd-section .lo-speed { margin: 0; }
+/* Touch targets on phones: the heart and the store link are 44 px (the sheet's "×" below). */
+@media (max-width: 760px) {
+  .pd-name-row .lo-save { width: 44px; height: 44px; }
+  .lo-page .pd-source { min-height: 44px; }
+}
 
 /* The total bar. On the page it is .basket-sticky (fixed over the bottom menu on phones); in the sheet it sticks to the
    sheet's foot on every screen and carries the add button there. */
@@ -1381,3 +1389,4 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 .pd-sheet-actions { position: sticky; top: 0; z-index: 5; height: 0; }
 .pd-sheet-actions .sheet-close { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--r-pill); background-color: var(--surface); color: var(--text); box-shadow: var(--shadow-2); }
 .product-sheet.pd-sheet.product-sheet-bottom .pd-sheet-actions .sheet-close { top: 4px; }
+@media (max-width: 760px) { .pd-sheet-actions .sheet-close { width: 44px; height: 44px; } }

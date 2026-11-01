@@ -53,7 +53,10 @@ import { daysRangeFor, deliverySpeedCopy, fasterText } from "@/lib/market/delive
 import { countries, currencies, currencyForCountry, toUsd, paddedWeight, packagingKg } from "@/lib/market/world";
 import { describeSingleColorway } from "@/lib/market/variant-colorway";
 import { compareSizes } from "@/lib/market/size-order";
-import { heroStores, storeBrands, storefrontUrl } from "@/lib/market/store-brands";
+import { brandForHost, heroStores, storeBrands, storefrontLabel, storefrontUrl } from "@/lib/market/store-brands";
+import { displayBrand } from "@/lib/market/product-name";
+import { browserStorage as catalogStorage, catalogItemHref, rememberPendingFavorite } from "@/lib/market/catalog-links";
+import { loginPath } from "@/lib/auth/return-to";
 import { dealCopy } from "@/lib/market/deal-copy";
 import { StoreLogo } from "./store-logo";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
@@ -72,7 +75,7 @@ import {
   type ProductColorwayGallery,
 } from "@/lib/importer/extract";
 import { WasPrice } from "./market-ui";
-import { formatKg, formatSum } from "@/lib/market/format";
+import { formatKg, formatPriceUsd, formatSum } from "@/lib/market/format";
 import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-copy";
 import { extractSharedLink } from "@/lib/market/shared-link";
 import {PasteButton} from '@/components/paste-button';
@@ -447,6 +450,9 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   const draftRestored=useRef(false),draftCanSkipAutomaticLoad=useRef(false),draftPersistenceReady=useRef(false),prunedFor=useRef("");
   // The customer's choice to apply again once the product is (re)loaded: a stale draft, a price change, a guest add after sign-in.
   const reapply=useRef<DraftChoices|null>(null);
+  // Looking at a catalog card (the sheet or /catalog/p/[id]) is not an unfinished order: its draft is kept only once the
+  // customer tried to add it (or an earlier try left one), so /order-by-link never brings back a card only browsed.
+  const [addTriedFor,setAddTriedFor]=useState("");
 
   useEffect(()=>{
     let active=true;
@@ -520,6 +526,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
     // Not while the store is asked or a choice waits to be applied: an in-between form would overwrite the customer's choice.
     // Not before it is known who is here: the draft is saved under that account (or as a guest's).
     if(!draftPersistenceReady.current||checking||reapply.current||!source||!draftKey||viewer===null)return;
+    if(catalogMode&&addTriedFor!==draftKey&&!draftRestored.current)return;
     writeDraft(browserStorage(),draftKey,{
       done:Boolean(added),owner:viewer,pageUrl:requestedUrl,catalogId,dealId,
       url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,
@@ -528,7 +535,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
       picked,manualQuantity,comment,
     },Date.now(),prunedFor.current!==draftKey);
     prunedFor.current=draftKey;
-  },[draftKey,viewer,checking,choicesApplied,added,requestedUrl,catalogId,dealId,url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,weight,weightBasis,weightOrigin,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,sourceCheckStatus,importedAt,sourceExpiresAt,atlasLocks,picked,manualQuantity,comment,previewSpeed]);
+  },[draftKey,viewer,catalogMode,addTriedFor,checking,choicesApplied,added,requestedUrl,catalogId,dealId,url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,weight,weightBasis,weightOrigin,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,sourceCheckStatus,importedAt,sourceExpiresAt,atlasLocks,picked,manualQuantity,comment,previewSpeed]);
   const [sizeFormat,setSizeFormat]=useState<"us"|"uk"|"eu"|"cm">("us");
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
   const currentCatalogSeed=seedFor(url);
@@ -1104,10 +1111,16 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   const customsPreview = previewItems.length ? cartCustomsEstimate({ ...state, cart: [...state.cart, ...previewItems] }, pricing, { profile: primaryProfile }, { outsideUsed: false, help: false }) : null;
   const k = calcCopy[lang];
   const sourceHost = (() => { try { return source ? new URL(source).hostname.replace(/^www\./, "") : ""; } catch { return ""; } })();
+  // The brand line as the catalog card writes it (lib/market/product-name.ts): no slug ("kylie-cosmetics"), no
+  // marketplace taken for the maker, and the store named once when the brand is the store itself.
+  const storeName = sourceHost ? storefrontLabel(sourceHost, lang) : "";
+  const hostBrand = sourceHost ? brandForHost(sourceHost) : undefined;
+  const brandShown = displayBrand(brand, storeName, hostBrand?.focus === "marketplace" ? hostBrand.name : undefined);
+  const brandLine = [brandShown && brandShown !== storeName ? brandShown : "", storeName].filter(Boolean).join(" · ");
   const previewProduct: Product = {
     id: "preview",
     name: name || "Фото товара",
-    brand: brand || sourceHost,
+    brand: brandShown || storeName,
     category,
     usd: 1,
     weight: 1,
@@ -1149,6 +1162,9 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   // A catalog item can be saved to favourites right here; a link outside the catalog has nothing to save.
   const favoriteId = currentCatalogSeed && ready && !isGuest ? currentCatalogSeed.id : "";
   const favoriteSaved = Boolean(favoriteId) && state.favorites.includes(favoriteId);
+  // A guest's heart on a catalog card signs in first and then saves it, as on the catalog card (app/catalog-card.tsx):
+  // back to the catalog with this card open, where app/catalog-view.tsx saves the remembered item.
+  const guestFavoriteId = catalogMode && isGuest && currentCatalogSeed ? currentCatalogSeed.id : "";
   const dc = dealCopy(lang);
   async function toggleFavorite() {
     if (!favoriteId || favoriteBusy) return;
@@ -1164,8 +1180,9 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   // Prices on the size buttons only when sizes of the chosen colour cost differently; the colour's price is shown above.
   const sizePricesDiffer = new Set(variantsForColor.filter(item => item.available && item.quantity !== 0).map(item => item.price).filter((value): value is number => value !== undefined)).size > 1;
   const countryText = country === "Другая страна" ? otherCountry.trim() || countryLabel(country, lang) : countryLabel(canonicalCountry(country), lang);
-  // Store money is written one way on the whole page ("15,99 $"): the header, the options and the details alike.
-  const moneyIn = (value: number, code: string) => { try { return new Intl.NumberFormat(lang === "ru" ? "ru-RU" : "en-US", { style: "currency", currency: code, maximumFractionDigits: 2 }).format(value); } catch { return `${value} ${code}`; } };
+  // Store money is written one way on the whole page, as the catalog card writes it (app/catalog-card.tsx): dollars as
+  // "$42" / "$15,99", other currencies by Intl without empty cents ("120 RON").
+  const moneyIn = (value: number, code: string) => { if (code === "USD") return formatPriceUsd(value, lang); try { return new Intl.NumberFormat(lang === "ru" ? "ru-RU" : "en-US", { style: "currency", currency: code, minimumFractionDigits: Number.isInteger(value) ? 0 : 2, maximumFractionDigits: 2 }).format(value); } catch { return `${value} ${code}`; } };
   const sourceFormat = (value: number) => moneyIn(value, currency);
   const typedMoney = (value: string, code: string) => value.trim() !== "" && Number.isFinite(Number(value)) ? moneyIn(Number(value), code) : `${value} ${code}`;
   // The heading follows the colour/size being viewed. The quote below still totals all cart picks.
@@ -1226,7 +1243,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   const speedFaster = previewSpeed === "standard" && country !== "Другая страна" ? fasterText(pricing, [country], lang) : "";
   const speedLine = <p className="lo-speed">
     <span className="lo-speed-label">{lc.speedLabel}</span>
-    <span className="lo-speed-chip">{deliverySpeedCopy[lang].names[previewSpeed]}{previewSpeed === "express" && <Star size={13} className="speed-option-star" aria-hidden="true" />}{speedRange && <span className="lo-speed-days">{` · ${deliverySpeedCopy[lang].days(speedRange[0], speedRange[1])}`}</span>}</span>
+    <span className="lo-speed-chip">{deliverySpeedCopy[lang].names[previewSpeed]}{previewSpeed === "express" && <Star size={13} className="speed-option-star" aria-hidden="true" />}{/* The window in days is said once, in the trust row (TrustRow). */}</span>
     <small>{previewSpeed === "express" ? lc.standardInCart : speedFaster ? `${speedFaster} — ${lc.expressInCart}` : tx("Скорость доставки выберете в корзине.", "Yetkazish tezligini savatda tanlaysiz.", "Choose delivery speed in your cart.")}</small>
   </p>;
   // The field the shown message under the add button is about; a newer message (or none) unmarks it.
@@ -1546,6 +1563,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
           onSubmit={async (e) => {
             e.preventDefault();
             if (checking) return;
+            if (catalogMode) setAddTriedFor(draftKey);
             try {
               if(!orderable){
                 const message=tx('Загрузка ещё не завершилась. Дождитесь результата или вставьте ссылку повторно.','Yuklash hali tugamadi. Natijani kuting yoki havolani qayta kiriting.','Import has not finished. Wait for the result or enter the link again.');
@@ -1682,11 +1700,12 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
           {/* The decision: brand, name, one big sum in soum, the store price small, the choice, "Из чего сумма", trust. */}
           <div className="pd-info">
             <div className="pd-head">
-              {brand || sourceHost || !checking
-                ? <p className="pd-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
+              {brandLine || !checking
+                ? <p className="pd-brand">{brandLine}</p>
                 : <span className="lo-skel lo-skel-brand" aria-hidden="true" />}
               <div className="pd-name-row">
                 <TitleTag id="lo-product-name" className="pd-title">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</TitleTag>
+                {guestFavoriteId && <a className="find-save lo-save" href={loginPath(catalogItemHref("/catalog", guestFavoriteId))} aria-label={dc.signinToSave} title={dc.signinToSave} onClick={() => rememberPendingFavorite(catalogStorage(), guestFavoriteId, Date.now())}><Heart size={20} aria-hidden="true" /></a>}
                 {favoriteId && <button type="button" className={"find-save lo-save" + (favoriteSaved ? " saved" : "")} aria-pressed={favoriteSaved} aria-label={favoriteSaved ? dc.remove : dc.save} title={favoriteSaved ? dc.remove : dc.save} disabled={favoriteBusy} onClick={() => void toggleFavorite()}><Heart size={20} aria-hidden="true" /></button>}
               </div>
               {checking && <LoadStage url={requestedUrl || url} locale={lang} />}
@@ -1779,7 +1798,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
             {sourceCheckStatus==='manual' ? <div className={"basket-consent" + (formIssue && !manualConfirmed ? " invalid" : "")}>
               <input id="manual-confirm" type="checkbox" {...issueProps('manual-confirm')} checked={manualConfirmed} onChange={(e) => { setManualConfirmed(e.target.checked); if (e.target.checked) setFormIssue(""); }} />
               <label htmlFor="manual-confirm">{tx('Я сверил название, цену, вариант и доставку со страницей магазина. Оператор Atlas сверит их с магазином перед выкупом.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirdim. Atlas operatori xariddan oldin ularni do‘kon bilan solishtiradi.','I checked the name, price, option and shipping against the store page. An Atlas operator checks them with the store before buying.')}</label>
-            </div> : sourceCheckStatus !== "verified" ? <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p> : null}
+            </div> : sourceCheckStatus !== "verified" && sourceCheckStatus !== "catalog" ? <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p> : null}
             <div className={"lo-cta-row" + (cartUnits ? " has-cart" : "")}>
             {nothingToChoose ? <button type="button" className="btn primary basket-cta" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary basket-cta" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest ? (canKeep ? lc.signinAdd : lc.signinContinue) : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
             {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
@@ -1792,12 +1811,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
           <div className="pd-more">
             <DetailSection title={pd.about} id="pd-about">
               {aboutText ? <p className="pd-about-text">{aboutText}</p> : !checking && <p className="pd-about-text muted">{pd.noDescription}</p>}
-              {!checking && orderable && dataMode !== "manual" && <dl className="pd-facts">
-                {countryText && <div><dt>{tx('Отправка из','Jo‘natish joyi','Ships from')}</dt><dd>{countryText}</dd></div>}
-                {validBoxedWeight(weight) !== undefined && <div><dt>{tx('Вес для расчёта','Hisob uchun og‘irlik','Weight for the estimate')}</dt><dd>{formatKg(validBoxedWeight(weight)!, lang)} {lc.kg}</dd></div>}
-                <div><dt>{tx('Доставка магазина','Do‘kon yetkazishi','Store delivery')}</dt><dd>{lockedShippingText}</dd></div>
-                <div><dt>{tx('Наличие','Mavjudlik','Stock')}</dt><dd>{variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) ? tx('Магазин сообщает остаток по вариантам','Do‘kon variantlar bo‘yicha qoldiqni ko‘rsatadi','The store shows stock per option') : k.stockUnknown}</dd></div>
-              </dl>}
+              {/* Country, weight and store delivery are in "Данные для расчёта" under "Доставка": not repeated here. */}
               {(source || url) && <a className="lo-source-link pd-source" href={source || url} target="_blank" rel="noopener noreferrer">{c.original}<ExternalLink size={14} aria-hidden="true" /></a>}
             </DetailSection>
             <DetailSection title={pd.deliveryTitle} id="pd-delivery">
@@ -1813,7 +1827,8 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
       {/* The total bar: over the bottom menu on phones (the page), at the foot of the catalog sheet on every screen. It
           stays put through the check, so the page does not jump when the price arrives. */}
       {(source || checking) && <div className={inSheet ? "pd-bar pd-bar-sheet" : "basket-sticky lo-sticky pd-bar" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
-        <div><span>{heroFrom ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : heroTotal !== null ? formatSum(heroTotal, lang) : "—"}</strong></div>
+        {/* A dated card's sum is an estimate here as at the top: "≈" and its own label, never "К оплате". */}
+        <div><span>{datedSums ? pd.approxTotal : heroFrom ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : heroTotal !== null ? (datedSums ? "≈ " : "") + formatSum(heroTotal, lang) : "—"}</strong></div>
         {awaitingCheck ? <button type="button" className="btn primary" onClick={checkDated}>{pd.checkPrice}<ArrowRight size={18} aria-hidden="true" /></button> : nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? tx("Добавляем…", "Qo‘shilmoqda…", "Adding…") : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
         {!inSheet && cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
       </div>}

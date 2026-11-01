@@ -114,9 +114,12 @@ export function faqPage(items: readonly { q: string; a: string }[]) {
 /**
  * A catalog product page (/catalog/p/[id]): what the page itself shows — name, brand, photos, description and the Atlas
  * sum to Tashkent in soum. No availability, ratings or reviews: the store's stock is checked before buying, never promised.
+ * The address matches the page's canonical: with `?lang=` only when the page was asked in that language.
  */
-export function productLd(product: { id: string; name: string; brand?: string; description?: string; images: string[]; category?: string; totalSoum?: number }, locale: Locale) {
-  const url = localizedUrl('/catalog/p/' + encodeURIComponent(product.id), locale);
+export function productLd(product: { id: string; name: string; brand?: string; description?: string; images: string[]; category?: string; totalSoum?: number }, locale?: Locale) {
+  const path = '/catalog/p/' + encodeURIComponent(product.id);
+  const url = locale ? localizedUrl(path, locale) : siteOrigin + path;
+  const images = [...new Set(product.images)].slice(0, 6);
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -126,7 +129,7 @@ export function productLd(product: { id: string; name: string; brand?: string; d
     ...(product.brand ? { brand: { '@type': 'Brand', name: product.brand } } : {}),
     ...(product.description ? { description: product.description.slice(0, 5000) } : {}),
     ...(product.category ? { category: product.category } : {}),
-    ...(product.images.length ? { image: product.images.slice(0, 6) } : {}),
+    ...(images.length ? { image: images } : {}),
     ...(product.totalSoum ? { offers: { '@type': 'Offer', url, price: product.totalSoum, priceCurrency: 'UZS', seller: { '@type': 'Organization', name: 'Atlas', url: siteOrigin } } } : {}),
   };
 }
