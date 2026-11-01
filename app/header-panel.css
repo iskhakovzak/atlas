@@ -156,3 +156,10 @@ html[data-theme="dark"] .site-header .notice-link > b { border-color: var(--nigh
   :root body [data-sonner-toaster] [data-sonner-toast][data-removed="true"][data-front="true"][data-swipe-out="false"] { --y: none; }
   .is-bump { animation: none; }
 }
+
+/* A toast with an action ("Отложено в избранное · Открыть избранное"): the words keep the full width and the button sits
+   under them, aligned with the text — side by side the title broke letter by letter (owner, 2 November 2026). */
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"]:has([data-button]) { flex-wrap: wrap; row-gap: 10px; }
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"]:has([data-button]) [data-content] { flex: 1 1 calc(100% - 48px); }
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"]:has([data-button]) [data-button] { align-self: flex-start; margin-left: 48px; height: 36px; }
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-title] { overflow-wrap: normal; word-break: normal; hyphens: manual; }
