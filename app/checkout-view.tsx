@@ -2,11 +2,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import Link from "@/components/site-link";
-import { ArrowLeft, ArrowRight, BadgeCheck, CircleCheck, ClipboardPaste, IdCard, Info, Loader2, Lock, MapPin, Plus, ShoppingBag, Tag, TriangleAlert, UserRound, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, Check, CircleCheck, ClipboardPaste, IdCard, Info, Loader2, Lock, MapPin, Plus, ShoppingBag, Tag, TriangleAlert, UserRound, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { toast } from "@/lib/market/toast";
-import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, isPostalCode, totalOf, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed, type Order } from "@/lib/market/domain";
+import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, isPostalCode, totalOf, withCustomsHelpFor, type CartItem, type Product, type DeliveryProfile, type DeliverySpeed, type Order } from "@/lib/market/domain";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { capitalizeFirst, capitalizeWords } from "@/lib/market/text-case";
@@ -27,6 +27,8 @@ import { Money } from "./money";
 import { UzPhoneInput } from "./phone-input";
 import { CheckoutSignIn } from "./checkout-signin";
 import { shownVariant } from "./checkout-review";
+import { LazyProductSheet } from "./product-sheet-lazy";
+import { catalogUrlKey } from "@/lib/market/catalog-query";
 import { useGuestCart, useGuestMerging } from "./use-guest-cart";
 
 /*
@@ -68,7 +70,15 @@ function Block({ index, title, done, locked, lockedText, aside, children, id }: 
 }
 
 export function CheckoutView() {
-  const { status, ready, state, act, pricing, user, refresh, lastActionError } = useMarket();
+  const { status, ready, state, act, pricing, user, refresh, lastActionError, catalogProducts, catalogReady, loadCatalog } = useMarket();
+  const [sheetProduct, setSheetProduct] = useState<Product | null>(null);
+  const [opening, setOpening] = useState("");
+  // The catalog arrived after a tap: open what was tapped, or its link page when it is not in the catalog.
+  useEffect(() => {
+    if (!opening || !catalogReady) return;
+    const match = catalogProducts.find((product) => product.sourceUrl && catalogUrlKey(product.sourceUrl) === catalogUrlKey(opening));
+    queueMicrotask(() => { setOpening(""); if (match) setSheetProduct(match); else window.location.assign(`/order-by-link?url=${encodeURIComponent(opening)}`); });
+  }, [opening, catalogReady, catalogProducts]);
   const locale = state.communication.language;
   const t = checkoutCopy[locale], k = calcCopy[locale], cc = cartCopy[locale], rc = recipientCopy[locale];
   const guest = useGuestCart();
@@ -105,7 +115,6 @@ export function CheckoutView() {
   }, [state.orders, served]);
   const [chosen, setChosen] = useState<string | null>(null);
   const selected = chosen ?? (lastUsed || "manual");
-  const [listOpen, setListOpen] = useState(false);
   const [draft, setDraft] = useState<DeliveryProfile | null>(null);
   const personName = (() => { const name = user?.name?.trim() ?? ""; return name && !name.includes("@") && !/^[+\d\s()-]+$/.test(name) ? name : ""; })();
   const manual = selected === "manual";
@@ -269,15 +278,23 @@ export function CheckoutView() {
     signedInHere.current = false;
     window.requestAnimationFrame(() => document.getElementById("co-recipient-title")?.focus());
   }, [status, ready]);
-  const openList = () => {
-    flushSync(() => setListOpen(true));
-    (document.querySelector<HTMLInputElement>(".co-recipients input:checked") ?? document.querySelector<HTMLInputElement>(".co-recipients input:not(:disabled)"))?.focus();
-  };
 
   if (placed) return <PlacedView orders={placedOrders} loading={!ready && status !== "guest"} guest={status === "guest"} paying={waitingPay.length > 0} locale={locale} onSignedIn={() => void refresh()} />;
 
+  // ---- An item tapped in the summary: its catalog card in the product sheet (the catalog is read on the first tap).
+  function openItem(item: CartItem) {
+    const url = item.product.sourceUrl;
+    if (!url) return;
+    const match = catalogProducts.find((product) => product.sourceUrl && catalogUrlKey(product.sourceUrl) === catalogUrlKey(url));
+    if (match) { setSheetProduct(match); return; }
+    if (catalogReady) { window.location.assign(`/order-by-link?url=${encodeURIComponent(url)}`); return; }
+    setOpening(url); void loadCatalog();
+  }
+
   // ---- Who is here
   const loadingAccount = status === "loading";
+  // Steps are numbered from the recipient for a signed-in customer (no sign-in step on the page).
+  const step = (n: number) => signedIn ? n - 1 : n;
   const signedIn = ready;
   const guestItems = !signedIn ? estimateGuestCart(guest.cart, pricing) : [];
   const shownLines: CartItem[] = signedIn ? lines : guestItems;
@@ -286,7 +303,6 @@ export function CheckoutView() {
   const nothing = signedIn ? !lines.length && !merging && !waitingGuest : !guestItems.length && status === "guest";
   const changes = signedIn ? lines.filter((item) => item.priceChange || item.sourceIssue) : [];
   const later = state.cart.filter((item) => item.selected === false).reduce((sum, item) => sum + item.quantity, 0);
-  const who = user ? (user.name && !user.name.includes("@") ? user.name : user.contact || user.email || user.name) : "";
   const guestGoodsUsd = guestItems.reduce((sum, item) => sum + (item.product.usd ?? 0) * item.quantity, 0);
   // A guest whose items are above the courier allowance owes a duty for sure: the total is shown as approximate, with a line saying so.
   const guestDuty = !signedIn && guestGoodsUsd > (pricing.customsAllowanceUsd ?? courierAllowanceUsd);
@@ -316,12 +332,11 @@ export function CheckoutView() {
     </header>
     <div className="co-layout">
       <div className="co-main">
-        {/* 1 · Вход */}
-        <Block index={1} id="co-signin-title" title={t.checkout.signin.title} done={signedIn}>
-          {signedIn ? <p className="co-signed" role="status"><UserRound size={16} aria-hidden="true" /><span>{t.checkout.signin.done(who)}</span></p>
-            : loadingAccount ? <div className="login-skeleton" role="status"><span className="sr-only">{t.merge.moving}</span><i aria-hidden="true" /><b aria-hidden="true" /></div>
+        {/* 1 · Вход — only for a guest: a signed-in customer starts at the recipient (owner, 2 November 2026). */}
+        {!signedIn && <Block index={1} id="co-signin-title" title={t.checkout.signin.title}>
+          {loadingAccount ? <div className="login-skeleton" role="status"><span className="sr-only">{t.merge.moving}</span><i aria-hidden="true" /><b aria-hidden="true" /></div>
             : <><p className="co-hint">{t.checkout.signin.hint}</p><CheckoutSignIn locale={locale} onDone={() => void refresh()} /></>}
-        </Block>
+        </Block>}
 
         {/* What changed at the store since the item was added (Сверка цены), and anything blocking the order. The live
             region is on the page from the start, so a screen reader announces the change when the check brings it. */}
@@ -346,24 +361,24 @@ export function CheckoutView() {
         </section>}
 
         {/* 2 · Получатель */}
-        <Block index={2} id="co-recipient-title" title={t.checkout.recipient.title} locked={!signedIn} lockedText={t.checkout.signin.locked}
-          aside={signedIn && state.deliveryProfiles.length > 0 && !listOpen ? <button type="button" className="text-button co-aside" onClick={openList}>{manual ? t.checkout.recipient.list : t.checkout.recipient.other}</button> : undefined}>
+        <Block index={step(2)} id="co-recipient-title" title={t.checkout.recipient.title} locked={!signedIn} lockedText={t.checkout.signin.locked}
+>
           {signedIn && <>
-            {!listOpen && savedProfile && <div className="co-recipient-card">
-              <MapPin size={18} aria-hidden="true" />
-              <span><b>{savedProfile.recipient}</b><span className="nowrap">{savedProfile.phone}</span><small>{deliveryAddressLine(savedProfile)}</small></span>
-            </div>}
-            {listOpen && <fieldset className="co-recipients"><legend>{t.checkout.recipient.list}</legend>
+            {/* Saved recipients as radio cards, the chosen one ticked; «+ Новый получатель» is the last, dashed card and opens
+                the form below (2 November 2026). Choosing a saved one again always shows it exactly as before. */}
+            {state.deliveryProfiles.length > 0 && <fieldset className="co-recipients co-rcards"><legend className="sr-only">{t.checkout.recipient.list}</legend>
               {state.deliveryProfiles.map((profile) => {
                 const ok = isServedRegion(profile.region);
-                return <label key={profile.id} className={"co-recipient" + (selected === profile.id ? " selected" : "") + (ok ? "" : " unavailable")}>
-                  <input type="radio" name="co-recipient" value={profile.id} disabled={!ok} checked={selected === profile.id} onChange={() => { flushSync(() => { setChosen(profile.id); setTouched(false); setTouchedFields({}); setListOpen(false); }); document.getElementById("co-recipient-title")?.focus(); }} />
-                  <span><b>{profile.recipient}{profile.primary && <em>{cc.checkout.primary}</em>}</b><span className="nowrap">{profile.phone}</span><small>{ok ? deliveryAddressLine(profile) : cc.checkout.outsideServed}</small></span>
+                return <label key={profile.id} className={"co-rcard" + (selected === profile.id ? " selected" : "") + (ok ? "" : " unavailable")}>
+                  <input type="radio" className="sr-only" name="co-recipient" value={profile.id} disabled={!ok} checked={selected === profile.id} onChange={() => { setChosen(profile.id); setTouched(false); setTouchedFields({}); }} />
+                  <span className="co-rcard-text"><b>{profile.recipient}{profile.primary && <em>{cc.checkout.primary}</em>}</b><small>{[profile.phone, ok ? deliveryAddressLine(profile) : cc.checkout.outsideServed].filter(Boolean).join(" · ")}</small></span>
+                  <span className="co-rcard-mark" aria-hidden="true"><Check size={14} strokeWidth={3} /></span>
                 </label>;
               })}
-              <label className={"co-recipient co-recipient-new" + (manual ? " selected" : "")}>
-                <input type="radio" name="co-recipient" value="manual" checked={manual} onChange={() => { flushSync(() => { setChosen("manual"); setDraft({ ...emptyDelivery }); setTouched(false); setTouchedFields({}); setListOpen(false); }); document.getElementById(fieldIds.recipient)?.focus(); }} />
-                <span><b><Plus size={16} aria-hidden="true" />{t.checkout.recipient.add}</b></span>
+              <label className={"co-rcard co-rcard-new" + (manual ? " selected" : "")}>
+                <input type="radio" className="sr-only" name="co-recipient" value="manual" checked={manual} onChange={() => { flushSync(() => { setChosen("manual"); setDraft(draft ?? { ...emptyDelivery }); setTouched(false); setTouchedFields({}); }); document.getElementById(fieldIds.recipient)?.focus(); }} />
+                <span className="co-rcard-text"><b><Plus size={16} aria-hidden="true" />{t.checkout.recipient.add}</b></span>
+                <span className="co-rcard-mark" aria-hidden="true"><Check size={14} strokeWidth={3} /></span>
               </label>
             </fieldset>}
             {savedNeedsPostal && <div className={"field" + (invalid("savedPostal") ? " invalid" : "")}><label htmlFor={fieldIds.savedPostal}>{cc.checkout.postal}</label><input id={fieldIds.savedPostal} autoComplete="postal-code" inputMode="numeric" maxLength={6} required aria-invalid={invalid("savedPostal")} aria-describedby={describedBy("savedPostal", cc.checkout.postalMissing)} value={savedPostal} onBlur={(event) => touch("savedPostal", event.currentTarget.value)} onChange={(event) => setSavedPostal(event.target.value.replace(/\D/g, "").slice(0, 6))} />{hint("savedPostal", cc.checkout.postalMissing)}</div>}
@@ -387,12 +402,12 @@ export function CheckoutView() {
         </Block>
 
         {/* 3 · Доставка */}
-        <Block index={3} id="co-speed-title" title={t.checkout.speed.title} locked={!signedIn} lockedText={t.checkout.signin.locked}>
+        <Block index={step(3)} id="co-speed-title" title={t.checkout.speed.title} locked={!signedIn} lockedText={t.checkout.signin.locked}>
           {signedIn && <DeliverySpeedSwitch value={speed} options={deliverySpeedOptions(pricing, speedCountries, locale)} locale={locale} busy={speedBusy} note={fasterText(pricing, speedCountries, locale)} onChange={(next) => void changeSpeed(next)} />}
         </Block>
 
         {/* 4 · Таможня: only when this recipient owes a duty; otherwise one line in the sum says there is none. */}
-        {signedIn && dutyDue > 0 && <Block index={4} id="co-customs-title" title={t.checkout.customs.title}>
+        {signedIn && dutyDue > 0 && <Block index={step(4)} id="co-customs-title" title={t.checkout.customs.title}>
           <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} remember={customsRemember} onRemember={setCustomsRemember} />
           <div className={"co-check co-consent" + (consentError ? " invalid" : "")}>
             <Checkbox id="co-consent" aria-label={cc.checkout.consent.before + cc.checkout.consent.link + cc.checkout.consent.after} checked={consent} aria-invalid={consentError} aria-describedby={consentError ? "co-consent-error" : undefined} onCheckedChange={(value) => { setConsent(value === true); if (value === true) setConsentError(false); }} />
@@ -405,10 +420,13 @@ export function CheckoutView() {
       {/* 5 · Из чего сумма, promo code and the pay button; stays in view on a wide screen. */}
       <aside className="co-summary" aria-labelledby="co-sum-title">
         <h2 id="co-sum-title">{t.checkout.sum.title}</h2>
+        {/* Each item opens its product in the sheet (the catalog card behind it), or its link page (2 November 2026). */}
         <ul className="co-items">{shownLines.map((item) => <li key={item.id}>
-          <span className="co-item-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span>
-          <span className="co-item-text"><b>{item.product.name}</b><small>{[shownVariant(item.variant, item.product.sourceOptions), item.quantity > 1 ? `× ${item.quantity}` : ""].filter(Boolean).join(" · ")}</small></span>
-          {shownLines.length > 1 && <span className="co-item-sum">{formatSum(item.quote.merchandise, locale)}</span>}
+          <button type="button" className="co-item-open" onClick={() => openItem(item)} aria-label={item.product.name}>
+            <span className="co-item-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span>
+            <span className="co-item-text"><b>{item.product.name}</b><small>{[shownVariant(item.variant, item.product.sourceOptions), item.quantity > 1 ? `× ${item.quantity}` : ""].filter(Boolean).join(" · ")}</small></span>
+          </button>
+          <span className="co-item-sum">{formatSum(item.quote.merchandise, locale)}</span>
         </li>)}</ul>
         {later > 0 && <p className="co-hint">{t.checkout.sum.later(later)}</p>}
         <dl className="co-lines">
@@ -424,7 +442,7 @@ export function CheckoutView() {
           {signedIn && (duty > 0
             ? <div><dt>{t.checkout.sum.duty}</dt><dd><Money value={duty} locale={locale} /></dd></div>
             : dutyDue > 0 ? <div className="co-line-apart"><dt>{t.checkout.sum.duty} ≈</dt><dd>{formatSum(dutyDue, locale)}</dd></div>
-            : <div className="co-line-zero"><dt>{t.checkout.customs.none}</dt><dd><Money value={0} locale={locale} /></dd></div>)}
+            : <div className="co-line-zero"><dt>{t.checkout.sum.duty}</dt><dd><span className="co-pill">{t.checkout.customs.noneShort}</span></dd></div>)}
           {guestDuty && <div className="co-line-apart"><dt>{t.checkout.sum.dutyLater}</dt><dd>—</dd></div>}
           {credit > 0 && <div><dt>{t.checkout.sum.balance}</dt><dd>−<Money value={credit} locale={locale} /></dd></div>}
           <div className="co-total"><dt>{t.checkout.sum.total}</dt><dd>{!signedIn && "≈ "}<Money value={signedIn ? payable : shownSums.total} locale={locale} animate /></dd></div>
@@ -460,6 +478,7 @@ export function CheckoutView() {
         {payButton(true)}
       </div>
     </div>
+    <LazyProductSheet product={sheetProduct} onClose={() => setSheetProduct(null)} />
   </div>;
 }
 
