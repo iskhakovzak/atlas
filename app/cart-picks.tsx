@@ -25,7 +25,7 @@ import { preloadProductSheet } from './product-sheet-lazy';
 export function CartPicks({ title, link, products, limit = 8, onSelect }: { title?: string; link?: { href: string; label: string }; products: MerchantFind[]; limit?: number; onSelect: (product: Product) => void }) {
   const { state, pricing, ready, act, catalogProducts } = useMarket();
   const locale = state.communication.language as Locale, cc = catalogCopy[locale];
-  const [saving, setSaving] = useState<string | null>(null);
+  const [saving] = useState<string | null>(null);
   const titleId = useId();
   // Deals are judged against the whole catalog, so a card's "Top price" is the same here as on /catalog.
   const shown = useMemo(() => applyCatalogQuery(catalogItems(products, pricing, catalogProducts), emptyCatalogQuery, { dutyLimitUsd: courierAllowanceUsd }).slice(0, limit), [products, pricing, catalogProducts, limit]);
@@ -33,8 +33,8 @@ export function CartPicks({ title, link, products, limit = 8, onSelect }: { titl
   if (!shown.length) return null;
   const go = link ?? { href: '/catalog', label: cc.viewAllShort };
   async function save(product: Product) {
-    setSaving(product.id);
-    try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }
+    // Optimistic (lib/market/optimistic.ts): the heart changes at once and stays tappable; the request is queued.
+    await act({ type: 'favorite', id: product.id });
   }
   return <TooltipProvider delayDuration={300}><section className="cart-picks" aria-labelledby={titleId}>
     <header><h2 id={titleId}>{title ?? cc.teaserTitle}</h2><Link className="btn secondary" href={go.href}>{go.label}<ArrowRight size={18} aria-hidden="true" /></Link></header>

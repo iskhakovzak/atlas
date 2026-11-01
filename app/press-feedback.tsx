@@ -5,7 +5,7 @@ import { haptic, isNative } from '@/lib/native/bridge';
 import { startNavigationFeedback, stopNavigationFeedback } from '@/lib/market/navigation-feedback';
 
 // Buttons and button-like links that sink under the finger and spring back (styles: press.css).
-const PRESSABLE = '.btn, .cart-link, .icon-btn, .variant-options button, .lo-stepper button, .find-save, .mobile-nav a, .store-tile, .stores-popular button, .catalog-categories > button';
+const PRESSABLE = '.btn, .cart-link, .icon-btn, .variant-options button, .lo-stepper button, .find-save, .pcard-save, .pcard-plus, .basket-qty button, .cart-toast-action, .mobile-nav a, .store-tile, .stores-popular button, .catalog-categories > button';
 // Main actions also get a light tick on phones: in the apps through the native haptics, on Android in the browser through vibration.
 const MAIN_ACTION = '.btn.primary, .cart-link';
 

@@ -84,7 +84,8 @@ function QuantityControl({ item, c, save, pending }: { item: CartItem; c: CartCo
     clearTimeout(timer.current);
     const flush = () => { clearTimeout(timer.current); if (pending.get(id) === flush) pending.delete(id); return save(next).then((ok) => { if (!ok) setValue(item.quantity); return ok; }); };
     flushRef.current = flush; pending.set(id, flush);
-    timer.current = setTimeout(() => void flush(), 400);
+    // The line and the sums change at once (optimistic, lib/market/optimistic.ts); taps within 150 ms go as one request.
+    timer.current = setTimeout(() => void flush(), 150);
   }
   return <div className="basket-qty" role="group" aria-label={`${c.item.quantity}: ${optionName}`}>
     <button type="button" aria-label={`${c.item.decrease}: ${optionName}`} disabled={value <= 1} onClick={() => step(-1)}><Minus size={16} aria-hidden="true" /></button>
@@ -138,7 +139,7 @@ export function CartView() {
   // Lines of this browser's guest cart that the store refused when they moved into the account, and the move itself.
   const guestCart = useGuestCart(), merging = useGuestMerging();
   const guestProblems = guestCart.cart.lines.filter((line) => line.problem);
-  const [favoriteBusy, setFavoriteBusy] = useState("");
+  const [favoriteBusy] = useState("");
   // Catalog products by their store page, built once per catalog, so each line finds its product in one lookup.
   const catalogByUrl = useMemo(() => new Map(catalogProducts.flatMap((product) => product.sourceUrl ? [[catalogUrlKey(product.sourceUrl), product] as const] : [])), [catalogProducts]);
   // Favourites hold catalog products: a cart line can be saved when it is a product from the Atlas catalog.
@@ -303,9 +304,8 @@ export function CartView() {
   const kc = keepCopy[locale];
   const catalogMatch = (item: CartItem) => item.product.sourceUrl ? catalogByUrl.get(catalogUrlKey(item.product.sourceUrl)) : undefined;
   async function toggleFavorite(id: string) {
-    if (favoriteBusy) return false;
-    setFavoriteBusy(id);
-    try { return await act({ type: "favorite", id }); } finally { setFavoriteBusy(""); }
+    // Optimistic: the heart changes at once and stays tappable (lib/market/optimistic.ts).
+    return await act({ type: "favorite", id });
   }
   /** Saved, then every given line leaves the cart in one request. */
   async function saveForLater(lines: CartItem[], id: string) {
