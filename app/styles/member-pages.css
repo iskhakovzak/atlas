@@ -903,6 +903,8 @@ html[data-theme="dark"] #shipping-rules p.micro a { color: var(--night-jade); }
 .basket-item + .basket-item { border-top: 1px solid var(--home-line); }
 .basket-photo { grid-area: photo; width: 76px; height: 76px; overflow: hidden; border-radius: var(--r-control); background: var(--home-soft); }
 .basket-photo .product-img, .basket-photo .no-photo { width: 100%; height: 100%; border-radius: 0; object-fit: contain; }
+/* A photo shot on white takes the plate's soft fill, like a photo on grey: every thumbnail sits on the same plate. */
+html:not([data-theme="dark"]) .basket-photo .product-img { mix-blend-mode: multiply; }
 .basket-photo .no-photo span { display: none; }
 .basket-info { grid-area: info; min-width: 0; }
 .basket-name { display: -webkit-box; margin: 2px 0 4px; overflow: hidden; color: var(--home-ink); font-size: 16px; font-weight: 700; line-height: 1.3; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow-wrap: anywhere; }

@@ -201,7 +201,7 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 /* Sticky total on phones, above the member bottom navigation; on tablets and a phone held sideways (up to 959 px,
    where the summary is not pinned beside the list) at the screen's edge. */
 .basket-sticky { display: none; }
-@media (max-width: 760px) {
+@media (max-width: 959px) {
   /* Tab never leaves a control under the fixed total and the bottom bar (WCAG 2.4.11). */
   html:has(main[data-view="cart"] .basket-sticky:not(.is-hidden)) { scroll-padding-bottom: calc(var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))) + 84px); }
   .basket-sticky { position: fixed; z-index: 45; right: 0; bottom: var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))); left: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--home-line); background: var(--home-surface); box-shadow: var(--shadow-up); }
@@ -1389,3 +1389,7 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 .pd-sheet-actions .sheet-close { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--r-pill); background-color: var(--surface); color: var(--text); box-shadow: var(--shadow-2); }
 .product-sheet.pd-sheet.product-sheet-bottom .pd-sheet-actions .sheet-close { top: 4px; }
 @media (max-width: 760px) { .pd-sheet-actions .sheet-close { width: 44px; height: 44px; } }
+
+/* A passport's status under the recipient's name, on the name's line (not under the radio button). */
+.docs-recipient { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; }
+.docs-recipient > .cabinet-chip { grid-column: 2; justify-self: start; }

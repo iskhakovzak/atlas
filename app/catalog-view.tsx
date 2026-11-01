@@ -231,7 +231,10 @@ export function CatalogView({ mode, initial, lang, store }: { mode: 'catalog' | 
 
   // A store without catalog products is only its header (the server's count decides before the catalog is in): no empty grid.
   const storeEmpty = Boolean(store) && (catalogReady ? pool.length === 0 : store?.count === 0);
-  const showControls = !storeEmpty && (pool.length > 0 || filterCount > 0 || Boolean(query.q));
+  // While the catalog loads, its search row and a block the size of the store row and the chips already stand in place,
+  // so the grid does not jump down by ~240 px when they arrive (layout shift 0.13–0.35 on computers before, polish 1.11.2026).
+  const controlsLoading = mode === 'catalog' && !catalogReady && !storeEmpty;
+  const showControls = !storeEmpty && (controlsLoading || pool.length > 0 || filterCount > 0 || Boolean(query.q));
   // The phone's search row sticks to the top while the grid scrolls; once it does, it gets a hairline and a shadow.
   const stuckProbe = useRef<HTMLSpanElement>(null);
   const [stuck, setStuck] = useState(false);
@@ -270,7 +273,8 @@ export function CatalogView({ mode, initial, lang, store }: { mode: 'catalog' | 
     </div>}
     {showControls && <section className="catalog-bar" aria-label={cc.filtersTitle}>
       {/* The stores as round logos: the «Магазин» filter in one tap (a store's own page is already one store). */}
-      {mode === 'catalog' && !store && <CatalogStoreRow stores={facets.stores} query={query} setQuery={setQuery} cc={cc} locale={locale} />}
+      {controlsLoading && <div className={'catalog-bar-placeholder' + (store ? ' is-store' : '')} aria-hidden="true" />}
+      {mode === 'catalog' && !store && !controlsLoading && <CatalogStoreRow stores={facets.stores} query={query} setQuery={setQuery} cc={cc} locale={locale} />}
       {/* One row of common filters: scrolls sideways on a phone, wraps on a wide screen. */}
       {chips.length > 0 && <div {...chipsRow} className="catalog-categories catalog-quick" role="group" aria-label={cc.quickLabel}>
         {chips.map((chip) => <QuickChipButton key={chip.id} chip={chip} query={query} setQuery={setQuery} cc={cc} collections={collections} locale={locale} />)}

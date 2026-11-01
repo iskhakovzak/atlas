@@ -317,8 +317,10 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
   .stores-showcase-list > li { width: 240px; }
   /* «Смотреть 11 товаров» / «11 ta tovarni ko‘rish» on one line in a 240 px card. */
   .store-showcase-card > .btn { gap: 6px; padding-inline: 10px; font-size: 14px; }
-  .stores-search { min-height: 48px; }
-  .stores-chips > button { padding: 0 12px; font-size: 13px; }
+}
+@media (min-width: 600px) and (max-width: 1023px) {
+  .store-showcase-card > .btn { gap: 6px; padding-inline: 10px; font-size: 14px; white-space: nowrap; }
+  .stores-chips > button { padding: 0 12px; }
   .stores-regions > button { font-size: 13px; }
   .stores-group { margin-top: 18px; }
   .store-tile { gap: 8px; min-height: 60px; padding: 9px 8px; }

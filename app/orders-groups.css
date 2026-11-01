@@ -282,11 +282,13 @@ html[data-theme="dark"] .og-services li:not([data-on]) > span:not(.og-tick) { co
    what comes next ("Дальше" as a small label) instead of a badge and a plain "Дальше: …" line. */
 .og-title-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 16px; }
 .og-title-row .order-group-sum { display: flex; align-items: baseline; gap: 6px; text-align: left; }
-.og-track { display: grid; gap: 8px; margin-top: 8px; max-width: 720px; }
+/* The track is its own container: its step names show only when the track itself is wide enough (in a 318 px column
+   on a tablet they broke letter by letter), whatever the window's width. */
+.og-track { display: grid; gap: 8px; margin-top: 8px; max-width: 720px; container-type: inline-size; }
 .og-track-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin: 0; }
-.og-track-text > b { color: var(--home-ink); font-size: 14px; font-weight: 800; }
+.og-track-text > b { color: var(--home-ink); font-size: 14px; font-weight: var(--fw-bold); }
 .og-track-next { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; color: var(--home-ink); font-size: 13px; }
-.og-track-next small { padding: 1px 7px; border-radius: var(--r-pill); background: var(--home-soft); color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
+.og-track-next small { padding: 1px 7px; border-radius: var(--r-pill); background: var(--home-soft); color: var(--home-muted); font-size: 12px; font-weight: var(--fw-bold); letter-spacing: 0; }
 .og-track-steps { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
 .og-track-steps li { display: grid; align-content: start; gap: 6px; min-width: 0; color: var(--home-muted); font-size: 12px; line-height: 1.25; }
 .og-track-steps li::before { content: ""; height: 6px; border-radius: var(--r-pill); background: var(--home-line); }
@@ -294,7 +296,7 @@ html[data-theme="dark"] .og-services li:not([data-on]) > span:not(.og-tick) { co
 .og-track-steps li[data-state="current"]::before { background: var(--home-accent); }
 .og-track-steps li[data-state="current"] { color: var(--home-ink); font-weight: 700; }
 .og-track-steps li > span { display: none; }
-@media (min-width: 640px) {
+@container (min-width: 600px) {
   .og-track-steps { gap: 6px; }
   /* A long step name ("Xorijdagi omborda", "Jo‘natishga tayyor") wraps before it reaches the next one: never two names run together. */
   .og-track-steps li > span { display: block; padding-right: 8px; overflow-wrap: anywhere; text-wrap: balance; }

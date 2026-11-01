@@ -52,7 +52,10 @@
 .delivery-speed { position: relative; display: grid; place-items: center; min-height: var(--h-sm); border-radius: calc(var(--r-control) - 4px); color: var(--text-2); font-size: var(--fs-14); font-weight: var(--fw-semibold); cursor: pointer; }
 .delivery-speed input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
 .delivery-speed:has(input:checked) { background: var(--surface); box-shadow: var(--shadow-1); color: var(--text); }
-.delivery-speed:has(input:focus-visible) { box-shadow: var(--focus-ring); }
+@media (hover: hover) {
+  .delivery-speed:not(:has(input:checked)):hover { background: var(--hover); }
+}
+.delivery-speed:has(input:focus-visible) { outline: 2px solid var(--link); outline-offset: 2px; box-shadow: var(--focus-ring); }
 .delivery-calc-result { display: grid; gap: var(--space-1); width: 100%; padding: var(--space-4); border-radius: var(--r-control); background: var(--sunken); }
 .delivery-calc-label { color: var(--text-2); font-size: var(--fs-14); }
 .delivery-calc-usd { font-size: var(--fs-30); font-weight: var(--fw-bold); line-height: var(--lh-tight); font-feature-settings: var(--tnum); }

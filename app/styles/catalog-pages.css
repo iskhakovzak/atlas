@@ -125,7 +125,7 @@ html[data-theme="dark"] .catalog-import-hint {
 .catalog-facets fieldset:first-child { padding-top: 0; border-top: 0; }
 .catalog-facets legend { float: left; width: 100%; margin: 0 0 8px; padding: 0; color: var(--cat-muted); font-size: 12px; font-weight: var(--fw-bold); letter-spacing: 0; }
 .catalog-facets legend + * { clear: both; }
-.catalog-check { display: flex; align-items: center; gap: 12px; min-height: 44px; color: var(--cat-ink); font-weight: 600; cursor: pointer; }
+.catalog-check { display: flex; align-items: center; gap: 12px; min-height: 44px; color: var(--cat-ink); font-size: var(--fs-14); font-weight: var(--fw-medium); cursor: pointer; }
 .catalog-check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--cat-accent); }
 .catalog-check > span:first-of-type { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .catalog-count { margin-left: auto; color: var(--cat-muted); font-size: 12px; font-weight: var(--fw-bold); font-feature-settings: "tnum" 1; }
@@ -526,6 +526,8 @@ html[data-theme="dark"] .pcard-save:not(.saved) { background-color: rgba(255, 25
 .catalog-stores-row > li { flex: none; scroll-snap-align: start; }
 .catalog-stores-row :is(button, a) { display: grid; justify-items: center; align-content: start; gap: var(--space-1); width: 76px; min-height: 96px; padding: var(--space-1) 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--text-2); font: inherit; text-decoration: none; cursor: pointer; }
 .catalog-stores-logo { position: relative; display: grid; place-items: center; width: 56px; height: 56px; border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--shadow-1); color: var(--text-2); transition: box-shadow var(--dur-fast) var(--ease-out); }
+html[data-theme="dark"] .catalog-stores-logo:has(img) { background: #fff; }
+html[data-theme="dark"] .pcard-save:focus-visible { outline-color: var(--c-brand); }
 .catalog-stores-logo .store-logo { width: 48px !important; height: 48px !important; border: 0; border-radius: var(--r-pill); overflow: hidden; background: transparent; }
 .catalog-stores-name { max-width: 100%; overflow: hidden; color: var(--text); font-size: var(--fs-12); font-weight: var(--fw-medium); line-height: var(--lh-snug); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .catalog-stores-count { color: var(--text-2); font-size: var(--fs-12); line-height: 1; font-feature-settings: var(--tnum); }
@@ -533,7 +535,7 @@ html[data-theme="dark"] .pcard-save:not(.saved) { background-color: rgba(255, 25
 .catalog-stores-row button[aria-pressed="true"] .catalog-stores-logo { box-shadow: 0 0 0 2px var(--brand), var(--shadow-1); }
 .catalog-stores-row button[aria-pressed="true"] .catalog-stores-name { color: var(--link); font-weight: var(--fw-semibold); }
 .catalog-stores-row :is(button, a):focus-visible { outline: none; }
-.catalog-stores-row :is(button, a):focus-visible .catalog-stores-logo { box-shadow: var(--focus-ring), var(--shadow-1); }
+.catalog-stores-row :is(button, a):focus-visible .catalog-stores-logo { outline: 2px solid var(--link); outline-offset: 2px; box-shadow: var(--focus-ring), var(--shadow-1); }
 .catalog-stores-more .catalog-stores-logo { background: var(--sunken); box-shadow: none; color: var(--link); }
 .catalog-stores-more .catalog-stores-name { color: var(--link); white-space: normal; }
 
@@ -636,3 +638,10 @@ html[data-theme="dark"] .pcard-save:not(.saved) { background-color: rgba(255, 25
 .store-page .pcard-store { display: none; }
 /* The dark theme gives every input a filled background (theme-night.css); the store field is one composite control. */
 html[data-theme="dark"] .store-link .store-link-field > input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) { border: 0; background: transparent; box-shadow: none; }
+
+/* While the catalog loads: the store row and the chips' room (app/catalog-view.tsx `controlsLoading`), so the grid
+   below does not move when they arrive. Heights of the real rows at each width. */
+.catalog-bar-placeholder { height: 162px; }
+.catalog-bar-placeholder.is-store { height: 46px; }
+@media (min-width: 761px) { .catalog-bar-placeholder { height: 212px; } .catalog-bar-placeholder.is-store { height: 40px; } }
+@media (min-width: 1024px) { .catalog-bar-placeholder { height: 164px; } }

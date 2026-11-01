@@ -576,7 +576,7 @@ html[data-theme="dark"] option {
 
 html[data-theme="dark"] :is(button, a, summary, input, textarea, select):focus-visible {
   outline-color: var(--atlas-dark-focus);
-  box-shadow: 0 0 0 3px rgb(183 200 250 / 24%);
+  box-shadow: var(--focus-ring);
 }
 
 /* Smaller surfaces discovered outside the main customer journey. */

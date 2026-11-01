@@ -81,7 +81,9 @@ test('a store page without catalog products is only its header: no empty grid', 
   const view = source('app/catalog-view.tsx');
   assert.match(view, /const storeEmpty = Boolean\(store\) && \(catalogReady \? pool\.length === 0 : store\?\.count === 0\);/);
   assert.match(view, /\{!storeEmpty && <div className=\{'catalog-layout'/);
-  assert.match(view, /mode === 'catalog' && !store && <CatalogStoreRow/);
+  assert.match(view, /mode === 'catalog' && !store && !controlsLoading && <CatalogStoreRow/);
+  // While the catalog loads, the controls hold their room (no layout shift when the store row arrives).
+  assert.match(view, /const controlsLoading = mode === 'catalog' && !catalogReady && !storeEmpty;/);
 });
 
 // Review of stage 8 (1 November 2026).

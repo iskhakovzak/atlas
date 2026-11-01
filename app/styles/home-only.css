@@ -56,7 +56,7 @@ html[data-theme="dark"] body .home-main .home-link-field input:not([type="checkb
 
 /* ---------- The product rail (app/catalog-teaser.tsx) and its placeholder ---------- */
 .home-main .home-rail { display: grid; gap: var(--space-3); }
-.home-main .home-rail-head { display: flex; align-items: center; gap: var(--space-3); }
+.home-main .home-rail-head { display: flex; align-items: baseline; gap: var(--space-3); }
 .home-main .home-rail-head > div { flex: 1; min-width: 0; }
 .home-main .home-rail-head h2 { margin: 0; color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: 0; }
 .home-main .home-rail-head p { display: none; margin: 2px 0 0; color: var(--text-3); font-size: var(--fs-13); line-height: var(--lh-snug); }
