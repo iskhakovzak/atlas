@@ -142,7 +142,7 @@
 .cost-service-breakdown>dl>div{display:grid;grid-template-columns:minmax(0,1fr) auto;min-width:0;align-items:center;gap:12px}
 .cost-service-breakdown dt{min-width:0;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
 .cost-service-breakdown dd{display:flex;min-width:0;align-items:center;gap:7px;font-size:12px;white-space:nowrap}
-.cost-reserve-row>dd{display:flex;align-items:center;gap:7px;white-space:nowrap}
+.cost-reserve-row>dd,.cost-delivery-row>dd{display:flex;align-items:center;gap:7px;white-space:nowrap}
 /* Store-delivery reserve: the note goes under the amount and wraps. On one nowrap line it ran past the right edge of
    the phone sheet and squeezed the label into three lines (11.10.2026). */
 .cost-hold>dd{display:grid;flex:0 1 62%;min-width:0;justify-items:end;gap:2px;text-align:right}

@@ -290,6 +290,7 @@ export function CheckoutView() {
   const guestGoodsUsd = guestItems.reduce((sum, item) => sum + (item.product.usd ?? 0) * item.quantity, 0);
   // A guest whose items are above the courier allowance owes a duty for sure: the total is shown as approximate, with a line saying so.
   const guestDuty = !signedIn && guestGoodsUsd > (pricing.customsAllowanceUsd ?? courierAllowanceUsd);
+  const feeText = formatPercent(pricing.margin + pricing.buyoutFee + pricing.conversionFee, locale);
 
   if (nothing && !loadingAccount) return <div className="co-page">
     <header className="co-head"><h1>{t.checkout.title}</h1></header>
@@ -407,10 +408,12 @@ export function CheckoutView() {
         </li>)}</ul>
         {later > 0 && <p className="co-hint">{t.checkout.sum.later(later)}</p>}
         <dl className="co-lines">
-          <div><dt>{t.checkout.sum.item}</dt><dd><Money value={shownSums.merchandise} locale={locale} /></dd></div>
-          <div><dt>{t.checkout.sum.service}<small>{shownSums.customsHelp > 0 ? t.checkout.sum.serviceHelpCustoms(formatPercent(pricing.margin + pricing.buyoutFee + pricing.conversionFee, locale), formatSum(shownSums.customsHelp, locale)) : t.checkout.sum.serviceHelp(formatPercent(pricing.margin + pricing.buyoutFee + pricing.conversionFee, locale))}</small></dt><dd><Money value={shownSums.service + shownSums.buyout + shownSums.conversion + shownSums.customsHelp} locale={locale} /></dd></div>
+          {/* The same lines as the cart (app/calc-summary.tsx CalcLines): items · Сервис Atlas · delivery · duty (owner, 2 November 2026). */}
+          <div><dt>{k.lines.items}</dt><dd><Money value={shownSums.merchandise} locale={locale} /></dd></div>
+          <div><dt>{k.lines.service}<small>{shownSums.customsHelp > 0 ? k.lines.serviceNoteCustoms(feeText, formatSum(shownSums.customsHelp, locale)) : k.lines.serviceNote(feeText)}</small></dt><dd><Money value={shownSums.service + shownSums.buyout + shownSums.conversion + shownSums.customsHelp} locale={locale} /></dd></div>
           {discount > 0 && promo && <div className="co-line-promo"><dt><span><Tag size={14} aria-hidden="true" />{t.checkout.sum.promo(promoCodeText(promo.code, locale))}</span><small>{t.checkout.sum.promoBase}</small></dt><dd>−<Money value={discount} locale={locale} /></dd></div>}
-          <div><dt>{t.checkout.sum.delivery(kgText(shownWeight, locale), k.speeds[signedIn ? speed : "standard"].toLowerCase())}</dt><dd><Money value={shownSums.shipping + shownSums.deliveryMargin + shownSums.reserve} locale={locale} /></dd></div>
+          <div><dt>{k.lines.delivery(kgText(shownWeight, locale), k.speeds[signedIn ? speed : "standard"])}</dt><dd><Money value={shownSums.shipping + shownSums.deliveryMargin} locale={locale} /></dd></div>
+          {shownSums.reserve > 0 && <div><dt>{k.lines.intlReserve}</dt><dd><Money value={shownSums.reserve} locale={locale} /></dd></div>}
           {shownSums.sourceShipping > 0 && <div><dt>{t.checkout.sum.storeShipping}</dt><dd><Money value={shownSums.sourceShipping} locale={locale} /></dd></div>}
           {shownSums.insurance > 0 && <div><dt>{t.checkout.sum.guarantee}</dt><dd><Money value={shownSums.insurance} locale={locale} /></dd></div>}
           {shownSums.optionalServices > 0 && <div><dt>{k.lines.optional}</dt><dd><Money value={shownSums.optionalServices} locale={locale} /></dd></div>}

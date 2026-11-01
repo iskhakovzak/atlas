@@ -165,16 +165,10 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .basket-help[aria-expanded="true"] { color: var(--home-ink); }
 .basket-help:focus-visible { outline: 2px solid var(--home-accent); outline-offset: -6px; }
 .basket-line-help { flex-basis: 100%; margin: 4px 0 6px; padding: 10px 12px; border-radius: var(--r-control); background: var(--home-soft); color: var(--home-muted); font-size: 14px; line-height: 1.5; }
-/* "Atlas service" (owner, 10.10.2026): one amount; the fee and international delivery fold under it (app/calc-summary.tsx).
-   The breakdown reuses .cost-service-breakdown from the item card; its rows are quieter than the bill's own lines. */
-.basket-service-breakdown { flex-basis: 100%; margin: -6px 0 2px; }
-.basket-service-breakdown > .basket-lines { margin: 0 0 4px; padding-left: 12px; border-left: 2px solid var(--home-line); }
 /* The breakdown's 36 px tap row already leaves room under the bill lines; with the card's own 12 px the gap read ~40 px. */
 .basket-lines + .calc-customs, .folio-sheet .basket-lines + .calc-customs { margin-top: 4px; }
 /* Wide screens: the data notice sat bottom-right over the sticky "Checkout" button; on the cart it moves left. */
 @media (min-width: 761px) { body:has(.basket-summary) .storage-notice { right: auto; left: 24px; } }
-.basket-service-line .basket-service-breakdown .basket-lines .basket-line { min-height: 36px; padding: 2px 0; border-bottom: 0; }
-.basket-service-line .basket-service-breakdown .basket-lines :is(.basket-line-label, .basket-line > b) { color: var(--home-muted); font-size: 13px; font-weight: 500; }
 .basket-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
 .basket-total span { color: var(--home-ink); font-size: 16px; font-weight: 700; }
 .basket-total strong { color: var(--home-ink); font-size: clamp(24px, 6.4vw, 30px); letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -192,10 +186,6 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
   .basket-parcel-title { flex-wrap: wrap; row-gap: 2px; }
   .basket-parcel-title > span:not(.basket-select) { flex: 1 1 0; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .basket-parcel-title > small { flex-basis: 100%; margin-left: 0; padding-left: 24px; white-space: normal; }
-}
-/* On phones the folded line is a 44 px tap target, as on the link-order page and the order card. */
-@media (max-width: 760px) {
-  .basket-summary .basket-service-breakdown > summary { min-height: 44px; }
 }
 
 /* Sticky total on phones, above the member bottom navigation; on tablets and a phone held sideways (up to 959 px,
@@ -583,7 +573,6 @@ html[data-theme="dark"] .lo-added { border-color: rgba(128, 208, 172, .35); back
   .lo-page .lo-pick-mode .lo-source-link { min-height: 44px; }
   .lo-page .lo-pick-remove { width: 44px; height: 44px; }
   .lo-page .lo-stepper button { width: 44px; height: 44px; }
-  .lo-page .basket-service-breakdown > summary { min-height: 44px; }
   .lo-page .calc-customs-link { display: inline-flex; align-items: center; min-height: 44px; }
 }
 .lo-note { display: flex; align-items: flex-start; gap: 8px; margin: 10px 0 0; padding: 10px 12px; border-radius: var(--r-control); background: var(--home-soft); color: var(--home-muted); font-size: 14px; line-height: 1.5; }

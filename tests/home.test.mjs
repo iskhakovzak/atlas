@@ -149,13 +149,14 @@ test('the home page asks five questions and the FAQ structured data lists the sa
   assert.match(faq, /\{items\.map\(item=><details/);
 });
 
-test('the example bill says the «Atlas service» line holds the fee and the delivery, not the fee alone', async () => {
+test('the example bill shows «Atlas service» (the fee) and delivery as two lines, as the cart and the checkout do', async () => {
   const sections = await homeSource('app/home-sections.tsx');
-  assert.match(sections, /<dt>\{c\.example\.service\}<small>\{c\.example\.serviceNote\(fee\)\}<\/small><\/dt>/);
-  assert.match(sections, /<li><span>\{c\.example\.fee\(fee\)\}<\/span><span>\{formatSum\(parts\.service,locale\)\}/);
-  assert.equal(homeCopy.ru.example.serviceNote('9,98%'), 'Комиссия 9,98% и доставка до Ташкента');
-  assert.equal(homeCopy.uz.example.serviceNote('9,98%'), 'Komissiya 9,98% va Toshkentgacha yetkazish');
-  assert.equal(homeCopy.en.example.serviceNote('9.98%'), '9.98% fee and delivery to Tashkent');
+  assert.match(sections, /<dt>\{c\.example\.service\}<small>\{c\.example\.serviceNote\(fee\)\}<\/small><\/dt><dd>\{formatSum\(parts\.service,locale\)\}/);
+  assert.match(sections, /<dt>\{c\.example\.delivery\}<small>\{c\.example\.deliveryNote\(/);
+  assert.doesNotMatch(sections, /parts\.service\+parts\.international/);
+  assert.equal(homeCopy.ru.example.serviceNote('9,98%'), 'Комиссия 9,98%: выкуп, проверка и упаковка');
+  assert.equal(homeCopy.uz.example.serviceNote('9,98%'), 'Komissiya 9,98%: xarid, tekshiruv va qadoqlash');
+  assert.equal(homeCopy.en.example.serviceNote('9.98%'), '9.98% fee: purchase, inspection and packing');
 });
 
 test('the home title never starts a line with its dash', () => {
