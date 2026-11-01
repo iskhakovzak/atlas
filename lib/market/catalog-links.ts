@@ -13,6 +13,12 @@ export function catalogItemHref(catalogHref: string, id: string): string {
   return path + (path.includes('?') ? '&' : '?') + 'item=' + encodeURIComponent(id) + (hash ? '#' + hash : '');
 }
 
+/** The product's own page (`/catalog/p/<id>`, app/catalog/p/[id]/page.tsx): the catalog's sheet shows it in the address too.
+ * A language address (`?lang=en`) keeps its language there. */
+export function productPath(id: string, lang?: string): string {
+  return '/catalog/p/' + encodeURIComponent(id) + (lang ? '?lang=' + encodeURIComponent(lang) : '');
+}
+
 /** The product id an address asks to open (`?item=`), or null. */
 export function itemParam(search: string): string | null {
   const id = new URLSearchParams(search).get('item');

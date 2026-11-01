@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import { pageLocale } from "./page-locale";
+import { pageLocale, requestedPageLocale } from "./page-locale";
+import { PageLang } from "./page-lang";
 import { SESSION_COOKIE } from "@/lib/auth/core";
 import { rootMetadata } from "./route-metadata";
 import { htmlLang } from "@/lib/market/uz-cyrl";
@@ -61,6 +62,7 @@ import { PressFeedback } from "./press-feedback";
 import { AmbientBackdrop } from "./ambient-backdrop";
 import { JsonLd } from "./json-ld";
 import { siteGraph } from "@/lib/seo/structured-data";
+import { alternateOgLocales } from "@/lib/seo/metadata";
 import { impactHeadScript } from '@/lib/market/impact-tracking';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -85,7 +87,7 @@ export default async function RootLayout({
   // the browser language, then Uzbek.
   // The tariff from D1 goes into the first render too, so the sums on the home page do not change after /api/account answers.
   // The site content (contacts, legal entity, reviews…) comes from D1 as well, so the footer does not flicker after hydration.
-  const [locale, { pricing, siteContent }] = await Promise.all([pageLocale(), initialSettings()]);
+  const [locale, requested, { pricing, siteContent }] = await Promise.all([pageLocale(), requestedPageLocale(), initialSettings()]);
   // A session cookie (not verified here) lets the header and private pages render their signed-in shape at once
   // instead of the guest header and a "checking your session" card; /api/account still decides who is signed in.
   const sessionHint = (await cookies()).has(SESSION_COOKIE);
@@ -97,11 +99,11 @@ export default async function RootLayout({
   preload(manropeWordmark, font); // 5.9 KB: only the letters of "atlas" (scripts/wordmark-font.mjs), not the 24.8 KB Latin file
   return (
     <html lang={htmlLang(locale)} suppressHydrationWarning>
-      <head><link rel="stylesheet" href={layoutDesktopHref} media="(min-width: 481px)" precedence="vite-rsc/importer-resources" /><script id="atlas-impact-bootstrap" type="text/javascript" dangerouslySetInnerHTML={{__html:impactHeadScript}} /></head>
+      <head>{/* Open Graph reads property=, which neither openGraph.alternateLocale nor `other` produce in vinext (lib/seo/metadata.ts). */}{alternateOgLocales(locale).map((code) => <meta key={code} property="og:locale:alternate" content={code} />)}<link rel="stylesheet" href={layoutDesktopHref} media="(min-width: 481px)" precedence="vite-rsc/importer-resources" /><script id="atlas-impact-bootstrap" type="text/javascript" dangerouslySetInnerHTML={{__html:impactHeadScript}} /></head>
       <body className="antialiased">
         <AmbientBackdrop />
         <AtlasThemeProvider>
-          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}>{children}<ShellExtras /><StaleBuildReload /><NativeShell /><PressFeedback /></MarketProvider>
+          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}><PageLang requested={requested}>{children}</PageLang><ShellExtras /><StaleBuildReload /><NativeShell /><PressFeedback /></MarketProvider>
         </AtlasThemeProvider>
         <JsonLd data={siteGraph(locale, siteContent.contacts, siteContent.legal)} />
       </body>

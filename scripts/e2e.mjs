@@ -314,14 +314,21 @@ try {
   }
   // Catalog filters: a category narrows the list and lands in the address; the address restores it.
   await open("/catalog?lang=ru");
-  await eventually("document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length > 0", "catalog products");
-  const catalogTotal = await evaluate("document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length");
+  await eventually("document.querySelectorAll('.catalog-results :is(.pcard, .find-card):not(.pcard-skeleton):not(.catalog-skeleton-card)').length > 0", "catalog products");
+  const catalogTotal = await evaluate("document.querySelectorAll('.catalog-results :is(.pcard, .find-card):not(.pcard-skeleton):not(.catalog-skeleton-card)').length");
   await evaluate("[...document.querySelectorAll('.catalog-categories button')].find((button) => button.getAttribute('aria-pressed') === 'false' && !button.dataset.empty)?.click(), true");
   await eventually("new URLSearchParams(location.search).has('cat') && new URLSearchParams(location.search).get('lang') === 'ru'", "category kept in the address with the language");
-  const filtered = await evaluate("({ cat: new URLSearchParams(location.search).get('cat'), shown: document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length })");
+  const filtered = await evaluate("({ cat: new URLSearchParams(location.search).get('cat'), shown: document.querySelectorAll('.catalog-results :is(.pcard, .find-card):not(.pcard-skeleton):not(.catalog-skeleton-card)').length })");
   if (!(filtered.shown > 0 && filtered.shown <= catalogTotal)) fail("guest /catalog", `category ${filtered.cat} shows ${filtered.shown} of ${catalogTotal}`);
   await open(`/catalog?cat=${filtered.cat}`);
-  await eventually(`document.querySelector('.catalog-categories [aria-pressed=true]') && document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length === ${filtered.shown}`, "category restored from the address");
+  await eventually(`document.querySelector('.catalog-categories [aria-pressed=true]') && document.querySelectorAll('.catalog-results :is(.pcard, .find-card):not(.pcard-skeleton):not(.catalog-skeleton-card)').length === ${filtered.shown}`, "category restored from the address");
+  // A product's own page (redesign stage 5): server HTML with its heading and sum, the same product page as the sheet.
+  const productHref = await evaluate("document.querySelector('.catalog-results a.pcard-plus[href^=\"/catalog/p/\"]')?.getAttribute('href') ?? ''");
+  if (!productHref) fail("guest /catalog", "no card links to its product page");
+  else {
+    await snapshot("guest", productHref);
+    await eventually("!!document.querySelector('main h1.pd-title') && !!document.querySelector('.pd-sum') && !!document.querySelector('script[type=\"application/ld+json\"]')?.textContent", "product page heading, sum and JSON-LD");
+  }
   // Store directory: search goes to the address, a store card opens with the store's own link.
   await open("/stores?lang=ru");
   await eventually("document.querySelectorAll('.store-tile').length > 100", "store directory");

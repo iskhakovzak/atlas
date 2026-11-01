@@ -38,6 +38,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Metadata (title, canonical, hreflang, robots) goes into <head> for crawlers and link previews. Vinext streams it
+  // into <body> for any user agent not on this list, and its default list leaves out Googlebot itself, so Google got
+  // canonical and hreflang outside <head>, where it ignores them (SEO audit, 1 November 2026). People keep the
+  // streamed metadata. Generating it only reads headers and ?lang, so the blocking render costs bots nothing.
+  htmlLimitedBots: /bot|crawl|spider|slurp|Google|yandex|Bing|Lighthouse|facebookexternalhit|facebookcatalog|meta-external|WhatsApp|Telegram|Slack|Discord|Twitter|LinkedIn|vkShare|quora link preview|Yeti|ia_archiver|sogou|preview/i,
   // Vinext's "/:path*" does not match the bare "/" (and "/:path+" matches nothing), so the
   // home page gets its own rule; the two never apply to the same request.
   async headers() {

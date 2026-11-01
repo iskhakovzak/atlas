@@ -100,7 +100,7 @@ test('phones: no breadcrumb (its JSON-LD stays), a shorter footer, none in the a
   const css = source('app/shell.css');
   assert.match(css, /@media \(max-width: 760px\) \{[\s\S]*\.site-main > \.breadcrumb \{ display: none; \}/);
   assert.match(css, /\.home-footer \.footer-dup, \.home-footer-brand p \{ display: none; \}/);
-  assert.match(source('app/marketplace.tsx'), /<JsonLd data=\{breadcrumbs\(locale,publicViewPaths\[view\],routeTitle\(locale,view\)\)\}\/>/);
+  assert.match(source('app/marketplace.tsx'), /<JsonLd data=\{breadcrumbs\(locale,publicViewPaths\[view\],routeTitle\(locale,view\),pageLang,pageLanguageSet\(publicViewPaths\[view\]\)\)\}\/>/);
   assert.match(source('app/native.css'), /html\[data-native\] \.home-footer \{ display: none; \}/);
 });
 
