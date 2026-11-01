@@ -64,6 +64,7 @@ import {
   checkoutLines,
   setCartCustoms,
   acceptConsents,
+  setCookieConsent,
   products,
   consentKeySchema,
   type Pricing,
@@ -74,6 +75,7 @@ import { cartCustomsEstimate } from "./allowance.ts";
 import { assertCartPolicy, defaultPolicy, productRestriction, type Policy } from "./policy.ts";
 import { customsVersion, paddedWeight, toUsd } from "./world.ts";
 import { safeImage } from "../importer/extract.ts";
+import { cookieConsentVersion } from "./cookie-consent.ts";
 import { normalizePromoCode, promoDiscount, promoErrors, promoOrderSum, promoProblem, type PromoRule } from "./promo.ts";
 
 /** How long the server keeps removed cart lines for «Вернуть»: the toast shows for 8 s, the rest covers a slow network. */
@@ -222,6 +224,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("declaration-preview"), orderIds: z.array(z.string().max(100)).min(1).max(30) }),
   // Data-processing consent (privacy policy, terms of use) at a document version; the server also writes it to market_legal_consents.
   z.object({ type: z.literal("consent-accept"), documents: z.array(consentKeySchema).min(1).max(2), version: z.string().trim().min(1).max(40) }),
+  // Optional cookies (analytics, partner links) at the current version; the server also writes proof to market_legal_consents.
+  z.object({ type: z.literal("cookie-consent"), version: z.literal(cookieConsentVersion), analytics: z.boolean(), partners: z.boolean() }),
   // Order notices in Telegram, the customer's own consent. Handled whole by POST /api/actions (link check,
   // test message, consent record); `language` is the screen's, so messages arrive in it. No Telegram id is sent.
   z.object({ type: z.literal("telegram-notify"), enabled: z.boolean(), language: z.enum(["ru", "uz", "en", "oz"]).optional() }),
@@ -533,5 +537,7 @@ export function applyAction(
       return submitDeclarationPreview(s, a.orderIds);
     case "consent-accept":
       return acceptConsents(s, a.documents, a.version);
+    case "cookie-consent":
+      return setCookieConsent(s, a);
   }
 }

@@ -171,3 +171,7 @@ html[data-theme="dark"] .price-was { color: var(--night-muted); }
 }
 /* Only the body scrolls on a short screen: the arrow sits outside the window's edge and must not add a scrollbar. */
 @keyframes customs-how-in { from { opacity: 0; transform: scale(.97); } }
+/* The cookie row in the settings is a button that looks like the link rows (app/account-views.tsx, 2 November 2026). */
+.cabinet-setting-button { width: 100%; padding: 0; border-width: 0 0 1px; border-style: solid; border-color: var(--home-line); background: none; font: inherit; font-weight: var(--fw-semibold); text-align: start; cursor: pointer; }
+.cabinet-setting-button .cabinet-setting-label > span { display: grid; gap: 2px; }
+.cabinet-setting-state { color: var(--text-3); font-size: 12.5px; font-weight: var(--fw-regular, 400); }

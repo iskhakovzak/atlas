@@ -103,7 +103,10 @@ test('the theme stays reachable: the profile menu, the account settings and the 
 test('phones: no breadcrumb (its JSON-LD stays), a shorter footer, none in the apps', () => {
   const css = source('app/shell.css');
   assert.match(css, /@media \(max-width: 760px\) \{[\s\S]*\.site-main > \.breadcrumb \{ display: none; \}/);
-  assert.match(css, /\.home-footer \.footer-dup, \.home-footer-brand p \{ display: none; \}/);
+  // The footer's own sheet (2 November 2026): phones hide the links the bottom bar has and show the short tagline.
+  const footer = source('app/footer.css');
+  assert.match(footer, /@media \(max-width: 760px\) \{[\s\S]*html:root \.home-footer \.footer-dup \{ display: none; \}/);
+  assert.match(footer, /html:root \.home-footer-tagline-long \{ display: none; \}/);
   assert.match(source('app/marketplace.tsx'), /<JsonLd data=\{crumb&&crumbPath\?breadcrumbList\(\[[\s\S]*?\],pageLang\):breadcrumbs\(locale,publicViewPaths\[view\],routeTitle\(locale,view\),pageLang,pageLanguageSet\(publicViewPaths\[view\]\)\)\}\/>/);
   assert.match(source('app/native.css'), /html\[data-native\] \.home-footer \{ display: none; \}/);
 });

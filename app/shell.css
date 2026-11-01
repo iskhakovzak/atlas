@@ -141,10 +141,6 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   .site-main > .breadcrumb { display: none; }
   /* A page's JSON-LD script may stand between the breadcrumb and the head. */
   .site-main > .breadcrumb + *, .site-main > .breadcrumb + script + * { margin-top: var(--space-6); }
-  /* A shorter footer: no links the bottom bar has, no tagline, a smaller wordmark. */
-  .home-footer .footer-dup, .home-footer-brand p { display: none; }
-  .home-footer .home-footer-brand .wordmark { font-size: 28px; }
-  .home-footer .home-footer-brand .wordmark svg { width: 20px; height: 20px; }
 }
 @media (max-width: 359px) {
   :root .site-header.shell-header { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
@@ -172,9 +168,8 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   /* The same on tablets and a phone held sideways: a link, a disclosure line, a tab or an option row is 44 px tall.
      `:root main.site-main` outranks the page stylesheets, which load after this file with the same weight. */
   :root main.site-main :is(.pd-source, .home-main .home-link-batch, .home-main .home-rail-all, .home-main .home-step-link, .pd-breakdown > summary, .basket-service-breakdown > summary, .lo-pick-mode .lo-source-link, .pf-segmented button, .order-tabs [data-slot="tabs-trigger"], .customs-text summary) { min-height: 44px; }
-  /* The product sheet is outside main: its «Из чего сумма» and store link too. A short footer word is 44 px wide. */
+  /* The product sheet is outside main: its «Из чего сумма» and store link too. */
   :root .pd-sheet :is(.pd-breakdown > summary, .pd-source, .lo-pick-mode .lo-source-link) { min-height: 44px; }
-  :root .home-footer-groups li > a { min-width: 44px; }
   html body .store-link-field > input { align-self: stretch; height: auto; min-height: 44px; }
   .site-main .service-options label { min-height: 44px; }
 }

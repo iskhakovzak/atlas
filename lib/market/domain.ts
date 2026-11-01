@@ -1501,6 +1501,8 @@ export const consentKeys = ["privacy", "terms"] as const;
 export const consentKeySchema = z.enum(consentKeys);
 const consentSchema = z.object({ key: consentKeySchema, version: z.string().min(1).max(40), acceptedAt: amount });
 export type Consent = z.infer<typeof consentSchema>;
+/** Optional cookies the customer allowed (lib/market/cookie-consent.ts): analytics and partner links, with the version and time. */
+const cookieConsentSchema = z.object({ version: z.string().min(1).max(40), analytics: z.boolean(), partners: z.boolean(), at: amount });
 export const stateSchema = z.object({
   orders: z.array(orderSchema),
   entries: z.array(entrySchema),
@@ -1530,6 +1532,8 @@ export const stateSchema = z.object({
   customsPreference: customsPreferenceSchema.optional(),
   /** Data-processing consents (privacy policy, terms of use): one entry per document, latest version wins. Absent in older documents. */
   consents: z.array(consentSchema).max(10).optional(),
+  /** Analytics and partner-link cookies, as the customer last chose them (2 November 2026). Absent until a choice. */
+  cookieConsent: cookieConsentSchema.optional(),
   version: z.number().default(3),
 });
 export type State = z.infer<typeof stateSchema>;
@@ -1608,6 +1612,12 @@ export function acceptConsents(state: State, documents: readonly Consent["key"][
   const kept = current.filter((item) => !keys.includes(item.key));
   const added = keys.map((key) => ({ key, version, acceptedAt: now }));
   return { ...state, consents: [...kept, ...added].slice(-10) };
+}
+/** Records the customer's choice of optional cookies; the server stamps the time. */
+export function setCookieConsent(state: State, choice: { version: string; analytics: boolean; partners: boolean }, now = Date.now()): State {
+  const current = state.cookieConsent;
+  if (current && current.version === choice.version && current.analytics === choice.analytics && current.partners === choice.partners) return state;
+  return { ...state, cookieConsent: { version: choice.version, analytics: choice.analytics, partners: choice.partners, at: now } };
 }
 /** Saves the customer's email/SMS settings and language; the Telegram fields stay as the server set them. */
 export const updateCommunication = (

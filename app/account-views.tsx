@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "@/components/site-link";
 import { InfoTip } from "@/components/info-tip";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Heart, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Settings2, Shield, ShoppingBag, Trash2, UserCog, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Bell, Check, Cookie, FileCheck2, Heart, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Settings2, Shield, ShoppingBag, Trash2, UserCog, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { isServedRegion } from "@/lib/market/addresses";
@@ -20,6 +20,9 @@ import { calcCopy } from "@/lib/market/calc-copy";
 import { formatSum } from "@/lib/market/format";
 import { accountCopy, formatLongDate, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
 import { consentDocuments, consentVersion, deletionBlockers, deletionSummary, missingConsents } from "@/lib/market/account-delete";
+import { consentOpenEvent } from "@/lib/market/cookie-consent";
+import { withCyrillic } from "@/lib/market/uz-cyrl";
+import { useCookieChoice } from "./use-cookie-choice";
 import { appInfo, isNative, nativePlatform, type AppInfo } from "@/lib/native/bridge";
 import { toast } from "@/lib/market/toast";
 import { Modal } from "./modal";
@@ -232,6 +235,21 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups:
 
 type SettingsProps = { c: AccountCopy; locale: Locale; state: State; ready: boolean; act: (action: Action) => Promise<boolean>; refresh: () => Promise<void>; onSignOut: () => void; onSupport: () => void };
 
+/** The cookie row in the settings (2 November 2026): what is on now; tapping opens the consent card with its switches. */
+const cookieRowCopy = /*@__PURE__*/withCyrillic({
+  ru: { title: "Cookies и аналитика", none: "Не выбрано", analytics: "Аналитика", partners: "Партнёрские ссылки", on: "вкл.", off: "выкл." },
+  uz: { title: "Cookie va analitika", none: "Tanlanmagan", analytics: "Analitika", partners: "Hamkor havolalari", on: "yoq.", off: "o‘ch." },
+  en: { title: "Cookies and analytics", none: "Not chosen", analytics: "Analytics", partners: "Partner links", on: "on", off: "off" },
+});
+function CookieSettingRow({ locale }: { locale: Locale }) {
+  const { choice } = useCookieChoice();
+  const t = cookieRowCopy[locale];
+  const state = choice ? `${t.analytics}: ${choice.analytics ? t.on : t.off} · ${t.partners}: ${choice.partners ? t.on : t.off}` : t.none;
+  return <button type="button" className="cabinet-setting cabinet-setting-link cabinet-setting-button" onClick={() => window.dispatchEvent(new Event(consentOpenEvent))}>
+    <span className="cabinet-setting-label"><Cookie size={18} aria-hidden="true" /><span>{t.title}<small className="cabinet-setting-state">{state}</small></span></span><ArrowRight size={18} aria-hidden="true" />
+  </button>;
+}
+
 /** Settings rows the stores expect in the app: help, legal documents, consents, "restore purchases", about, sign out, delete. */
 function SettingsCard({ c, locale, state, ready, act, refresh, onSignOut, onSupport }: SettingsProps) {
   const [native, setNative] = useState(false);
@@ -263,6 +281,7 @@ function SettingsCard({ c, locale, state, ready, act, refresh, onSignOut, onSupp
       <Link className="cabinet-setting cabinet-setting-link" href="/support"><span className="cabinet-setting-label"><LifeBuoy size={18} aria-hidden="true" />{c.settings.support}</span><ArrowRight size={18} aria-hidden="true" /></Link>
       <Link className="cabinet-setting cabinet-setting-link" href="/privacy"><span className="cabinet-setting-label"><Shield size={18} aria-hidden="true" />{c.settings.privacy}</span><ArrowRight size={18} aria-hidden="true" /></Link>
       <Link className="cabinet-setting cabinet-setting-link" href="/terms"><span className="cabinet-setting-label"><FileCheck2 size={18} aria-hidden="true" />{c.settings.terms}</span><ArrowRight size={18} aria-hidden="true" /></Link>
+      <CookieSettingRow locale={locale} />
       {/* Consents and account deletion fold into one row: they are needed rarely, so they are not shown open
           (owner, 12 October 2026). The row opens by itself while a consent still has to be accepted. */}
       <details ref={accountRow} id="account-delete" className="cabinet-setting-more" open={missing.length > 0 || undefined}>

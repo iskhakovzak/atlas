@@ -47,22 +47,12 @@ body { -webkit-tap-highlight-color: transparent; }
   /* The pinned bars (cart, product, checkout) step aside with it while a field or a picker is open: they used to keep the
      menu's height under them and float mid-screen over the form on iOS (owner, 2 November 2026). Back on blur. */
   body:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select):focus) :is(.basket-sticky, .co-paybar, .pd-bar-sheet) { display: none; }
-  /* +22 px: the centre "Ссылка" circle rises 16 px over the bar, the notice clears it. */
-  body:has(.mobile-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 22px); }
 
   /* Header: the bottom bar carries navigation and sign-in, so the top bar stays light (app/shell.css). */
 
   /* Checkboxes: 22px boxes with a 44px target, app/checkbox.css. */
 }
 
-/* Footer links in two columns on phones instead of one long list. */
-@media (max-width: 600px) {
-  .home-footer :is(nav, section) ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
-}
-/* Under 360 px a column is narrower than "конфиденциальности", which broke mid-word; the three legal links stack. */
-@media (max-width: 359px) {
-  .home-footer section[aria-labelledby="footer-legal"] ul { grid-template-columns: minmax(0, 1fr); }
-}
 
 /* Fingers: small text buttons keep their look but take taps from a little around them (an invisible frame). */
 @media (pointer: coarse) {
@@ -70,9 +60,7 @@ body { -webkit-tap-highlight-color: transparent; }
   :is(.basket-note-add, .customs-how-trigger, .customs-remembered button)::after { content: ""; position: absolute; inset: -10px 0; }
   /* Frames grow up and down only: wider, they would poke out of the line they sit in. */
   .breadcrumb a::after { content: ""; position: absolute; inset: -10px 0; }
-  .home-footer-brand .wordmark, .home-footer .theme-toggle { position: relative; }
-  .home-footer-brand .wordmark::after { content: ""; position: absolute; inset: -8px 0; }
-  :is(.home-footer, .pf-theme-row) .theme-toggle { min-width: 44px; min-height: 44px; }
+  .pf-theme-row .theme-toggle { min-width: 44px; min-height: 44px; }
   :is(.service-options label, .customs-remember) { min-height: 44px; }
   :is(.pd-trust a, .basket-assurance a, .delivery-country-stores, .pf-section-link, .store-link-open, .store-about-card .text-link, .store-about-similar > .text-link, .delivery-limit > .text-link, .finds-signin a, .pf-parcel-head h3 a)::after { content: ""; position: absolute; inset: -14px 0; }
   :is(.allowance-part, .order-x-link, .pf-back)::after { content: ""; position: absolute; inset: -10px 0; }
