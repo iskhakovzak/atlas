@@ -148,7 +148,7 @@ export function LoginView(){
    {methods.telegram&&(methods.telegramBot?<TelegramBotLogin locale={locale} onDone={done} onError={showError}/>:<TelegramLogin bot={methods.telegram} hint={c.telegramHint} onDone={done} onError={showError}/>)}
    {methods.telegram&&tabs.length>1&&<div className="login-or" role="separator"><span>{w.or}</span></div>}
    <div className="login-choices">
-    {methods.phone&&<button type="button" className="btn secondary login-choice" onClick={()=>{setTab('phone');setError(null)}}><Smartphone size={20} aria-hidden="true"/><span>{w.phone}</span><ChevronRight className="login-choice-go" size={18} aria-hidden="true"/></button>}
+    {methods.phone&&<button type="button" className={'btn '+(methods.telegram?'secondary':'primary')+' login-choice'} onClick={()=>{setTab('phone');setError(null)}}><Smartphone size={20} aria-hidden="true"/><span>{w.phone}</span><ChevronRight className="login-choice-go" size={18} aria-hidden="true"/></button>}
     {methods.email&&<button type="button" className="btn secondary login-choice" onClick={()=>{setTab('email');setError(null)}}><Mail size={20} aria-hidden="true"/><span>{w.email}</span><ChevronRight className="login-choice-go" size={18} aria-hidden="true"/></button>}
     {methods.google&&<ProviderLink provider="google" returnTo={returnTo} className="btn secondary login-choice"><GoogleMark/><span>{c.googleButton}</span><ChevronRight className="login-choice-go" size={18} aria-hidden="true"/></ProviderLink>}
     {appleOffered(methods)&&<AppleButton methods={methods} returnTo={returnTo} label={c.appleButton} className="btn login-choice apple" onDone={done} onError={showError}/>}

@@ -114,3 +114,5 @@ input[type="checkbox"]:not([role="switch"]):not([aria-hidden="true"]):not(.sc-ch
   input[type="checkbox"], input[type="checkbox"]::before { transition: none !important; }
   .atlas-check:active .atlas-check-box, input[type="checkbox"]:active { scale: none !important; }
 }
+/* Radio buttons: one size and the brand colour everywhere (the claim form, customs options, catalog filters). */
+input[type="radio"] { width: 20px; height: 20px; margin: 0; accent-color: var(--brand); }

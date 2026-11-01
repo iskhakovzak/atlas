@@ -21,8 +21,13 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .finds-page .find-card .find-content .find-origin{margin:0 0 12px}
 .card-content,.find-content{display:flex;flex:1;flex-direction:column;min-width:0;padding:16px}
 
-.surface{border-radius:var(--r-sm);box-shadow:none}
-.btn{border-radius:var(--r-sm);min-height:46px}
+.surface{border-radius:var(--r-card);padding:var(--pad-card-lg)}
+/* Buttons: one height scale (app/tokens.css). 48 px by default; .lg (56) for the one main action of a screen, .sm (40) for
+   small actions in cards; touch screens never go under 44 (below). */
+.btn{border-radius:var(--r-control);min-height:var(--h-md);font-size:var(--fs-16);font-weight:var(--fw-semibold)}
+.btn.lg{min-height:var(--h-lg)}
+.btn.sm{min-height:var(--h-sm);font-size:var(--fs-14)}
+@media (pointer:coarse){.btn.sm{min-height:44px}}
 .btn.primary{background:var(--atlas-ink);border-color:var(--atlas-ink)}
 .btn.primary:hover{background:#1c4434;border-color:#1c4434}
 .btn.light{background:var(--accent);border-color:var(--accent);color:var(--atlas-ink)}
@@ -217,7 +222,7 @@ body:has([role=dialog][data-state=open],[role=listbox][data-state=open]) .storag
   .page-heading h1{font-size:clamp(30px,8vw,40px);line-height:1.15;overflow-wrap:anywhere}
   .page-heading p{font-size:16px;line-height:1.5}
   .site-main :is(.field input:not([type=checkbox]):not([type=radio]),.field textarea,.select-control,.field select){font-size:16px;min-height:48px;line-height:1.4}
-  .site-main :is(.btn,.text-button,.icon-btn){min-height:44px}
+  .site-main :is(.text-button,.icon-btn){min-height:44px}
   .site-main :is(.notice, .customer-badge){overflow-wrap:anywhere}
   .atlas-modal{width:calc(100vw - 24px);max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;padding:24px 18px;scroll-padding-block:24px;overscroll-behavior-y:contain}
   .atlas-modal .modal-title{padding-right:32px;font-size:24px;overflow-wrap:anywhere}

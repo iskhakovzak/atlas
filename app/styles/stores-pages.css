@@ -160,13 +160,13 @@ html[data-theme="dark"] .legal-disclosure > summary :is(p, span) { color: var(--
 .stores-page { padding-bottom: 8px; }
 .stores-hero { display: grid; gap: 18px; margin: 0 0 var(--space-8); padding: 22px 18px; border: 1px solid var(--cat-line); border-radius: var(--r-sheet); background: linear-gradient(160deg, var(--cat-surface) 0%, var(--cat-soft) 100%); }
 .stores-hero-main, .stores-hero-aside { min-width: 0; }
-.stores-link-field { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 6px 0 16px; border: 1.5px solid var(--cat-line); border-radius: var(--r-card); background: var(--cat-surface); color: var(--cat-muted); }
-.stores-link-field:focus-within { border-color: var(--cat-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat-accent) 18%, transparent); }
-.stores-link-field input { flex: 1; min-width: 0; min-height: 50px; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; box-shadow: none; color: var(--cat-ink); font: inherit; font-size: 16px; }
+.stores-link-field { display: flex; align-items: center; gap: var(--space-2); min-height: var(--h-lg); padding: 0 var(--space-1) 0 var(--space-4); border: 1px solid var(--field); border-radius: var(--r-control); background: var(--surface); color: var(--text-3); }
+.stores-link-field:focus-within { border-color: var(--brand); box-shadow: var(--focus-ring); }
+.stores-link-field input { flex: 1; min-width: 0; min-height: calc(var(--h-lg) - 2px); padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; box-shadow: none; color: var(--cat-ink); font: inherit; font-size: 16px; }
 .stores-link-field input::placeholder { color: var(--cat-muted); opacity: 1; }
 html[data-theme="dark"] .stores-link-field, html[data-theme="dark"] .stores-search { background: var(--night-inset); }
 .stores-link-field .icon-btn, .stores-search .icon-btn { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--cat-accent); cursor: pointer; }
-.stores-link-error { margin: 0; color: var(--c-danger); font-size: 14px; font-weight: 600; }
+.stores-link-error { margin: 0; color: var(--c-danger); font-size: 14px; font-weight: var(--fw-semibold); }
 html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
 /* "How to copy a link": collapsed by default, three short columns (iPhone / Android / computer). */
 .stores-howto { margin: 0; }
@@ -246,18 +246,18 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
 /* ---------- Directory ---------- */
 .stores-browse-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .stores-browse-head > span { color: var(--cat-muted); font-size: 14px; font-weight: 650; }
-.stores-search { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 52px; margin-bottom: 12px; padding: 0 6px 0 16px; border: 1.5px solid var(--cat-line); border-radius: var(--r-card); background: var(--cat-surface); color: var(--cat-muted); }
-.stores-search:focus-within { border-color: var(--cat-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat-accent) 18%, transparent); }
+.stores-search { display: flex; align-items: center; gap: var(--space-2); min-width: 0; min-height: var(--h-lg); margin-bottom: 12px; padding: 0 var(--space-1) 0 var(--space-4); border: 1px solid var(--field); border-radius: var(--r-control); background: var(--surface); color: var(--text-3); }
+.stores-search:focus-within { border-color: var(--brand); box-shadow: var(--focus-ring); }
 .stores-search input { flex: 1; min-width: 0; min-height: 48px; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; box-shadow: none; color: var(--cat-ink); font: inherit; font-size: 16px; }
 .stores-search input::-webkit-search-cancel-button { display: none; }
 .stores-page .stores-search input:focus-visible { outline: 0; }
 .stores-search > svg, .stores-search > button { flex: none; }
 .stores-search-results { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-bottom: 8px; color: var(--cat-accent); font-size: 14px; font-weight: 650; }
 .stores-chips { display: flex; gap: 8px; margin: 0 -16px 10px; padding: 2px 16px 4px; overflow-x: auto; scroll-padding-inline: 16px; scrollbar-width: none; }
-.stores-chips > button { display: inline-flex; flex: none; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--cat-line); border-radius: var(--r-pill); background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; white-space: nowrap; cursor: pointer; }
-.stores-chips > button > span { color: var(--cat-muted); font-size: 12px; font-weight: 750; font-feature-settings: "tnum" 1; }
-.stores-chips > button[aria-pressed="true"] { border-color: var(--cat-on); background: var(--cat-on); color: var(--cat-on-ink); }
-.stores-chips > button[aria-pressed="true"] > span { color: inherit; opacity: .85; }
+.stores-chips > button { display: inline-flex; flex: none; align-items: center; gap: 8px; min-height: var(--h-sm); padding: 0 14px; border: 1px solid var(--cat-line); border-radius: var(--r-pill); background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; white-space: nowrap; cursor: pointer; }
+.stores-chips > button > span { color: var(--cat-muted); font-size: 12px; font-weight: var(--fw-bold); font-feature-settings: "tnum" 1; }
+.stores-chips > button[aria-pressed="true"] { border-color: var(--selected-line); background: var(--selected); color: var(--link); }
+.stores-chips > button[aria-pressed="true"] > span { color: inherit; }
 .stores-regions > button { font-size: 13px; }
 /* The country picked on a dispatch card, shown among the region chips so it can be cleared there too. */
 .stores-country-chip .flag { width: 18px; height: 12px; }
@@ -302,8 +302,7 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
 /* ---------- Breakpoints ---------- */
 /* Phones: a compact hero (the dispatch cards scroll under the field), so stores start sooner. */
 @media (max-width: 599px) {
-  .stores-hero { gap: 12px; margin-bottom: 22px; padding: 14px 14px 12px; border-radius: var(--r-card); }
-  .stores-link-field { min-height: 48px; }
+  .stores-hero { gap: 12px; margin-bottom: var(--space-6); padding: var(--space-4); border-radius: var(--r-card); }
   .stores-howto { margin-top: 2px; }
   .stores-howto summary { font-size: 13px; }
   .stores-howto ul { grid-template-columns: minmax(0, 1fr); gap: 8px; }
@@ -396,7 +395,7 @@ html[data-theme="dark"] .store-tile-mark { border-color: var(--night-surface); b
 
 /* ── app/day-folio.css ── */
 /* ---------- Stores: white hero card; store tiles stay separate white cards ---------- */
-html:not([data-theme="dark"]) .stores-hero { padding: 26px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--shadow-2); }
+html:not([data-theme="dark"]) .stores-hero { padding: var(--space-6); border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--shadow-2); }
 html:not([data-theme="dark"]) .stores-intro { color: var(--day-muted); }
 html:not([data-theme="dark"]) .store-tile:hover { border-color: var(--day-tint-2); box-shadow: var(--shadow-3); }
 html:not([data-theme="dark"]) .stores-more { border: 0; background: none; color: var(--day-accent); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }

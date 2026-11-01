@@ -64,17 +64,28 @@
 @media (min-width: 761px) {
   .lo-page-loaded > .orders-head > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
 }
-.lo-link { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; padding: 8px; border: 2px solid var(--home-accent); border-radius: var(--r-card); background: var(--home-surface); box-shadow: var(--shadow-3); }
-.lo-link:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--home-accent) 24%, transparent); }
+/* The home page's link form (app/styles/home-only.css): on phones a framed 56 px field and a 56 px button under it;
+   from 761 px one framed row with the 48 px button inside. Both themes take it from the tokens. */
+.lo-link { display: grid; gap: var(--space-2); margin: 0 0 12px; padding: 0; border: 0; background: none; box-shadow: none; }
+.lo-link .lo-link-field { border: 1px solid var(--field); border-radius: var(--r-control); background: var(--surface); box-shadow: var(--shadow-1); }
+.lo-link .lo-link-field:focus-within { border-color: var(--brand); box-shadow: var(--focus-ring); }
+@media (min-width: 761px) {
+  .lo-link { display: flex; align-items: center; min-height: var(--h-lg); padding: var(--space-1); border: 1px solid var(--field); border-radius: var(--r-control); background: var(--surface); box-shadow: var(--shadow-1); }
+  .lo-link:focus-within { border-color: var(--brand); box-shadow: var(--focus-ring); }
+  .lo-link .lo-link-field, .lo-link .lo-link-field:focus-within { min-height: 46px; padding-left: var(--space-3); border: 0; background: transparent; box-shadow: none; }
+  .lo-link .lo-link-submit { flex: none; min-height: var(--h-md); }
+}
 /* A bad link marks the field frame and puts the message right under it, as on the home page. */
-.lo-link:has(input[aria-invalid="true"]) { border-color: var(--cx-danger); }
+.lo-link:has(input[aria-invalid="true"]), .lo-link:has(input[aria-invalid="true"]) .lo-link-field { border-color: var(--danger); }
 /* Before a link: where to take one (stores that work, the way in three steps). On a phone it comes before the blank
    bill; on wide screens the bill is on the left and this card on the right. */
 .lo-source-link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--home-accent); font: inherit; font-size: 14px; font-weight: 700; text-decoration: none; cursor: pointer; }
 .lo-source-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .lo-source-link svg { flex-shrink: 0; }
 /* The item name with the favourites heart beside it (catalog items, signed-in customers). */
-.site-main .lo-page .find-save.lo-save { position: static; flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: -4px 0 0; border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); color: var(--home-ink); box-shadow: none; cursor: pointer; }
+.site-main .lo-page .find-save.lo-save { position: relative; flex: none; display: grid; place-items: center; width: var(--h-sm); height: var(--h-sm); margin: 0; border: 0; border-radius: 50%; background: var(--surface); color: var(--text); box-shadow: var(--shadow-1); cursor: pointer; }
+.site-main .lo-page .find-save.lo-save::after { content: ""; position: absolute; inset: -2px; }
+.site-main .lo-page .find-save.lo-save:hover:not(.saved) { background: var(--hover); }
 /* Phones: every control on the link-order page is at least 44 px to tap; icon sizes stay as they are. */
 .lo-page .variant-step > div:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; color: var(--home-ink); font-size: 14px; }
 /* Sizes keep their words on one line ("2XL Tall", not "2XL / Tall" at 320 px): each button is as wide as its label

@@ -38,7 +38,7 @@ html .co-block-head .text-button.co-aside { margin-left: auto; min-height: 44px;
 /* Sign-in inside the page: the /login flows, a little tighter. */
 .co-signin { display: grid; gap: var(--space-4); }
 .co-signin .login-panel { gap: var(--space-3); }
-.co-signin .login-choice, .co-signin .tg-login { min-height: var(--h-md); }
+.co-signin .tg-login { min-height: var(--h-lg); }
 .co-signin .tg-login-hint { margin: 0; color: var(--text-2); font-size: var(--fs-13); line-height: var(--lh-body); text-align: center; }
 .co-signin-choices { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .co-signed { display: flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--text-2); font-size: var(--fs-14); overflow-wrap: anywhere; }

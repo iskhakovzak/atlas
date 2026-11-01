@@ -57,7 +57,7 @@ html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: va
   .page-heading p, .stores-intro { font-size: var(--fs-16); line-height: 1.5; }
 
   /* Catalog head: title, one line of counters, short banners. */
-  :is(.catalog-categories, .catalog-sets, .catalog-chips, .catalog-active) > button:not(.text-button) { min-height: 40px; padding: 0 12px; font-size: 13px; }
+  :is(.catalog-categories, .catalog-sets, .catalog-chips, .catalog-active) > button:not(.text-button) { padding: 0 12px; }
 }
 
 /* Both themes: short titles wrap into even lines instead of leaving one word hanging (ui-ux-pro-max heading-line-balance, 13.10.2026).

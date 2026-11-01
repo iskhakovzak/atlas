@@ -102,7 +102,7 @@ html:not([data-theme="dark"]) .home-footer a:not(.wordmark):hover { color: var(-
 html:not([data-theme="dark"]) .home-footer-brand p { color: var(--day-muted); }
 
 /* ---------- Buttons and fields ---------- */
-html:not([data-theme="dark"]) .btn { border-radius: var(--day-r-control); font-weight: 600; letter-spacing: 0; }
+html:not([data-theme="dark"]) .btn { border-radius: var(--day-r-control); font-weight: var(--fw-semibold); letter-spacing: 0; }
 /* Primary buttons: one flat fill in the brand green, no gradient and no shadow (owner, 27 October 2026, after the
    impeccable/taste review: the glossy gradient read as a template). Hover is one step darker, press sinks 1px. */
 html:not([data-theme="dark"]) :is(.btn.primary, .cart-link) { border-color: var(--day-accent); color: #fff; background: var(--day-accent); box-shadow: none; }
@@ -134,10 +134,14 @@ html:not([data-theme="dark"]) .folio-outside :is(.calc-hold > svg, .calc-customs
 /* Atlas Night: the new wrappers keep the summary own surface and spacing. */
 html[data-theme="dark"] .folio-outside > :is(h2, h3) { margin: 4px 0 0; color: var(--night-ink); font-size: 14px; }
 /* The link field on /order-by-link matches the home form: a field-grey frame, one soft shadow, focus in green. */
-html:not([data-theme="dark"]) .lo-link { padding: 6px; border: 1px solid var(--day-field); border-radius: var(--r-card); box-shadow: var(--day-raise-form); }
-html:not([data-theme="dark"]) .lo-link:focus-within { border-color: var(--day-accent); box-shadow: 0 0 0 1px var(--day-accent), var(--day-ring), var(--day-raise-form); }
 /* Other cabinet surfaces: white cards on the canvas. */
 html:not([data-theme="dark"]) .cabinet-card { border-color: var(--day-line); background: var(--day-surface); box-shadow: var(--shadow-2); }
+/* Cards on the canvas are white with the card shadow and no outline (app/tokens.css). The 1 px border stays, transparent,
+   so nothing moves; a card inside a card (.og-model, .guarantee-card) keeps its hairline and no shadow. "body" outweighs
+   the per-page light rules that drew the outline. */
+html:not([data-theme="dark"]) body :is(.surface, .cabinet-card, .basket-parcel, .basket-summary.folio, .basket-empty, .bill-blank, .lo-where, .store-showcase-card, .stores-region-card:not([aria-pressed="true"]), .stores-hero, .store-tile, .find-card, .home-faq details, .order-group:not([data-stage="attention"])) { border-color: transparent; }
+html:not([data-theme="dark"]) :is(.basket-parcel, .basket-empty, .home-faq details) { box-shadow: var(--shadow-2); }
+html:not([data-theme="dark"]) .order-group { border-radius: var(--r-card); }
 
 /* ---------- Stores: white hero card; store tiles stay separate white cards ---------- */
 html:not([data-theme="dark"]) :is(.stores-link-field, .stores-search) { border: 1px solid var(--day-field); background: var(--day-surface); }

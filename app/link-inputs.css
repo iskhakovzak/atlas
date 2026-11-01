@@ -3,7 +3,7 @@ html body button.paste-button {
   display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 5px;
   width: auto; min-width: 44px; min-height: 44px; height: auto; margin: 0; padding: 6px 8px;
   border: 0; border-radius: var(--r-sm); background: transparent; color: var(--home-ink, var(--c-ink));
-  font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: var(--fw-semibold); white-space: nowrap; cursor: pointer;
   transition: background-color .16s ease, color .16s ease;
 }
 html body button.paste-button:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
@@ -15,7 +15,6 @@ html body button.paste-button > svg { flex: none; width: 16px; height: 16px; }
 html body :is(.lo-link-field, .stores-link-field, .store-link-field) > input, html body :is(.lo-link-field, .stores-link-field, .store-link-field) > input:is(:focus, :focus-visible) {
   border: 0; outline: none; box-shadow: none; background: transparent;
 }
-html body .lo-link:focus-within { border-color: var(--home-accent, var(--c-brand)); box-shadow: 0 0 0 2px var(--home-accent, var(--c-brand)); }
 /* A focused link field already supplies the action; the floating duplicate must not cover the keyboard/form. */
 @media (max-width: 760px) {
   body:has(#home-link-form:focus-within, .lo-link:focus-within, .stores-link:focus-within, .store-link:focus-within, .batch-import:focus-within, .catalog-importer:focus-within) .storage-notice { visibility: hidden; pointer-events: none; }

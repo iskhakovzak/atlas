@@ -13,7 +13,7 @@ html[data-theme="dark"] .store-logo { border-color: transparent; }
 .stores-hero h1 { max-width: 20ch; margin: 0 0 var(--space-2); color: var(--cat-ink); font-size: clamp(30px, 5vw, 40px); line-height: 1.1; }
 .stores-intro { max-width: 60ch; margin: 0 0 16px; color: var(--cat-muted); line-height: var(--lh-body); }
 .stores-link { display: grid; gap: 10px; }
-.stores-link > .btn { justify-content: center; min-height: 52px; }
+.stores-link > .btn { justify-content: center; min-height: var(--h-lg); font-size: var(--fs-16); font-weight: var(--fw-semibold); }
 /* "How to copy a link": collapsed by default, three short columns (iPhone / Android / computer). */
 .stores-howto summary { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--cat-accent); font-size: 14px; font-weight: 700; list-style: none; cursor: pointer; }
 .stores-howto summary::-webkit-details-marker { display: none; }
@@ -35,7 +35,6 @@ html[data-theme="dark"] .store-logo { border-color: transparent; }
   .stores-hero h1 { margin-bottom: var(--space-2); }
   .stores-intro { margin-bottom: 10px; font-size: 14px; }
   .stores-link { gap: 8px; }
-  .stores-link > .btn { min-height: 46px; }
 }
 /* Three columns: three rows collapsed. */
 @keyframes store-sheet-in { from { transform: translateY(40px); opacity: .4; } }

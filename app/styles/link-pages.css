@@ -152,7 +152,7 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 /* Store-delivery reserve of this store order: how to drop it, or that it is not taken. */
 .basket-brand { margin: 0; color: var(--home-muted); font-size: 12px; font-weight: var(--fw-bold); letter-spacing: 0; }
 /* What the last check with the store found, between the price and the quantity. */
-.basket-summary { display: grid; gap: 14px; padding: 20px; border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); box-shadow: var(--shadow-2); }
+.basket-summary { display: grid; gap: 14px; padding: var(--pad-card-lg); border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); box-shadow: var(--shadow-2); }
 @media (min-width: 960px) {
   .basket-summary { position: sticky; top: var(--sticky-top, 88px); }
 }
@@ -178,7 +178,7 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .basket-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
 .basket-total span { color: var(--home-ink); font-size: 16px; font-weight: 700; }
 .basket-total strong { color: var(--home-ink); font-size: clamp(24px, 6.4vw, 30px); letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.basket-cta { width: 100%; min-height: 54px; justify-content: center; border-radius: var(--r-control); font-size: 16px; }
+.basket-cta { width: 100%; min-height: var(--h-lg); justify-content: center; border-radius: var(--r-control); font-size: var(--fs-16); }
 /* Also on the link order and the identity forms, so it stays here rather than in cart-select.css (cart page only). */
 .basket-cta[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 .basket-assurance li { display: flex; align-items: flex-start; gap: 8px; color: var(--home-muted); font-size: 13px; line-height: var(--lh-body); }
@@ -280,10 +280,10 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
   .lo-page-loaded > .orders-head h1 { font-size: 30px; }
   .lo-page-loaded > .orders-head p { margin: 0; }
 }
-.lo-link-field { display: flex; flex: 1; align-items: center; gap: 10px; min-height: 54px; padding: 0 10px; color: var(--home-muted); }
+.lo-link-field { display: flex; flex: 1; align-items: center; gap: var(--space-2); min-height: var(--h-lg); padding: 0 var(--space-1) 0 var(--space-4); color: var(--home-muted); }
 .lo-link-field input { flex: 1; min-width: 0; min-height: 48px; border: 0; background: transparent; color: var(--home-ink); font-size: 16px; outline: none; }
 .lo-link-field input::placeholder { color: var(--home-muted); opacity: 1; }
-.lo-link-submit { min-height: 54px; justify-content: center; border-radius: var(--r-control); font-size: 16px; }
+.lo-link-submit { min-height: var(--h-lg); justify-content: center; border-radius: var(--r-control); font-size: var(--fs-16); font-weight: var(--fw-semibold); }
 @media (min-width: 640px) {
   .lo-link-submit { padding-inline: 28px; }
 }
@@ -372,7 +372,7 @@ html[data-theme="dark"] .lo-page .lo-guest { background: none; }
 /* The delivery the total uses, as a quiet chip with its business days; the other speed is chosen in the cart. */
 .lo-speed { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; color: var(--home-muted); font-size: 13px; line-height: 1.4; }
 .lo-speed-label { color: var(--home-muted); font-size: 13px; }
-.lo-speed-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border: 1px solid var(--home-line); border-radius: var(--r-pill); background: var(--home-surface); color: var(--home-ink); font-size: 13px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lo-speed-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border: 1px solid var(--home-line); border-radius: var(--r-pill); background: var(--home-surface); color: var(--home-ink); font-size: 13px; font-weight: var(--fw-semibold); line-height: 1.3; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .lo-speed-chip .speed-option-star { margin: 0 0 0 4px; }
 .lo-speed small { flex-basis: 100%; color: var(--home-muted); font-size: 12px; line-height: var(--lh-body); }
 html[data-theme="dark"] .lo-speed-chip { border-color: var(--night-line); background: var(--night-surface); color: var(--night-ink); }
@@ -568,11 +568,9 @@ html[data-theme="dark"] .lo-added { border-color: rgba(128, 208, 172, .35); back
 /* The item name with the favourites heart beside it (catalog items, signed-in customers). */
 .lo-name-row { display: flex; align-items: flex-start; gap: 10px; }
 .lo-name-row > h2 { flex: 1 1 auto; min-width: 0; }
-.site-main .lo-page .find-save.lo-save.saved { border-color: var(--fav-ink, #1f6a43); background: var(--fav-ink, #1f6a43); color: #fff; }
+.site-main .lo-page .find-save.lo-save.saved { background: var(--brand); color: var(--on-brand); }
 .site-main .lo-page .find-save.lo-save:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
 .site-main .lo-page .find-save.lo-save:disabled { opacity: .6; cursor: progress; }
-html[data-theme="dark"] .site-main .lo-page .find-save.lo-save:not(.saved) { border-color: var(--night-line); background: var(--night-surface); color: var(--night-ink); }
-html[data-theme="dark"] .site-main .lo-page .find-save.lo-save.saved { --fav-ink: #7fd1a1; color: #10241a; }
 /* Phones: every control on the link-order page is at least 44 px to tap; icon sizes stay as they are. */
 @media (max-width: 767px) {
   .lo-page .lo-pick-mode .lo-source-link { min-height: 44px; }
@@ -603,7 +601,7 @@ html[data-theme="dark"] .site-main .lo-page .find-save.lo-save.saved { --fav-ink
 .lo-page .lo-option-axes { margin: 4px 0 8px; color: var(--home-muted); font-size: 14px; }
 .lo-page .variant-options.lo-option-chips { display: flex; flex-wrap: wrap; }
 .lo-page .variant-options.lo-option-chips::after { content: ""; flex: 999 1 0; }
-.lo-page .variant-options.lo-option-chips button { flex: 1 0 auto; min-width: 78px; max-width: 100%; display: grid; justify-items: center; align-content: center; gap: 1px; padding: 8px 12px; text-align: center; white-space: nowrap; font-size: 16px; font-weight: 600; line-height: 1.2; }
+.lo-page .variant-options.lo-option-chips button { flex: 1 0 auto; min-width: 78px; max-width: 100%; display: grid; justify-items: center; align-content: center; gap: 1px; padding: 8px 12px; text-align: center; white-space: nowrap; font-size: 16px; font-weight: var(--fw-semibold); line-height: 1.2; }
 .lo-page .variant-options.lo-option-chips button > * { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .lo-page .variant-options.lo-option-chips button small { font-weight: 500; }
 .lo-page .variant-options button:hover { border-color: var(--home-accent); }
@@ -874,9 +872,8 @@ html:not([data-theme="dark"]) .folio-sheet .basket-lines > .basket-line:last-chi
 html:not([data-theme="dark"]) .folio-sheet .basket-line-label { color: var(--day-ink); }
 /* Amount to pay: the label on the left, the amount on the right, in one line when it fits. */
 html:not([data-theme="dark"]) .basket-summary .bill-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
-html:not([data-theme="dark"]) .basket-summary .bill-total > span { font-size: 14px; font-weight: 700; }
-html:not([data-theme="dark"]) .basket-summary .bill-total .money { font-size: var(--day-money-l); line-height: 1.1; }
-html:not([data-theme="dark"]) .basket-summary .basket-cta { min-height: 54px; border-radius: var(--day-r-control); font-size: 16px; }
+html:root .basket-summary .bill-total > span { font-size: 14px; font-weight: var(--fw-bold); }
+html:root .basket-summary .bill-total .money { font-size: var(--day-money-l); line-height: 1.1; }
 /* On the slip, the hold and the customs estimate read as rows, not as boxes inside a box. */
 html:not([data-theme="dark"]) .folio-outside .calc-hold + .calc-customs { padding-top: 10px; border-top: 1px solid var(--day-slip-line); }
 html:not([data-theme="dark"]) .lo-summary .cabinet-empty { margin: 0; color: var(--day-muted); }
@@ -888,7 +885,6 @@ html:not([data-theme="dark"]) .basket-parcel-title { background: var(--day-soft)
 /* Atlas Night: the new wrappers keep the summary own surface and spacing. */
 html[data-theme="dark"] .basket-summary .folio-sheet, html[data-theme="dark"] .basket-summary .folio-outside { display: grid; gap: 14px; }
 /* The link field on /order-by-link matches the home form: a field-grey frame, one soft shadow, focus in green. */
-html:not([data-theme="dark"]) .lo-link-submit { min-height: 52px; border-radius: var(--day-r-control); font-size: 16px; }
 
 /* ---------- The blank bill on /order-by-link before a link is pasted ---------- */
 .bill-blank { display: grid; gap: 14px; max-width: 560px; margin-top: 24px; }
@@ -1360,7 +1356,6 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 .lo-page .pd-section .lo-speed { margin: 0; }
 /* Touch targets on phones: the heart and the store link are 44 px (the sheet's "×" below). */
 @media (max-width: 760px) {
-  .pd-name-row .lo-save { width: 44px; height: 44px; }
   .lo-page .pd-source { min-height: 44px; }
 }
 

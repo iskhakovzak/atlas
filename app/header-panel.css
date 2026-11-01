@@ -62,13 +62,13 @@ html[data-theme="dark"] :is(.lang-trigger, .lang-menu-list button):focus-visible
 .site-header .notice-link.active { border-color: var(--day-tint-2, #d6e6db); background: var(--day-tint, var(--c-selected)); color: var(--day-accent, var(--c-brand)); }
 .site-header .notice-link svg { transform-origin: 50% 8%; }
 .site-header .notice-link.has-unread svg { animation: notice-bell-swing 1s cubic-bezier(.36, .07, .19, .97) .5s 1 both; }
-.site-header .notice-link > b { top: -5px; right: -6px; min-width: 20px; height: 20px; padding: 0 6px; border: 2px solid var(--day-surface, #fff); border-radius: var(--r-pill); background: linear-gradient(180deg, #d4623f 0%, #b9452c 100%); color: #fff; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0; box-shadow: var(--shadow-2); }
+.site-header .notice-link > b { top: -5px; right: -6px; min-width: 20px; height: 20px; padding: 0 6px; border: 2px solid var(--day-surface, #fff); border-radius: var(--r-pill); background: var(--c-danger); color: #fff; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0; box-shadow: var(--shadow-2); }
 .site-header .notice-link b { animation: notice-badge-pop .42s cubic-bezier(.22, 1, .36, 1) both; }
 @keyframes notice-bell-swing { 0%, 100% { transform: none; } 15% { transform: rotate(14deg); } 30% { transform: rotate(-11deg); } 45% { transform: rotate(7deg); } 60% { transform: rotate(-4deg); } 75% { transform: rotate(2deg); } }
 html[data-theme="dark"] .site-header .notice-link { color: var(--night-ink-2, var(--night-ink-2)); }
 html[data-theme="dark"] .site-header .notice-link:hover { background: rgba(255, 255, 255, .06); color: var(--night-ink, var(--night-ink)); }
 html[data-theme="dark"] .site-header .notice-link.active { border-color: rgba(128, 208, 172, .35); background: var(--night-jade-soft, rgba(128, 208, 172, .1)); color: var(--night-jade, var(--night-jade)); }
-html[data-theme="dark"] .site-header .notice-link > b { border-color: var(--night-canvas, var(--night-canvas)); background: linear-gradient(180deg, #d8654f 0%, #b9452c 100%); box-shadow: none; }
+html[data-theme="dark"] .site-header .notice-link > b { border-color: var(--night-canvas, var(--night-canvas)); background: var(--c-danger); box-shadow: none; }
 @keyframes notice-badge-pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* Reduced motion: the bell does not swing and the counter does not pop. */
@@ -89,4 +89,4 @@ html:not([data-theme="dark"]) [data-sonner-toaster] {
 }
 html:not([data-theme="dark"]) [data-sonner-toast] { box-shadow: var(--shadow-3); }
 /* Success shows sonner's tick icon; no coloured stripe down the left edge (27 October 2026). */
-html:not([data-theme="dark"]) [data-sonner-toast][data-type="success"] [data-icon] { color: #2f7d58; }
+html:not([data-theme="dark"]) [data-sonner-toast][data-type="success"] [data-icon] { color: var(--ok); }

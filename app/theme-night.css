@@ -831,12 +831,6 @@ html[data-theme="dark"] :is(input:not([type="checkbox"]):not([type="radio"]), se
 }
 /* Fields that live inside a framed control stay transparent. */
 html[data-theme="dark"] :is(.lo-link-field, .rf-phone, .stores-search, .search-field, .link-sheet-field, .shell-search) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) { border-color: transparent; background: transparent; box-shadow: none; }
-html[data-theme="dark"] .lo-link {
-  border-color: var(--line-strong);
-  background: linear-gradient(180deg, rgba(22, 29, 25, 0.92), rgba(15, 20, 18, 0.92));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 30px 70px -36px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(0, 0, 0, 0.4);
-}
-html[data-theme="dark"] .lo-link:focus-within { border-color: var(--link); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--focus-ring), 0 30px 70px -36px rgba(0, 0, 0, 0.95); }
 html[data-theme="dark"] :is(.basket-consent, .consent) { border-color: var(--night-line-strong); }
 /* A ticked option lights up as a whole, not only its small box. */
 html[data-theme="dark"] :is(.basket-consent, .consent, .basket-balance, .basket-service):has([data-slot="checkbox"][data-state="checked"]) { border-color: rgba(128, 208, 172, 0.55); background: var(--night-jade-soft); }
