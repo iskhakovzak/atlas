@@ -162,24 +162,24 @@ try {
     if(categoryMatched===false)throw Error(`No category filter matches '${visibleCategory}'`);
     if(categoryMatched)await check(`document.querySelectorAll('.find-card').length>0 && [...document.querySelectorAll('.find-card .find-meta span:first-child')].every(el=>el.textContent.trim()===${JSON.stringify(visibleCategory)})`,"category filtering");
     else checks.push('category filtering skipped: single-category catalog');
-    await evaluate("document.querySelector('.find-photo').click()");
-    await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/login\"]')","guest product asks for sign-in");
-    await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");
+    await evaluate("document.querySelector('.pcard-title button').click()");
+    await check("!!document.querySelector('.pd-sheet .pd') && !!document.querySelector('.pd-bar-sheet .btn')","guest product page opens with its add button");
+    await evaluate("document.querySelector('.pd-sheet-actions .sheet-close').click()");
   }
   await evaluate("document.querySelector('.lang-menu-list button[data-locale=en]').click()");
   await check("document.documentElement.lang==='en' && document.querySelector('.home-hero h1').textContent.includes('We buy from stores in the USA')","guest language works without saving an account");
   await check("document.querySelector('.home-link-form button')?.textContent.includes('Calculate') && document.querySelector('.home-link-note')?.textContent.includes('no sign-up')","guest link CTA is honest in English");
   if(catalogReady){
-    await evaluate("document.querySelector('.find-photo').click()");
-    await check("document.querySelector('.product-sheet')?.textContent.includes('Cost calculation')","product details localize to English");
-    await evaluate("document.querySelector('button[aria-label=\"Close item details\"]').click()");
+    await evaluate("document.querySelector('.pcard-title button').click()");
+    await check("document.querySelector('.pd-sheet')?.textContent.includes('What the sum is made of')","product details localize to English");
+    await evaluate("document.querySelector('.pd-sheet-actions .sheet-close').click()");
   }
   await evaluate("document.querySelector('.lang-menu-list button[data-locale=uz]').click()");
   await check("document.documentElement.lang==='uz' && document.querySelector('.home-link-form button')?.textContent.includes('Hisoblash')","guest link CTA localizes to Uzbek");
   if(catalogReady){
-    await evaluate("document.querySelector('.find-photo').click()");
-    await check("document.querySelector('.product-sheet')?.textContent.includes('Narx hisobi')","product details localize to Uzbek");
-    await evaluate("document.querySelector('button[aria-label=\"Tovar kartasini yopish\"]').click()");
+    await evaluate("document.querySelector('.pcard-title button').click()");
+    await check("document.querySelector('.pd-sheet')?.textContent.includes('Summa nimadan iborat')","product details localize to Uzbek");
+    await evaluate("document.querySelector('.pd-sheet-actions .sheet-close').click()");
   }
   await visit('/');
   await check("document.documentElement.lang==='uz'","guest language survives reload");

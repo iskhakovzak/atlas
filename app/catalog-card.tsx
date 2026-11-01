@@ -1,10 +1,9 @@
 'use client';
 
-import { useId } from 'react';
+import { useId, type MouseEvent } from 'react';
 import { BadgeCheck, Check, Flame, Heart, Plus, ShoppingBag } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { price, storeShippingUsd, tariff, type DeliverySpeed, type Product } from '@/lib/market/domain';
-import { findOrderUrl } from '@/lib/market/catalog';
 import { catalogDeliverySpeed } from '@/lib/market/deals';
 import { officialStoreBrand, officialStoreText } from '@/lib/market/official-stores';
 import { dealCopy } from '@/lib/market/deal-copy';
@@ -12,7 +11,7 @@ import { catalogCopy, shortDate } from '@/lib/market/catalog-copy';
 import { storeLabel, type CatalogItem } from '@/lib/market/catalog-query';
 import type { Signal } from '@/lib/market/catalog-signals';
 import { formatPriceUsd, formatSum } from '@/lib/market/format';
-import { browserStorage, rememberPendingFavorite } from '@/lib/market/catalog-links';
+import { browserStorage, productPath, rememberPendingFavorite } from '@/lib/market/catalog-links';
 import { loginPath } from '@/lib/auth/return-to';
 import type { Locale } from '@/lib/market/i18n';
 import { brandForHost } from '@/lib/market/store-brands';
@@ -65,13 +64,20 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const name = product.name;
   const needsPrice = product.priceNeedsConfirmation === true;
   const hasRecordedPrice = needsPrice && product.sourcePrice !== undefined && Boolean(product.sourceCurrency);
-  const orderUrl = findOrderUrl(product);
   const category = cc.categories[product.category] ?? product.category;
   const costs = costsAt(item, speed, pricing);
   const priceRange=new Set(product.sourceVariants?.filter(v=>v.available&&v.availabilityKnown!==false&&v.quantity!==0).map(v=>v.price).filter(v=>v!==undefined)).size>1;
   const from=locale==='ru'?'от ':locale==='en'?'from ':'';
   const storePriceText = needsPrice ? (hasRecordedPrice ? fmt(product.sourcePrice!, product.sourceCurrency!) : cc.checkPrice) : (priceRange?from:'')+fmt(item.usd ?? product.usd, 'USD')+(priceRange&&locale!=='ru'&&locale!=='en'?' dan':'');
   const open = () => select(product);
+  // "+" and "В корзину" open the product page (colour, size and the sum are chosen there, redesign stage 5): the sheet
+  // over the catalog, or the page itself where the link is opened in a new tab or without scripts.
+  const productHref = productPath(product.id);
+  const openFromLink = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    open();
+  };
   // The brand's own eBay store reads as such, not as "eBay" (owner, 30 October 2026); the eBay mark stays beside it.
   const official = officialStoreBrand({ ...product, store: item.store });
   const officialText = official ? officialStoreText(official, locale) : undefined;
@@ -131,7 +137,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       {/* Phones: no button row; the round "+" does what "В корзину" does on a computer (the variant choice). */}
       {inCart
         ? <a className="pcard-plus" data-in-cart="" href="/cart" aria-label={cc.inCart + ': ' + name}><Check size={18} strokeWidth={2.5} aria-hidden="true" /></a>
-        : <a className="pcard-plus" href={orderUrl} aria-label={cc.choose(name)}><Plus size={20} strokeWidth={2.5} aria-hidden="true" /></a>}
+        : <a className="pcard-plus" href={productHref} onClick={openFromLink} aria-label={cc.choose(name)}><Plus size={20} strokeWidth={2.5} aria-hidden="true" /></a>}
     </div>
     <div className="pcard-body">
       <p className="pcard-brand">{brandName}</p>
@@ -152,7 +158,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <div className="pcard-buy">
         {inCart
           ? <a className="btn secondary" href="/cart"><Check size={17} aria-hidden="true" />{cc.inCart}</a>
-          : <a className="btn primary" href={orderUrl}><ShoppingBag size={17} aria-hidden="true" />{cc.addToCart}</a>}
+          : <a className="btn primary" href={productHref} onClick={openFromLink}><ShoppingBag size={17} aria-hidden="true" />{cc.addToCart}</a>}
       </div>
     </div>
   </article>;

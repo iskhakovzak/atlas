@@ -1236,3 +1236,148 @@ html[data-theme="dark"] .lo-cat-chips > button[aria-checked="true"] { background
   .lo-page .lo-data .lo-block-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .lo-page .lo-data .lo-unit-input { max-width: 220px; }
 }
+
+/* ---------- The one product page (redesign stage 5, 1 November 2026) ----------
+   app/global-link-order.tsx (ProductOrder) with the blocks of app/product-detail.tsx, on /order-by-link, /catalog/p/[id]
+   and in the catalog's sheet. Phones: one column, the total bar pinned to the bottom. From 900 px: photos and the
+   sections under them in 7 columns, the decision (sum, choice, "Из чего сумма", trust, button) in 5 — no empty half. */
+.pd { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "media" "info" "more"; gap: var(--space-4); align-items: start; }
+.pd-media { grid-area: media; min-width: 0; }
+.pd-info { grid-area: info; display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.pd-more { grid-area: more; display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+/* The parts keep the link page's classes (.lo-confirm, .lo-sheet…), whose grid placements belong to its old layout: the
+   columns are flex stacks, so no inherited area or line can open a second track. */
+.pd-info > *, .pd-more > *, .pd-section > * { grid-area: auto; min-width: 0; }
+@media (min-width: 900px) {
+  .pd { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); grid-template-areas: "media info" "more info"; grid-template-rows: auto 1fr; column-gap: var(--space-8); row-gap: var(--space-6); }
+}
+/* Cards on the page: white with a shadow, no border (direction A). The sheet is already a white surface: there the
+   parts sit flat, divided by hairlines. */
+.pd-gallery, .pd-info, .pd-section { border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); }
+.pd-gallery { padding: var(--space-3); }
+.pd-info { padding: var(--space-5); }
+@media (min-width: 900px) { .pd-info { padding: var(--space-6); } }
+.pd-section { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); }
+.pd-in-sheet .pd-gallery, .pd-in-sheet .pd-info, .pd-in-sheet .pd-section { padding: 0; border-radius: 0; background-color: transparent; box-shadow: none; }
+.pd-in-sheet .pd-section { padding-top: var(--space-4); border-top: 1px solid var(--line); }
+
+/* Photos: square on wide screens, a fixed band on phones so the name and the sum show in the first screen. */
+.lo-page .pd-gallery .product-gallery-stage { aspect-ratio: 1; height: auto; max-height: min(640px, 74vh); border-radius: var(--r-control); background-color: var(--sunken); }
+@media (max-width: 899px) {
+  .lo-page .pd-gallery .product-gallery-stage { aspect-ratio: auto; height: clamp(260px, 86vw, 420px); }
+}
+.product-sheet.pd-sheet .pd-gallery .product-gallery-stage { aspect-ratio: auto; height: clamp(240px, 38dvh, 340px); }
+/* White store photos melt into the stage instead of standing as a white box on it (light theme only: multiply would
+   darken them on the night surface). */
+html:not([data-theme="dark"]) .pd-gallery .product-gallery-slide .product-img { mix-blend-mode: multiply; }
+@media (min-width: 900px) { .product-sheet.pd-sheet .pd-gallery .product-gallery-stage { aspect-ratio: 1; height: auto; max-height: 72vh; } }
+.pd-gallery.lo-skel-photo { height: clamp(260px, 86vw, 420px); }
+@media (min-width: 900px) { .pd-gallery.lo-skel-photo { height: auto; aspect-ratio: 1; } }
+
+/* Brand, name, the one big sum in soum, the store price small under it. */
+.pd-head { display: grid; gap: var(--space-2); min-width: 0; }
+.pd-brand { margin: 0; color: var(--text-2); font-size: var(--fs-13); font-weight: var(--fw-medium); line-height: var(--lh-snug); }
+.pd-name-row { display: flex; align-items: flex-start; gap: var(--space-3); }
+.lo-page .pd-title { flex: 1; min-width: 0; margin: 0; color: var(--text); font-size: var(--fs-20); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: -.01em; overflow-wrap: anywhere; }
+@media (min-width: 900px) { .lo-page .pd-title { font-size: var(--fs-24); } }
+/* As a page heading (h1 on /catalog/p/[id]) the title takes the product size, not the page-title one (app/day-folio.css). */
+.pd-title { --day-h1-size: var(--fs-20); --day-h1-leading: var(--lh-snug); }
+@media (min-width: 900px) { .pd-title { --day-h1-size: var(--fs-24); } }
+html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):not([data-view="analytics"]) .lo-page h1.pd-title { font-weight: var(--fw-semibold); letter-spacing: -.01em; text-wrap: pretty; }
+.pd-name-row .lo-save { flex: none; position: static; display: inline-grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background-color: var(--surface); color: var(--text); }
+.pd-name-row .lo-save[aria-pressed="true"] { border-color: var(--brand); background-color: var(--brand); color: var(--on-brand); }
+.pd-name-row .lo-save[aria-pressed="true"] svg { fill: currentColor; }
+.pd-sum { display: grid; gap: 2px; margin: var(--space-2) 0 0; }
+.pd-sum strong { color: var(--text); font-size: var(--fs-30); font-weight: var(--fw-bold); line-height: var(--lh-tight); letter-spacing: -.01em; font-feature-settings: var(--tnum); }
+.pd-sum strong .money-unit { font-size: var(--fs-18); font-weight: var(--fw-semibold); }
+.pd-sum-from { color: var(--text-2); font-size: var(--fs-18); font-weight: var(--fw-semibold); }
+.pd-sum-note { color: var(--text-2); font-size: var(--fs-13); }
+.pd-sum-skel { width: 180px; height: 32px; border-radius: var(--r-control); }
+.pd-usd { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; color: var(--text-2); font-size: var(--fs-14); line-height: var(--lh-snug); }
+.pd-usd b { color: var(--text); font-weight: var(--fw-semibold); font-feature-settings: var(--tnum); }
+.pd-usd .price-was-group { display: inline-flex; align-items: center; gap: 6px; }
+.pd-usd .price-was { color: var(--text-3); }
+.pd-head .lo-note { margin: 0; }
+
+/* The choice sits under the price, divided by a hairline; its own titles say colour and size. */
+.lo-page .pd-pick, .lo-page .pd-info > .lo-check { padding: var(--space-4) 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; background-color: transparent; box-shadow: none; }
+.lo-page .pd .lo-colours-main { display: grid; }
+.lo-page .pd .variant-matrix > label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.lo-page .pd .variant-step:first-of-type { margin-top: 0; }
+@media (min-width: 900px) {
+  .lo-page .pd .variant-options.lo-colour-tiles { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+}
+
+/* "Из чего сумма": open from the start, on the sunken surface, every line with its amount; the total last. */
+.pd-breakdown { padding: var(--space-3) var(--space-4) var(--space-4); border-radius: var(--r-control); background-color: var(--sunken); }
+.pd-breakdown > summary { display: flex; align-items: center; justify-content: space-between; min-height: 40px; color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-semibold); cursor: pointer; list-style: none; }
+.pd-breakdown > summary::-webkit-details-marker { display: none; }
+.pd-breakdown > summary::after { content: ""; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--text-2); border-bottom: 2px solid var(--text-2); transform: translateY(-2px) rotate(45deg); transition: transform var(--dur-fast) var(--ease-out); }
+.pd-breakdown:not([open]) > summary::after { transform: rotate(-45deg); }
+.pd-breakdown dl { display: grid; gap: var(--space-2); margin: var(--space-2) 0 0; }
+.pd-breakdown dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); margin: 0; padding: 0; border: 0; }
+.pd-breakdown dt { display: grid; gap: 1px; min-width: 0; color: var(--text-2); font-size: var(--fs-14); line-height: var(--lh-snug); }
+.pd-breakdown dt small { color: var(--text-3); font-size: var(--fs-12); line-height: 1.4; }
+.pd-breakdown dd { flex: none; margin: 0; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-semibold); text-align: right; white-space: nowrap; font-feature-settings: var(--tnum); }
+.pd-breakdown .pd-no-duty dd, .pd-breakdown .pd-duty-apart dd { color: var(--text-2); font-weight: var(--fw-regular); }
+.pd-breakdown .pd-total { margin-top: var(--space-1); padding-top: var(--space-3); border-top: 1px solid var(--line-strong); }
+.pd-breakdown .pd-total dt { color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-semibold); }
+.pd-breakdown .pd-total dd { font-size: var(--fs-16); font-weight: var(--fw-bold); }
+.pd-breakdown .money-unit { font-size: .86em; font-weight: var(--fw-medium); }
+.pd-empty { margin: 0; color: var(--text-2); font-size: var(--fs-14); }
+.pd-info > .lo-from-note { margin: calc(var(--space-2) * -1) 0 0; color: var(--text-3); font-size: var(--fs-12); }
+.pd-hold .calc-hold { margin: 0; }
+
+/* Price checked · guarantee · days: one quiet row, icons in the brand colour. */
+.pd-trust { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: 0; padding: 0; list-style: none; }
+.pd-trust li { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); font-size: var(--fs-13); line-height: var(--lh-snug); }
+.pd-trust svg { flex: none; color: var(--link); }
+.pd-trust a { color: inherit; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.pd-trust a:hover { color: var(--text); }
+
+/* The add button: full width under the sum on wide pages; phones and the sheet use the bar instead. */
+.lo-page .pd-confirm { display: grid; gap: var(--space-3); margin: 0; padding: 0; border: 0; background-color: transparent; box-shadow: none; }
+.lo-page .pd-confirm .lo-cta-row .btn { width: 100%; min-height: var(--h-lg); font-size: var(--fs-16); }
+.lo-page .pd-confirm .lo-cta-row.has-cart .btn { width: auto; flex: 1; }
+@media (max-width: 760px) { .lo-page .pd-confirm .lo-cta-row { display: none; } }
+.pd-in-sheet .pd-confirm .lo-cta-row { display: none; }
+.lo-page .pd-confirm:not(:has(> *:not(.lo-cta-row))) { display: none; }
+@media (min-width: 761px) { .lo-page:not(.pd-in-sheet) .pd-confirm:not(:has(> *:not(.lo-cta-row))) { display: grid; } }
+
+/* "О товаре" and "Доставка". */
+.lo-page .pd-section > h2 { margin: 0; color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: -.01em; }
+.pd-about-text { margin: 0; color: var(--text); font-size: var(--fs-14); line-height: var(--lh-body); white-space: pre-line; overflow-wrap: anywhere; }
+.pd-about-text.muted { color: var(--text-2); }
+.pd-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3) var(--space-4); margin: 0; }
+.pd-facts > div { display: grid; gap: 2px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.pd-facts dt { color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-medium); }
+.pd-facts dd { margin: 0; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-medium); line-height: var(--lh-snug); text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.lo-page .pd-source { display: inline-flex; align-items: center; gap: 6px; width: fit-content; min-height: 40px; color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-semibold); }
+.lo-page .pd-section .lo-data { margin: 0; }
+.lo-page .pd-section .basket-assurance { margin: 0; }
+.lo-page .pd-section .lo-speed { margin: 0; }
+
+/* The total bar. On the page it is .basket-sticky (fixed over the bottom menu on phones); in the sheet it sticks to the
+   sheet's foot on every screen and carries the add button there. */
+.pd-bar > div { display: grid; min-width: 0; }
+.pd-bar > div > span { color: var(--text-2); font-size: var(--fs-12); }
+.pd-bar > div > strong { color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-bold); white-space: nowrap; font-feature-settings: var(--tnum); }
+.pd-bar-sheet { position: sticky; bottom: 0; z-index: 4; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin: var(--space-4) calc(var(--pd-sheet-pad, 16px) * -1) 0; padding: var(--space-3) var(--pd-sheet-pad, 16px) calc(var(--space-3) + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background-color: var(--surface); box-shadow: var(--shadow-up); }
+.pd-bar-sheet .btn { flex: 0 1 auto; min-width: 0; min-height: var(--h-md); padding-inline: var(--space-6); }
+@media (max-width: 380px) { .pd-bar-sheet .btn { padding-inline: var(--space-4); } .pd-bar-sheet .btn > svg:last-child { display: none; } }
+/* The product page on a phone: the form ends above the bar and the bottom menu. */
+@media (max-width: 760px) {
+  body:has(.mobile-nav) main.site-main:has(.pd-page .lo-sticky) { padding-bottom: calc(var(--atlas-mobile-nav-clearance) + 96px); }
+}
+
+/* The catalog's sheet: 92 % of the screen on phones, a wide panel on computers (photos 7 : details 5). */
+.product-sheet.pd-sheet { --pd-sheet-pad: 16px; display: block; padding: 0; overflow-y: auto; overscroll-behavior-y: contain; background-color: var(--surface); }
+.product-sheet.pd-sheet[data-side="right"] { width: min(1180px, calc(100vw - 32px)) !important; max-width: min(1180px, calc(100vw - 32px)) !important; }
+@media (min-width: 900px) { .product-sheet.pd-sheet { --pd-sheet-pad: 32px; } }
+.product-sheet.pd-sheet .lo-page.pd-in-sheet { padding: var(--space-4) var(--pd-sheet-pad) 0; }
+.product-sheet.pd-sheet.product-sheet-bottom .lo-page.pd-in-sheet { padding-top: var(--space-2); }
+/* The sheet takes the focus on opening (app/product-sheet.tsx); the panel itself draws no ring. */
+.product-sheet.pd-sheet:focus, .product-sheet.pd-sheet:focus-visible { outline: none; }
+.pd-sheet-actions { position: sticky; top: 0; z-index: 5; height: 0; }
+.pd-sheet-actions .sheet-close { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--r-pill); background-color: var(--surface); color: var(--text); box-shadow: var(--shadow-2); }
+.product-sheet.pd-sheet.product-sheet-bottom .pd-sheet-actions .sheet-close { top: 4px; }
