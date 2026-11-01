@@ -88,3 +88,19 @@ html[data-navigating] .nav-progress { opacity: 1; animation: nav-progress 9s cub
 .mobile-nav a[data-opening]:not(.mobile-nav-link) { color: var(--link); }
 .mobile-nav a[data-opening]:not(.active, .mobile-nav-link) .mobile-nav-icon { background-color: var(--selected); animation: nav-tab-mark .24s cubic-bezier(.2, .8, .3, 1) both; }
 @keyframes nav-tab-mark { from { opacity: .4; transform: scaleX(.6); } }
+
+/* ---------- Instant feedback, 2 November 2026 ---------- */
+/* No double-tap zoom delay anywhere a finger presses; small round controls and chips sink like the icon buttons. */
+:where(button, a, summary, label, [role="button"], [role="checkbox"], input[type="checkbox"], input[type="radio"], select) { touch-action: manipulation; }
+:is(.pcard-save, .pcard-plus, .basket-qty button, .cart-toast-action, .cart-toast-close, .lo-pick-remove, .notice-panel-read) { --press-scale: .94; }
+:is(.pcard-save, .find-save, .pcard-plus, .basket-qty button, .lo-pick-remove):active { scale: .94; transition: scale 80ms ease-out; }
+/* A button waiting for the server (adding to the cart, applying a promo code, paying) keeps its width and label and
+   shows a light sweep across itself; the rest of the page stays usable. */
+.btn[aria-busy="true"] { position: relative; overflow: hidden; cursor: progress; }
+.btn[aria-busy="true"]::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, currentColor 22%, transparent) 50%, transparent 80%) 0 0 / 220% 100% no-repeat;
+  animation: atlas-busy-sweep 1.1s linear infinite;
+}
+@keyframes atlas-busy-sweep { from { background-position-x: 160%; } to { background-position-x: -60%; } }
+@media (prefers-reduced-motion: reduce) { .btn[aria-busy="true"]::before { animation: none; opacity: .5; } :is(.pcard-save, .find-save, .pcard-plus, .basket-qty button, .lo-pick-remove):active { scale: none; } }
