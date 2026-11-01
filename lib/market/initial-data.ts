@@ -2,6 +2,7 @@ import {database,pricing as currentPricing} from './server.ts';
 import {readCatalog} from './catalog-server.ts';
 import {catalogSeed,type CatalogSeedValue} from './catalog-seed.ts';
 import {publicCatalog} from './catalog-editor.ts';
+import {catalogCountsBySlug} from './store-pages.ts';
 import type {MerchantFind} from './catalog.ts';
 import type {Pricing} from './domain.ts';
 import {parseStoredPricing} from './pricing-equal.ts';
@@ -68,4 +69,16 @@ export async function publicCatalogProduct(id:string):Promise<{product:MerchantF
  const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
  const product=publicCatalog(document,pricing).products.find(item=>item.id===id);
  return product?{product,pricing:withoutAuthor(pricing)}:null;
+}
+
+/**
+ * A store page (/stores/[slug]) reads the catalog once: the seed the page renders its products with (null when it is too
+ * large to inline: the browser then asks /api/catalog) and every store's product count, which decides the empty state,
+ * the description and whether the page is indexed. Both null when the database is unavailable.
+ */
+export async function storeCatalog():Promise<{seed:CatalogSeedValue|null;counts:Map<string,number>|null}>{
+ try{
+  const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
+  return {seed:catalogSeed(document,pricing),counts:catalogCountsBySlug(publicCatalog(document,pricing).products)};
+ }catch{return {seed:null,counts:null}}
 }

@@ -1,2 +1,32 @@
 .access-card{max-width:700px;margin:40px auto 72px;padding:clamp(24px,5vw,56px);text-align:center;display:flex;flex-direction:column;align-items:center;gap:16px;min-height:300px;justify-content:center}.access-card h1{font-size:clamp(24px,4vw,40px);line-height:1.15;letter-spacing:-.02em;max-width:550px}.access-card p{max-width:470px;color:#51645a;font-size:16px;line-height:1.6}.access-card small{font-size:13px;color:#60756a}.access-icon{display:grid;place-items:center;background:#edf4ed;color:#255b45;border-radius:var(--r-card);width:56px;height:56px}.access-actions{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:12px}@keyframes access-spin{to{transform:rotate(360deg)}}.mobile-nav{justify-content:space-around}.skip-link{position:fixed;top:-100px;left:16px;z-index:100;background:white;color:var(--c-brand);padding:12px;border:2px solid}.skip-link:focus{top:12px}.access-card .btn{min-height:44px}@media(max-width:600px){.access-card{margin:20px 0 36px}.access-actions{width:100%}.access-actions .btn{width:100%}.site-header .header-actions{gap:12px}}
 
+
+/* The 404 page (app/not-found-view.tsx, redesign stage 8, 1 November 2026): a search and the main sections. It renders
+   under any address, so its rules stay in the layout CSS. Tokens only; the dark theme comes from the roles. */
+.not-found { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: var(--space-4); max-width: 640px; margin: var(--space-10) auto var(--space-16); text-align: center; }
+.not-found-code { margin: 0; color: var(--brand); font-size: var(--fs-14); font-weight: var(--fw-bold); letter-spacing: .08em; font-feature-settings: var(--tnum); }
+html[data-theme="dark"] .not-found-code { color: var(--link); }
+.site-main .not-found h1 { margin: 0; overflow-wrap: anywhere; color: var(--text); font-size: var(--fs-40); font-weight: var(--fw-bold); letter-spacing: var(--tracking-title); line-height: var(--lh-tight); }
+.not-found-text { max-width: 52ch; margin: 0; color: var(--text-2); font-size: var(--fs-16); line-height: var(--lh-body); }
+.not-found-search { display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: var(--h-lg); margin-top: var(--space-2); padding: 0 var(--space-1) 0 var(--space-4); border: 1px solid var(--field); border-radius: var(--r-control); background: var(--surface); box-shadow: var(--shadow-1); color: var(--text-2); }
+.not-found-search:focus-within { border-color: var(--brand); box-shadow: var(--focus-ring); }
+.not-found-search > svg { flex: none; }
+.not-found-search input { flex: 1; min-width: 0; height: calc(var(--h-lg) - 2px); padding: 0; border: 0; outline: none; background: transparent; color: var(--text); font: inherit; font-size: var(--fs-16); }
+.not-found-search input::placeholder { color: var(--text-3); opacity: 1; }
+.not-found-search .btn { min-height: var(--h-md); }
+.not-found-links { width: 100%; }
+.not-found-links ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin: var(--space-2) 0 0; padding: 0; list-style: none; text-align: left; }
+.not-found-links a { display: flex; align-items: center; gap: var(--space-3); min-height: var(--h-lg); padding: 0 var(--space-4); border-radius: var(--r-control); background: var(--surface); box-shadow: var(--shadow-1); color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-medium); text-decoration: none; transition: box-shadow var(--dur-fast) var(--ease-out); }
+.not-found-links a:hover { box-shadow: var(--shadow-2); }
+.not-found-links a:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.not-found-links a > svg:first-child { flex: none; color: var(--text-2); }
+.not-found-links a > span { flex: 1; min-width: 0; }
+.not-found-links a > svg:last-child { flex: none; color: var(--text-2); }
+.not-found-links li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+@media (max-width: 760px) {
+  .not-found { margin: var(--space-6) 0 var(--space-10); }
+  .site-main .not-found h1 { font-size: var(--fs-30); }
+  .not-found-links ul { grid-template-columns: minmax(0, 1fr); }
+}
+/* The dark theme fills every input (theme-night.css); the 404 search is one composite control. */
+html[data-theme="dark"] .not-found .not-found-search > input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) { border: 0; background: transparent; box-shadow: none; }

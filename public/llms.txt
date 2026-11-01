@@ -4,7 +4,7 @@
 
 ## Key facts (as of 2026-11-01)
 
-The figures below are shown on the home page, /customs and /stores. The current tariff on the site wins if it differs.
+The figures below are shown on the home page, /delivery, /customs and /stores. The current tariff on the site wins if it differs.
 
 - Delivers only within Tashkent, Uzbekistan; totals are in Uzbek soum (UZS).
 - 215 supported stores in the US, UK, Europe and China; order by pasting a product link or from the catalog.
@@ -32,7 +32,8 @@ The figures below are shown on the home page, /customs and /stores. The current 
 
 - [Home page (link estimate, tariffs, FAQ)](https://atlasmarket.uz/)
 - [Product catalog with search (`?q=`)](https://atlasmarket.uz/catalog)
-- [Store directory](https://atlasmarket.uz/stores)
+- [Store directory](https://atlasmarket.uz/stores); each store has its own page, `/stores/{store}` (for example [Nike](https://atlasmarket.uz/stores/nike)), with its catalog products and how to order from it
+- [Delivery rates by country, the duty-free allowance and a delivery calculator](https://atlasmarket.uz/delivery)
 - [Customs guidance](https://atlasmarket.uz/customs)
 - [Terms and privacy drafts](https://atlasmarket.uz/legal?lang=ru)
 - [Privacy policy](https://atlasmarket.uz/privacy?lang=ru)
@@ -45,7 +46,7 @@ Every public page has Uzbek (Latin), Uzbek (Cyrillic), Russian and English versi
 
 ## Discovery and access
 
-The public catalog, store directory, customs guidance, legal, privacy, terms, support, app and account-deletion pages are crawlable. Account, order, passport, declaration, operator, API and other private paths require authentication and are excluded from public discovery.
+The public catalog, product pages, store directory and store pages, delivery rates, customs guidance, legal, privacy, terms, support, app and account-deletion pages are crawlable. Account, order, passport, declaration, operator, API and other private paths require authentication and are excluded from public discovery.
 
 ## Optional
 

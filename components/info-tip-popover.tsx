@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
  *  of a "?"; it replaces the plain button only once that "?" is pressed, with `defaultOpen` so the bubble opens as it mounts. */
 export function InfoTipPopover({ children, name, defaultOpen }: { children: ReactNode; name: string; defaultOpen?: boolean }) {
   return <Popover defaultOpen={defaultOpen}>
-    <PopoverTrigger asChild><button type="button" className="info-tip" aria-label={name}><CircleHelp size={17} aria-hidden="true" /></button></PopoverTrigger>
+    <PopoverTrigger asChild><button type="button" className="info-tip" aria-label={name}><CircleHelp size={18} aria-hidden="true" /></button></PopoverTrigger>
     <PopoverContent className="info-tip-bubble" side="bottom" align="center" sideOffset={8} collisionPadding={16}>{children}</PopoverContent>
   </Popover>;
 }

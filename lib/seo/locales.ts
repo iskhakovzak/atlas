@@ -57,7 +57,7 @@ export function canonicalPath(path: string, requested: Locale | null, languages:
 }
 
 /** Public pages whose internal links keep the page language (`?lang=`), see `withLang`. */
-export const publicPaths: readonly string[] = ['/', '/catalog', '/stores', '/customs', '/legal', '/privacy', '/terms', '/support', '/app', '/delete-account'];
+export const publicPaths: readonly string[] = ['/', '/catalog', '/stores', '/delivery', '/customs', '/legal', '/privacy', '/terms', '/support', '/app', '/delete-account'];
 
 /** True for a public page and for the future public families (`/catalog/p/…`, `/stores/…`, `/delivery`). */
 export function isPublicPath(pathname: string): boolean {

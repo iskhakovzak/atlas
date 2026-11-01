@@ -166,22 +166,10 @@ html[data-theme="dark"] .home-main .home-step-number { color: var(--link); }
 .home-main .home-speed-price b { color: var(--text); font-size: var(--fs-24); font-weight: var(--fw-bold); line-height: var(--lh-tight); font-feature-settings: var(--tnum); }
 .home-main .home-speed-meta, .home-main .home-speed-faster { color: var(--text-3); font-size: var(--fs-13); line-height: var(--lh-snug); }
 .home-main .home-speed-faster { color: var(--text-2); font-weight: var(--fw-medium); }
-.home-main .home-tariff-all { margin-top: var(--space-4); border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); }
-.home-main .home-tariff-all > summary { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--h-md); padding: 0 var(--space-4); color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-semibold); cursor: pointer; list-style: none; }
-.home-main .home-tariff-all > summary::-webkit-details-marker { display: none; }
-.home-main .home-tariff-all > summary > svg { transition: transform var(--dur-base) var(--ease-out); }
-.home-main .home-tariff-all[open] > summary > svg { transform: rotate(180deg); }
-.home-main .home-tariff-all > summary:focus-visible { border-radius: var(--r-card); }
-.home-main .home-tariff-all > :not(summary) { margin-inline: var(--space-4); }
-.home-main .home-tariff-all > .home-note { margin-bottom: var(--space-4); }
-.home-main .home-tariff-table { width: calc(100% - 2 * var(--space-4)); border-collapse: collapse; font-size: var(--fs-14); }
-.home-main .home-tariff-table th, .home-main .home-tariff-table td { padding: var(--space-2) var(--space-2) var(--space-2) 0; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
-.home-main .home-tariff-table thead th { border-top: 0; color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-semibold); }
-.home-main .home-tariff-table tbody th { color: var(--text); font-weight: var(--fw-medium); }
-.home-main .home-tariff-table td { color: var(--text-2); font-feature-settings: var(--tnum); }
-.home-main .home-tariff-table td small { display: block; color: var(--text-3); font-size: var(--fs-12); }
-.home-main .home-tariff-country { display: inline-flex; align-items: center; gap: var(--space-2); hyphens: manual; }
-.home-main .home-tariff-pending { color: var(--warn); }
+/* The rates of every country and the calculator are on /delivery (stage 8): one card-like link leads there. */
+.home-main .home-tariff-all { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--h-md); margin-top: var(--space-4); padding: 0 var(--space-4); border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-semibold); text-decoration: none; transition: box-shadow var(--dur-base) var(--ease-out); }
+.home-main .home-tariff-all:hover { box-shadow: var(--shadow-3); }
+.home-main .home-tariff-all:focus-visible { outline: none; box-shadow: var(--shadow-2), var(--focus-ring); }
 
 /* Money and guarantees: three cards. */
 .home-main .home-counter { margin: 0 0 var(--space-4); color: var(--text-2); font-size: var(--fs-16); }

@@ -74,11 +74,11 @@ export function AdminTeam({data,userEmail,copy,onChanged}:{data:AdminData;userEm
     <td><i className={`staff-status ${member.status}`}>{staffStatusLabels[member.status]}</i></td>
     <td>{last?<span title={dateTime(last,lang)}>{agoLocalized(last,lang,now)}</span>:<span className="micro">{t.never}</span>}</td>
     <td className="num">{dateTime(member.updatedAt,lang)}</td>
-    <td className="num admin-cell-control">{member.status!=='disabled'&&!self&&<button type="button" className="btn secondary admin-btn-small" disabled={busy} onClick={()=>{setDeactivate(member);setReason('')}}><UserX size={15}/>{t.disable}</button>}</td>
+    <td className="num admin-cell-control">{member.status!=='disabled'&&!self&&<button type="button" className="btn secondary admin-btn-small" disabled={busy} onClick={()=>{setDeactivate(member);setReason('')}}><UserX size={16}/>{t.disable}</button>}</td>
    </tr>})}
    {!rows.length&&<tr><td colSpan={6} className="micro">{t.nobody}</td></tr>}
   </tbody></table></div>
-  <h3 className="admin-subhead"><ShieldCheck size={17} aria-hidden="true"/> {copy.rolesTitle}</h3>
+  <h3 className="admin-subhead"><ShieldCheck size={18} aria-hidden="true"/> {copy.rolesTitle}</h3>
   <div className="admin-scroll"><table className="admin-grid admin-rights"><thead><tr><th>{t.right}</th>{staffRoles.map(value=><th key={value} className="center">{roleLabels[value]}</th>)}</tr></thead><tbody>
    {permissions.map(permission=><tr key={permission}><td><b>{t.permissions[permission]}</b><small>{permission}</small></td>{staffRoles.map(value=><td key={value} className="center">{rolePermissions[value].includes(permission)?<span aria-label={t.yes}>✓</span>:<span className="micro" aria-label={t.no}>—</span>}</td>)}</tr>)}
   </tbody></table></div>

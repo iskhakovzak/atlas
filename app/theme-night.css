@@ -15,15 +15,15 @@ html[data-theme="dark"] .site-header {
   border-color: var(--atlas-line);
 }
 
-html[data-theme="dark"] .wordmark, html[data-theme="dark"] h1, html[data-theme="dark"] h2, html[data-theme="dark"] h3, html[data-theme="dark"] .find-title, html[data-theme="dark"] .page-heading, html[data-theme="dark"] .breadcrumb > span:last-child, html[data-theme="dark"] .product-title {
+html[data-theme="dark"] .wordmark, html[data-theme="dark"] h1, html[data-theme="dark"] h2, html[data-theme="dark"] h3, html[data-theme="dark"] .find-title, html[data-theme="dark"] .page-heading, html[data-theme="dark"] .breadcrumb > span:last-child {
   color: var(--atlas-ink);
 }
 
-html[data-theme="dark"] .wordmark svg, html[data-theme="dark"] .desktop-nav a.active, html[data-theme="dark"] .text-link, html[data-theme="dark"] .storage-notice a, html[data-theme="dark"] .find-title:hover {
+html[data-theme="dark"] .wordmark svg, html[data-theme="dark"] .text-link, html[data-theme="dark"] .storage-notice a, html[data-theme="dark"] .find-title:hover {
   color: var(--atlas-link);
 }
 
-html[data-theme="dark"] .desktop-nav a, html[data-theme="dark"] .breadcrumb, html[data-theme="dark"] .text-button, html[data-theme="dark"] .order-timeline li, html[data-theme="dark"] .product-facts > span, html[data-theme="dark"] .sheet-total > span, html[data-theme="dark"] .cost-lines dt {
+html[data-theme="dark"] .breadcrumb, html[data-theme="dark"] .text-button, html[data-theme="dark"] .order-timeline li, html[data-theme="dark"] .cost-lines dt {
   color: var(--atlas-copy-muted);
 }
 
@@ -35,40 +35,7 @@ html[data-theme="dark"] .eyebrow {
   color: var(--night-jade);
 }
 
-html[data-theme="dark"] :is(
-  .surface,
-  .account-detail,
-  .faq-strip details,
-  .faq-item,
-  .find-card,
-  .product-card,
-  .catalog-draft,
-  .order-card,
-  .store-strip,
-  .trust-strip,
-  .ops-stats > div,
-  .analytics-grid article,
-  .notification-item,
-  .channel-card,
-  .account-address-list .saved-address,
-  .cart-item,
-  .cart-summary,
-  .quote-preview,
-  .order-documents,
-  .ledger-list,
-  .reserve-panel,
-  .receiving-preview,
-  .monitor-panel,
-  .pricing-manager,
-  .change-request,
-  .warehouse-box,
-  .declaration-preview,
-  .weight-formula,
-  .checkout-address-head,
-  .document-list > a,
-  .account-links,
-  .account-stats
-) {
+html[data-theme="dark"] :is(.surface, .find-card, .catalog-draft, .order-card, .ops-stats > div, .analytics-grid article, .channel-card, .order-documents, .receiving-preview, .pricing-manager, .change-request, .warehouse-box, .declaration-preview, .document-list > a) {
   background-color: var(--atlas-surface);
   border-color: var(--atlas-line);
   color: var(--atlas-ink);
@@ -101,7 +68,7 @@ html[data-theme="dark"] .btn.light {
   color: var(--on-brand);
 }
 
-html[data-theme="dark"] .btn.secondary, html[data-theme="dark"] .select-control, html[data-theme="dark"] .search-field, html[data-theme="dark"] .channel-card, html[data-theme="dark"] .change-request, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .order-tabs, html[data-theme="dark"] .order-tabs [data-state="active"], html[data-theme="dark"] .document-list > a, html[data-theme="dark"] .monitor-panel {
+html[data-theme="dark"] .btn.secondary, html[data-theme="dark"] .select-control, html[data-theme="dark"] .search-field, html[data-theme="dark"] .channel-card, html[data-theme="dark"] .change-request, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .order-tabs, html[data-theme="dark"] .order-tabs [data-state="active"], html[data-theme="dark"] .document-list > a {
   background-color: var(--atlas-raised);
   border-color: var(--atlas-line);
   color: var(--atlas-ink);
@@ -171,7 +138,7 @@ html[data-theme="dark"] .notice.error {
   color: var(--night-error-ink);
 }
 
-html[data-theme="dark"] .find-visual, html[data-theme="dark"] .find-photo, html[data-theme="dark"] .detail-image, html[data-theme="dark"] .import-photo, html[data-theme="dark"] .no-photo, html[data-theme="dark"] .confirm-price {
+html[data-theme="dark"] .find-visual, html[data-theme="dark"] .find-photo, html[data-theme="dark"] .import-photo, html[data-theme="dark"] .no-photo, html[data-theme="dark"] .confirm-price {
   background-color: var(--night-surface);
 }
 
@@ -200,7 +167,7 @@ html[data-theme="dark"] .status-badge.needs-action {
   color: var(--night-warn-ink);
 }
 
-html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .sheet-total strong, html[data-theme="dark"] .product-facts b, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .change-amount > strong {
+html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .change-amount > strong {
   color: var(--night-ink);
 }
 
@@ -347,7 +314,7 @@ html[data-theme="dark"] .notice.error {
   color: var(--night-error-ink);
 }
 
-html[data-theme="dark"] .find-visual, html[data-theme="dark"] .find-photo, html[data-theme="dark"] .detail-image, html[data-theme="dark"] .import-photo, html[data-theme="dark"] .no-photo, html[data-theme="dark"] .confirm-price {
+html[data-theme="dark"] .find-visual, html[data-theme="dark"] .find-photo, html[data-theme="dark"] .import-photo, html[data-theme="dark"] .no-photo, html[data-theme="dark"] .confirm-price {
   background-color: var(--night-raised);
 }
 
@@ -376,7 +343,7 @@ html[data-theme="dark"] .status-badge.needs-action {
   color: var(--night-warn-ink);
 }
 
-html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .sheet-total strong, html[data-theme="dark"] .product-facts b, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .change-amount > strong {
+html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .change-amount > strong {
   color: var(--night-ink-2);
 }
 
@@ -417,41 +384,7 @@ html[data-theme="dark"] .find-save.saved {
 /* Final graphite normalization: pair each formerly fixed light surface with readable text. */
 
 /* Cards and expandable sections. */
-html[data-theme="dark"] :is(
-  .recipient-choice,
-  .store-region,
-  .import-store-links.featured a,
-  .batch-candidate,
-  .customer-warehouse-services,
-  .warehouse-service-catalog,
-  .warehouse-service-config,
-  .warehouse-service-request,
-  .warehouse-service-ops,
-  .warehouse-service-request-form,
-  .warehouse-service-config-body,
-  .warehouse-service-locales fieldset,
-  .catalog-editor,
-  .catalog-importer,
-  .catalog-issues,
-  .catalog-draft,
-  .finds-disclosure,
-  .find-demo,
-  .finds-own-link,
-  .admin-shortcut-grid > *,
-  .admin-metrics article,
-  .staff-form,
-  .ops-tools,
-  .payment-preview,
-  .delivery-box,
-  .parcel-box,
-  .identity-upload,
-  .legal-sources,
-  .legal-nav,
-  .ticket-reply,
-  .notification-history > div,
-  .monitor-panel,
-  .account-address-list .saved-address
-) {
+html[data-theme="dark"] :is(.recipient-choice, .import-store-links.featured a, .batch-candidate, .customer-warehouse-services, .warehouse-service-catalog, .warehouse-service-config, .warehouse-service-request, .warehouse-service-ops, .warehouse-service-request-form, .warehouse-service-config-body, .warehouse-service-locales fieldset, .catalog-editor, .catalog-importer, .catalog-issues, .catalog-draft, .find-demo, .admin-shortcut-grid > *, .admin-metrics article, .staff-form, .ops-tools, .payment-preview, .delivery-box, .parcel-box, .legal-sources, .legal-nav, .ticket-reply) {
   background-color: var(--atlas-dark-surface);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
@@ -470,97 +403,16 @@ html[data-theme="dark"] :is(
   color: var(--night-ink);
 }
 
-html[data-theme="dark"] :is(
-  .recipient-choice:hover,
-  .store-region:hover,
-  .import-store-links a:hover,
-  .find-collections button:hover:not(.active),
-  .admin-shortcut-grid > a:hover,
-  .account-service-grid > a:hover,
-  .account-service-grid > button:hover,
-  .saved-address:hover,
-  .compact-order summary:hover,
-  .finds-own-link button:hover
-) {
+html[data-theme="dark"] :is(.recipient-choice:hover, .import-store-links a:hover, .find-collections button:hover:not(.active), .admin-shortcut-grid > a:hover, .compact-order summary:hover) {
   background-color: var(--atlas-dark-hover);
   color: var(--atlas-dark-ink);
 }
 
-html[data-theme="dark"] :is(
-  .recipient-choice-body > strong,
-  .store-region h3,
-  .store-region p,
-  .import-store-links a,
-  .import-store-links a b,
-  .import-store-links a em,
-  .saved-address b,
-  .saved-address span,
-  .saved-address small,
-  .account-profile-compact summary,
-  .account-profile-compact > div:nth-child(2) span,
-  .account-detail-summary > small,
-  .account-detail-toggle,
-  .account-detail-empty,
-  .account-detail-head p,
-  .account-service-grid small,
-  .account-service-grid > a > svg:last-child,
-  .account-stats a,
-  .account-stats b,
-  .finds-count,
-  .finds-result,
-  .finds-steps,
-  .finds-steps p,
-  .finds-disclosure summary,
-  .finds-own-link label,
-  .find-top-deal small,
-  .find-demo,
-  .catalog-customs-note,
-  .batch-candidate > label,
-  .warehouse-service-request small,
-  .warehouse-service-config > summary small,
-  .warehouse-service-locales legend,
-  .warehouse-service-admin-row > div:first-child p,
-  .catalog-draft-summary em,
-  .admin-shortcut-grid > a,
-  .admin-metrics article,
-  .admin-table-row,
-  .staff-form,
-  .ops-tools,
-  .payment-preview,
-  .delivery-box,
-  .parcel-box,
-  .ticket-reply,
-  .ticket-reply b,
-  .legal-nav a,
-  .legal-sources,
-  .notification-history time,
-  .summary-assurance,
-  .customs-estimate summary strong,
-  .customs-estimate summary small,
-  .customs-estimate summary span,
-  .checkout-progress li,
-  .identity-upload,
-  .payment-methods span,
-  .store-tags span,
-  .journey-strip b,
-  .sheet-close,
-  .status-row,
-  .readiness-grid svg
-) {
+html[data-theme="dark"] :is(.recipient-choice-body > strong, .import-store-links a, .import-store-links a b, .import-store-links a em, .find-top-deal small, .find-demo, .catalog-customs-note, .batch-candidate > label, .warehouse-service-request small, .warehouse-service-config > summary small, .warehouse-service-locales legend, .warehouse-service-admin-row > div:first-child p, .catalog-draft-summary em, .admin-shortcut-grid > a, .admin-metrics article, .admin-table-row, .staff-form, .ops-tools, .payment-preview, .delivery-box, .parcel-box, .ticket-reply, .ticket-reply b, .legal-nav a, .legal-sources, .customs-estimate summary strong, .customs-estimate summary small, .customs-estimate summary span, .sheet-close, .status-row, .readiness-grid svg) {
   color: var(--atlas-dark-ink);
 }
 
-html[data-theme="dark"] :is(
-  .account-service-grid > a > svg:first-child,
-  .account-service-grid > button > svg:first-child,
-  .status-center-row span,
-  .status-center-row > svg,
-  .legal-disclosure > summary > svg,
-  .find-result-icon,
-  .finds-search > svg,
-  .finds-filter-row > svg,
-  .price-info
-) {
+html[data-theme="dark"] :is(.legal-disclosure > summary > svg, .find-result-icon) {
   color: var(--atlas-dark-link);
 }
 
@@ -663,8 +515,7 @@ html[data-theme="dark"] .parcel-box,
 html[data-theme="dark"] .catalog-editor,
 html[data-theme="dark"] .catalog-draft-summary img,
 html[data-theme="dark"] .catalog-draft-summary > span,
-html[data-theme="dark"] .catalog-issues,
-html[data-theme="dark"] .monitor-panel {
+html[data-theme="dark"] .catalog-issues {
   background-color: var(--atlas-dark-raised);
 }
 
@@ -706,7 +557,7 @@ html[data-theme="dark"] .settlement-box.parcel-box strong {
 }
 
 /* Secondary chrome and keyboard/disabled states. */
-html[data-theme="dark"] .ticket-reply, html[data-theme="dark"] .legal-nav, html[data-theme="dark"] .legal-sources, html[data-theme="dark"] .sheet-close, html[data-theme="dark"] .sheet-save, html[data-theme="dark"] .status-row, html[data-theme="dark"] .import-gallery button {
+html[data-theme="dark"] .ticket-reply, html[data-theme="dark"] .legal-nav, html[data-theme="dark"] .legal-sources, html[data-theme="dark"] .sheet-close, html[data-theme="dark"] .status-row, html[data-theme="dark"] .import-gallery button {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
@@ -729,7 +580,7 @@ html[data-theme="dark"] :is(button, a, summary, input, textarea, select):focus-v
 }
 
 /* Smaller surfaces discovered outside the main customer journey. */
-html[data-theme="dark"] :is(.deal-section, .legacy-import, .ux-disclosure, .legal-requisites) {
+html[data-theme="dark"] :is(.ux-disclosure, .legal-requisites) {
   background-color: var(--atlas-dark-surface);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
@@ -756,7 +607,7 @@ html[data-theme="dark"] .copy-text-btn {
   color: var(--atlas-dark-link);
 }
 
-html[data-theme="dark"] :is(.access-icon, .floating-label, .customer-badge) {
+html[data-theme="dark"] :is(.access-icon, .customer-badge) {
   background-color: var(--atlas-dark-selected);
   border-color: var(--night-line-strong);
   color: var(--night-ink) !important;
@@ -788,46 +639,12 @@ html[data-theme="dark"] .expiry.expired {
 }
 
 @media (max-width: 600px) {
-  html[data-theme="dark"] :is(
-    .supported-stores,
-    .supported-stores-heading,
-    .supported-store-list,
-    .find-card,
-    .find-content,
-    .cart-item,
-    .compact-order-name,
-    .compact-order-body,
-    .document-row > div,
-    .saved-address,
-    .account-detail-summary,
-    .catalog-draft-summary > div,
-    .admin-table-row > *,
-    .message-log article > *,
-    .review-items > div,
-    .legal-document
-  ) {
+  html[data-theme="dark"] :is(.find-card, .find-content, .compact-order-name, .compact-order-body, .catalog-draft-summary > div, .admin-table-row > *, .message-log article > *, .review-items > div, .legal-document) {
     min-width: 0;
     overflow-wrap: anywhere;
   }
 
-  html[data-theme="dark"] :is(
-    .supported-store-list > li,
-    .find-title,
-    .product-name,
-    .deal-name,
-    .find-origin,
-    .compact-order-name,
-    .cart-item :is(h2, h3, p, small, strong),
-    .order-card :is(h2, h3, p, small, strong),
-    .document-row b,
-    .catalog-draft-summary :is(b, small, em),
-    .account-error,
-    .ticket-reply,
-    .admin-table-row > *,
-    .message-log article > *,
-    .legal-document :is(p, li),
-    .site-footer :is(a, small)
-  ) {
+  html[data-theme="dark"] :is(.find-title, .product-name, .find-origin, .compact-order-name, .order-card :is(h2, h3, p, small, strong), .catalog-draft-summary :is(b, small, em), .account-error, .ticket-reply, .admin-table-row > *, .message-log article > *, .legal-document :is(p, li), .site-footer :is(a, small)) {
     overflow-wrap: anywhere;
     word-break: normal;
   }
@@ -902,7 +719,7 @@ html :is(h1, h2, h3) { letter-spacing: -.02em; }
 html h1 { font-weight: 750; }
 html :is(h2, h3) { font-weight: 750; }
 html :is(.wordmark) { font-weight: 800; letter-spacing: -0.045em; }
-html :is(.basket-total strong, .wallet-amount, .cabinet-customs-value, .order-x-total, .find-total > strong) { font-feature-settings: "tnum" 1; }
+html :is(.basket-total strong, .wallet-amount, .find-total > strong) { font-feature-settings: "tnum" 1; }
 
 /* ---------- Tokens: app/tokens.css ---------- */
 /* ---------- Canvas: flat, no glow (the only atmosphere is on the home first screen, app/ambient.css) ---------- */
@@ -913,9 +730,9 @@ html[data-theme="dark"] ::-webkit-scrollbar { width: 11px; height: 11px; }
 html[data-theme="dark"] ::-webkit-scrollbar-track { background: transparent; }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: var(--r-pill); background: #26302b padding-box; }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #33403a padding-box; }
-html[data-theme="dark"] :is(.eyebrow, .cabinet-eyebrow, .order-x-eyebrow, .home-stores-label, .home-footer-title, .basket-brand) { color: var(--night-champagne); letter-spacing: .02em; }
+html[data-theme="dark"] :is(.eyebrow, .order-x-eyebrow, .home-footer-title, .basket-brand) { color: var(--night-champagne); letter-spacing: .02em; }
 /* No capitals in the small headings, as in Day (day-folio.css); the champagne colour stays. */
-html[data-theme="dark"] :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .cabinet-eyebrow, .order-x-eyebrow, .store-dialog-section h3, .legal-document > header span) { text-transform: none; letter-spacing: 0; }
+html[data-theme="dark"] :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .order-x-eyebrow, .legal-document > header span) { text-transform: none; letter-spacing: 0; }
 html[data-theme="dark"] :is(h1, h2, h3, .page-heading h1) { color: var(--night-ink); }
 html[data-theme="dark"] :is(.text-link, .order-x-link, .basket-source, .basket-continue, .cabinet-link, .cabinet-text-btn, .lo-source-link, .home-hero-links a, .home-faq a) { color: var(--night-jade); }
 
@@ -930,23 +747,15 @@ html[data-theme="dark"] .site-header {
 html[data-theme="dark"] .wordmark { color: var(--night-ink); }
 html[data-theme="dark"] .wordmark svg { color: var(--night-jade); }
 /* Nav: the current page sits on a translucent jade pill; no underline or bottom border. */
-html[data-theme="dark"] .site-header .desktop-nav { gap: 2px; margin-left: 8px; }
-html[data-theme="dark"] .site-header .desktop-nav a { min-height: 40px; padding: 0 10px; border: 0; border-radius: var(--r-control); color: var(--night-muted); text-decoration: none; }
-html[data-theme="dark"] .site-header .desktop-nav a:hover { background: rgba(255, 255, 255, 0.05); color: var(--night-ink); }
-html[data-theme="dark"] .site-header .desktop-nav a.active { background: rgba(128, 208, 172, 0.14); color: var(--night-jade); box-shadow: none; }
-html[data-theme="dark"] .site-header .desktop-nav a:focus-visible { outline: 2px solid var(--night-jade); outline-offset: 2px; }
-html[data-theme="dark"] :is(.rf-chips button, .orders-recipients button, .lo-page .variant-options button)[aria-pressed="true"],
-html[data-theme="dark"] :is(.notices-page .notice-filters button.active, .orders-recipients button.active) {
+html[data-theme="dark"] :is(.rf-chips button, .lo-page .variant-options button)[aria-pressed="true"], html[data-theme="dark"] :is(.notices-page .notice-filters button.active) {
   border-color: transparent;
   background: var(--brand);
   color: var(--on-brand);
   box-shadow: none;
 }
 /* The price under a chosen colour sits on the ivory button: it takes the button's dark ink, not the muted night grey. */
-html[data-theme="dark"] .header-account { border-color: var(--line-strong); color: var(--night-ink); }
-html[data-theme="dark"] .header-account:hover { background: var(--hover); border-color: var(--field); }
-html[data-theme="dark"] :is(.site-header .icon-btn, .site-header .wallet-link) { color: var(--night-ink-2); }
-html[data-theme="dark"] .site-header :is(.icon-btn, .wallet-link):hover { background: rgba(255, 255, 255, 0.05); color: var(--night-ink); }
+html[data-theme="dark"] :is(.site-header .icon-btn) { color: var(--night-ink-2); }
+html[data-theme="dark"] .site-header .icon-btn:hover { background: rgba(255, 255, 255, 0.05); color: var(--night-ink); }
 html[data-theme="dark"] .notice-link b { background: #c8503f; color: #fff; box-shadow: 0 0 0 2px var(--night-canvas); }
 html[data-theme="dark"] .cart-link {
   border: 1px solid transparent;
@@ -957,15 +766,15 @@ html[data-theme="dark"] .cart-link {
 html[data-theme="dark"] .cart-link b { background: var(--night-on-ivory); color: var(--night-ivory); }
 
 /* ---------- Surfaces ---------- */
-html[data-theme="dark"] :is(.surface, .cabinet-card, .cabinet-tiles a, .basket-summary, .basket-parcel, .basket-empty, .lo-card, .lo-product, .order-x, .home-faq details, .home-table-wrap, .notice-x, .docs-recipient, .find-card, .store-card, .stores-directory, .login-card, .notice-settings, .cabinet-next.done, .lo-source) {
+html[data-theme="dark"] :is(.surface, .cabinet-card, .basket-summary, .basket-parcel, .basket-empty, .lo-card, .home-faq details, .notice-x, .docs-recipient, .find-card, .stores-directory, .login-card, .notice-settings, .lo-source) {
   border-color: var(--night-line);
   background: var(--night-sheen), var(--night-surface);
   box-shadow: var(--shadow-2);
 }
-html[data-theme="dark"] :is(.cabinet-tiles a, .store-card, .find-card, .order-x, .docs-recipient):hover { border-color: var(--night-line-strong); }
+html[data-theme="dark"] :is(.find-card, .docs-recipient):hover { border-color: var(--night-line-strong); }
 html[data-theme="dark"] :is(.basket-parcel-title, .home-tariffs thead th) { background: rgba(255, 255, 255, 0.025); color: var(--night-muted); }
 /* The store name heads its parcel: the main text colour, as in the day theme; the country and days under it stay muted. */
-html[data-theme="dark"] :is(.cabinet-recipients li, .docs-group, .basket-balance, .basket-review-recipient, .cabinet-empty, .wallet-empty, .docs-placeholder, .basket-line-help, .home-trust-points li, .lo-guest, .cabinet-customs-cart) { background: rgba(255, 255, 255, 0.028); }
+html[data-theme="dark"] :is(.cabinet-recipients li, .docs-group, .basket-balance, .cabinet-empty, .wallet-empty, .basket-line-help, .lo-guest, .cabinet-customs-cart) { background: rgba(255, 255, 255, 0.028); }
 html[data-theme="dark"] .home-footer { border-top-color: var(--night-line); }
 html[data-theme="dark"] .breadcrumb { padding: 14px 0 10px; color: var(--night-faint); }
 
@@ -1021,7 +830,7 @@ html[data-theme="dark"] :is(input:not([type="checkbox"]):not([type="radio"]), se
   box-shadow: var(--night-ring);
 }
 /* Fields that live inside a framed control stay transparent. */
-html[data-theme="dark"] :is(.lo-link-field, .rf-phone, .finds-search, .stores-search, .search-field, .link-sheet-field, .shell-search) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) { border-color: transparent; background: transparent; box-shadow: none; }
+html[data-theme="dark"] :is(.lo-link-field, .rf-phone, .stores-search, .search-field, .link-sheet-field, .shell-search) input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]) { border-color: transparent; background: transparent; box-shadow: none; }
 html[data-theme="dark"] .lo-link {
   border-color: var(--line-strong);
   background: linear-gradient(180deg, rgba(22, 29, 25, 0.92), rgba(15, 20, 18, 0.92));
@@ -1035,20 +844,18 @@ html[data-theme="dark"] .docs-recipient input,
 html[data-theme="dark"] input[type="radio"] { accent-color: var(--night-jade); }
 
 /* ---------- Chips, badges, tabs, progress ---------- */
-html[data-theme="dark"] :is(.rf-chips button, .orders-recipients button, .notices-page .notice-filters button, .lo-page .variant-options button) {
+html[data-theme="dark"] :is(.rf-chips button, .notices-page .notice-filters button, .lo-page .variant-options button) {
   border-color: var(--night-line-strong);
   background: rgba(255, 255, 255, 0.025);
   color: var(--night-ink-2);
 }
-html[data-theme="dark"] :is(.rf-chips button, .orders-recipients button, .notices-page .notice-filters button, .lo-page .variant-options button):hover { border-color: rgba(235, 228, 210, 0.42); color: var(--night-ink); }
+html[data-theme="dark"] :is(.rf-chips button, .notices-page .notice-filters button, .lo-page .variant-options button):hover { border-color: rgba(235, 228, 210, 0.42); color: var(--night-ink); }
 html[data-theme="dark"] .order-tabs,
 html[data-theme="dark"] [data-slot="tabs-list"] { border: 1px solid var(--night-line); background: rgba(255, 255, 255, 0.025); }
 html[data-theme="dark"] [data-slot="tabs-trigger"] { color: var(--night-muted); }
 html[data-theme="dark"] [data-slot="tabs-trigger"][data-selected],
 html[data-theme="dark"] [data-slot="tabs-trigger"][aria-selected="true"],
 html[data-theme="dark"] .order-tabs [data-state="active"] { background: var(--night-hover); color: var(--night-ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
-html[data-theme="dark"] :is(.cabinet-bar, .order-x-bar) { background: rgba(255, 255, 255, 0.07); }
-html[data-theme="dark"] :is(.cabinet-bar span, .order-x-bar span) { background: linear-gradient(90deg, var(--night-jade-strong), var(--night-jade)); box-shadow: var(--shadow-2); }
 html[data-theme="dark"] :is(.basket-steps li[data-state="current"] > span, .docs-num, .notice-x-new, .basket-services > summary b, .cabinet-avatar) {
   background: var(--brand);
   color: var(--on-brand);
@@ -1090,11 +897,11 @@ html[data-theme="dark"] [data-sonner-toaster] {
 html[data-theme="dark"] [data-sonner-toast] { box-shadow: var(--shadow-3); }
 
 /* ---------- Product imagery: merchant photos sit on an ivory studio plate ---------- */
-html[data-theme="dark"] :is(.find-photo, .basket-photo, .order-x-photo, .product-gallery-stage, .product-gallery-thumbnails button, .cart-product-photo, .order-photo, .import-gallery button, .batch-candidate-image) {
+html[data-theme="dark"] :is(.find-photo, .basket-photo, .product-gallery-stage, .product-gallery-thumbnails button, .order-photo, .import-gallery button) {
   border-color: transparent;
   background: radial-gradient(120% 110% at 50% 8%, #f6f3ec 0%, #e6e1d5 100%);
 }
-html[data-theme="dark"] :is(.find-photo, .basket-photo, .order-x-photo, .product-gallery-stage, .product-gallery-thumbnails button, .cart-product-photo, .order-photo, .import-gallery button) img { background: transparent; mix-blend-mode: multiply; }
+html[data-theme="dark"] :is(.find-photo, .basket-photo, .product-gallery-stage, .product-gallery-thumbnails button, .order-photo, .import-gallery button) img { background: transparent; mix-blend-mode: multiply; }
 html[data-theme="dark"] .no-photo { background: var(--night-raised); color: var(--night-faint); }
 
 /* ---------- Home ---------- */
@@ -1127,12 +934,9 @@ html[data-theme="dark"] .login-form .field small { color: var(--night-muted); }
 /* Narrow phones: the operator's extra header link must still fit next to the wordmark. */
 @media (max-width: 420px) {
   html .site-header .wordmark { font-size: 30px; }
-  html .site-header .header-actions { gap: 6px; }
 }
 /* ---------- Folio markup (home, cart, link order) in Atlas Night ----------
    The light theme's look lives in day-folio.css; these rules give the same markup a Night finish. */
-html[data-theme="dark"] .folio-cap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin: 0; padding: 0 10px 2px; color: var(--night-muted); font-size: 14px; }
-html[data-theme="dark"] .folio-cap b { color: var(--night-champagne); font-weight: 600; }
 html[data-theme="dark"] .bill { display: grid; gap: 14px; margin: 0; }
 html[data-theme="dark"] .bill > div { display: grid; grid-template-columns: minmax(0, auto) minmax(16px, 1fr) auto; column-gap: 8px; align-items: baseline; padding: 0; border: 0; }
 html[data-theme="dark"] .bill > div::before { content: ""; grid-column: 2; grid-row: 1; align-self: end; margin-bottom: .32em; border-bottom: 1px dotted var(--night-line-strong); }
@@ -1157,7 +961,7 @@ html[data-theme="dark"] :is(.lo-resumed, .lo-pending) { background: rgba(255, 25
 html[data-theme="dark"] :is(.lo-resumed, .lo-pending) > svg { color: var(--night-jade); }
 
 /* Night: cart options sharing a note and services, the delete button, who pays customs and the customs calculator (7.10.2026). */
-html[data-theme="dark"] :is(.customs-option-head svg, .basket-shared-title svg, .calc-customs-none svg, .customs-remembered svg) { color: var(--night-jade); }
+html[data-theme="dark"] :is(.customs-option-head svg, .calc-customs-none svg, .customs-remembered svg) { color: var(--night-jade); }
 html[data-theme="dark"] :is(.customs-how-final a, .customs-how-trigger, .customs-remembered button) { color: var(--night-jade); }
 
 /* Night: the monthly customs allowance card in the cabinet (7.10.2026). */

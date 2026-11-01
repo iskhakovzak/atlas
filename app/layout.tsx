@@ -29,8 +29,6 @@ import "./checkout-clarity.css";
 import "./access.css";
 import "./login.css";
 import "./experience.css";
-import "./home-polish.css";
-import "./mobile-polish.css";
 import "./customer-mobile.css";
 import "./home.css";
 import "./customer.css";

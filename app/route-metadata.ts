@@ -4,8 +4,8 @@ import {withCyrillic} from '../lib/market/uz-cyrl.ts';
 import { alternateOgLocales, defaultImage, ogLocale, pageMetadata } from '../lib/seo/metadata.ts';
 import { pageLanguageSet, type LanguageSet } from '../lib/seo/locales.ts';
 
-export type PublicPage = 'home' | 'catalog' | 'stores' | 'customs' | 'legal' | 'privacy' | 'terms' | 'support' | 'app' | 'delete-account';
-const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
+export type PublicPage = 'home' | 'catalog' | 'stores' | 'delivery' | 'customs' | 'legal' | 'privacy' | 'terms' | 'support' | 'app' | 'delete-account';
+const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', delivery: '/delivery', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
 
 export function publicPath(page: PublicPage): string {
   return paths[page];
@@ -33,6 +33,11 @@ const pageText: Record<PublicPage, Record<Locale, { title: string; description: 
     uz: { title: 'AQSh, Yevropa, Xitoy do‘konlari: Toshkentga buyurtma', description: 'AQSh, Yevropa, Xitoy va boshqa davlatlar do‘konlari: Atlas havolangiz bo‘yicha tovarni sotib olib, Toshkentga yetkazadi. Muddat, 1 kg narxi va valyuta.' },
     ru: { title: 'Магазины США, Европы и Китая с доставкой в Ташкент', description: 'Магазины США, Европы, Китая и других стран: Atlas выкупит товар по вашей ссылке и доставит в Ташкент. Для каждого магазина — срок, цена за 1 кг и валюта.' },
     en: { title: 'US, EU and Chinese stores with delivery to Tashkent', description: 'Stores in the US, Europe, China and beyond: Atlas buys the item from your link and delivers it to Tashkent. Delivery time, price per kg and currency.' },
+  }),
+  delivery: /*@__PURE__*/withCyrillic({
+    uz: { title: 'Toshkentga yetkazish: tariflar va muddatlar', description: 'AQSh, Britaniya, Xitoy, Germaniya, Italiya va Ispaniyadan Toshkentga yetkazish: 1 kg narxi, ekspress va oddiy muddat, bojsiz limit va kalkulyator.' },
+    ru: { title: 'Доставка в Ташкент: тарифы и сроки по странам', description: 'Доставка из США, Великобритании, Китая, Германии, Италии и Испании в Ташкент: цена за 1 кг, сроки экспресс и обычной, беспошлинный лимит, калькулятор.' },
+    en: { title: 'Delivery to Tashkent: rates and times by country', description: 'Delivery from the US, UK, China, Germany, Italy and Spain to Tashkent: price per kg, express and standard times, the duty-free allowance and a calculator.' },
   }),
   customs: /*@__PURE__*/withCyrillic({
     uz: { title: 'Bojsiz limit va boj: O‘zbekistonga posilkalar', description: 'Bojsiz limit qanday ishlashi, qanday ma’lumotlar kerakligi va O‘zbekistonga buyurtmalarda bojxona to‘lovlari qanday hisoblanishi.' },
@@ -104,6 +109,24 @@ export function productMetadata(product: { id: string; name: string; brand?: str
     text: (locale) => ({ title, description: productText[locale](title, sum) }),
     image: product.image?.startsWith('https://') ? { url: product.image, alt: title } : undefined,
   });
+}
+
+/** What a store page's description states: the delivery time from its country and its catalog count, both in the page language. */
+export type StoreFacts = { days: string | null; products: string | null };
+const storeText: Record<Locale, (name: string, domain: string, facts: StoreFacts) => { title: string; description: string }> = /*@__PURE__*/withCyrillic({
+  uz: (name, domain, { days, products }) => ({ title: `${name} — Toshkentga yetkazib berish`, description: `${domain} dan Toshkentga xarid${days ? `, yetkazish ${days}` : ''}: havolani qo‘ying va yakuniy narxni so‘mda ko‘ring.${products ? ` Atlas katalogida: ${products}.` : ''} Atlas tovarni sotib olib, Toshkentga yetkazadi.` }),
+  ru: (name, domain, { days, products }) => ({ title: `${name} с доставкой в Ташкент`, description: `Покупки на ${domain} с доставкой в Ташкент${days ? ` за ${days}` : ''}: вставьте ссылку и узнайте итог в сумах.${products ? ` В каталоге Atlas: ${products}.` : ''} Atlas выкупит товар и привезёт его в Ташкент.` }),
+  en: (name, domain, { days, products }) => ({ title: `${name} with delivery to Tashkent`, description: `Shop ${domain} with delivery to Tashkent${days ? ` in ${days}` : ''}: paste a link and see the total in soum.${products ? ` In the Atlas catalog: ${products}.` : ''} Atlas buys the item and brings it to Tashkent.` }),
+});
+
+/**
+ * A store page (/stores/[slug]): its own title and description with the store's domain and delivery time. A store that
+ * is not `indexable` (no catalog products and not among the popular ones, lib/market/store-pages.ts) keeps its canonical
+ * and hreflang but asks search engines not to index it and to follow its links.
+ */
+export function storeMetadata(store: { slug: string; name: string; domain: string }, facts: (locale: Locale) => StoreFacts, indexable: boolean, lang: string | undefined, fallback: Locale = 'uz'): Metadata {
+  const meta = pageMetadata({ path: '/stores/' + encodeURIComponent(store.slug), lang, fallback, text: (locale) => storeText[locale](store.name, store.domain, facts(locale)) });
+  return indexable ? meta : { ...meta, robots: { index: false, follow: true, googleBot: { index: false, follow: true } } };
 }
 
 export function homeMetadata(lang?: string, fallback: Locale = 'uz'): Metadata {

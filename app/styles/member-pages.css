@@ -1912,3 +1912,34 @@ html[data-theme="dark"] .login-done-bar::after { background: var(--night-jade, v
 /* globals.css draws it with the light #e5e9f1, which read as a bright stripe on the Night page. */
 html[data-theme="dark"] .warehouse-customer-note span { color: var(--atlas-dark-ink); }
 .allowance-readout:empty { min-height: 0; margin: 0; }
+
+/* ---------- The sign-in page in the new style (redesign stage 8, 1 November 2026) ----------
+   Direction A: one white card with shadow, every method as the same 56 px row (icon · name · chevron), none pushed; on a
+   computer the account's benefits beside it. Scoped to .login-layout (the page itself): the account settings reuse the
+   same method components (app/login-view.tsx) and keep their look. Tokens only, so the dark theme comes from the roles. */
+.login-layout .login-card { gap: var(--space-4); max-width: 480px; padding: var(--space-8); border: 0; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
+.login-layout .login-card h1 { margin: 0; color: var(--text); font-size: var(--fs-30); font-weight: var(--fw-bold); letter-spacing: var(--tracking-title); line-height: var(--lh-tight); }
+.login-layout .login-intro { margin: 0; color: var(--text-2); font-size: var(--fs-16); line-height: var(--lh-body); }
+.login-layout .login-choices { gap: var(--space-2); }
+.login-layout .btn.login-choice { justify-content: flex-start; gap: var(--space-3); min-height: var(--h-lg); padding: 0 var(--space-4); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface); box-shadow: none; color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-semibold); }
+.login-layout .btn.login-choice:hover { border-color: var(--field); background: var(--hover); }
+.login-layout .btn.login-choice:focus-visible { outline: none; border-color: var(--brand); box-shadow: var(--focus-ring); }
+.login-layout .btn.login-choice > span { flex: 1; min-width: 0; text-align: left; }
+.login-layout .btn.login-choice > svg:first-child { flex: none; width: 20px; height: 20px; color: var(--text-2); }
+.login-layout .login-choice-go { flex: none; margin-left: auto; color: var(--text-2); }
+.login-layout .btn.login-choice.apple { border-color: #000; background: #000; color: #fff; }
+.login-layout .btn.login-choice.apple:hover { background: #1a1a1a; }
+.login-layout .btn.login-choice.apple > svg:first-child { color: currentColor; }
+.login-layout .btn.tg-login { min-height: var(--h-lg); }
+.login-layout .login-or { color: var(--text-2); font-size: var(--fs-13); }
+.login-layout .login-or::before, .login-layout .login-or::after { background: var(--line); }
+.login-layout .login-form .btn { min-height: var(--h-md); }
+.login-layout .login-legal { color: var(--text-2); font-size: var(--fs-12); line-height: var(--lh-body); }
+.login-layout .login-benefits { padding: var(--space-6); border: 0; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
+.login-layout .login-benefits h2 { color: var(--text); font-size: var(--fs-20); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-title); }
+.login-layout .login-benefits li { color: var(--text-2); font-size: var(--fs-16); }
+.login-layout .login-benefits svg { width: 20px; height: 20px; color: var(--link); }
+@media (max-width: 760px) {
+  .login-layout .login-card { margin: var(--space-2) 0 var(--space-8); padding: var(--space-6) var(--space-4); }
+  .login-layout .login-card h1 { font-size: var(--fs-24); }
+}

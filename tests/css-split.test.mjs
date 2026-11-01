@@ -23,7 +23,7 @@ const isSplit = (path) => path.startsWith('app/styles/');
 const LAYOUT_CSS = [
   '@fontsource-variable/inter/opsz.css', './fonts/manrope.css', './tokens.css',
   './globals.css', './atlas-design.css', './finds.css', './checkout-clarity.css', './access.css', './login.css',
-  './experience.css', './home-polish.css', './mobile-polish.css', './customer-mobile.css', './home.css',
+  './experience.css', './customer-mobile.css', './home.css',
   './customer.css', './theme-night.css', './catalog.css', './stores.css', './mobile.css', './refine.css', './day-folio.css',
   './native.css', './store-marks.css', './ambient.css', './checkbox.css', './press.css', './header-panel.css', './motion.css',
   './link-inputs.css',
@@ -56,6 +56,9 @@ const PAGES = {
   'app/favorites/page.tsx': [CATALOG, CARDS],
   'app/login/page.tsx': [CATALOG, MEMBER],
   'app/stores/page.tsx': [STORES, CARDS],
+  // A store's page is the catalog filtered by that store (redesign stage 8, 1 November 2026).
+  'app/stores/[slug]/page.tsx': [CATALOG, CARDS],
+  'app/delivery/page.tsx': ['delivery-page.css'],
   'app/order-by-link/page.tsx': [STORES, LINK, CARDS],
   'app/catalog/p/[id]/page.tsx': [STORES, LINK, CARDS],
   'app/legal/page.tsx': [STORES, MEMBER],

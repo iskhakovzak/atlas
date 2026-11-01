@@ -11,7 +11,7 @@ export function SummaryLine({label,amount,locale,help,helpLabel,negative=false,v
  // The help button stays on the line of the label's last word instead of wrapping alone.
  const cut=help?label.lastIndexOf(' '):-1;
  return <div className="basket-line">
-  <span className="basket-line-label">{cut>0?label.slice(0,cut+1):help?'':label}{help&&<span className="nowrap">{cut>0?label.slice(cut+1):label}<button type="button" className="basket-help" aria-label={helpLabel} aria-expanded={open} aria-controls={id} onClick={()=>setOpen(value=>!value)}><Info size={15} aria-hidden="true"/></button></span>}{note&&<small className="basket-line-note">{note}</small>}</span>
+  <span className="basket-line-label">{cut>0?label.slice(0,cut+1):help?'':label}{help&&<span className="nowrap">{cut>0?label.slice(cut+1):label}<button type="button" className="basket-help" aria-label={helpLabel} aria-expanded={open} aria-controls={id} onClick={()=>setOpen(value=>!value)}><Info size={16} aria-hidden="true"/></button></span>}{note&&<small className="basket-line-note">{note}</small>}</span>
   <b>{value??`${negative?'−':''}${formatSum(amount,locale)}`}</b>
   {help&&open&&<p id={id} className="basket-line-help">{help}</p>}
  </div>;

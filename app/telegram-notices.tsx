@@ -152,11 +152,11 @@ export function TelegramNudge({locale}:{locale:Locale}){
   if(!await toggle(true))showSettingsRow();
  };
  return <div className="tg-nudge" role="group" aria-label={t.title}>
-  <span className="tg-nudge-icon" aria-hidden="true"><Send size={17}/></span>
+  <span className="tg-nudge-icon" aria-hidden="true"><Send size={18}/></span>
   <p>{t.nudge}</p>
   <div className="tg-nudge-actions">
    <button type="button" className="btn secondary" disabled={!ready||busy} aria-busy={busy||undefined} onClick={()=>void turnOn()}>{busy?t.checking:t.nudgeOn}</button>
-   <button type="button" className="cabinet-text-btn" onClick={later}><X size={15} aria-hidden="true"/>{t.nudgeLater}</button>
+   <button type="button" className="cabinet-text-btn" onClick={later}><X size={16} aria-hidden="true"/>{t.nudgeLater}</button>
   </div>
  </div>;
 }

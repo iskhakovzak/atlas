@@ -113,5 +113,5 @@ test('review fixes: a browsed catalog card leaves no draft, the dated sum is an 
   for (const locale of ['ru', 'uz', 'oz', 'en']) assert.ok(productDetailCopy[locale].approxTotal, locale);
   const page = source('app/catalog/p/[id]/page.tsx');
   assert.match(page, /const findProduct = cache\(/, 'one catalog read per request');
-  assert.match(page, /<Marketplace view="products" crumb=\{product\.name\}>/);
+  assert.match(page, /<Marketplace view="products" crumb=\{product\.name\} crumbPath=\{productPath\(product\.id\)\}>/);
 });

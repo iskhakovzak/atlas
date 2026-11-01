@@ -5,7 +5,7 @@
 @property --press-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
 
 /* mobile.css snaps these to scale(.98) with no motion; the animated press below takes its place. */
-:is(.btn, .store-tile, .stores-popular button, .catalog-categories > button, .mobile-nav a):active { transform: none; }
+:is(.btn, .store-tile, .stores-popular :is(button, a), .catalog-categories > button, .mobile-nav a):active { transform: none; }
 
 /* How deep each kind sinks: big tiles barely, small round icons the most. */
 .store-tile { --press-scale: .98; }

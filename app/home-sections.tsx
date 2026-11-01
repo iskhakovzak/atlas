@@ -13,7 +13,7 @@ import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight,packagingKg} from '@/lib/market/world';
 import {homeCopy} from '@/lib/market/home-copy';
 import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits} from '@/lib/market/format';
-import {expressLead,factPrice,speedDaysRange,speedPriceRange,tariffRows,type TariffRow} from '@/lib/market/home-facts';
+import {expressLead,factPrice,speedDaysRange,speedPriceRange,tariffRows} from '@/lib/market/home-facts';
 import {catalogSearchFor,looksLikeLink,normalizeProductLink,storeNamedIn} from '@/lib/market/shared-link';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
 import {loadChunk} from '@/lib/market/stale-build';
@@ -22,7 +22,6 @@ import type {Locale} from '@/lib/market/i18n';
 import {pickLocale} from '@/lib/market/uz-cyrl';
 import {storeBrands,storefrontUrl,type StoreBrand} from '@/lib/market/store-brands';
 import {StoreLogo,StoreMark} from './store-logo';
-import {Flag} from './flags';
 import {Money} from './money';
 import {JsonLd} from './json-ld';
 import {faqPage} from '@/lib/seo/structured-data';
@@ -215,28 +214,10 @@ export function HowItWorks(){
  </section>;
 }
 
-/** The days and, where a speed's price differs by country, the price of each cell: ready for a price per country. */
-function TariffTable({rows}:{rows:TariffRow[]}){
- const {locale,c}=useHomeCopy();
- const uniform=new Set(deliverySpeeds.filter(speed=>{const range=speedPriceRange(rows,speed);return range&&range.min===range.max;}));
- return <table className="home-tariff-table">
-  <caption className="sr-only">{c.tariffs.time}</caption>
-  <thead><tr><th scope="col">{c.tariffs.country}</th>{deliverySpeeds.map(speed=><th key={speed} scope="col">{c.tariffs.speeds[speed]}</th>)}</tr></thead>
-  <tbody>{rows.map(({region,options})=><tr key={region.id}>
-   <th scope="row"><span className="home-tariff-country"><Flag region={region.id}/><span>{c.tariffs.tableRegions?.[region.id]??c.tariffs.regions[region.id]}</span></span></th>
-   {options.map(({speed,days,usd})=><td key={speed}>
-    {/* Only the range: the note under the table says the days are business days from the warehouse. */}
-    <span className={days?undefined:'home-tariff-pending'}>{days?`${days[0]}–${days[1]}`:c.tariffs.pending}</span>
-    {!uniform.has(speed)&&<small>{formatUsd(usd,locale)}{c.tariffs.perKgUnit}</small>}
-   </td>)}
-  </tr>)}</tbody>
- </table>;
-}
-
 /**
- * Rates in short: one card per speed (price per kg, "from" when the countries differ, and the days range), then the
- * table by country behind «Все тарифы и сроки». The header's «Доставка» and the footer lead here (/#tariffs), so the
- * table opens by itself when the address names it. A /delivery page will take the table later (plan, stage 8).
+ * Rates in short: one card per speed (price per kg, "from" when the countries differ, and the days range), then a link
+ * to /delivery, which has the rates of every country and the weight calculator (stage 8, 1 November 2026). Old links to
+ * /#tariffs still land on this block.
  */
 export function DeliveryTariffs(){
  const {pricing}=useMarket();
@@ -245,13 +226,6 @@ export function DeliveryTariffs(){
  const missingDays=deliveryRegions.some(region=>deliverySpeeds.some(speed=>!deliveryDaysFor(pricing,region.id,speed)));
  // How much sooner express arrives, per country; no line when it is not sooner everywhere (lib/market/home-facts.ts).
  const lead=expressLead(rows);
- const table=useRef<HTMLDetailsElement>(null);
- useEffect(()=>{
-  const show=()=>{if(window.location.hash==='#tariffs'&&table.current)table.current.open=true};
-  show();
-  window.addEventListener('hashchange',show);
-  return ()=>window.removeEventListener('hashchange',show);
- },[]);
  return <section id="tariffs" className="home-section home-tariffs" aria-labelledby="tariffs-title">
   <h2 id="tariffs-title">{c.tariffs.title}</h2>
   <p className="home-section-lead">{c.tariffs.lead}</p>
@@ -266,12 +240,8 @@ export function DeliveryTariffs(){
    </li>;
   })}</ul>
   <p className="home-note">{c.tariffs.weightNote} {c.tariffs.rateNote}</p>
-  <details ref={table} className="home-tariff-all" id="tariffs-table">
-   <summary>{c.tariffs.all}<ChevronDown size={18} aria-hidden="true"/></summary>
-   <TariffTable rows={rows}/>
-   <p className="home-note">{c.tariffs.tableNote}</p>
-   {missingDays&&<MissingContent what="сроки доставки по странам и скоростям (дни, от–до)"/>}
-  </details>
+  <Link className="home-tariff-all" href="/delivery">{c.tariffs.all}<ArrowRight size={18} aria-hidden="true"/></Link>
+  {missingDays&&<MissingContent what="сроки доставки по странам и скоростям (дни, от–до)"/>}
  </section>;
 }
 

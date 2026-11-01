@@ -18,7 +18,7 @@ import {signInPath} from '@/lib/market/access';
 import {signInReturn} from '@/lib/auth/return-to';
 import {pickLocale,uzText,withCyrillic} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
-import {breadcrumbs,publicViewPaths} from '@/lib/seo/structured-data';
+import {breadcrumbList,breadcrumbs,publicViewPaths} from '@/lib/seo/structured-data';
 import {pageLanguageSet} from '@/lib/seo/locales';
 import {JsonLd} from './json-ld';
 import {CartAnnouncer} from './cart-announcer';
@@ -88,8 +88,9 @@ function HeaderSearch({nav}:{nav:NavCopy}){
   </form>;
 }
 
-/** `crumb`: a page under its section (a catalog product): the breadcrumb then reads Home / section / this page. */
-export default function Marketplace({view,children,crumb}:{view:string;children?:ReactNode;crumb?:string}) {
+/** `crumb`: a page under its section (a catalog product, a store): the breadcrumb then reads Home / section / this page;
+ * with `crumbPath` (the page's own address) its BreadcrumbList names all three. */
+export default function Marketplace({view,children,crumb,crumbPath}:{view:string;children?:ReactNode;crumb?:string;crumbPath?:string}) {
   const {state,ready,status,error,user,refresh,setLocale,sessionHint,siteContent}=useMarket();
   const supportBot=siteContent.contacts.telegramSupport;
   const {theme}=useTheme();
@@ -136,7 +137,7 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
   ];
   // The other tabs are fetched while the phone is idle, so a tap on one opens it at once.
   useWarmLinks(tabs.filter(tab=>!tab.active&&tab.key!=='link'&&!tab.href.startsWith('/login')).map(tab=>tab.href));
-  const navItems:[string,string,string][]=[['/catalog','products',nav.catalog],['/stores','stores',nav.stores],['/order-by-link','link',nav.buyByLink],['/#tariffs','tariffs',nav.delivery]];
+  const navItems:[string,string,string][]=[['/catalog','products',nav.catalog],['/stores','stores',nav.stores],['/order-by-link','link',nav.buyByLink],['/delivery','delivery',nav.delivery]];
   function openLinkSheet(event:MouseEvent<HTMLAnchorElement>){
     if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||event.button!==0)return;
     event.preventDefault();
@@ -161,13 +162,13 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
    <HeaderSearch nav={nav}/>
    <div className="shell-actions">
     {(user?.operator||!!user?.permissions?.length)&&<Link className="operator-entry shell-operator" href="/admin" aria-label={modalWords.manage}><Settings2 size={18} aria-hidden="true"/><span>{modalWords.manage}</span></Link>}
-    <Link className="shell-icon shell-search-icon" href="/catalog" aria-label={nav.search} onClick={openSearch}><Search size={21} aria-hidden="true"/></Link>
+    <Link className="shell-icon shell-search-icon" href="/catalog" aria-label={nav.search} onClick={openSearch}><Search size={20} aria-hidden="true"/></Link>
     <HeaderLanguage locale={locale} label={nav.language} themeLabel={nav.theme} onChange={setLocale}/>
     {/* Help in one tap, only once the owner has set the support bot (admin, «Контент сайта»). */}
     {supportBot&&<a className="header-help shell-help" href={`https://t.me/${supportBot}`} target="_blank" rel="noopener noreferrer" aria-label={`${nav.help} — Telegram`}><MessageCircle size={18} aria-hidden="true"/><span>{nav.help}</span></a>}
     {member&&<NotificationsPanel open={noticesOpen} onOpenChange={setNoticesOpen} label={modalWords.notifications} active={view==='notifications'}/>}
     <Link aria-label={modalWords.favorites} href={favoritesHref} className={'shell-icon shell-wide'+(view==='favorites'?' active':'')}><Heart size={20} aria-hidden="true"/></Link>
-    <Link href={cartHref} className={'shell-cart shell-wide'+(view==='cart'?' active':'')} aria-label={cartLabel}><ShoppingBag size={19} aria-hidden="true"/><span className="shell-cart-label">{words.cart}</span>{known&&shownCount>0&&<b>{shownCount}</b>}</Link>
+    <Link href={cartHref} className={'shell-cart shell-wide'+(view==='cart'?' active':'')} aria-label={cartLabel}><ShoppingBag size={18} aria-hidden="true"/><span className="shell-cart-label">{words.cart}</span>{known&&shownCount>0&&<b>{shownCount}</b>}</Link>
     {member?<span className="shell-wide"><ProfileMenu nav={nav} locale={locale} balance={walletAmount} attention={attention} view={view}/></span>
      // A guest goes straight to sign-in and comes back to this page (the href is set on click, so the server and the browser render the same link).
      // On the sign-in page itself the button would lead to the same page: it is left out there.
@@ -177,7 +178,7 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
   {strip&&<Link className="shell-attention" href={strip.href}><span className="shell-attention-dot" aria-hidden="true"/><span className="shell-attention-text">{stripCopy[locale][strip.kind](strip.orderId)}</span><ArrowRight size={16} aria-hidden="true"/></Link>}
   <CartAnnouncer count={count} ready={ready} locale={locale}/>
   {/* Phones hide the breadcrumb (app/shell.css); its JSON-LD stays for search engines. */}
-  <main className={view==='catalog'?'site-main home-main':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view),pageLang,pageLanguageSet(publicViewPaths[view]))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span>{crumb&&publicViewPaths[view]?<><Link href={publicViewPaths[view]}>{routeTitle(state.communication.language,view)}</Link><span aria-hidden="true">/</span><span className="breadcrumb-leaf" aria-current="page">{crumb}</span></>:<span aria-current="page">{routeTitle(state.communication.language,view)}</span>}</nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
+  <main className={view==='catalog'?'site-main home-main':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={crumb&&crumbPath?breadcrumbList([{name:words.home,path:'/'},{name:routeTitle(locale,view),path:publicViewPaths[view]},{name:crumb,path:crumbPath}],pageLang):breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view),pageLang,pageLanguageSet(publicViewPaths[view]))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span>{crumb&&publicViewPaths[view]?<><Link href={publicViewPaths[view]}>{routeTitle(state.communication.language,view)}</Link><span aria-hidden="true">/</span><span className="breadcrumb-leaf" aria-current="page">{crumb}</span></>:<span aria-current="page">{routeTitle(state.communication.language,view)}</span>}</nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={16}/></Link>}</div></div>}
   <AccessView view={view}>{children}</AccessView>
    <SiteFooter/></main>
   {/* Phones: one bottom bar for everyone, in the server HTML too: Главная · Каталог · Ссылка · Корзина · Профиль.

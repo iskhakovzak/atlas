@@ -87,19 +87,19 @@ function usePush(){
 /** A quiet line in the bell's footer while this browser does not get Atlas notifications. */
 export function PushBellLink({locale}:{locale:Locale}){
   const {push,busy,turnOn}=usePush();
-  if(push.kind==='ios-install')return <p className="notice-panel-tg notice-panel-push-ios"><BellRing size={15} aria-hidden="true"/>{copy[locale].ios}</p>;
+  if(push.kind==='ios-install')return <p className="notice-panel-tg notice-panel-push-ios"><BellRing size={16} aria-hidden="true"/>{copy[locale].ios}</p>;
   if(push.kind!=='ready'||push.on||push.denied)return null;
-  return <button type="button" className="notice-panel-tg notice-panel-push" disabled={busy} aria-busy={busy} onClick={()=>void turnOn(locale)}>{busy?<Loader2 className="spin" size={15} aria-hidden="true"/>:<BellRing size={15} aria-hidden="true"/>}{copy[locale].bell}</button>;
+  return <button type="button" className="notice-panel-tg notice-panel-push" disabled={busy} aria-busy={busy} onClick={()=>void turnOn(locale)}>{busy?<Loader2 className="spin" size={16} aria-hidden="true"/>:<BellRing size={16} aria-hidden="true"/>}{copy[locale].bell}</button>;
 }
 
 /** The settings row on /notifications: on or off in this browser, with the switch. */
 export function PushSettingsRow({locale}:{locale:Locale}){
   const {push,busy,turnOn,turnOff}=usePush();
   const c=copy[locale];
-  if(push.kind==='ios-install')return <div className="notice-tg-row"><span className="notice-tg-row-label"><BellRing size={17} aria-hidden="true"/>{c.ios}</span></div>;
+  if(push.kind==='ios-install')return <div className="notice-tg-row"><span className="notice-tg-row-label"><BellRing size={18} aria-hidden="true"/>{c.ios}</span></div>;
   if(push.kind!=='ready')return null;
   return <div className="notice-tg-row">
-    <span className="notice-tg-row-label"><BellRing size={17} aria-hidden="true"/>{c.row}: {push.on?c.on:c.off}</span>
+    <span className="notice-tg-row-label"><BellRing size={18} aria-hidden="true"/>{c.row}: {push.on?c.on:c.off}</span>
     {push.denied&&!push.on?<small className="micro">{c.denied}</small>
       :<button type="button" className="notice-tg-row-link" disabled={busy} aria-busy={busy} onClick={()=>void (push.on?turnOff():turnOn(locale))}>{push.on?c.turnOff:c.turnOn}</button>}
   </div>;
