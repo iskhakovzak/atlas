@@ -113,7 +113,7 @@ export function GuestCartView() {
           <h2 id="guest-summary-title">{c.summary.title}</h2>
           <CalcLines sums={sums} locale={locale} pricing={pricing} weightKg={weight} storeShippingState="none" speed="standard" />
           <div className="basket-total bill-total"><span>{c.summary.payable}</span><strong>≈ <Money value={sums.total} locale={locale} /></strong></div>
-          <p className="guest-estimate"><Info size={15} aria-hidden="true" />{t.guest.estimate}</p>
+          <p className="guest-estimate"><Info size={16} aria-hidden="true" />{t.guest.estimate}</p>
           <Link className="btn primary basket-cta" href="/cart/checkout">{t.guest.checkout}<ArrowRight size={18} aria-hidden="true" /></Link>
         </div>
       </aside>

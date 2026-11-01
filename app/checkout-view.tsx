@@ -20,6 +20,7 @@ import { formatPercent, formatSum } from "@/lib/market/format";
 import { normalizePromoCode, promoDiscount, promoOrderSum, type PromoPreview } from "@/lib/market/promo";
 import { estimateGuestCart, pendingGuestLines } from "@/lib/market/guest-cart";
 import { serverError, type Locale } from "@/lib/market/i18n";
+import { documentsPath } from "@/lib/market/profile-strip";
 import { CustomsPanel, DeliverySpeedSwitch, customsDutyAmount, sumQuotes, usdText } from "./calc-summary";
 import { ProductImage } from "./market-ui";
 import { Money } from "./money";
@@ -374,7 +375,7 @@ export function CheckoutView() {
               </div>
               <div className="co-check"><Checkbox id="co-save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="co-save-recipient">{cc.checkout.saveRecipient}</label></div>
             </div>}
-            <p className="co-note"><IdCard size={15} aria-hidden="true" />{t.checkout.recipient.passportLater}</p>
+            <p className="co-note"><IdCard size={16} aria-hidden="true" />{t.checkout.recipient.passportLater}</p>
           </>}
         </Block>
 
@@ -434,7 +435,7 @@ export function CheckoutView() {
               </div>
               <small id="co-promo-hint" className={promoError || promoBelowMin ? "co-error" : ""} role={promoError || promoBelowMin ? "alert" : undefined}>{promoError || (promoBelowMin && promo?.minOrder ? serverError(locale, "err_90") + " " + t.checkout.promo.minOrder(formatSum(promo.minOrder, locale)) : t.checkout.promo.onlyService)}</small>
             </form>
-            : <button type="button" className="text-button co-promo-open" onClick={() => { flushSync(() => setPromoOpen(true)); document.getElementById("co-promo-input")?.focus(); }}><Tag size={15} aria-hidden="true" />{t.checkout.promo.open}</button>}
+            : <button type="button" className="text-button co-promo-open" onClick={() => { flushSync(() => setPromoOpen(true)); document.getElementById("co-promo-input")?.focus(); }}><Tag size={16} aria-hidden="true" />{t.checkout.promo.open}</button>}
         </div>}
         {signedIn && dutyDue <= 0 && <p className="co-hint">{cc.checkout.consentImplied.before}<Link href="/customs" target="_blank">{cc.checkout.consentImplied.link}</Link>{cc.checkout.consentImplied.after}</p>}
         {/* On a wide screen the button stands under the sum it pays (the aside stays in view); on a phone it is in the pinned bar. */}
@@ -491,7 +492,7 @@ function PlacedView({ orders, loading, guest, paying, locale, onSignedIn }: { or
         <h2 id="co-passport-title">{t.passportTitle}</h2>
         <p>{passportReady ? t.passportReady : t.passportText(first.delivery?.recipient ?? "")}</p>
       </div>
-      {!passportReady && <Link className="btn primary" href={recipientId ? `/identity?recipient=${encodeURIComponent(recipientId)}` : "/identity"}>{t.addPassport}<ArrowRight size={18} aria-hidden="true" /></Link>}
+      {!passportReady && <Link className="btn primary" href={documentsPath(recipientId || undefined)}>{t.addPassport}<ArrowRight size={18} aria-hidden="true" /></Link>}
     </section>}
     {!guest && <div className="co-placed-links"><Link className="btn secondary" href={first ? "/orders#" + encodeURIComponent(first.id) : "/orders"}>{t.orders}</Link><Link className="text-button" href="/catalog">{t.catalog}</Link></div>}
   </div>;

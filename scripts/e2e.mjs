@@ -393,7 +393,7 @@ try {
   await eventually("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders.length === 1 && a.state.orders[0].payment.status === 'paid')", "order placed and marked paid (demo)", 300);
   await eventually("new URLSearchParams(location.search).has('placed') && !!document.querySelector('.co-placed h1')", "«Заказ принят» screen");
   const passportHref = await evaluate("document.querySelector('.co-passport a.btn')?.getAttribute('href') ?? ''");
-  if (!passportHref.startsWith("/identity")) fail("customer /cart/checkout", `«Добавить паспорт» leads to ${passportHref || "nothing"}`);
+  if (!passportHref.startsWith("/account/documents")) fail("customer /cart/checkout", `«Добавить паспорт» leads to ${passportHref || "nothing"}`);
   const orderId = await evaluate("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders[0].id)");
   await open("/orders");
   // The compact list (#29) shows the number only inside the expanded line; the line carries it as its id and label.
