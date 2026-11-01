@@ -1395,3 +1395,48 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 /* The brand's official store on a marketplace, said in words under the brand line (app/global-link-order.tsx). */
 .pd-official { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; color: var(--brand); font-size: var(--fs-13); font-weight: var(--fw-semibold); line-height: 18px; }
 .pd-official > svg { flex: none; }
+
+/* One variant picker everywhere (app/global-link-order.tsx AxisPicker, lib/market/variant-axes.ts; 2 November 2026,
+   owner: "маленькие, красивые, удобные"). Each axis is a row: its name with the chosen value ("Размер: 2XL"), then small
+   chips of one height — 44 px, radius 12, one line, no price inside — in an even grid; a short size type is a segmented
+   switch. Chosen: filled brand green with white text. Closed values stay visible, struck out and dashed. */
+.lo-page .vp-axes { display: grid; gap: 16px; margin-top: 12px; }
+.lo-page .vp-axes > .variant-step { margin-top: 0; }
+.lo-page .variant-step > div.vp-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-start; gap: 2px 6px; margin-bottom: 8px; font-size: 14px; line-height: 1.35; }
+.lo-page .variant-step > div.vp-head b { color: var(--home-ink); font-size: 14px; font-weight: 700; }
+.lo-page .variant-step > div.vp-head b:has(+ span:not(.vp-hint))::after { content: ":"; }
+.lo-page .variant-step > div.vp-head > span { min-width: 0; overflow: hidden; color: var(--home-ink); font-size: 14px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.lo-page .variant-step > div.vp-head > span.vp-hint { color: var(--home-muted); font-weight: 400; }
+
+.lo-page .variant-options.vp-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
+.lo-page .variant-options.vp-chips::after { content: none; }
+.lo-page .variant-options.vp-chips.vp-wide { display: flex; flex-wrap: wrap; }
+.lo-page .variant-options.vp-chips button,
+.lo-page .variant-options.vp-seg button {
+  display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 44px; height: 44px; padding: 0 8px;
+  border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface, #fff); color: var(--home-ink);
+  font-size: 14px; font-weight: 600; line-height: 1; white-space: nowrap; box-shadow: none;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.lo-page .variant-options.vp-chips.vp-wide button { flex: 0 0 auto; min-width: 52px; max-width: 100%; padding: 0 14px; }
+.lo-page .variant-options.vp-chips button > span,
+.lo-page .variant-options.vp-seg button > span { overflow: hidden; font-size: 14px; font-weight: 600; text-overflow: ellipsis; text-decoration: inherit; }
+.lo-page .variant-options.vp-chips button:hover:not(:disabled):not([aria-pressed="true"]) { border-color: #1f4d3b; color: var(--home-ink); }
+.lo-page .variant-options:is(.vp-chips, .vp-seg) button[aria-pressed="true"],
+.lo-page .variant-options:is(.vp-chips, .vp-seg) button[aria-pressed="true"]:hover { border-color: #1f4d3b; background: #1f4d3b; color: #fff; box-shadow: none; }
+.lo-page .variant-options:is(.vp-chips, .vp-seg) button:disabled { border-color: transparent; background: var(--home-soft, #eef1ec); color: var(--home-muted); opacity: .7; text-decoration: line-through; cursor: not-allowed; }
+.lo-page .variant-options:is(.vp-chips, .vp-seg) button:focus-visible { outline: 2px solid #1f4d3b; outline-offset: 2px; }
+/* A short size type (Regular / Big & Tall): one segmented switch as wide as its words. */
+.lo-page .variant-options.vp-seg { display: inline-flex; flex-wrap: wrap; gap: 4px; width: fit-content; max-width: 100%; padding: 4px; border-radius: 14px; background: var(--home-soft, #eef1ec); }
+.lo-page .variant-options.vp-seg button { height: 40px; min-height: 40px; padding: 0 16px; border-color: transparent; border-radius: 10px; background: transparent; color: var(--home-muted); }
+.lo-page .variant-options.vp-seg button:hover:not(:disabled):not([aria-pressed="true"]) { border-color: transparent; background: var(--home-surface, #fff); color: var(--home-ink); }
+.lo-page .lo-size-groups .lo-size-group > small { color: var(--home-muted); font-size: 13px; font-weight: 600; }
+html[data-theme="dark"] .lo-page .variant-options:is(.vp-chips, .vp-seg) button[aria-pressed="true"],
+html[data-theme="dark"] .lo-page .variant-options:is(.vp-chips, .vp-seg) button[aria-pressed="true"]:hover { border-color: #2f6b52; background: #2f6b52; color: #fff; }
+html[data-theme="dark"] .lo-page .variant-options.vp-chips button:hover:not(:disabled):not([aria-pressed="true"]) { border-color: #2f6b52; }
+html[data-theme="dark"] .lo-page .variant-options.vp-seg button:not([aria-pressed="true"]) { border-color: transparent; color: var(--night-muted, #a9b5ae); }
+html[data-theme="dark"] .lo-page .variant-options.vp-seg { background: rgba(255, 255, 255, .06); }
+html[data-theme="dark"] .lo-page .variant-options.vp-seg button:not([aria-pressed="true"]) { background: transparent; }
+html[data-theme="dark"] .lo-page .variant-options.vp-seg button:hover:not(:disabled):not([aria-pressed="true"]) { background: rgba(255, 255, 255, .08); }
+@media (prefers-reduced-motion: reduce) { .lo-page .variant-options:is(.vp-chips, .vp-seg) button { transition: none; } }
+html[data-theme="dark"] .lo-page .variant-step > div.vp-head > span:not(.vp-hint) { color: var(--night-ink); }

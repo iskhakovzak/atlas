@@ -93,6 +93,7 @@ import {
 } from "@/lib/market/community-deals";
 import {uzText} from '@/lib/market/uz-cyrl';
 import { optionDisplay } from '@/lib/market/variant-display';
+import { axisLabel, axisOptionState, axisValue, hideClosedFrom, pickAxis, picksOf, resolveVariant, variantAxes, withOptionAxes, type AxisPicks } from '@/lib/market/variant-axes';
 import {isUzbek,type Locale} from '@/lib/market/i18n';
 import {requestImport} from "@/lib/market/import-client";
 import {productDetailCopy} from "@/lib/market/product-detail-copy";
@@ -158,17 +159,57 @@ function Stepper({ value, max, label, k, onChange }: { value: number; max: numbe
   </span>;
 }
 
-/** Options without a color/size matrix, as buttons the customer can pick several of. */
-// Compact tiles (owner, 30 October 2026): only what tells the options apart ("5.5", not every eBay item specific),
-// the axis name once above them, and a price on a tile only when the prices differ.
+/** Options without named axes ("128 GB", "Set of 2"), one chip each; the customer can pick several. No prices on chips. */
 function OptionChips({ variants, picked, k, onToggle, format }: { format:(value:number)=>string; variants: ProductVariant[]; picked: Record<string, number>; k: CalcCopy; onToggle: (item: ProductVariant) => void }) {
   const shown = optionDisplay(variants);
-  return <>
-    {shown.axes.length > 0 && <p className="lo-option-axes">{shown.axes.join(" · ")}</p>}
-    <div className="variant-options lo-option-chips">{variants.map(item => <button type="button" key={item.label} title={item.label} aria-label={[item.label, item.price !== undefined ? format(item.price) : "", stockText(item, k)].filter(Boolean).join(", ")} aria-pressed={Boolean(picked[item.label])} disabled={!isOrderableVariant(item)} onClick={() => onToggle(item)}>
-      <span>{shown.text(item)}</span>{shown.priceVaries && item.price !== undefined && <small>{format(item.price)}</small>}{item.quantity !== undefined && item.quantity <= 5 && <small className="lo-stock">{item.quantity ? k.stockLeft(item.quantity) : k.outOfStock}</small>}
-    </button>)}</div>
-  </>;
+  const wide = variants.some(item => shown.text(item).length > 6);
+  return <div className={"variant-options vp-chips lo-option-chips" + (wide ? " vp-wide" : "")}>{variants.map(item => <button type="button" key={item.label} title={item.label} aria-label={[item.label, item.price !== undefined ? format(item.price) : "", stockText(item, k)].filter(Boolean).join(", ")} aria-pressed={Boolean(picked[item.label])} disabled={!isOrderableVariant(item)} onClick={() => onToggle(item)}>
+    <span>{shown.text(item)}</span>
+  </button>)}</div>;
+}
+
+/**
+ * One picker for options with several axes (2 November 2026, owner: "сделай везде один стандарт"): instead of every
+ * combination as a wide button ("Regular · 2XL · Black / White $13"), each axis is its own row — a short size type as a
+ * segmented switch, sizes and the rest as small chips — and the combination is found from the picks
+ * (lib/market/variant-axes.ts). Values that no longer form an option with the earlier picks are struck out (or, on a
+ * long axis, left out); a pick that conflicts resets the later picks. Prices stay in the sum, not on the chips.
+ */
+function AxisPicker({ variants, chosen, k, tx, format, onChoose }: { variants: ProductVariant[]; chosen?: ProductVariant; k: CalcCopy; tx: (ru: string, uz: string, en: string) => string; format: (value: number) => string; onChoose: (item: ProductVariant | undefined) => void }) {
+  const axes = useMemo(() => variantAxes(variants), [variants]);
+  const [picks, setPicks] = useState<AxisPicks>(() => picksOf(chosen, axes));
+  // The option this picker last named; a different one from outside (a restored draft, the × in the list) is shown.
+  const reported = useRef(chosen?.label ?? "");
+  useEffect(() => {
+    const label = chosen?.label ?? "";
+    if (label === reported.current) return;
+    reported.current = label;
+    setPicks(picksOf(chosen, axes));
+  }, [chosen, axes]);
+  function pick(axis: string, value: string) {
+    const next = pickAxis(variants, axes, picks, axis, value);
+    setPicks(next);
+    const found = resolveVariant(variants, axes, next);
+    reported.current = found?.label ?? "";
+    onChoose(found);
+  }
+  return <div className="vp-axes">{axes.map(axis => {
+    const [ru, uz, en] = axisLabel(axis.name);
+    const label = tx(ru, uz, en);
+    const states = axis.values.map(value => ({ value, open: axisOptionState(variants, axes, picks, axis.name, value) === "open" }));
+    const shown = axis.values.length > hideClosedFrom ? states.filter(item => item.open || picks[axis.name] === item.value) : states;
+    const segmented = axis.kind === "fit" && axis.values.length <= 4;
+    const wide = shown.some(item => item.value.length > 6);
+    const current = picks[axis.name];
+    return <div className="variant-step vp-axis" key={axis.name} role="group" aria-label={label}>
+      <div className="vp-head"><b>{label}</b><span className={current ? undefined : "vp-hint"}>{current ?? (axis.kind === "size" ? tx("Выберите размер", "O‘lchamni tanlang", "Choose a size") : tx("Выберите", "Tanlang", "Choose"))}</span></div>
+      <div className={"variant-options " + (segmented ? "vp-seg" : "vp-chips" + (wide ? " vp-wide" : ""))}>{shown.map(item => {
+        const only = variants.filter(option => axisValue(option, axis.name) === item.value);
+        const lowest = only.map(option => option.price).filter((price): price is number => typeof price === "number" && price > 0).sort((a, b) => a - b)[0];
+        return <button type="button" key={item.value} title={item.value} aria-pressed={current === item.value} disabled={!item.open} aria-label={[item.value, item.open ? (lowest ? tx(`от ${format(lowest)}`, `${format(lowest)} dan`, `from ${format(lowest)}`) : "") : k.outOfStock].filter(Boolean).join(", ")} onClick={() => pick(axis.name, item.value)}><span>{item.value}</span></button>;
+      })}</div>
+    </div>;
+  })}</div>;
 }
 
 /**
@@ -230,30 +271,6 @@ function CartEntry({ count, label, compact = false }: { count: number; label: st
   </Link>;
 }
 
-// A grid of tiles splits its rows evenly (12 sizes in two rows of 6, not 11 and a lone one): from the width it sets
-// --cols to the fewest columns that keep the same number of rows; CSS falls back to auto-fill without it.
-function balanceRows(grid: HTMLElement | null) {
-  if (!grid) return;
-  const fit = () => {
-    const count = grid.children.length, gap = 6;
-    // A tile is as wide as its longest label needs (about 8.5 px a character at 14 px semibold), never under 58 px.
-    const longest = Math.max(0, ...Array.from(grid.children, tile => Array.from(tile.querySelector("span")?.childNodes ?? []).filter(node => !(node instanceof Element && node.classList.contains("sr-only"))).map(node => node.textContent ?? "").join("").length));
-    const min = Math.max(58, Math.ceil(longest * 8.5 + 18));
-    const perRow = Math.max(1, Math.floor((grid.clientWidth + gap) / (min + gap)));
-    // One row keeps the tiles at their own width instead of stretching three sizes across the card.
-    const rows = Math.ceil(count / perRow), cols = String(rows === 1 ? perRow : Math.ceil(count / rows));
-    // Written only when it changes: the new rows change the grid's height, which must not set off another round.
-    if (grid.style.getPropertyValue("--cols") !== cols) grid.style.setProperty("--cols", cols);
-  };
-  fit();
-  const holder = grid as HTMLElement & { atlasBalance?: boolean };
-  if (holder.atlasBalance || typeof ResizeObserver === "undefined") return;
-  holder.atlasBalance = true;
-  let width = grid.clientWidth;
-  new ResizeObserver(() => { if (grid.clientWidth === width) return; width = grid.clientWidth; requestAnimationFrame(fit); }).observe(grid);
-  // Another colour can bring another number of sizes into the same grid.
-  new MutationObserver(fit).observe(grid, { childList: true });
-}
 
 // The chosen colour in a sideways row of colours is scrolled into view without moving the page.
 function keepChosenColourInView(row: HTMLElement) {
@@ -349,7 +366,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
     [otherCountry, setOtherCountry] = useState(""),
     [category, setCategory] = useState(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое")),
     [variant, setVariant] = useState(seedReady ? (seedSelectable.length === 1 ? seedSelectable[0].label : "") : fallbackOptions.length === 1 ? fallbackOptions[0].label : ""),
-    [variants, setVariants] = useState<ProductVariant[]>(seedReady ? seedSelectable : fallbackOptions),
+    [rawVariants, setVariants] = useState<ProductVariant[]>(seedReady ? seedSelectable : fallbackOptions),
     [selectedColor, setSelectedColor] = useState(seedColors.length === 1 ? seedColors[0] : ""),
     // The colour under the pointer or focus, named in full in the step heading while a long row of colours is shown.
     [colourPeek, setColourPeek] = useState(""),
@@ -380,6 +397,9 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
       currency: string;
       destination?: string;
     } | null>(null);
+  // The store's options with the colour and size it named only as options filled in (eBay groups: "Color", "Size"), so
+  // every product gets the same colour tiles and size chips (lib/market/variant-axes.ts, 2 November 2026).
+  const variants = useMemo(() => withOptionAxes(rawVariants), [rawVariants]);
   // Several options of one product can go to the cart at once: option label → quantity.
   // Also on the first paint of the colours, when a colour arrives already chosen from the link.
   useEffect(() => { document.querySelectorAll<HTMLElement>(".lo-colour-rail").forEach(keepChosenColourInView); }, [selectedColor, variants]);
@@ -553,7 +573,13 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   const catalogCountryLocked=catalogProductFlow && Boolean(dealSeed || (currentCatalogSeed?.country && countries.includes(canonicalCountry(currentCatalogSeed.country)) && canonicalCountry(currentCatalogSeed.country)!=='Другая страна'));
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length===1 ? variants.filter(item => item.color === variantColors[0]) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const complexVariants=variantsForColor.some(v=>(v.options??[]).some(o=>!/colou?r|shade/i.test(o.name)&&o.name!==v.sizeLabel&&!(o.value===v.size&&/size/i.test(o.name))&&!(v.sizeAlternates??[]).some(a=>a.value===o.value)&&new Set(variantsForColor.flatMap(option=>(option.options??[]).filter(axis=>axis.name===o.name).map(axis=>axis.value))).size>1))||new Set(variantsForColor.map(v=>`${v.color??''}|${v.size??''}`)).size<variantsForColor.length;
-  const variantSizes = useMemo(() => [...new Set(variantsForColor.filter(item=>item.available&&item.quantity!==0).map(item => item.size).filter((value): value is string => Boolean(value)))].sort(compareSizes), [variantsForColor]);
+  // Sold-out sizes stay in the grid, struck out (one standard with the axis picker, 2 November 2026); a long run of sizes
+  // leaves them out instead of a wall of struck chips.
+  const variantSizes = useMemo(() => {
+    const all = [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))].sort(compareSizes);
+    const open = new Set(variantsForColor.filter(isOrderableVariant).map(item => item.size));
+    return all.length > hideClosedFrom ? all.filter(size => open.has(size)) : all;
+  }, [variantsForColor]);
   const nikeSizeSystem = variantsForColor.some(item => item.sizeLabel === 'Nike US women')
     ? 'women' as const
     : variantsForColor.some(item => item.sizeLabel === 'Nike US men') ? 'men' as const
@@ -574,7 +600,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
       : key === "объём" || key === "объем" ? tx("Объём", "Hajm", "Size")
       : key === "вариант" ? tx("Вариант", "Variant", "Option")
       : key === "band / cup" ? tx("Обхват / чашка", "Aylana / chashka", "Band / cup")
-      : label;
+      : tx(...axisLabel(label));
   };
   const nikeSizeRows = nikeSizeSystem ? getNikeFootwearSizeRows(nikeSizeSystem, variantSizes) : [];
   const selectedNikeSize = nikeSizeSystem && selectedSize ? findNikeFootwearSizeRow(nikeSizeSystem, selectedSize) : undefined;
@@ -603,6 +629,21 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
     applyVariantChoice(item);
     setAdded(null);setGoneOptions([]);setChoiceNote("");
   }
+  /** A combination found by the axis picker: chosen like a tapped option; a choice left incomplete clears the single pick. */
+  function chooseFromAxes(item:ProductVariant|undefined){
+    if(item){
+      if(manyMode&&picked[item.label]){applyVariantChoice(item);return}
+      togglePick(item);return;
+    }
+    if(manyMode)return;
+    setFormIssue("");setPicked({});applyVariantChoice(undefined);setAdded(null);
+  }
+  /** The options of one colour (or of the product): axes when the store named them, else one chip per option. */
+  const optionPicker=(list:ProductVariant[])=>{
+    if(!variantAxes(list).length)return <OptionChips format={sourceFormat} variants={list} picked={picked} k={k} onToggle={togglePick}/>;
+    const last=list.find(item=>item.label===variant);
+    return <AxisPicker key={selectedColor||"all"} variants={list} chosen={last&&(manyMode||picked[last.label])?last:undefined} k={k} tx={tx} format={sourceFormat} onChoose={chooseFromAxes}/>;
+  };
   function setPickQuantity(label:string,quantity:number){
     setFormIssue("");
     setPicked(current=>({...current,[label]:quantity}));
@@ -896,7 +937,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
       const selectedIds = [data.selectedVariantId, data.sku, sourceParams.get('variant'), sourceParams.get('var')].filter((value): value is string => Boolean(value));
       const selectedVariant = selectableVariants.find(item => item.id && selectedIds.includes(item.id))
         ?? (selectableVariants.length === 1 ? selectableVariants[0] : undefined);
-      const selectedColorForLink=selectedVariant?.color??selectedImportedColor(data,selectableVariants,importedColorwayGalleries);
+      const selectedColorForLink=(selectedVariant&&withOptionAxes(selectableVariants).find(item=>item.label===selectedVariant.label)?.color)||selectedImportedColor(data,withOptionAxes(selectableVariants),importedColorwayGalleries);
       setSelectedColor(selectedColorForLink);
       const selectedColorGallery=importedColorwayGalleries.find(gallery=>gallery.color===selectedColorForLink);
       if(selectedColorGallery){
@@ -1205,7 +1246,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   // The option on screen waits for its own page: no other option's price is shown meanwhile.
   const browsedPending = priceLoadable(variants.find(v=>v.label===variant)) || Boolean(selectedColor) && !displayPrices.length && variants.some(v=>v.color===selectedColor&&priceLoadable(v));
   const headAmount = browsedPending ? 0 : displayPrices.length === 1 ? displayPrices[0] : displayPrices.length ? NaN : Number(amount);
-  const storePriceText = browsedPending ? (optionPricing.length ? tx("уточняем…","aniqlanmoqda…","checking…") : "—") : displayPrices.length > 1 ? `${sourceFormat(displayPrices[0])} – ${sourceFormat(displayPrices[displayPrices.length - 1])}` : headAmount > 0 ? sourceFormat(headAmount) : optionPricing.length ? tx("уточняем…","aniqlanmoqda…","checking…") : "—";
+  const storePriceText = browsedPending ? (optionPricing.length ? tx("уточняем…","aniqlanmoqda…","checking…") : "—") : displayPrices.length > 1 ? tx(`от ${sourceFormat(displayPrices[0])}`, `${sourceFormat(displayPrices[0])} dan`, `from ${sourceFormat(displayPrices[0])}`) : headAmount > 0 ? sourceFormat(headAmount) : optionPricing.length ? tx("уточняем…","aniqlanmoqda…","checking…") : "—";
   // The catalog's price before the store's discount (USD cards), crossed out here and kept with the cart item.
   // Then the chosen option's own "before" price, then the one the store gave for the whole product.
   const optionReference = variants.find(item => item.price !== undefined && item.price === Number(amount) && item.compareAtPrice)?.compareAtPrice;
@@ -1244,7 +1285,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
     window.setTimeout(() => {
       const shown = (selector: string) => [...document.querySelectorAll<HTMLElement>(selector)].find(element => element.getClientRects().length > 0 && !(element as HTMLButtonElement).disabled);
       const target = (variantColors.length > 1 && !selectedColor ? shown(".lo-colours-aside .variant-options button, .lo-colours-main .variant-options button") : undefined)
-        ?? shown('[data-order-variant] .variant-options.sizes button[aria-pressed="false"], [data-order-variant] .lo-option-chips button[aria-pressed="false"]')
+        ?? shown('[data-order-variant] .variant-options.sizes button[aria-pressed="false"], [data-order-variant] .lo-option-chips button[aria-pressed="false"], [data-order-variant] .vp-axis button[aria-pressed="false"]')
         ?? shown("[data-order-variant] button, [data-order-variant] input")
         ?? document.getElementById("variant") ?? undefined;
       target?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
@@ -1291,6 +1332,8 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   // enough to tell the colours apart; otherwise the full name breaks at its slashes, never inside a word. The full name
   // stays in the step heading, the tooltip and the accessible name.
   const colourPrimaries = variantColors.map(color => describeSingleColorway(color).primary);
+  // The chosen options named by their axes in the list under the picker ("Black / White · Big & Tall · 3XLT").
+  const listAxes = variantAxes(variants);
   const colourName = (color: string) => { const primary = describeSingleColorway(color).primary; return colourPrimaries.filter(value => value === primary).length === 1 ? primary : color.replace(/\//g, "/\u200b"); };
   // One price on every tile says nothing: when all colours cost the same, the tiles show only the name (the price
   // stays in the button label and the total below; 27 October 2026).
@@ -1313,7 +1356,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
     }
     return groups.sort((a, b) => (a.fit ? 1 : 0) - (b.fit ? 1 : 0));
   })();
-  const sizeTile = (size:string,shown?:string)=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:shown?sizeDisplay(size):undefined} onClick={()=>choice&&togglePick(choice)}><span>{shown??sizeTileText(sizeDisplay(size))}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{sourceFormat(price)}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>};
+  const sizeTile = (size:string,shown?:string)=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices.find(isOrderableVariant),price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice} aria-label={!choice?`${sizeDisplay(size)} — ${k.outOfStock}`:[sizeDisplay(size),price!==undefined&&sizePricesDiffer?sourceFormat(price):"",stockText(choice,k)].filter(Boolean).join(", ")} onClick={()=>choice&&togglePick(choice)}><span>{shown??sizeTileText(sizeDisplay(size))}</span></button>};
   const colourOptions = <div className={`variant-options lo-colour-${colourMode}`} style={{ "--cols": Math.min(variantColors.length, variantColors.length > 4 ? 3 : 4) } as CSSProperties} onMouseLeave={() => setColourPeek("")} onScroll={colourMode === "rail" ? event => { const row = event.currentTarget; row.toggleAttribute("data-end", row.scrollLeft + row.clientWidth >= row.scrollWidth - 4); } : undefined}>{variantColors.map(color=>{const options=variants.filter(v=>v.color===color),photo=colourPhotosDiffer?colourPhoto(color):undefined,stock=options.some(v=>v.available&&v.quantity!==0),colorPrices=variantDisplayPrices(options),priceText=colorPrices.length>0?sourceFormat(colorPrices[0])+(colorPrices.length>1?` – ${sourceFormat(colorPrices[colorPrices.length-1])}`:""):"";return <button type="button" key={color} title={color} className={stock?undefined:"is-out"} aria-label={[color,priceText,stock?"":k.outOfStock].filter(Boolean).join(", ")} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)} onMouseEnter={()=>setColourPeek(color)} onFocus={()=>setColourPeek(color)} onBlur={()=>setColourPeek("")}>
     {/* eslint-disable-next-line @next/next/no-img-element -- a small store photo through sizedImage, as elsewhere on this page */}
     {photo&&<img src={sizedImage(photo,240)} alt="" width={112} height={112} decoding="async" data-loading="" onLoad={event=>{event.currentTarget.removeAttribute("data-loading")}} ref={el=>{if(el?.complete&&el.naturalWidth)el.removeAttribute("data-loading")}} onError={event=>{event.currentTarget.removeAttribute("data-loading");retryOriginal(event.currentTarget,photo)}}/>}<span>{colourName(color)}</span>{priceText&&!colourPricesSame&&<small className="lo-colour-price">{priceText}</small>}{!stock&&<small>{k.outOfStock}</small>}</button>})}</div>;
@@ -1752,8 +1795,8 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
                 <Stepper value={picked[variants[0].label]??1} max={maxFor(variants[0])} label={k.quantity} k={k} onChange={value=>setPickQuantity(variants[0].label,value)}/>
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
-                {variantColors.length>0&&<div className={"variant-step"+(variantColors.length>1?" lo-colours-main":"")}><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{colourHeading}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:colourOptions}</div>}
-                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(sizeDisplay(selectedSize)):sizeStep?c.selectSize:c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}><span className="lo-size-seg">{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}</span>{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a className="lo-size-chart" href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">{tx("Таблица adidas","adidas jadvali","adidas chart")}<ExternalLink size={14} aria-hidden="true"/></a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}{sizeGroups.length>1?<div className="lo-size-groups">{sizeGroups.map(group=><div className="lo-size-group" key={group.fit||"regular"}><small>{group.fit||tx("Обычные","Oddiy","Regular")}</small><div className="variant-options sizes" ref={balanceRows}>{group.sizes.map(item=>sizeTile(item.size,item.base))}</div></div>)}</div>:<div className="variant-options sizes" ref={balanceRows}>{variantSizes.map(size=>sizeTile(size))}</div>}{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
+                {variantColors.length>0&&<div className={"variant-step"+(variantColors.length>1?" lo-colours-main":"")}><div className="vp-head"><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span className={selectedColor||colourPeek?undefined:"vp-hint"}>{colourHeading}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:colourOptions}</div>}
+                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div className="vp-head"><b>{variantSizeLabel||c.size}</b><span className={selectedSize?undefined:"vp-hint"}>{selectedSize?(sizeDisplay(selectedSize)):sizeStep?c.selectSize:c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}><span className="lo-size-seg">{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}</span>{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a className="lo-size-chart" href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">{tx("Таблица adidas","adidas jadvali","adidas chart")}<ExternalLink size={14} aria-hidden="true"/></a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}{sizeGroups.length>1?<div className="lo-size-groups">{sizeGroups.map(group=><div className="lo-size-group" key={group.fit||"regular"}><small>{group.fit||tx("Обычные","Oddiy","Regular")}</small><div className="variant-options sizes vp-chips">{group.sizes.map(item=>sizeTile(item.size,item.base))}</div></div>)}</div>:<div className="variant-options sizes vp-chips">{variantSizes.map(size=>sizeTile(size))}</div>}{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
                   {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
                   <div className="nike-size-chart"><b>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</b>
                     <p>{tx('Показаны размеры, найденные для этого товара. CM/JP — маркировка обуви Nike; длина стопы указана отдельно.','Bu tovar uchun topilgan o‘lchamlar ko‘rsatilgan. CM/JP — Nike poyabzali yorlig‘i; oyoq uzunligi alohida berilgan.','Shows sizes found for this item. CM/JP is Nike’s shoe-label size; foot length is listed separately.')}</p>
@@ -1761,10 +1804,10 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
                     <a className="nike-size-source" href={`https://www.nike.com/size-fit/${nikeSizeSystem==='women'?'womens':'mens'}-footwear`} target="_blank" rel="noopener noreferrer">{tx('Полная таблица на сайте Nike','To‘liq jadval Nike saytida','Full chart on Nike')} <ExternalLink size={14}/></a>
                   </div>
                 </div>}</div>}
-                {complexVariants&&variantsForColor.length>0&&<OptionChips format={sourceFormat} variants={variantsForColor} picked={picked} k={k} onToggle={togglePick}/>}
-                {!complexVariants&&!variantColors.length&&!variantSizes.length&&<OptionChips format={sourceFormat} variants={variants} picked={picked} k={k} onToggle={togglePick}/>}
+                {complexVariants&&variantsForColor.length>0&&optionPicker(variantsForColor)}
+                {!complexVariants&&!variantColors.length&&!variantSizes.length&&optionPicker(variants)}
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
-              </> : variants.length ? <OptionChips format={sourceFormat} variants={variants} picked={picked} k={k} onToggle={togglePick}/> : (
+              </> : variants.length ? optionPicker(variants) : (
                 <div className="lo-manual-option"><input id="variant" required maxLength={80} value={variant} aria-label={k.optionLabel} onChange={(e) => {setVariant(e.target.value);setChoiceNote("");setAdded(null)}} placeholder={k.optionPlaceholder}/><Stepper value={manualQuantity} max={10} label={k.quantity} k={k} onChange={setManualQuantity}/></div>
               )}
             </div>
@@ -1787,7 +1830,8 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
               {picks.length > 0 && <ul className={"lo-picks" + (manyMode ? "" : " single")} aria-label={k.chosen}>{picks.map(([label, quantity]) => {
                 const option = pickedVariant(label);
                 const optionPrice = option?.price ?? Number(amount);
-                const shown = option?.size ? [option.color ? colourName(option.color) : "", sizeDisplay(option.size)].filter(Boolean).join(" · ") : option ? optionDisplay(variants).text(option) : label;
+                const axesText = option ? listAxes.map(axis => { const value = axisValue(option, axis.name); return !value ? "" : axis.kind === "color" ? colourName(value) : axis.kind === "size" && value === option.size ? sizeDisplay(value) : value; }).filter(Boolean).join(" · ") : "";
+                const shown = axesText || (option?.size ? [option.color ? colourName(option.color) : "", sizeDisplay(option.size)].filter(Boolean).join(" · ") : option ? optionDisplay(variants).text(option) : label);
                 return <li key={label}>
                   <Check className="lo-pick-tick" size={18} aria-hidden="true"/>
                   <span className="lo-pick-label"><b>{shown}</b><small>{[Number.isFinite(optionPrice) && optionPrice > 0 ? sourceFormat(optionPrice) : "", stockText(option, k)].filter(Boolean).join(" · ")}</small></span>
