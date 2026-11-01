@@ -8,7 +8,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Heart, In
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { isServedRegion } from "@/lib/market/addresses";
-import { balanceOf, type SavedDeliveryProfile, type State } from "@/lib/market/domain";
+import { balanceOf, deliveryAddressLine, type SavedDeliveryProfile, type State } from "@/lib/market/domain";
 import { buyerParcels, documentsPath, parcelAction, parcelActive, profileActions } from "@/lib/market/parcels";
 import { profileCopy } from "@/lib/market/profile-copy";
 import type { Action } from "@/lib/market/actions";
@@ -132,7 +132,7 @@ export function AccountView() {
             return <li key={profile.id}>
               <div className="cabinet-recipient-top"><b>{named ? profile.label : profile.recipient}</b>{profile.primary && <span className="cabinet-badge">{c.recipients.primary}</span>}</div>
               <p>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></p>
-              <p className="cabinet-muted">{[profile.region, profile.city, profile.address, profile.postalCode].filter(Boolean).join(", ")}</p>
+              <p className="cabinet-muted">{deliveryAddressLine(profile)}</p>
               <div className="cabinet-recipient-foot">
                 {/* Tashkent only for now (10.10.2026): orders to this recipient wait for an address in Tashkent. */}
                 {!isServedRegion(profile.region) && <span className="cabinet-chip warn"><MapPin size={14} aria-hidden="true" />{recipientCopy[lang].servedOnly}</span>}

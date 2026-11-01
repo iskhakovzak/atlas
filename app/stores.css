@@ -10,8 +10,8 @@
 html[data-theme="dark"] .store-logo { border-color: transparent; }
 
 /* ---------- Hero with the link field and the dispatch countries ---------- */
-.stores-hero h1 { max-width: 20ch; margin: 0 0 8px; color: var(--cat-ink); font-size: clamp(30px, 5vw, 40px); line-height: 1.1; }
-.stores-intro { max-width: 60ch; margin: 0 0 16px; color: var(--cat-muted); line-height: 1.55; }
+.stores-hero h1 { max-width: 20ch; margin: 0 0 var(--space-2); color: var(--cat-ink); font-size: clamp(30px, 5vw, 40px); line-height: 1.1; }
+.stores-intro { max-width: 60ch; margin: 0 0 16px; color: var(--cat-muted); line-height: var(--lh-body); }
 .stores-link { display: grid; gap: 10px; }
 .stores-link > .btn { justify-content: center; min-height: 52px; }
 /* "How to copy a link": collapsed by default, three short columns (iPhone / Android / computer). */
@@ -22,7 +22,7 @@ html[data-theme="dark"] .store-logo { border-color: transparent; }
 .stores-howto ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 2px 0 0; padding: 0; list-style: none; }
 .stores-howto li { display: grid; gap: 2px; min-width: 0; }
 .stores-howto li b { color: var(--cat-ink); font-size: 13px; font-weight: 700; }
-.stores-howto li span { color: var(--cat-muted); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+.stores-howto li span { color: var(--cat-muted); font-size: 13px; line-height: var(--lh-body); overflow-wrap: anywhere; }
 /* The one mint element of the card: how many of its products the catalog has. */
 /* :last-child — the logo is a header span too, and margin-left: auto pushed it to the middle at 1440. */
 .store-showcase-card > header > span:last-child { flex: none; margin-left: auto; color: var(--cat-ok); font-size: 12px; font-weight: 700; white-space: nowrap; }
@@ -32,8 +32,8 @@ html[data-theme="dark"] .store-logo { border-color: transparent; }
 /* ---------- Breakpoints ---------- */
 /* Phones: a compact hero (the dispatch cards scroll under the field), so stores start sooner. */
 @media (max-width: 599px) {
-  .stores-hero h1 { margin-bottom: 6px; font-size: 24px; letter-spacing: -.02em; }
-  .stores-intro { margin-bottom: 10px; font-size: 14px; line-height: 1.5; }
+  .stores-hero h1 { margin-bottom: var(--space-2); }
+  .stores-intro { margin-bottom: 10px; font-size: 14px; }
   .stores-link { gap: 8px; }
   .stores-link > .btn { min-height: 46px; }
 }

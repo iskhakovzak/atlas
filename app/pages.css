@@ -4,10 +4,10 @@
 
 /* Left-aligned under the page heading (it is not centred either), so the blocks do not drift right on a computer. */
 .page-block { max-width: 980px; margin: 0 0 36px; }
-.page-block > h2 { margin: 0 0 14px; font-size: clamp(20px, 3.6vw, 30px); line-height: 1.2; letter-spacing: -.02em; }
-.page-lead { max-width: 720px; margin: 0; color: var(--day-muted, #4f6057); line-height: 1.65; }
+.page-block > h2 { margin: 0 0 var(--space-4); font-size: var(--day-fs-h2); font-weight: var(--fw-semibold); line-height: var(--lh-tight); letter-spacing: var(--tracking-title); }
+.page-lead { max-width: 720px; margin: 0; color: var(--day-muted, #4f6057); line-height: var(--lh-body); }
 .page-more { max-width: 72ch; margin: 14px 0 0; }
-.page-more a, .page-card-links a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--day-accent, var(--c-brand)); font-weight: 600; text-decoration: none; }
+.page-more a, .page-card-links a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--day-accent, var(--c-brand)); font-weight: var(--fw-semibold); text-decoration: none; }
 .page-more a:hover, .page-card-links a:hover { text-decoration: underline; text-underline-offset: 4px; }
 
 /* Cards: the same white sheet with a shadow as the rest of Atlas Day. */
@@ -15,10 +15,10 @@
 .page-card { display: flex; flex-direction: column; gap: 8px; padding: 20px; }
 .page-card > svg { width: 24px; height: 24px; color: var(--day-accent, var(--c-brand)); }
 .page-card h3 { margin: 2px 0 0; font-size: 18px; line-height: 1.3; }
-.page-card p { margin: 0; color: var(--day-muted, #4f6057); line-height: 1.6; }
+.page-card p { margin: 0; color: var(--day-muted, #4f6057); line-height: var(--lh-body); }
 .page-card-links { display: flex; flex-wrap: wrap; gap: 0 18px; margin-top: auto; }
 .page-links-row { gap: 0 24px; }
-.page-list { margin: 0; padding-left: 20px; color: var(--day-muted, #4f6057); line-height: 1.6; }
+.page-list { margin: 0; padding-left: 20px; color: var(--day-muted, #4f6057); line-height: var(--lh-body); }
 .page-list li { margin: 4px 0; }
 
 /* Contact rows on /support: the account route first, real contacts after it. */
@@ -28,14 +28,14 @@
 .page-contact > svg:last-child { flex-shrink: 0; margin-left: auto; color: var(--day-muted, #4f6057); }
 .page-contact > div { display: grid; gap: 4px; min-width: 0; }
 .page-contact h3 { margin: 0; font-size: 16px; line-height: 1.3; }
-.page-contact p { max-width: 72ch; margin: 0; color: var(--day-muted, #4f6057); line-height: 1.55; overflow-wrap: anywhere; }
+.page-contact p { max-width: 72ch; margin: 0; color: var(--day-muted, #4f6057); line-height: var(--lh-body); overflow-wrap: anywhere; }
 .page-contact .btn { margin-top: 10px; width: max-content; max-width: 100%; }
 a.page-contact:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
 
 /* Numbered steps on /delete-account. */
 .page-steps { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; counter-reset: none; }
 .page-steps li { display: flex; gap: 14px; align-items: flex-start; }
-.page-steps p { margin: 0; padding-top: 4px; line-height: 1.6; }
+.page-steps p { margin: 0; padding-top: 4px; line-height: var(--lh-body); }
 .page-step-number { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border: 1.5px solid var(--day-accent, var(--c-brand)); border-radius: 50%; color: var(--day-accent, var(--c-brand)); font-size: 14px; font-weight: 700; }
 .page-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .page-actions .btn { min-height: 48px; }
@@ -45,13 +45,13 @@ a.page-contact:hover h3 { text-decoration: underline; text-underline-offset: 4px
 /* Related-document line under /privacy and /terms. */
 .legal-related { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; max-width: 980px; margin: 0 auto 20px; padding: 14px 18px; border: 1px solid var(--day-line, #dbe8db); border-radius: var(--r-control); background: var(--day-surface, #fff); color: var(--day-muted, #4f6057); font-size: 14px; }
 .legal-related > svg { flex-shrink: 0; width: 18px; height: 18px; color: var(--day-accent, var(--c-brand)); }
-.legal-related a { display: inline-flex; align-items: center; min-height: 40px; color: var(--day-accent, var(--c-brand)); font-weight: 600; text-decoration: none; }
+.legal-related a { display: inline-flex; align-items: center; min-height: 40px; color: var(--day-accent, var(--c-brand)); font-weight: var(--fw-semibold); text-decoration: none; }
 .legal-related a:hover { text-decoration: underline; text-underline-offset: 4px; }
 
 /* Contents of /terms and /privacy (14.10.2026): a card above the document, folded on phones and opened on wide
    screens after mount (legal-pages.tsx); each entry is a 44 px row, the sections stop below the sticky header. */
 .legal-toc { max-width: 980px; margin: 0 auto 18px; border: 1px solid var(--day-line, #dbe8db); border-radius: var(--r-control); background: var(--day-surface, #fff); }
-.legal-toc > summary { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 12px 18px; list-style: none; cursor: pointer; color: var(--day-ink, #17221d); font-weight: 600; }
+.legal-toc > summary { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 12px 18px; list-style: none; cursor: pointer; color: var(--day-ink, #17221d); font-weight: var(--fw-semibold); }
 .legal-toc > summary::-webkit-details-marker { display: none; }
 .legal-toc > summary > svg:first-child { flex-shrink: 0; width: 20px; height: 20px; color: var(--day-accent, var(--c-brand)); }
 .legal-toc > summary:focus-visible { outline: 2px solid var(--day-accent, var(--c-brand)); outline-offset: -2px; border-radius: var(--r-control); }

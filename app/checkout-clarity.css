@@ -26,7 +26,7 @@ html[data-theme="dark"] .checkout-add-comment{color:var(--night-jade)}
 
 /* /customs calculator (14.10.2026): the customs payment in large type right away, "No duty" with the month's allowance
    as in the cart instead of "≈ 0 сум", the breakdown open when there is an excess; the inputs and the method fold away. */
-.customs-result-account{justify-self:start;display:inline-flex;align-items:center;min-height:44px;margin:-8px 0;color:var(--day-accent,var(--c-brand));font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.customs-result-account{justify-self:start;display:inline-flex;align-items:center;min-height:44px;margin:-8px 0;color:var(--day-accent,var(--c-brand));font-size:14px;font-weight:var(--fw-semibold);text-decoration:underline;text-underline-offset:3px}
 .customs-result-lines{margin:0}
 
 /* /customs, after the calculator: the full order total by link, and both ways to pay customs described side by side. */

@@ -43,7 +43,7 @@
   /* Without the breadcrumb the title sat 4px under the header; ~16px like the cart and the account. */
   main:is([data-view="orders"], [data-view="balance"], [data-view="notifications"]) { padding-top: 12px; }
 }
-.orders-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 4px 0 16px; }
+.orders-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 0 0 var(--space-6); }
 .orders-head h1 { margin: 0; color: var(--home-ink); font-size: clamp(30px, 6vw, 40px); line-height: 1.1; letter-spacing: -.02em; }
 
 .order-x-body { display: grid; gap: 16px; padding: 4px 16px 18px; border-top: 1px solid var(--home-line); }

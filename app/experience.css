@@ -13,7 +13,7 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .site-header{min-height:80px;border-bottom:1px solid var(--atlas-line);box-shadow:none}
 .eyebrow{color:var(--c-ink-2);font-size:var(--atlas-type-meta);letter-spacing:.02em}
 .page-heading h1{font-size:var(--atlas-type-page);line-height:1.08;letter-spacing:-.02em}
-.page-heading p{max-width:62ch;line-height:1.6}
+.page-heading p{max-width:62ch;line-height:var(--lh-body)}
 .catalog-toolbar h2, .section-heading h2{font-size:var(--atlas-type-section);letter-spacing:-.02em}
 .find-card{display:flex;flex-direction:column;min-width:0;border:1px solid var(--atlas-line);border-radius:var(--r-card);box-shadow:var(--shadow-2);background:var(--atlas-surface,#fff);overflow:hidden}
 .finds-page .find-card .find-content .find-title{min-height:0;margin:10px 0 8px}
@@ -32,7 +32,7 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 @media(max-width:600px){.site-main{padding-inline:20px}}
 @media(max-width:380px){.site-header{padding-inline:12px}}
 .storage-notice{position:fixed;z-index:60;right:24px;bottom:24px;display:flex;align-items:center;gap:18px;max-width:min(620px,calc(100vw - 40px));padding:14px 16px;border:1px solid var(--atlas-line);border-radius:var(--r-sm);background:#fff;box-shadow:var(--shadow-3)}
-.storage-notice p{min-width:0;overflow-wrap:anywhere;margin:0;color:#47564e;font-size:.875rem;line-height:1.45}
+.storage-notice p{min-width:0;overflow-wrap:anywhere;margin:0;color:#47564e;font-size:.875rem;line-height:var(--lh-body)}
 .storage-notice a{color:var(--c-brand);text-decoration:underline;text-underline-offset:2px}
 .storage-notice button{flex:none;min-height:42px;padding:8px 14px;border:0;border-radius:var(--day-r-control,10px);background:var(--atlas-ink);color:#fff;font-weight:650}
 .storage-notice-summary{display:none}
@@ -108,7 +108,7 @@ a, button, input, textarea, select, summary, .surface, .find-card{transition:col
 .admin-tabs-icons button.active{color:var(--day-ink,var(--c-ink))}
 .admin-attention-groups li a:hover b{color:var(--day-accent,var(--c-brand))}
 .admin-link{display:grid;gap:2px;padding:0;border:0;background:none;text-align:left;color:inherit;font:inherit;cursor:pointer;min-height:40px;align-content:center}
-.admin-link b{font-weight:600}
+.admin-link b{font-weight:var(--fw-semibold)}
 .admin-link:hover b{color:var(--day-accent,var(--c-brand))}
 html[data-theme="dark"] .admin-tabs-icons button{color:var(--night-muted,var(--night-muted))}
 html[data-theme="dark"] .admin-tabs-icons button.active{color:var(--night-ink,var(--night-ink))}
@@ -128,8 +128,8 @@ html[data-theme="dark"] .admin-policy .field.invalid input,html[data-theme="dark
 .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button svg{width:16px;height:16px;flex:0 0 auto;opacity:1}
 .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button:hover{background:var(--day-surface,#fff);color:var(--day-ink,var(--c-ink))}
 .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active:hover{background:var(--day-tint,var(--c-selected));color:var(--day-ok,var(--c-ok));box-shadow:none}
-.operator-admin .admin-tab-count,.operator-admin .catalog-scope-tabs button span{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--r-pill);background:var(--day-accent,var(--c-brand));color:#fff;font-size:12px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
-.operator-admin .admin-segment button{height:36px;min-height:36px;padding:0 12px;border-radius:var(--r-sm);font-size:13px;font-weight:600;line-height:1}
+.operator-admin .admin-tab-count,.operator-admin .catalog-scope-tabs button span{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:var(--r-pill);background:var(--day-accent,var(--c-brand));color:#fff;font-size:12px;font-weight:var(--fw-semibold);line-height:1;font-variant-numeric:tabular-nums}
+.operator-admin .admin-segment button{height:36px;min-height:36px;padding:0 12px;border-radius:var(--r-sm);font-size:13px;font-weight:var(--fw-semibold);line-height:1}
 /* Sections: 24px inside, 24px between, one heading scale. */
 .operator-admin .admin-section{max-width:none}
 .operator-admin .admin-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 16px}
@@ -143,20 +143,20 @@ html[data-theme="dark"] .admin-policy .field.invalid input,html[data-theme="dark
 .operator-admin .admin-metrics article.bad{border-color:var(--day-error,var(--c-danger))}
 /* Overview: funnel, attention and the shortcut tiles. */
 .operator-admin .admin-funnel-list li{min-height:32px;grid-template-columns:minmax(120px,160px) minmax(0,1fr) 40px;font-size:14px}
-.operator-admin .admin-funnel-list li b{font-weight:600}
+.operator-admin .admin-funnel-list li b{font-weight:var(--fw-semibold)}
 .operator-admin .admin-shortcut-grid>:is(a,button){display:grid;grid-template-columns:20px minmax(0,1fr);gap:2px 12px;align-items:center;align-content:center;min-height:72px;padding:14px 16px;border:1px solid var(--day-line,var(--c-line));border-radius:var(--r-card);background:var(--day-surface,#fff);color:var(--day-ink,var(--c-ink));text-align:left;font:inherit;cursor:pointer;min-width:0}
 .operator-admin .admin-shortcut-grid>:is(a,button):hover{background:var(--day-tint,var(--c-selected));border-color:var(--day-ok-line,#bfdccb)}
-.operator-admin .admin-shortcut-grid b{font-size:14px;font-weight:600;line-height:1.3}
+.operator-admin .admin-shortcut-grid b{font-size:14px;font-weight:var(--fw-semibold);line-height:1.3}
 .operator-admin .admin-shortcut-grid span{font-size:12px;line-height:1.4;color:var(--day-muted,var(--c-ink-2))}
 /* Tables: 12px uppercase head, 44px rows, numbers to the right. */
 .operator-admin .admin-grid td:first-child{min-width:200px}
-.operator-admin .admin-grid td b{font-weight:600}
+.operator-admin .admin-grid td b{font-weight:var(--fw-semibold)}
 .operator-admin .admin-grid td.admin-cell-text{white-space:normal;min-width:280px;overflow-wrap:anywhere}
 .operator-admin .admin-errors td:first-child{min-width:140px}
-.operator-admin .admin-rights td.center span{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:var(--r-pill);font-size:13px;font-weight:600;line-height:1}
+.operator-admin .admin-rights td.center span{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:var(--r-pill);font-size:13px;font-weight:var(--fw-semibold);line-height:1}
 .operator-admin .admin-rights td b{font-weight:500}
 /* Forms: 13px/600 labels, 40px controls, fields in a 220px grid. */
-.operator-admin .field>label,.operator-admin label.field>span:first-child{display:block;margin:0 0 6px;font-size:13px;font-weight:600;line-height:1.3;color:var(--day-ink,var(--c-ink))}
+.operator-admin .field>label,.operator-admin label.field>span:first-child{display:block;margin:0 0 6px;font-size:13px;font-weight:var(--fw-semibold);line-height:1.3;color:var(--day-ink,var(--c-ink))}
 .operator-admin .field textarea{border-radius:var(--r-control);font-size:14px}
 .operator-admin .btn{min-height:40px;border-radius:var(--r-control);padding-top:8px;padding-bottom:8px}
 .operator-admin .admin-system-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
@@ -203,7 +203,7 @@ html[data-theme="dark"] .operator-admin .admin-legacy-body{border-top-color:var(
 /* ── Formerly app/home-polish.css and app/mobile-polish.css (folded in here on 1 November 2026, redesign stage 8: they
    loaded right after this file, so the cascade is unchanged). ── */
 /* Catalog card: price breakdown and honest action labels. */
-.find-breakdown > summary { cursor:pointer; color:var(--atlas-link,#255b45); font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:4px; }
+.find-breakdown > summary { cursor:pointer; color:var(--atlas-link,#255b45); font-weight:var(--fw-semibold); list-style:none; display:inline-flex; align-items:center; gap:4px; }
 html[data-theme="dark"] .find-breakdown dt, html[data-theme="dark"] .find-breakdown p { color:var(--night-ink-2); }
 
 /* Photo gestures preserve vertical document scrolling and browser pinch zoom. */

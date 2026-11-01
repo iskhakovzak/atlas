@@ -18,7 +18,7 @@
   --c-line-strong: #cbccc3;
   --c-ink: #141a17;
   --c-ink-2: #4a554f;
-  --c-ink-3: #77817b;
+  --c-ink-3: #656e68;
   --c-brand: #1f4d3b;
   --c-brand-hover: #173b2d;
   --c-brand-night: #2f6b52;
@@ -49,7 +49,7 @@
   /* Text */
   --text: var(--c-ink);               /* 16.9:1 on the canvas */
   --text-2: var(--c-ink-2);           /* secondary: 7.3:1 */
-  --text-3: var(--c-ink-3);           /* quiet captions: 4.6:1, never smaller than 12px */
+  --text-3: var(--c-ink-3);           /* quiet captions: 4.9:1 on the canvas, 4.6:1 on sunken and selected fills (AA), never under 12px */
   /* Brand and states */
   --brand: var(--c-brand);            /* filled primary buttons, links, focus; white on it 9.6:1 */
   --brand-hover: var(--c-brand-hover);
@@ -74,6 +74,7 @@
   --fs-12: 12px; --fs-13: 13px; --fs-14: 14px; --fs-16: 16px; --fs-18: 18px;
   --fs-20: 20px; --fs-24: 24px; --fs-30: 30px; --fs-40: 40px;
   --fw-regular: 450; --fw-medium: 550; --fw-semibold: 650; --fw-bold: 700;
+  --fw-heavy: 750;                    /* page titles (h1) only */
   --lh-tight: 1.15; --lh-snug: 1.3; --lh-body: 1.5;
   --tracking-title: -0.02em;          /* the tightest a heading gets: Cyrillic must not stick together */
   --tnum: "tnum" 1;                   /* font-feature-settings for prices and totals */
@@ -96,6 +97,13 @@
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px;
   --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px; --space-16: 64px;
 
+  /* Card padding: one inner edge per width. Phones 16 px for every card; from 761 px list cards (cabinet, parcels,
+     order plates) 20 px and content cards (.surface, bills, summaries) 24 px. */
+  --pad-card: var(--space-4);
+  --pad-card-lg: var(--space-4);
+  /* A card's title: the same step on every card of the cabinet, the checkout and the parcel page. */
+  --fs-card-title: var(--fs-16);
+
   /* Page gutter from 601 px: the header, the content and the footer share it (a notch inset wins in landscape). */
   --gutter: clamp(20px, 4.7vw, 72px);
 
@@ -107,6 +115,7 @@
   --ease-out: cubic-bezier(.22, 1, .36, 1);
   --ease-in-out: cubic-bezier(.65, 0, .35, 1);
 }
+@media (min-width: 761px) { :root { --pad-card: var(--space-5); --pad-card-lg: var(--space-6); --fs-card-title: var(--fs-18); } }
 
 /* ---------- 2. Roles, dark theme (the only dark theme; next-themes sets html[data-theme="dark"]) ---------- */
 :root[data-theme="dark"] {

@@ -18,7 +18,7 @@
 .lang-menu-list button:hover, .lang-menu-list .lang-option:hover { background: var(--day-soft, var(--c-sunken)); }
 .lang-menu-list button[aria-current="true"], .lang-menu-list .lang-option[aria-current="true"] { background: var(--day-tint, var(--c-selected)); color: var(--day-ok, var(--c-ok)); }
 .lang-menu-list button > span, .lang-menu-list .lang-option > span { display: grid; line-height: 1.25; }
-.lang-menu-list b { font-size: 14px; font-weight: 600; }
+.lang-menu-list b { font-size: 14px; font-weight: var(--fw-semibold); }
 .lang-menu-list svg { flex: none; }
 /* The theme row under the languages: a label and the half-disc switch, as in the profile menu (app/shell.css). */
 .lang-menu-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; margin-top: 4px; padding: 4px 0 0 12px; border-top: 1px solid var(--line, var(--day-line)); color: var(--text-2, var(--day-muted)); font-size: 14px; }

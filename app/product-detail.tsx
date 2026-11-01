@@ -55,7 +55,7 @@ export function SumBreakdown({sums,locale,pricing,weightKg,speed,customs}:{sums:
     ?row('duty',k.lines.customsDuty,<Money value={sums.customsDuty} locale={locale}/>)
     :borderDuty>0
      ?row('duty',<>{t.duty} ≈<small>{t.dutyApart}</small></>,<span className="pd-apart">{formatSum(borderDuty,locale)}</span>,'pd-duty-apart')
-     :row('duty',t.noDuty(limit),<span className="pd-zero">0</span>,'pd-no-duty')}
+     :row('duty',t.noDuty(limit),<span className="pd-zero">{formatSum(0,locale)}</span>,'pd-no-duty')}
    {row('total',t.total,<Money value={sums.total} locale={locale}/>,'pd-total')}
   </dl>
  </details>;

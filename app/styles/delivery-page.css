@@ -2,7 +2,7 @@
    calculator. Direction A: white cards with shadow on the canvas, dark figures, one filled primary button. Tokens only
    (app/tokens.css); the dark theme comes from the roles, no overrides here. */
 
-.delivery-page { display: grid; gap: var(--space-8); padding: var(--space-6) 0 var(--space-12); color: var(--text); }
+.delivery-page { display: grid; gap: var(--space-8); padding: 0 0 var(--space-12); color: var(--text); }
 .delivery-head { display: grid; gap: var(--space-2); max-width: 760px; }
 .delivery-head h1 { margin: 0; font-size: var(--fs-40); font-weight: var(--fw-bold); letter-spacing: var(--tracking-title); line-height: var(--lh-tight); }
 .delivery-head p { margin: 0; color: var(--text-2); font-size: var(--fs-16); line-height: var(--lh-body); }
@@ -69,7 +69,7 @@
   .delivery-split { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
-  .delivery-page { gap: var(--space-6); padding-top: var(--space-4); }
+  .delivery-page { gap: var(--space-6); }
   .delivery-head h1 { font-size: var(--fs-30); }
   .delivery-section > h2 { font-size: var(--fs-20); }
   /* Phones (review of stage 8): the countries are compact rows of one card — flag and name, then both speeds side by

@@ -137,7 +137,8 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   .shell-actions { gap: 2px; }
   /* Pages start under the header without the breadcrumb (its JSON-LD stays in the page). */
   .site-main > .breadcrumb { display: none; }
-  .site-main > .breadcrumb + * { margin-top: 16px; }
+  /* A page's JSON-LD script may stand between the breadcrumb and the head. */
+  .site-main > .breadcrumb + *, .site-main > .breadcrumb + script + * { margin-top: var(--space-6); }
   /* A shorter footer: no links the bottom bar has, no tagline, a smaller wordmark. */
   .home-footer .footer-dup, .home-footer-brand p { display: none; }
   .home-footer .home-footer-brand .wordmark { font-size: 28px; }

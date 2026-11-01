@@ -10,11 +10,11 @@
 /* Title sizes are the same in both themes: "html:root" weighs as much as the light-only "html:not([data-theme=dark])"
    it replaced, so the older per-page sizes it used to beat stay beaten. Colours stay per theme. */
 html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):not([data-view="analytics"]) h1 {
-  font-family: var(--day-sans); font-weight: 750;
+  font-family: var(--day-sans); font-weight: var(--fw-heavy);
   font-size: var(--day-h1-size, var(--day-fs-h1-page)); line-height: var(--day-h1-leading, 1.1); letter-spacing: var(--tracking-title);
   text-wrap: balance;
 }
-html:root .site-main h3 { font-family: var(--day-sans); font-weight: 700; letter-spacing: -.01em; }
+html:root .site-main h3 { font-family: var(--day-sans); font-weight: var(--fw-semibold); letter-spacing: -.01em; }
 /* Overlines repeat what the title says and are typed in capitals: the light theme leaves them out. */
 html:not([data-theme="dark"]) .page-heading .eyebrow { display: none; }
 html:not([data-theme="dark"]) :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .order-x-eyebrow, .legal-document > header span) {
@@ -34,7 +34,7 @@ html:not([data-theme="dark"]) :is(.home-tariffs th, .home-footer-title, .catalog
 html:not([data-theme="dark"]) .money-n { font-family: var(--day-sans); font-weight: 700; letter-spacing: -.02em; font-feature-settings: "lnum" 1; }
 /* With the tight tracking the no-break space between digit groups shrank to a hairline ("1708 642", "1 201785"). */
 html:not([data-theme="dark"]) .money-n { word-spacing: .07em; }
-html:not([data-theme="dark"]) .money-unit { font-family: var(--day-sans); font-weight: 600; color: var(--day-muted); letter-spacing: 0; }
+html:not([data-theme="dark"]) .money-unit { font-family: var(--day-sans); font-weight: var(--fw-semibold); color: var(--day-muted); letter-spacing: 0; }
 
 /* ---------- Header ---------- */
 html:not([data-theme="dark"]) .site-header { background: var(--day-surface); border-bottom: 1px solid var(--day-line); box-shadow: none; }
@@ -42,7 +42,7 @@ html:not([data-theme="dark"]) .site-header .wordmark { color: var(--day-ink); }
 html:not([data-theme="dark"]) .site-header .wordmark svg { color: var(--day-accent); }
 /* Stores: a quiet list with their own marks, not a wall of chips. */
 html:not([data-theme="dark"]) .home-hero-links { gap: 0 24px; margin-top: 8px; }
-html:not([data-theme="dark"]) .home-hero-links a { font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+html:not([data-theme="dark"]) .home-hero-links a { font-weight: var(--fw-semibold); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 /* ---------- The folio: a bill in a light mint folder ---------- */
 /* The white sheet is what you pay; the cream slip under it is what is kept apart. */
 html:not([data-theme="dark"]) .folio { display: grid; gap: 10px; padding: 14px 12px 12px; border: 1px solid var(--day-tint-2); border-radius: var(--day-r-plate);
@@ -79,7 +79,8 @@ html:not([data-theme="dark"]) :is(.calc-customs header b).ok { color: var(--day-
   html:not([data-theme="dark"]) .bill dd.bill-note { margin-top: 0; }
 }
 /* Breadcrumb: a short line above the page title, not a band of air. */
-html:not([data-theme="dark"]) .breadcrumb { padding: 14px 0 10px; }
+/* Page head rhythm: 24 px from the breadcrumb to the page's first block (every page head starts at its top). */
+html:not([data-theme="dark"]) .breadcrumb { padding: 14px 0 var(--space-6); }
 
 /* FAQ: white rows under the title; on wide screens two columns (home.css), no empty side column. */
 html:not([data-theme="dark"]) .home-faq { gap: 10px; margin-top: 8px; border: 0; }
@@ -89,13 +90,13 @@ html:not([data-theme="dark"]) .home-faq summary { min-height: 60px; padding: 10p
 html:not([data-theme="dark"]) .home-faq summary::after { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; box-sizing: border-box; border: 1.5px solid var(--day-line-strong); border-radius: 50%; background: var(--day-surface); color: var(--day-ink); font-size: 16px; font-weight: 500; }
 html:not([data-theme="dark"]) .home-faq summary:focus-visible { border-radius: var(--r-card); }
 html:not([data-theme="dark"]) .home-faq details > div { max-width: 64ch; padding: 0 20px 18px; }
-html:not([data-theme="dark"]) .home-faq p { font-size: 16px; line-height: 1.6; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-faq p { font-size: 16px; line-height: var(--lh-body); color: var(--day-muted); }
 html:not([data-theme="dark"]) .home-faq a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 /* Opening an answer: app/home.css (the height and the fade). */
 
 /* ---------- Footer ---------- */
 html:not([data-theme="dark"]) .home-footer { margin-top: calc(var(--day-section) / 2); padding-top: 28px; border-top: 1px solid var(--day-line); }
-html:not([data-theme="dark"]) .home-footer-title { font-size: 13px; font-weight: 600; letter-spacing: .02em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-footer-title { font-size: 13px; font-weight: var(--fw-semibold); letter-spacing: .02em; color: var(--day-ink); }
 html:not([data-theme="dark"]) .home-footer a:not(.wordmark) { font-size: 14px; font-weight: 500; color: var(--day-muted); }
 html:not([data-theme="dark"]) .home-footer a:not(.wordmark):hover { color: var(--day-ink); }
 html:not([data-theme="dark"]) .home-footer-brand p { color: var(--day-muted); }

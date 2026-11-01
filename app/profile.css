@@ -68,7 +68,7 @@
   .pf-parcel { grid-row: span 3; grid-template-rows: subgrid; align-content: stretch; }
   .pf-parcel > :last-child { align-self: end; }
 }
-.pf-parcel { display: grid; align-content: start; gap: var(--space-4); padding: var(--space-4); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); min-width: 0; }
+.pf-parcel { display: grid; align-content: start; gap: var(--space-4); padding: var(--pad-card); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); min-width: 0; }
 .pf-parcel-top { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
 .pf-parcel-photos { display: flex; flex: none; }
 .pf-parcel-photo { display: block; width: 48px; height: 48px; overflow: hidden; border: 2px solid var(--surface); border-radius: var(--r-sm); background: var(--sunken); }
@@ -85,7 +85,7 @@
 /* ---------- Six tiles ---------- */
 .pf-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 @media (min-width: 900px) { .pf-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.pf-tiles a { position: relative; display: grid; align-content: start; gap: 2px; min-height: 104px; padding: var(--space-4); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); color: var(--text); text-decoration: none; transition: box-shadow var(--dur-fast, .15s) ease, transform var(--dur-fast, .15s) ease; }
+.pf-tiles a { position: relative; display: grid; align-content: start; gap: 2px; min-height: 104px; padding: var(--pad-card); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); color: var(--text); text-decoration: none; transition: box-shadow var(--dur-fast, .15s) ease, transform var(--dur-fast, .15s) ease; }
 .pf-tiles a:hover { box-shadow: var(--shadow-3); transform: translateY(-1px); }
 .pf-tiles a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .pf-tiles svg { width: 20px; height: 20px; margin-bottom: var(--space-2); color: var(--link); }
@@ -105,14 +105,16 @@
 .pf-settings-link { justify-self: start; }
 
 /* ---------- Page heads (parcel, documents, settings) ---------- */
-.pf-page { display: grid; gap: var(--space-5); padding-top: var(--space-2); min-width: 0; }
+.pf-page { display: grid; gap: var(--space-6); min-width: 0; }
 .pf-page-head { display: grid; gap: var(--space-2); }
 .pf-back { display: inline-flex; align-items: center; gap: 6px; justify-self: start; min-height: 36px; color: var(--text-2); font-size: var(--fs-14); font-weight: var(--fw-medium); }
 .pf-back:hover { color: var(--text); }
 :root .pf-page-head h1 { margin: 0; color: var(--text); font-size: var(--fs-30); font-weight: var(--fw-bold); line-height: var(--lh-tight); letter-spacing: var(--tracking-title); overflow-wrap: anywhere; }
 :root .pf-page-head > p { margin: 0; max-width: 720px; color: var(--text-2); font-size: var(--fs-16); }
-:root .pf-page-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; color: var(--text-2); font-size: var(--fs-14); font-feature-settings: var(--tnum); }
+:root .pf-page-meta { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 0; color: var(--text-2); font-size: var(--fs-14); font-feature-settings: var(--tnum); }
 .pf-page-meta .money { color: var(--text); font-weight: var(--fw-semibold); }
+/* The site's separator between facts: «1 ноября · 1 товар · Сумма…» (a wrapped line starts without a dot). */
+.pf-page-meta > span + span::before { content: "·"; margin: 0 var(--space-2); color: var(--text-3); }
 .pf-anchors { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
 .pf-anchors a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--space-4); border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--shadow-1); color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-medium); }
 .pf-anchors a:hover { background: var(--selected); }
@@ -128,7 +130,7 @@
 :root .pf-stage-next { margin: 4px 0 0; color: var(--text-2); font-size: var(--fs-14); }
 .pf-stage-card > .pf-calm { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--line); }
 
-:root .pf-orders h2, :root .pf-side-card h2 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-3); color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
+:root .pf-orders h2, :root .pf-side-card h2 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-3); color: var(--text); font-size: var(--fs-card-title); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
 .pf-side-card h2 svg { color: var(--link); }
 .pf-order-list { display: grid; margin: 0; padding: 0; list-style: none; }
 .pf-order { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: var(--space-2) var(--space-3); padding: var(--space-4) 0; border-top: 1px solid var(--line); }
@@ -176,7 +178,7 @@
 .pf-settings-grid { display: grid; gap: var(--space-4); align-items: start; }
 .pf-settings-col { display: grid; gap: var(--space-4); min-width: 0; }
 @media (min-width: 1024px) { .pf-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); } }
-:root .pf-settings .cabinet-card > h2 { margin: 0 0 var(--space-3); color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); }
+:root .pf-settings .cabinet-card > h2 { margin: 0 0 var(--space-3); color: var(--text); font-size: var(--fs-card-title); font-weight: var(--fw-semibold); }
 .pf-segmented { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: var(--r-control); background: var(--sunken); }
 @media (min-width: 480px) { .pf-segmented { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .pf-segmented button { min-height: var(--h-sm); padding: 0 var(--space-2); border: 0; border-radius: 9px; background: transparent; color: var(--text-2); font-size: var(--fs-14); font-weight: var(--fw-medium); }

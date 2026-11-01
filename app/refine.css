@@ -16,7 +16,6 @@ html:not([data-theme="dark"]) ::selection { background: rgba(31, 77, 59, .16); }
 /* The old breadcrumb grey (#65738b) falls just below 4.5:1 on the warm canvas. */
 html:not([data-theme="dark"]) .breadcrumb { color: var(--day-muted); }
 html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf :is(button, a), .basket-parcel, .basket-summary, .cabinet-card, .surface) { box-shadow: var(--shadow-2); }
-html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf :is(button, a), .surface, .cabinet-card) { border-color: var(--day-line); }
 html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: var(--day-accent-hover); }
 
 /* ---------- Catalog cards: long soum totals never leave the card ---------- */
@@ -53,7 +52,7 @@ html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: va
   .site-header .notice-link b { right: -2px; top: -4px; }
 
   /* Page titles 25px, section titles 20–21px, leads 15px; weights one step lighter. */
-  .site-main h1 { font-size: 24px; line-height: 1.15; font-weight: 760; letter-spacing: -.02em; }
+  .site-main h1 { font-size: 24px; line-height: 1.15; font-weight: var(--fw-heavy); letter-spacing: -.02em; }
   .site-main :is(.catalog-end, .catalog-empty, .surface, .communication-heading) h2 { font-size: 18px; line-height: 1.25; }
   .page-heading p, .stores-intro { font-size: var(--fs-16); line-height: 1.5; }
 

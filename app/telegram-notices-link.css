@@ -10,13 +10,13 @@ html[data-theme="dark"] .notice-panel-tg:hover { background: rgba(255, 255, 255,
 /* Operator forms: one quiet line; "on" gets the plane icon so it is noticed before sending. */
 :root body .operator-tg-hint { display: flex; align-items: flex-start; gap: 6px; }
 :root body .operator-tg-hint svg { flex: none; margin-top: 3px; }
-:root body .operator-tg-hint.on { color: var(--home-ink, var(--c-ink)); font-weight: 600; }
+:root body .operator-tg-hint.on { color: var(--home-ink, var(--c-ink)); font-weight: var(--fw-semibold); }
 html[data-theme="dark"] .operator-tg-hint.on { color: var(--home-ink, #eceef2); }
 
 :root body .notice-tg-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; margin-bottom: 12px; padding: 4px 4px 4px 14px; border: 1px solid var(--home-line, var(--c-line)); border-radius: var(--r-control); }
-:root body .notice-tg-row-label { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
+:root body .notice-tg-row-label { display: inline-flex; align-items: center; gap: 10px; font-weight: var(--fw-semibold); }
 :root body .notice-tg-row-label svg { flex: none; color: var(--home-muted, var(--c-ink-2)); }
-:root body .notice-tg-row-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: var(--r-control); color: var(--home-accent, var(--c-brand)); font-weight: 600; text-decoration: none; }
+:root body .notice-tg-row-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: var(--r-control); color: var(--home-accent, var(--c-brand)); font-weight: var(--fw-semibold); text-decoration: none; }
 :root body .notice-tg-row-link:hover { background: var(--home-soft, var(--c-sunken)); }
 html[data-theme="dark"] .notice-tg-row { border-color: var(--home-line, #3d424a); }
 html[data-theme="dark"] .notice-tg-row-link { color: var(--night-jade, var(--night-jade)); }

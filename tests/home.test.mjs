@@ -94,9 +94,9 @@ test('site content holds only verified data and is well-formed when filled', () 
 
 test('fees, store prices and dates are written exactly, never rounded into a different number', async () => {
   const { formatPercent, formatPriceUsd, formatDayMonth } = await import('../lib/market/home-copy.ts');
-  assert.equal(formatPercent(0.0998, 'ru'), '9,98%');
+  assert.equal(formatPercent(0.0998, 'ru'), '9,98 %');
   assert.equal(formatPercent(0.0998, 'en'), '9.98%');
-  assert.equal(formatPercent(1.012 - 1, 'uz'), '1,2%');
+  assert.equal(formatPercent(1.012 - 1, 'uz'), '1,2 %');
   assert.equal(formatPriceUsd(2.72, 'ru'), '$2,72');
   assert.equal(formatPriceUsd(2.7, 'ru'), '$2,70');
   assert.equal(formatPriceUsd(2.72, 'en'), '$2.72');
