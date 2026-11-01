@@ -32,7 +32,7 @@ test('the verified mark: the brand on its own site or its verified marketplace s
 test('cards and the product page use one plate; the mark is only drawn for an official listing', () => {
   const card = source('app/catalog-card.tsx');
   assert.match(card, /const officialMark = officialListing\(\{ \.\.\.product, store: item\.store \}, storeBrand\);/);
-  assert.match(card, /<StoreBadge brand=\{storeBrand\} size=\{30\} official=\{Boolean\(officialMark\)\}/);
+  assert.match(card, /<StoreBadge brand=\{plateBrand\} size=\{30\} official=\{Boolean\(officialMark\)\}/);
   // The full card and the compact card (home shelves, «Вы смотрели») both carry it on the photo.
   assert.equal(card.match(/\{storeBadge\}/g).length, 2);
   const logo = source('app/store-logo.tsx');

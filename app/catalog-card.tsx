@@ -90,10 +90,13 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const priceId = useId(), usdId = useId();
   // The store on the photo, one plate on every card; the verified mark only for the brand's own store (owner, 2 November 2026).
   const storeBrand = brandForHost(item.store);
+  // The brand's official store on a marketplace shows the brand's plate (adidas, not eBay) with the check; "on eBay" is
+  // said on the product page (owner, 2 November 2026).
+  const plateBrand = (official ? brandForHost(official) : undefined) ?? storeBrand;
   const officialMark = officialListing({ ...product, store: item.store }, storeBrand);
   const officialLabel = officialBadgeLabel(locale);
   const storeText = officialText?.full ?? storeLabel(item.store, locale);
-  const storeBadge = storeBrand ? <span className="pcard-store" title={officialMark ? `${storeText} · ${officialLabel}` : storeText}><StoreBadge brand={storeBrand} size={30} official={Boolean(officialMark)} officialLabel={officialLabel} /><span className="sr-only">{cc.storeOf(storeText)}{officialMark ? `. ${officialLabel}` : ''}</span></span> : null;
+  const storeBadge = plateBrand ? <span className="pcard-store" title={officialMark ? `${storeText} · ${officialLabel}` : storeText}><StoreBadge brand={plateBrand} size={30} official={Boolean(officialMark)} officialLabel={officialLabel} /><span className="sr-only">{cc.storeOf(storeText)}{officialMark ? `. ${officialLabel}` : ''}</span></span> : null;
   // The new card draws its own heart (pcard-save); the compact card keeps the older one.
   const saveClass = variant === 'compact' ? 'find-save' : 'pcard-save';
   const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={saveClass + ' ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
@@ -107,12 +110,12 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
     // The whole card is one button (phrasing content only, so spans), with the heart beside it, not inside.
     return <article className="find-card find-card-compact" data-saved={saved || undefined}>
       <button type="button" className="find-compact" onClick={open} aria-label={cc.open(name)} aria-describedby={costs ? priceId : undefined}>
-        <span className="find-visual"><span className="find-photo"><ProductImage product={product} decorative locale={locale} /></span>{storeBadge}{(item.topDeal || showDiscount) && <span className="find-photo-badges">{item.topDeal && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}{showDiscount && <em className="find-discount">−{discount}&#x202F;%</em>}</span>}</span>
+        <span className="find-visual"><span className="find-photo"><ProductImage product={product} decorative locale={locale} /></span>{storeBadge}</span>
         <span className="find-content">
           {/* Plain text here: a focusable tooltip trigger inside the card's button would be nested interactive content. */}
-          <span className="find-meta"><span className="find-store">{officialText ? <span className="find-official"><BadgeCheck size={14} aria-hidden="true" />{official}</span> : storeName}</span></span>
+          <span className="find-meta"><span className="find-store">{officialText ? <span className="find-official"><BadgeCheck size={14} aria-hidden="true" />{official}</span> : storeName}</span>{item.topDeal && <span className="card-chip card-chip-top"><Flame size={12} aria-hidden="true" />{copy.topDeal}</span>}</span>
           <b className="find-compact-title">{name}</b>
-          <span className="find-compact-price" id={priceId}>{costs ? <><span className="find-compact-store">{storePriceText}</span><span className="find-compact-arrow" aria-hidden="true"> → </span>{needsPrice && <span className="find-compact-approx" aria-hidden="true">≈ </span>}<Money value={costs.total} locale={locale} /></> : <span className="find-compact-store">{storePriceText}</span>}</span>
+          <span className="find-compact-price" id={priceId}>{costs ? <><span className="find-compact-store">{storePriceText}{showDiscount && <>{' '}<em className="card-chip card-chip-off">−{discount}&#x202F;%</em></>}</span><span className="find-compact-arrow" aria-hidden="true"> → </span>{needsPrice && <span className="find-compact-approx" aria-hidden="true">≈ </span>}<Money value={costs.total} locale={locale} /></> : <span className="find-compact-store">{storePriceText}</span>}</span>
         </span>
       </button>
       {save}
@@ -134,10 +137,6 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   return <article className="pcard" data-stale={needsPrice || undefined} data-saved={saved || undefined}>
     <div className="pcard-visual">
       <span className="pcard-photo"><ProductImage product={product} decorative locale={locale} dims priority={priority} sizes={cardSizes} /></span>
-      {(showDiscount || item.topDeal) && <span className="pcard-badges">
-        {showDiscount && <em className="pcard-off" title={copy.compareHint}>−{discount}&#x202F;%</em>}
-        {item.topDeal && <span className="pcard-top"><Flame size={14} aria-hidden="true" />{copy.topDeal}</span>}
-      </span>}
       {storeBadge}
       {save}
       {/* Phones: no button row; the round "+" does what "В корзину" does on a computer (the variant choice). */}
@@ -146,7 +145,8 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
         : <a className="pcard-plus" href={productHref} onClick={openFromLink} aria-label={cc.choose(name)}><Plus size={20} strokeWidth={2.5} aria-hidden="true" /></a>}
     </div>
     <div className="pcard-body">
-      <p className="pcard-brand">{brandName}</p>
+      {/* «Топ-цена» and the discount sit in the text, small, so the photo stays clear (owner, 2 November 2026). */}
+      <p className="pcard-brand"><span>{brandName}</span>{item.topDeal && <span className="card-chip card-chip-top"><Flame size={12} aria-hidden="true" />{copy.topDeal}</span>}</p>
       {/* The title link covers the whole card (::after), so a tap anywhere opens the product; the heart, "+", the store
          mark and "В корзину" sit above it. A link to /catalog/p/<id> (owner, 2 November 2026: crawlers follow the name),
          opened as the sheet over the catalog like the other two. */}
@@ -157,7 +157,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <p className="pcard-usd" id={usdId}>
         {/* Spaces between the parts: the line is also the title's spoken description ("$8, base price $27, as of 13 Sep"). */}
         <span>{storePriceText}</span>
-        {showDiscount && <>{' '}<del title={copy.referenceLabel}><span className="sr-only">{copy.referenceLabel}: </span>{fmt(referenceUsd!, 'USD')}</del></>}
+        {showDiscount && <>{' '}<del title={copy.referenceLabel}><span className="sr-only">{copy.referenceLabel}: </span>{fmt(referenceUsd!, 'USD')}</del>{' '}<em className="card-chip card-chip-off" title={copy.compareHint}>−{discount}&#x202F;%</em></>}
         {priceDated && <>{' '}<small>{cc.priceOn(shortDate(item.checkedAt, locale))}</small></>}
       </p>
       <Variants item={item} locale={locale} />
