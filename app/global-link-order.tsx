@@ -56,7 +56,7 @@ import { countries, currencies, currencyForCountry, toUsd, paddedWeight, packagi
 import { describeSingleColorway } from "@/lib/market/variant-colorway";
 import { compareSizes } from "@/lib/market/size-order";
 import { brandForHost, heroStores, storeBrands, storefrontLabel, storefrontUrl } from "@/lib/market/store-brands";
-import { displayBrand } from "@/lib/market/product-name";
+import { departmentLabel, displayBrand, withoutDepartment } from "@/lib/market/product-name";
 import { browserStorage as catalogStorage, catalogItemHref, rememberPendingFavorite } from "@/lib/market/catalog-links";
 import { loginPath } from "@/lib/auth/return-to";
 import { dealCopy } from "@/lib/market/deal-copy";
@@ -1169,7 +1169,10 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   const storeName = sourceHost ? storefrontLabel(sourceHost, lang) : "";
   const hostBrand = sourceHost ? brandForHost(sourceHost) : undefined;
   const brandShown = displayBrand(brand, storeName, hostBrand?.focus === "marketplace" ? hostBrand.name : undefined);
-  const brandLine = [brandShown && brandShown !== storeName ? brandShown : "", storeName].filter(Boolean).join(" · ");
+  // "men"/"women" leave the shown title and join the brand line as a label (owner, 2 November 2026).
+  const departmentText = (() => { const text = departmentLabel({ name, brand, facets: seed?.facets }, lang === "ru" || lang === "en" ? lang : "uz"); return lang === "oz" ? uzText(lang, text) : text; })();
+  const shownName = withoutDepartment(name, brand);
+  const brandLine = [brandShown && brandShown !== storeName ? brandShown : "", storeName, departmentText].filter(Boolean).join(" · ");
   // The store plate before the brand line, as on the catalog card; the verified mark only for the brand's own store.
   const officialMark = sourceHost ? officialListing({ store: sourceHost, brand, sourceUrl: source || undefined, sourceVariants: variants.map((variant) => ({ ...variant, sellerId: variant.sellerId })) as Product["sourceVariants"] }, hostBrand) : undefined;
   // The brand's official store on a marketplace (adidas_official on eBay): the brand's plate with the check, and the
@@ -1781,7 +1784,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
                 ? <><p className="pd-brand">{plateBrand && <StoreBadge brand={plateBrand} size={28} official={Boolean(officialMark)} officialLabel={officialBadgeLabel(lang)} />}<span>{brandLine}</span>{officialMark && !officialOnMarketplace && <span className="sr-only">. {officialBadgeLabel(lang)}</span>}</p>{officialOnMarketplace && <p className="pd-official"><BadgeCheck size={15} aria-hidden="true" />{officialStoreText(officialOnMarketplace, lang).full}</p>}</>
                 : <span className="lo-skel lo-skel-brand" aria-hidden="true" />}
               <div className="pd-name-row">
-                <TitleTag id="lo-product-name" className="pd-title">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</TitleTag>
+                <TitleTag id="lo-product-name" className="pd-title">{shownName || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</TitleTag>
                 {guestFavoriteId && <a className="find-save lo-save" href={loginPath(catalogItemHref("/catalog", guestFavoriteId))} aria-label={dc.signinToSave} title={dc.signinToSave} onClick={() => rememberPendingFavorite(catalogStorage(), guestFavoriteId, Date.now())}><Heart size={20} aria-hidden="true" /></a>}
                 {favoriteId && <button type="button" className={"find-save lo-save" + (favoriteSaved ? " saved" : "")} aria-pressed={favoriteSaved} aria-label={favoriteSaved ? dc.remove : dc.save} title={favoriteSaved ? dc.remove : dc.save} disabled={favoriteBusy} onClick={event => { popHeart(event.currentTarget, !favoriteSaved); void toggleFavorite(); }}><Heart size={20} strokeWidth={2} aria-hidden="true" /></button>}
               </div>

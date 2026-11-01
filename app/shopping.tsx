@@ -1,5 +1,6 @@
 "use client";
 
+import { withoutDepartment } from "@/lib/market/product-name";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, Bookmark, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Package, Plus, RotateCcw, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
@@ -363,7 +364,7 @@ export function CartView() {
       {selectBox([item], s.selectLine(lineName(item)))}
       <button type="button" className="cl-photo" aria-label={item.product.name} onClick={() => openLine(item)}><ProductImage product={item.product} locale={locale} decorative size={160} /></button>
       <div className="cl-text">
-        <h3 className="cl-title"><button type="button" onClick={() => openLine(item)}><span>{item.product.name}</span></button></h3>
+        <h3 className="cl-title"><button type="button" onClick={() => openLine(item)}><span>{withoutDepartment(item.product.name, item.product.brand)}</span></button></h3>
         {meta && <p className="cl-option">{meta}</p>}
         <p className="cl-store">{item.product.sourceUrl ? <a href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}<ArrowUpRight size={12} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</>}</p>
         {!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
@@ -399,7 +400,7 @@ export function CartView() {
         {selectBox(lines, s.selectGroup(lead.product.name))}
         <button type="button" className="cl-photo" aria-label={lead.product.name} onClick={() => openLine(lead)}><ProductImage product={lead.product} locale={locale} decorative size={160} /></button>
         <div className="cl-text">
-          <h3 className="cl-title"><button type="button" onClick={() => openLine(lead)}><span>{lead.product.name}</span></button></h3>
+          <h3 className="cl-title"><button type="button" onClick={() => openLine(lead)}><span>{withoutDepartment(lead.product.name, lead.product.brand)}</span></button></h3>
           {colour && <p className="cl-option">{colour}</p>}
           <p className="cl-store">{c.item.forQuantity(units)}</p>
         </div>
