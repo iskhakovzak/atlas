@@ -46,6 +46,8 @@
 /* Model block: photo, name, the short store link; its variant rows below. */
 /* The last block ends at the plate's padding: the plate's bottom edge matches its top. */
 .order-group .og-model:last-child { margin-bottom: 0; }
+/* …but the customs block after the last store keeps the 10 px between two framed blocks. */
+.order-group-store + .og-customs { margin-top: 10px; }
 .og-model { margin-bottom: 10px; overflow: hidden; border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); }
 .og-model-head { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 2px 12px; align-items: center; padding: 12px 12px 8px; }
 .og-model-photo { grid-row: span 2; align-self: start; width: 52px; height: 52px; overflow: hidden; border-radius: var(--r-control); background: var(--home-soft); }
@@ -285,6 +287,8 @@ html[data-theme="dark"] .og-services li:not([data-on]) > span:not(.og-tick) { co
 /* The track is its own container: its step names show only when the track itself is wide enough (in a 318 px column
    on a tablet they broke letter by letter), whatever the window's width. */
 .og-track { display: grid; gap: 8px; margin-top: 8px; max-width: 720px; container-type: inline-size; }
+/* Wide screens have the room: eight stage names on one or two lines, not three. */
+@media (min-width: 1280px) { .og-track { max-width: 960px; } }
 .og-track-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin: 0; }
 .og-track-text > b { color: var(--home-ink); font-size: 14px; font-weight: var(--fw-bold); }
 .og-track-next { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; color: var(--home-ink); font-size: 13px; }

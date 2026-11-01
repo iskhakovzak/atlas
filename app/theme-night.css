@@ -730,7 +730,9 @@ html[data-theme="dark"] ::-webkit-scrollbar { width: 11px; height: 11px; }
 html[data-theme="dark"] ::-webkit-scrollbar-track { background: transparent; }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: var(--r-pill); background: #26302b padding-box; }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #33403a padding-box; }
-html[data-theme="dark"] :is(.eyebrow, .order-x-eyebrow, .home-footer-title, .basket-brand) { color: var(--night-champagne); letter-spacing: .02em; }
+html[data-theme="dark"] :is(.eyebrow, .order-x-eyebrow, .home-footer-title) { color: var(--night-champagne); letter-spacing: .02em; }
+/* A brand in the cart is quiet grey, as in Day: gold stays for «Топ-цена». */
+html[data-theme="dark"] .basket-brand { color: var(--text-2); }
 /* No capitals in the small headings, as in Day (day-folio.css); the champagne colour stays. */
 html[data-theme="dark"] :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .order-x-eyebrow, .legal-document > header span) { text-transform: none; letter-spacing: 0; }
 html[data-theme="dark"] :is(h1, h2, h3, .page-heading h1) { color: var(--night-ink); }

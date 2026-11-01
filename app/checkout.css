@@ -148,6 +148,9 @@ html .co-block-head .text-button.co-aside { margin-left: auto; min-height: 44px;
 
 /* ---------- The pay bar: pinned on every screen, above the home indicator ---------- */
 .co-paybar { position: fixed; z-index: 46; right: 0; bottom: 0; left: 0; padding: var(--space-3) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow-up); }
+/* Its edges follow the page: the cut-out of a phone held sideways, and the page gutter on a tablet. */
+.co-paybar { padding-left: max(var(--space-4), env(safe-area-inset-left)); padding-right: max(var(--space-4), env(safe-area-inset-right)); }
+@media (min-width: 761px) { .co-paybar { padding-left: max(var(--gutter), env(safe-area-inset-left)); padding-right: max(var(--gutter), env(safe-area-inset-right)); } }
 .co-paybar-inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); width: min(1120px, 100%); margin: 0 auto; }
 .co-paybar-sum { display: grid; min-width: 0; }
 .co-paybar-sum > span { color: var(--text-2); font-size: var(--fs-13); }
@@ -216,12 +219,15 @@ body:has(.co-paybar) .storage-notice { bottom: 112px; }
   body:has(.co-paybar) .storage-notice { bottom: var(--space-4); }
   /* A tall summary scrolls inside itself, so its button never drops below the window. */
   .co-summary { max-height: calc(100dvh - var(--shell-header-h, 64px) - 2 * var(--space-4)); overflow-y: auto; overscroll-behavior: contain; }
+  /* …and when it does scroll (a laptop 768 px tall, a promo code applied), «Оплатить» stays pinned to its bottom. */
+  .co-summary-pay { position: sticky; z-index: 1; bottom: calc(-1 * var(--space-5)); margin-block: calc(-1 * var(--space-3)) calc(-1 * var(--space-5)); padding-block: var(--space-3) var(--space-5); background: var(--surface); }
 }
 
 /* A phone held sideways (761–900 px wide, under 560 px tall) already gets the pinned pay bar below; wider and short,
    the summary scrolls with the page and the bar is pinned too, so "Оплатить" is never inside an inner scroll. */
 @media (min-width: 901px) and (max-height: 560px) {
   .co-summary { position: static; max-height: none; overflow: visible; }
+  .co-summary-pay { position: static; margin-block: 0; padding-block: 0; }
   .co-paybar { display: block; }
   main.site-main[data-view="checkout"]:has(.co-paybar) { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 }
@@ -244,7 +250,7 @@ body:has(.co-paybar) .storage-notice { bottom: 112px; }
   .co-two { grid-template-columns: minmax(0, 1fr); }
   .co-signin-choices { grid-template-columns: minmax(0, 1fr); }
   /* Above the bottom navigation, which already keeps the home indicator clear. */
-  .co-paybar { bottom: 0; padding: var(--space-2) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom)); }
+  .co-paybar { bottom: 0; padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) calc(var(--space-2) + env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left)); }
   .co-paybar-sum strong { font-size: var(--fs-18); }
   /* The sum keeps its room: a long label («Войдите, чтобы оплатить», a large sum) wraps inside the button instead. */
   .co-paybar-sum { flex: 1 0 auto; }

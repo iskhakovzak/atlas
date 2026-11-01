@@ -725,6 +725,8 @@ html[data-theme="dark"] .site-main .catalog-page .find-card .find-purchase .btn.
 .product-gallery-arrow:active { transform: scale(.94); }
 .product-gallery-arrow:focus-visible { outline: 2px solid var(--atlas-accent, #214e40); outline-offset: 2px; }
 .product-gallery-arrow:disabled { opacity: 0; pointer-events: none; }
+/* The night rule for every disabled button (theme-night.css: opacity .68) must not bring back the arrow at the first photo. */
+html[data-theme="dark"] .product-gallery-arrow:disabled { opacity: 0; }
 @media (hover: hover) and (pointer: fine) {
   .product-gallery-frame:not(:hover, :focus-within) .product-gallery-arrow { opacity: 0; transform: scale(.9); }
 }

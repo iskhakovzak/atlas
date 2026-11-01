@@ -15,8 +15,8 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
   text-wrap: balance;
 }
 html:root .site-main h3 { font-family: var(--day-sans); font-weight: var(--fw-semibold); letter-spacing: -.01em; }
-/* Overlines repeat what the title says and are typed in capitals: the light theme leaves them out. */
-html:not([data-theme="dark"]) .page-heading .eyebrow { display: none; }
+/* Overlines repeat what the title says and are typed in capitals: both themes leave them out. */
+.page-heading .eyebrow { display: none; }
 html:not([data-theme="dark"]) :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .order-x-eyebrow, .legal-document > header span) {
   text-transform: none; letter-spacing: 0;
 }
@@ -42,7 +42,7 @@ html:not([data-theme="dark"]) .site-header .wordmark { color: var(--day-ink); }
 html:not([data-theme="dark"]) .site-header .wordmark svg { color: var(--day-accent); }
 /* Stores: a quiet list with their own marks, not a wall of chips. */
 html:not([data-theme="dark"]) .home-hero-links { gap: 0 24px; margin-top: 8px; }
-html:not([data-theme="dark"]) .home-hero-links a { font-weight: var(--fw-semibold); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+html:not([data-theme="dark"]) .home-hero-links a { font-weight: var(--fw-semibold); }
 /* ---------- The folio: a bill in a light mint folder ---------- */
 /* The white sheet is what you pay; the cream slip under it is what is kept apart. */
 html:not([data-theme="dark"]) .folio { display: grid; gap: 10px; padding: 14px 12px 12px; border: 1px solid var(--day-tint-2); border-radius: var(--day-r-plate);
@@ -87,7 +87,8 @@ html:not([data-theme="dark"]) .home-faq { gap: 10px; margin-top: 8px; border: 0;
 html:not([data-theme="dark"]) .home-faq details { border: 1px solid var(--day-line); border-radius: var(--r-card); background: var(--day-surface); box-shadow: var(--shadow-2); }
 html:not([data-theme="dark"]) .home-faq details[open] { border-color: var(--day-line-strong); }
 html:not([data-theme="dark"]) .home-faq summary { min-height: 60px; padding: 10px 20px; font-size: 16px; font-weight: 700; color: var(--day-ink); }
-html:not([data-theme="dark"]) .home-faq summary::after { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; box-sizing: border-box; border: 1.5px solid var(--day-line-strong); border-radius: 50%; background: var(--day-surface); color: var(--day-ink); font-size: 16px; font-weight: 500; }
+/* The «+» sits in a ringed circle in both themes (theme tokens). */
+html:root .home-faq summary::after { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; box-sizing: border-box; border: 1.5px solid var(--day-line-strong); border-radius: 50%; background: var(--day-surface); color: var(--day-ink); font-size: 16px; font-weight: 500; }
 html:not([data-theme="dark"]) .home-faq summary:focus-visible { border-radius: var(--r-card); }
 html:not([data-theme="dark"]) .home-faq details > div { max-width: 64ch; padding: 0 20px 18px; }
 html:not([data-theme="dark"]) .home-faq p { font-size: 16px; line-height: var(--lh-body); color: var(--day-muted); }

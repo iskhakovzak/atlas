@@ -1727,7 +1727,7 @@ html[data-theme="dark"] .field-vitals :is(th, td) { border-color: var(--night-li
 html[data-theme="dark"] .field-vitals thead th { color: var(--night-muted); }
 
 /* Night: cart options sharing a note and services, the delete button, who pays customs and the customs calculator (7.10.2026). */
-html[data-theme="dark"] .basket-controls .remove-item:not(.confirming) { border: 0; background: transparent; color: color-mix(in srgb, var(--night-error-ink) 78%, var(--night-muted)); }
+html[data-theme="dark"] .basket-controls .remove-item:not(.confirming) { border: 0; background: transparent; color: var(--text-2); }
 html[data-theme="dark"] .basket-controls .remove-item:not(.confirming):hover { background: var(--night-error-bg); color: var(--night-error-ink); }
 
 /* Night: the monthly customs allowance card in the cabinet (7.10.2026). */
@@ -1798,6 +1798,8 @@ html:not([data-theme="dark"]) .recipient-choice-manual strong { color: var(--day
 @media (max-width: 600px) {
   main[data-view="orders"] .order-tabs:not(.has-refund-tab) { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100% !important; height: auto !important; }
   main[data-view="orders"] .order-tabs:not(.has-refund-tab) [data-slot="tabs-trigger"] { min-width: 0; min-height: 44px; padding: 6px 4px; flex-direction: column; gap: 2px; white-space: normal; font-size: 12px; line-height: 1.2; text-align: center; }
+  /* A label that wraps (RU «Нужно действие» at 360 px) keeps the three tabs one height and their counts on one line. */
+  main[data-view="orders"] .order-tabs:not(.has-refund-tab) [data-slot="tabs-trigger"] { display: grid; grid-template-rows: 1fr auto; place-items: center; height: auto; align-self: stretch; }
 }
 
 /* ---------- Phones: a lighter scale ---------- */

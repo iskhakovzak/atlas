@@ -212,7 +212,7 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
   .basket-sticky { transition: opacity .18s ease, transform .18s ease, visibility .18s; }
 }
 @media (min-width: 761px) and (max-width: 959px) {
-  .basket-sticky { bottom: 0; padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: max(10px, env(safe-area-inset-bottom)); padding-left: max(16px, env(safe-area-inset-left)); }
+  .basket-sticky { bottom: 0; padding-right: max(var(--gutter), env(safe-area-inset-right)); padding-bottom: max(10px, env(safe-area-inset-bottom)); padding-left: max(var(--gutter), env(safe-area-inset-left)); }
   main.site-main:is([data-view="cart"]:has(.basket-sticky), [data-view="link"]:has(.lo-sticky)) { padding-bottom: 96px; }
   html:has(main[data-view="cart"] .basket-sticky:not(.is-hidden)) { scroll-padding-bottom: 96px; }
 }
@@ -325,9 +325,11 @@ html[data-theme="dark"] .lo-recent-copy small { color: var(--night-muted); }
 /* Before a link: where to take one (stores that work, the way in three steps). On a phone it comes before the blank
    bill; on wide screens the bill is on the left and this card on the right. */
 .lo-empty { display: grid; gap: 16px; }
-.lo-empty > .bill-blank { margin-top: 0; }
+.lo-empty > .bill-blank { max-width: none; margin-top: 0; }
+/* The two cards side by side (and stacked) share one title size and weight. */
+html:root .lo-empty > .bill-blank > h2 { font-size: var(--fs-card-title); }
 .lo-where { display: grid; gap: 14px; min-width: 0; padding: var(--pad-card-lg); border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); box-shadow: var(--day-shadow, none); }
-.lo-where h2 { margin: 0; color: var(--home-ink); font-size: 18px; font-weight: var(--fw-bold); line-height: 1.25; letter-spacing: -.01em; }
+.lo-where h2 { margin: 0; color: var(--home-ink); font-size: var(--fs-card-title); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: -.01em; }
 .lo-where-stores { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .lo-where-stores a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); color: var(--home-ink); font-size: 14px; font-weight: var(--fw-semibold); text-decoration: none; transition-property: border-color, background-color; transition-duration: .15s; }
 .lo-where-stores a:hover { border-color: var(--home-accent); }
@@ -757,7 +759,8 @@ html:not([data-theme="dark"]) .customs-option.self:not(.selected) { background: 
 .customs-remembered > span { display: grid; flex: 1; gap: 2px; min-width: 0; }
 .customs-remembered small { color: var(--home-muted); font-size: 12px; font-weight: 500; }
 .customs-remembered button { flex: none; min-height: 32px; padding: 0 4px; border: 0; background: none; color: var(--home-accent); font: inherit; font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.customs-remember { margin-top: 2px; font-size: 13px; }
+/* The tick row is as wide as its words (not a click target across the card) and 24 px tall for a mouse. */
+.customs-remember { width: fit-content; min-height: 24px; margin-top: 2px; font-size: 13px; }
 
 /* "How customs is calculated": a link-like button that opens a small window with a calculator. */
 .customs-how-trigger { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }

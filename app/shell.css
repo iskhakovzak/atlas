@@ -130,7 +130,7 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
 
 /* ---------- Phones: logo · search · language (· bell) ---------- */
 @media (max-width: 760px) {
-  :root .site-header.shell-header { gap: 4px; min-height: 56px; padding-top: env(safe-area-inset-top); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  :root .site-header.shell-header { gap: 4px; min-height: calc(56px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
   :root .site-header.shell-header .wordmark { font-size: 26px; }
   :root .site-header.shell-header .wordmark svg { width: 21px; height: 21px; }
   /* Help stays as a 44 px icon (its word is hidden from 1279 px down): the app has no footer to find it in. */
@@ -169,8 +169,13 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
 /* Touch tablets and a phone held sideways: the header's words are 44 px finger targets. */
 @media (pointer: coarse) {
   .shell-nav a { min-height: 44px; }
-  /* The same on tablets (the phone rules stop at 760 px): a link, a disclosure line or an option row is 44 px tall. */
-  :is(.pd-source, .home-link-batch, .home-rail-all, .pd-breakdown > summary, .basket-service-breakdown > summary) { min-height: 44px; }
+  /* The same on tablets and a phone held sideways: a link, a disclosure line, a tab or an option row is 44 px tall.
+     `:root main.site-main` outranks the page stylesheets, which load after this file with the same weight. */
+  :root main.site-main :is(.pd-source, .home-main .home-link-batch, .home-main .home-rail-all, .home-main .home-step-link, .pd-breakdown > summary, .basket-service-breakdown > summary, .lo-pick-mode .lo-source-link, .pf-segmented button, .order-tabs [data-slot="tabs-trigger"], .customs-text summary) { min-height: 44px; }
+  /* The product sheet is outside main: its «Из чего сумма» and store link too. A short footer word is 44 px wide. */
+  :root .pd-sheet :is(.pd-breakdown > summary, .pd-source, .lo-pick-mode .lo-source-link) { min-height: 44px; }
+  :root .home-footer-groups li > a { min-width: 44px; }
+  html body .store-link-field > input { align-self: stretch; height: auto; min-height: 44px; }
   .site-main .service-options label { min-height: 44px; }
 }
 
