@@ -167,12 +167,18 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
 .breadcrumb > .breadcrumb-leaf { min-width: 0; max-width: 60ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Touch tablets and a phone held sideways: the header's words are 44 px finger targets. */
-@media (pointer: coarse) { .shell-nav a { min-height: 44px; } }
+@media (pointer: coarse) {
+  .shell-nav a { min-height: 44px; }
+  /* The same on tablets (the phone rules stop at 760 px): a link, a disclosure line or an option row is 44 px tall. */
+  :is(.pd-source, .home-link-batch, .home-rail-all, .pd-breakdown > summary, .basket-service-breakdown > summary) { min-height: 44px; }
+  .site-main .service-options label { min-height: 44px; }
+}
 
 /* A mouse needs 24 px: the short standalone links take clicks from a little above and below their line. */
 @media (pointer: fine) {
-  :is(.pd-trust a, .basket-assurance a, .delivery-country-stores, .pf-section-link, .pf-parcel-head h3 a) { position: relative; }
-  :is(.pd-trust a, .basket-assurance a, .delivery-country-stores, .pf-section-link, .pf-parcel-head h3 a)::after { content: ""; position: absolute; inset: -4px 0; }
+  :is(.pd-trust a, .basket-assurance a, .delivery-country-stores, .pf-section-link, .pf-parcel-head h3 a, .delivery-limit > .text-link, .store-link-open, .store-about-card > .text-link, .store-about-similar > .text-link) { position: relative; }
+  :is(.pd-trust a, .basket-assurance a, .delivery-country-stores, .pf-section-link, .pf-parcel-head h3 a, .delivery-limit > .text-link, .store-link-open, .store-about-card > .text-link, .store-about-similar > .text-link)::after { content: ""; position: absolute; inset: -4px 0; }
+  .site-main .service-options label { min-height: 24px; }
 }
 
 /* Hover on computers (polish, 1 November 2026): links of the breadcrumb and card titles underline; quiet controls,
