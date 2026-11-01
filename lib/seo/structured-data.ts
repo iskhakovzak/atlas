@@ -78,12 +78,8 @@ export function siteGraph(locale: Locale, contacts: Contacts, legal?: Legal) {
         url: siteOrigin,
         inLanguage: pageLanguages,
         publisher: { '@id': organizationId },
-        // The catalog reads `?q=` (lib/market/catalog-query.ts), so search engines can offer a site search box.
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: { '@type': 'EntryPoint', urlTemplate: `${siteOrigin}/catalog?q={search_term_string}` },
-          'query-input': 'required name=search_term_string',
-        },
+        // No SearchAction: Google retired the sitelinks search box in November 2024, and `/catalog?q=` is filtered in
+        // the browser only (lib/market/catalog-query.ts), so the server would answer it with the unfiltered page.
       },
     ],
   };

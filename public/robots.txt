@@ -26,7 +26,8 @@ Disallow: /orders
 # The bare page stays crawlable so its noindex is seen; the ?url= variants are not crawled.
 Disallow: /order-by-link?
 Disallow: /share
-Disallow: /login
+# /login is not closed: every page links to it (sign-in, cart, favourites), so it stays crawlable and its noindex is
+# seen, instead of the address being indexed without content.
 
 # Search access and model-training access are separate controls. Atlas opts in
 # for public facts only; private paths remain blocked below.
@@ -58,7 +59,8 @@ Disallow: /orders
 # The bare page stays crawlable so its noindex is seen; the ?url= variants are not crawled.
 Disallow: /order-by-link?
 Disallow: /share
-Disallow: /login
+# /login is not closed: every page links to it (sign-in, cart, favourites), so it stays crawlable and its noindex is
+# seen, instead of the address being indexed without content.
 
 User-agent: *
 Allow: /
@@ -88,7 +90,8 @@ Disallow: /orders
 # The bare page stays crawlable so its noindex is seen; the ?url= variants are not crawled.
 Disallow: /order-by-link?
 Disallow: /share
-Disallow: /login
+# /login is not closed: every page links to it (sign-in, cart, favourites), so it stays crawlable and its noindex is
+# seen, instead of the address being indexed without content.
 
 # Yandex: ad and click tags do not change the page.
 Clean-param: utm_source&utm_medium&utm_campaign&utm_content&utm_term&gclid&fbclid&yclid&ysclid

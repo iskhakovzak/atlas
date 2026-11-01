@@ -1,9 +1,17 @@
+## SEO: правки после проверки — 1 ноября 2026
+- **Кеш публичных страниц** (`middleware.ts`): публичные адреса (`isPublicPath`) без cookie сессии отдаются с `Cache-Control: public, max-age=0, must-revalidate` и `Vary: Cookie` вместо `no-store, must-revalidate` от vinext — страница снова попадает в bfcache, но каждый раз сверяется с сервером. С сессией и на приватных страницах — по-прежнему `no-store`.
+- **`?lang=RU` и другой регистр** — 308 на адрес с `?lang=ru` (раньше страница рендерилась на узбекском с canonical x-default).
+- **`og:locale:alternate`** выводит `app/layout.tsx` как `<meta property=…>` в `<head>` (из `alternateOgLocales`); `other` в `pageMetadata` убран — он давал `<meta name=…>`, который Open Graph не читает.
+- **`SearchAction` убран** из `WebSite`: окно поиска Google не показывает с ноября 2024, а `/catalog?q=` фильтруется только в браузере.
+- **robots.txt:** `/login` больше не закрыт — на него ссылаются все страницы, теперь Google видит его `noindex`, а не индексирует адрес без содержимого. Остальные приватные пути закрыты как раньше.
+- Серверный рендер первой страницы каталога по-прежнему ждёт решения владельца (TODO.md).
+
 ## SEO: метаданные, hreflang, разметка, sitemap и llms.txt — 1 ноября 2026
 По трём аудитам (технический; schema/ecommerce/content; GEO/агенты/локальное) и сводному аудиту редизайна.
 - **Метаданные в `<head>` для ботов** (`next.config.ts`, `htmlLimitedBots`): vinext стримил title, canonical и hreflang в `<body>` всем, кого нет в его списке, а Googlebot в списке не было. Теперь боты, превью-сервисы и Lighthouse получают метаданные в `<head>`, браузеры — как раньше потоком.
 - **Общие помощники `lib/seo/*`** (для редизайна тоже):
   - `locales.ts` — языковые версии: `localizedPath`, `languageAlternates`, `canonicalPath`, `withLang` (внутренняя ссылка сохраняет `?lang`), `russianOnlyPaths`.
-  - `metadata.ts` — `pageMetadata({path, lang, fallback, text, image})`: canonical, hreflang (uz, uz-Cyrl, ru, en, x-default), OG с `og:locale:alternate` (vinext 1.0 не выводит `alternateLocale`, поэтому дублируется через `other`), Twitter.
+  - `metadata.ts` — `pageMetadata({path, lang, fallback, text, image})`: canonical, hreflang (uz, uz-Cyrl, ru, en, x-default), OG (теги `og:locale:alternate` с `property=` выводит `app/layout.tsx`: vinext 1.0 не выводит `alternateLocale`), Twitter.
   - `structured-data.ts` — Organization (`areaServed` = Ташкент, `alternateName` atlasmarket.uz, языки с uz-Cyrl), `breadcrumbList`, `webPage`, `productJsonLd` (Offer только с реальной суммой в UZS, `availability` только при подтверждении магазином, без рейтингов, отзывов, возврата и доставки), `collectionPage`.
   - `sitemap.ts` + `routes.ts` — генератор и флаги семейств страниц (`productPages`, `storePages`, `deliveryPage`, сейчас выключены). Тест падает, если флаг включён без файла страницы.
 - **Sitemap** — маршрут `app/sitemap.xml/route.ts` вместо `public/sitemap.xml`: 38 адресов, у каждого `xhtml:link`, без `changefreq`/`priority`, `lastmod` только у /customs (2026-09-11, дата на странице). Товары `/catalog/p/{id}` (дата — максимум из публикации, сверки и подтверждения) и магазины добавятся, когда этапы 5 и 8 включат флаг в `lib/seo/routes.ts`.
@@ -1173,7 +1181,7 @@ ImpactTracking is a client component inside MarketProvider. It waits for current
 
 Ветка `feat/seo`.
 
-- **JSON-LD** (`lib/seo/structured-data.ts`, вывод — `app/json-ld.tsx`, `<` экранируется). На всех страницах — `Organization` + `WebSite` на языке страницы: квадратный логотип `icon-512.png` (раньше баннер 1200×630), `sameAs` и `contactPoint` только из опубликованных контактов `siteContent.contacts`, `SearchAction` на `/catalog?q=`. Публичные подстраницы (`publicViewPaths`) получают `BreadcrumbList` в `app/marketplace.tsx` рядом с видимой крошкой; FAQ главной и `/support` — `FAQPage` с теми же вопросами, что на странице. Цен, наличия и рейтингов в разметке нет — импорт остаётся подсказкой.
+- **JSON-LD** (`lib/seo/structured-data.ts`, вывод — `app/json-ld.tsx`, `<` экранируется). На всех страницах — `Organization` + `WebSite` на языке страницы: квадратный логотип `icon-512.png` (раньше баннер 1200×630), `sameAs` и `contactPoint` только из опубликованных контактов `siteContent.contacts`, без `SearchAction` (с 1 ноября 2026). Публичные подстраницы (`publicViewPaths`) получают `BreadcrumbList` в `app/marketplace.tsx` рядом с видимой крошкой; FAQ главной и `/support` — `FAQPage` с теми же вопросами, что на странице. Цен, наличия и рейтингов в разметке нет — импорт остаётся подсказкой.
 - **Заголовки.** Если заголовок страницы уже содержит «Atlas», он не дополняется шаблоном `%s · Atlas` (было «Поддержка Atlas · Atlas»).
 - **robots.** `index, follow` + `max-image-preview: large` объявляют только публичные страницы (`publicMetadata`); в корневых метаданных robots нет, поэтому у 404 остаётся один `noindex` (раньше рядом стоял `index, follow`). У 404 один `<title>` из `generateMetadata` в `app/not-found.tsx`.
 - `public/llms.txt` — добавлен `/catalog` с поиском `?q=`.

@@ -65,8 +65,8 @@ export function pageMetadata({ path, lang, fallback, text, image, languages = 'a
     alternates: { canonical: url, languages: languageAlternates(path, languages) },
     openGraph: { type, url, siteName: 'Atlas', title: socialTitle, description, locale: ogLocale[locale], alternateLocale: alternateOgLocales(locale), images: [preview] },
     twitter: { card: 'summary_large_image', title: socialTitle, description, images: [{ url: preview.url, alt: preview.alt }] },
-    // Vinext 1.0 renders no tag for openGraph.alternateLocale (node_modules/vinext/dist/shims/metadata.js), so the
-    // alternates also go out as <meta name="og:locale:alternate">, which link-preview parsers read too.
-    other: { 'og:locale:alternate': alternateOgLocales(locale) },
+    // Vinext 1.0 renders no tag for openGraph.alternateLocale (node_modules/vinext/dist/shims/metadata.js), and its
+    // `other` field writes <meta name=…>, which Open Graph parsers ignore: app/layout.tsx writes the
+    // <meta property="og:locale:alternate"> tags itself, from the same alternateOgLocales().
   };
 }

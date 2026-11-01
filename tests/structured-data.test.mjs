@@ -5,7 +5,7 @@ import { publicMetadata, rootMetadata } from '../app/route-metadata.ts';
 
 const noContacts = { telegramSupport: null, telegramChannel: null, phone: null, instagram: null, supportEmail: null };
 
-test('the site graph uses a square logo, a catalog search box and only published contacts', () => {
+test('the site graph uses a square logo, no search box and only published contacts', () => {
   const [organization, website] = siteGraph('ru', noContacts)['@graph'];
   assert.equal(organization.logo.width, organization.logo.height);
   assert.match(organization.description, /Ташкент/);
@@ -14,7 +14,7 @@ test('the site graph uses a square logo, a catalog search box and only published
   assert.deepEqual(website.inLanguage, ['uz', 'uz-Cyrl', 'ru', 'en']);
   assert.equal(organization.sameAs, undefined);
   assert.equal(organization.contactPoint, undefined);
-  assert.equal(website.potentialAction.target.urlTemplate, 'https://atlasmarket.uz/catalog?q={search_term_string}');
+  assert.equal(website.potentialAction, undefined, 'no SearchAction: /catalog?q= is filtered in the browser only');
   const filled = siteGraph('uz', { ...noContacts, telegramChannel: 'atlas_uz', supportEmail: 'help@atlasmarket.uz' })['@graph'][0];
   assert.deepEqual(filled.sameAs, ['https://t.me/atlas_uz']);
   assert.equal(filled.contactPoint[0].email, 'help@atlasmarket.uz');

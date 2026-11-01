@@ -142,6 +142,9 @@ test('robots lets crawlers render the catalog feed and see the noindex of /order
     assert.ok(block.indexOf('Allow: /api/catalog$') !== -1 && block.indexOf('Allow: /api/catalog$') < block.indexOf('Disallow: /api/'), block.split('\n')[0]);
     assert.match(block, /^Disallow: \/order-by-link\?$/m);
     assert.doesNotMatch(block, /^Disallow: \/order-by-link$/m);
+    // /login is linked from every page: closing it would hide its noindex and let the bare address be indexed.
+    assert.doesNotMatch(block, /^Disallow: \/login/m);
+    assert.match(block, /^Disallow: \/cart$/m);
   }
   assert.match(robots, /^Sitemap: https:\/\/atlasmarket.uz\/sitemap.xml$/m);
 });
@@ -154,6 +157,18 @@ test('crawlers, Googlebot included, get metadata in <head>; browsers keep stream
   for (const ua of ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'])
     assert.ok(!bots.test(ua), ua);
   assert.match(source('middleware.ts'), /"Vary", "Accept-Language, Cookie"/);
+});
+
+test('verification fixes: og:locale:alternate as property, no SearchAction, ?lang case and public page cache', () => {
+  // Open Graph parsers read property=, not name=: the layout writes the alternates, pageMetadata no longer uses other.
+  const meta = pageMetadata({ path: '/x', lang: 'ru', fallback: 'uz', text: () => ({ title: 'T', description: 'D' }) });
+  assert.equal(meta.other, undefined);
+  assert.match(source('app/layout.tsx'), /alternateOgLocales\(locale\)\.map\(\(code\) => <meta key=\{code\} property="og:locale:alternate" content=\{code\} \/>\)/);
+  assert.deepEqual(alternateOgLocales('oz'), ['ru_RU', 'en_US'], 'oz shares uz_UZ and never lists it as an alternate');
+  const middleware = source('middleware.ts');
+  assert.match(middleware, /supportedLocale\(lang\.toLowerCase\(\)\)/, '?lang=RU redirects to ?lang=ru');
+  assert.match(middleware, /"public, max-age=0, must-revalidate"/);
+  assert.match(middleware, /isPublicPath\(request\.nextUrl\.pathname\) \|\| request\.cookies\.has\(SESSION_COOKIE\)\) return response/, 'signed-in and private pages keep no-store');
 });
 
 // 6. llms.txt states the same figures as the code defaults.
