@@ -135,13 +135,14 @@ try {
     "[...document.querySelectorAll('.catalog-categories button')].find((item) => item.textContent?.trim().startsWith('Обувь'))?.click()",
   );
   await eventually(`new URLSearchParams(location.search).get('cat') === 'shoes' && ${count} > 0 && ${count} < ${total}`, "catalog category filter");
-  // Cards with a known price open the product sheet; others link to the order page.
-  if (await evaluate("!!document.querySelector('button.find-photo')")) {
-    await evaluate("document.querySelector('button.find-photo').click()");
-    await eventually("document.body.textContent.includes('Расчёт стоимости')", "product details");
-    await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]')?.click()");
-  } else if (!(await evaluate("!!document.querySelector('a.find-photo[href^=\"/order-by-link\"]')"))) {
-    throw Error("Catalog cards neither open details nor link to the order page");
+  // A card opens the product page as a sheet over the catalog, at the product's own address (redesign stage 5).
+  if (await evaluate("!!document.querySelector('.pcard-title button')")) {
+    await evaluate("document.querySelector('.pcard-title button').click()");
+    await eventually("!!document.querySelector('.pd-sheet .pd') && location.pathname.startsWith('/catalog/p/')", "product sheet at its own address");
+    await evaluate("document.querySelector('.pd-sheet-actions .sheet-close')?.click()");
+    await eventually("location.pathname === '/catalog' && !document.querySelector('.pd-sheet')", "closing the sheet goes back to the catalog");
+  } else if (!(await evaluate("!!document.querySelector('a.pcard-plus[href^=\"/catalog/p/\"]')"))) {
+    throw Error("Catalog cards neither open the product sheet nor link to the product page");
   }
   const privateLinksHidden = await evaluate(
     "!document.querySelector('header a[href=\"/cart\"], header a[href=\"/orders\"], header a[href=\"/notifications\"]')",

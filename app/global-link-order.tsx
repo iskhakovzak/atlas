@@ -6,7 +6,7 @@ import Link from "@/components/site-link";
 import { toast } from "@/lib/market/toast";
 import { useMarket } from "@/lib/market/store";
 import { signInPath } from "@/lib/market/access";
-import { catalogOrderVariants } from "@/lib/market/catalog";
+import { catalogOrderVariants, type MerchantFind } from "@/lib/market/catalog";
 import { catalogLinkSeed, catalogLinkPrice, catalogLinkWeight } from "@/lib/market/link-order-context";
 import {
   browserStorage,
@@ -47,14 +47,16 @@ import {
   type Product,
 } from "@/lib/market/domain";
 import { calcCopy, type CalcCopy } from "@/lib/market/calc-copy";
-import { Money } from "./money";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
-import { BlankBill, CalcLines, CustomsPanel, HoldNote, sumQuotes } from "./calc-summary";
+import { BlankBill, CustomsPanel, HoldNote, sumQuotes } from "./calc-summary";
 import { daysRangeFor, deliverySpeedCopy, fasterText } from "@/lib/market/delivery-speed";
 import { countries, currencies, currencyForCountry, toUsd, paddedWeight, packagingKg } from "@/lib/market/world";
 import { describeSingleColorway } from "@/lib/market/variant-colorway";
 import { compareSizes } from "@/lib/market/size-order";
-import { heroStores, storeBrands, storefrontUrl } from "@/lib/market/store-brands";
+import { brandForHost, heroStores, storeBrands, storefrontLabel, storefrontUrl } from "@/lib/market/store-brands";
+import { displayBrand } from "@/lib/market/product-name";
+import { browserStorage as catalogStorage, catalogItemHref, rememberPendingFavorite } from "@/lib/market/catalog-links";
+import { loginPath } from "@/lib/auth/return-to";
 import { dealCopy } from "@/lib/market/deal-copy";
 import { StoreLogo } from "./store-logo";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
@@ -73,7 +75,7 @@ import {
   type ProductColorwayGallery,
 } from "@/lib/importer/extract";
 import { WasPrice } from "./market-ui";
-import { formatKg, formatSum } from "@/lib/market/format";
+import { formatKg, formatPriceUsd, formatSum } from "@/lib/market/format";
 import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-copy";
 import { extractSharedLink } from "@/lib/market/shared-link";
 import {PasteButton} from '@/components/paste-button';
@@ -91,6 +93,8 @@ import {uzText} from '@/lib/market/uz-cyrl';
 import { optionDisplay } from '@/lib/market/variant-display';
 import {isUzbek,type Locale} from '@/lib/market/i18n';
 import {requestImport} from "@/lib/market/import-client";
+import {productDetailCopy} from "@/lib/market/product-detail-copy";
+import {DetailSection, SumBreakdown, SumHero, TrustRow} from "./product-detail";
 import {readImportCachePreview} from "@/lib/market/import-cache-preview";
 
 const countryAliases:Record<string,string>={'United States':'США','US':'США','AQSh':'США','Spain':'Испания','Ispaniya':'Испания','Germany':'Германия','Germaniya':'Германия','United Kingdom':'Великобритания','Buyuk Britaniya':'Великобритания','France':'Франция','Fransiya':'Франция','Italy':'Италия','Italiya':'Италия','Romania':'Румыния','Ruminiya':'Румыния','China':'Китай','Xitoy':'Китай','Turkey':'Турция','Turkiya':'Турция','Japan':'Япония','Yaponiya':'Япония','South Korea':'Южная Корея','Janubiy Koreya':'Южная Корея','United Arab Emirates':'ОАЭ','BAA':'ОАЭ','Canada':'Канада','Kanada':'Канада','Australia':'Австралия','Avstraliya':'Австралия','Other country':'Другая страна','Boshqa mamlakat':'Другая страна'};
@@ -251,7 +255,19 @@ function keepChosenColourInView(row: HTMLElement) {
   if (left < row.scrollLeft || right > row.scrollLeft + row.clientWidth) row.scrollLeft = Math.max(0, left - (row.clientWidth - chosen.offsetWidth) / 2);
 }
 
+/** /order-by-link: the link form, then the product page of the pasted link. */
 export function GlobalLinkOrder() {
+  return <ProductOrder />;
+}
+
+/**
+ * The one product page (redesign stage 5, 1 November 2026). `mode="link"`: /order-by-link, the product from `?url=`
+ * (and `?catalog=` / `?deal=`), checked with the store when it opens. `mode="catalog"`: an Atlas catalog card — in the
+ * catalog's sheet or at /catalog/p/[id] — shown from its stored data without asking the store on opening (the guests'
+ * import limit is shared); the server checks it with the store when it is added, and a changed price reloads it here.
+ * `inSheet`: inside the catalog's bottom sheet or side panel (the total bar sticks to the sheet, not the window).
+ */
+export function ProductOrder({ mode = "link", product, inSheet = false }: { mode?: "link" | "catalog"; product?: MerchantFind; inSheet?: boolean } = {}) {
   const { ready, status, error: accountError, user, refresh, pricing, state, act, lastActionError, catalogProducts, loadCatalog } = useMarket();
   // Delivery is chosen only in the cart; estimates follow its current speed.
   const [previewSpeed, setPreviewSpeed] = useState<"express" | "standard">(defaultDeliverySpeed);
@@ -276,13 +292,21 @@ export function GlobalLinkOrder() {
   // Short enough not to be cut at 375 px; the same meaning as the phone bar's «Войти и добавить»: after sign-in the item goes to the cart.
   const searchParams = useSearchParams();
   const router = useRouter();
-  const requestedUrl = searchParams.get("url") ?? "";
-  const catalogId = searchParams.get("catalog") ?? "";
+  const pd = productDetailCopy[lang];
+  // A catalog card is its own product: no address parameters and no link form (the sheet sits over /catalog).
+  const catalogMode = mode === "catalog" && Boolean(product?.sourceUrl);
+  const requestedUrl = catalogMode ? product!.sourceUrl! : searchParams.get("url") ?? "";
+  const catalogId = catalogMode ? product!.id : searchParams.get("catalog") ?? "";
   const isSourcedFlow = Boolean(requestedUrl);
-  const dealSeed = communityDeals.find(item => item.id === searchParams.get("deal") && item.url === requestedUrl);
+  // A community deal in the catalog keeps its deal options, as its old order link (findOrderUrl) did.
+  const dealSeed = catalogMode
+    ? (product!.priceNeedsConfirmation ? undefined : communityDeals.find(item => item.id === product!.id && item.url === requestedUrl))
+    : communityDeals.find(item => item.id === searchParams.get("deal") && item.url === requestedUrl);
   const dealOptions: ProductVariant[] = dealSeed ? communityFallbackOptions(dealSeed).map(item => ({ ...item, available: true })) : [];
   const dealBoxedWeight = dealSeed ? Math.max(0.1, communityEstimatedWeight(dealSeed) - 0.5) : undefined;
-  const seed = catalogLinkSeed(catalogProducts, catalogId, requestedUrl);
+  /** The catalog card behind a link: the card itself in catalog mode, else the one `?catalog=` names (lib/market/link-order-context.ts). */
+  const seedFor = (link = requestedUrl): MerchantFind | undefined => catalogMode ? (link === requestedUrl ? product : undefined) : catalogLinkSeed(catalogProducts, catalogId, requestedUrl, link);
+  const seed = seedFor();
   const seedPrice = catalogLinkPrice(seed);
   const seedOptions: ProductVariant[] = seed ? catalogOrderVariants(seed) : [];
   const fallbackOptions = seedOptions.length ? seedOptions : dealOptions;
@@ -290,7 +314,17 @@ export function GlobalLinkOrder() {
     ? dedupeSafeImages([seed.image, ...(seed.sourceImages ?? [])], seed.sourceUrl ?? requestedUrl)
     : dealSeed?.image ? [dealSeed.image] : [];
   const fallbackBoxedWeight = catalogLinkWeight(seed) ?? dealBoxedWeight;
-  const [url, setUrl] = useState(() => searchParams.get("url") ?? "");
+  // A current catalog card opens ready to choose from its stored options, priced as the load below would price them; a
+  // dated card (or one without a recorded price) is checked with the store as before.
+  const seedSelectable: ProductVariant[] = catalogMode && seed && !seed.priceNeedsConfirmation && seedPrice
+    ? seedOptions.filter(isOrderableVariant).filter(item => (item.price ?? seedPrice.amount) > 0 || priceLoadable(item, seed.sourceUrl))
+    : [];
+  const seedReady = seedSelectable.length > 0;
+  // A dated catalog card (or one without options to choose) waits for one tap before the store is asked: opening cards
+  // must not spend the guests' shared import limit (lib/market/import-preview.ts).
+  const datedCatalog = catalogMode && !seedReady;
+  const seedColors = [...new Set(seedSelectable.map(item => item.color).filter((value): value is string => Boolean(value)))];
+  const [url, setUrl] = useState(() => requestedUrl);
   const [source, setSource] = useState(seed?.sourceUrl ?? dealSeed?.url ?? ""),
     [name, setName] = useState(seed?.name ?? dealSeed?.title ?? ""),
     [brand, setBrand] = useState(seed?.brand ?? dealSeed?.store ?? ""),
@@ -303,27 +337,27 @@ export function GlobalLinkOrder() {
     [shippingCurrency, setShippingCurrency] = useState(seed?.sourceShippingCurrency ?? "USD"),
     [shippingEstimated, setShippingEstimated] = useState(seed?.sourceShippingEstimated ?? true),
     [weight, setWeight] = useState(fallbackBoxedWeight ? String(fallbackBoxedWeight) : ""),
-    [country, setCountry] = useState(seed?.country ?? "США"),
+    [country, setCountry] = useState(canonicalCountry(seed?.country ?? "США")),
     [otherCountry, setOtherCountry] = useState(""),
     [category, setCategory] = useState(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое")),
-    [variant, setVariant] = useState(fallbackOptions.length === 1 ? fallbackOptions[0].label : ""),
-    [variants, setVariants] = useState<ProductVariant[]>(fallbackOptions),
-    [selectedColor, setSelectedColor] = useState(""),
+    [variant, setVariant] = useState(seedReady ? (seedSelectable.length === 1 ? seedSelectable[0].label : "") : fallbackOptions.length === 1 ? fallbackOptions[0].label : ""),
+    [variants, setVariants] = useState<ProductVariant[]>(seedReady ? seedSelectable : fallbackOptions),
+    [selectedColor, setSelectedColor] = useState(seedColors.length === 1 ? seedColors[0] : ""),
     // The colour under the pointer or focus, named in full in the step heading while a long row of colours is shown.
     [colourPeek, setColourPeek] = useState(""),
     [selectedSize, setSelectedSize] = useState(""),
     [image, setImage] = useState(seed?.image ?? dealSeed?.image ?? ""),
     [images, setImages] = useState<string[]>(seedImages),
-    [colorwayImages, setColorwayImages] = useState<ProductColorwayGallery[]>([]),
+    [colorwayImages, setColorwayImages] = useState<ProductColorwayGallery[]>(() => seedReady ? cleanColorwayGalleries(seed!.sourceColorwayImages, seed!.sourceUrl ?? requestedUrl) : []),
     [busy, setBusy] = useState(false),
     [adding, setAdding] = useState(false),
     [showSourceForm, setShowSourceForm] = useState(() => !requestedUrl),
     [note, setNote] = useState(seed ? tx(`Данные из подборки ${seed.store} на ${seed.observedOn}. Atlas сверяет цену и вариант с магазином при добавлении в корзину. Вес — оценка Atlas: склад взвесит посылку.`, `${seed.store} to‘plamidagi ma’lumotlar, ${seed.observedOn}. Atlas savatga qo‘shishda narx va variantni do‘kon bilan solishtiradi. Vazn — Atlas bahosi: ombor jo‘natmani tortadi.`, `Data from the ${seed.store} selection as of ${seed.observedOn}. Atlas checks the price and option with the store when you add the item to the cart. Weight is an Atlas estimate: the warehouse weighs the parcel.`) : dealSeed ? tx(`Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas сейчас сверяет их с магазином.`, `Narx va surat ${dealSeed.observedOn} sanadagi to‘plamdan olingan. Atlas hozir ularni do‘kon bilan solishtirmoqda.`, `Price and photo saved from the selection on ${dealSeed.observedOn}. Atlas is checking them with the store now.`) : ""),
     [weightOrigin, setWeightOrigin] = useState(tx("Оценка по категории","Kategoriya bo‘yicha taxmin","Category estimate")),
-    [sourceCheckStatus, setSourceCheckStatus] = useState<'idle'|'checking'|'verified'|'failed'|'manual'>('idle'),
+    [sourceCheckStatus, setSourceCheckStatus] = useState<'idle'|'checking'|'verified'|'failed'|'manual'|'catalog'>(seedReady ? 'catalog' : 'idle'),
     // Why the automatic import failed, in the store's words when the link is at fault, and whether the owner was told.
     [importProblem, setImportProblem] = useState<{text?: string; known: boolean; retry?: boolean} | null>(null),
-    [importedAt, setImportedAt] = useState<number | undefined>(),
+    [importedAt, setImportedAt] = useState<number | undefined>(seedReady ? seed!.sourceCheckedAt : undefined),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
     [formIssue, setFormIssue] = useState(""),
     // The field the message under the add button is about: marked invalid only while that message is shown.
@@ -341,7 +375,7 @@ export function GlobalLinkOrder() {
   // Several options of one product can go to the cart at once: option label → quantity.
   // Also on the first paint of the colours, when a colour arrives already chosen from the link.
   useEffect(() => { document.querySelectorAll<HTMLElement>(".lo-colour-rail").forEach(keepChosenColourInView); }, [selectedColor, variants]);
-  const [picked, setPicked] = useState<Record<string, number>>(() => fallbackOptions.length === 1 ? { [fallbackOptions[0].label]: 1 } : {});
+  const [picked, setPicked] = useState<Record<string, number>>(() => { const start = seedReady ? seedSelectable : fallbackOptions; return start.length === 1 ? { [start[0].label]: 1 } : {}; });
   // One option at a time by default: a tap replaces the choice. "Several or a quantity" turns on the list with
   // quantities (owner, 12 October 2026). A restored draft with several options opens in that mode.
   const [multiPick, setMultiPick] = useState(false);
@@ -364,7 +398,7 @@ export function GlobalLinkOrder() {
   // Bumped when an earlier choice was applied, so the draft is saved even if the choice changed nothing on screen.
   const [choicesApplied, setChoicesApplied] = useState(0);
   // The store's product price from a store check: the price of options it lists without their own.
-  const [basePrice, setBasePrice] = useState<number | undefined>();
+  const [basePrice, setBasePrice] = useState<number | undefined>(seedReady ? seedPrice!.amount : undefined);
   // The store answered that every option at this link is sold out (lib/market/link-order-stock.ts): the failed check
   // then says «Нет в наличии в магазине» instead of asking to retry for a price.
   const [storeSoldOut, setStoreSoldOut] = useState(false);
@@ -385,7 +419,7 @@ export function GlobalLinkOrder() {
   const automaticallyLoaded = useRef<string | null>(null);
   const focusLinkField = useRef(false);
   // "Поделиться → Atlas" brought text without a web link (app/share/route.ts): say so once and drop the mark from the address.
-  const sharedWithoutLink = searchParams.get("shared") === "nolink";
+  const sharedWithoutLink = !catalogMode && searchParams.get("shared") === "nolink";
   useEffect(() => {
     if (!sharedWithoutLink) return;
     toast.message(lc.sharedNoLink);
@@ -401,12 +435,13 @@ export function GlobalLinkOrder() {
     document.getElementById("source-url")?.focus();
   }, [showSourceForm]);
   const autoLoadKey=`${catalogId}:${requestedUrl}`;
-  const [autoLoadStarted,setAutoLoadStarted]=useState("");
+  // A catalog card shown from its stored data has nothing to wait for (seedReady).
+  const [autoLoadStarted,setAutoLoadStarted]=useState(()=>seedReady?autoLoadKey:"");
   // From the first frame until the store answers the page keeps its shape: the product stays, the rest waits in placeholders.
   const checking=busy||(Boolean(requestedUrl)&&autoLoadStarted!==autoLoadKey);
   // A store link already copied lights up "Вставить" and is fetched in the background (app/use-clipboard-link.ts).
-  const clip = useClipboardLink(requestedUrl);
-  const [catalogContextLoaded,setCatalogContextLoaded]=useState<string|null>(()=>catalogId?null:'');
+  const clip = useClipboardLink(requestedUrl, !catalogMode);
+  const [catalogContextLoaded,setCatalogContextLoaded]=useState<string|null>(()=>catalogId&&!catalogMode?null:catalogId);
   // Drafts are kept per page address (link, catalog card or deal) on this device: lib/market/link-order-draft.ts.
   const dealId=dealSeed?.id??"";
   const draftKey=draftKeyFor({pageUrl:requestedUrl,catalogId,dealId});
@@ -415,12 +450,16 @@ export function GlobalLinkOrder() {
   const draftRestored=useRef(false),draftCanSkipAutomaticLoad=useRef(false),draftPersistenceReady=useRef(false),prunedFor=useRef("");
   // The customer's choice to apply again once the product is (re)loaded: a stale draft, a price change, a guest add after sign-in.
   const reapply=useRef<DraftChoices|null>(null);
+  // Looking at a catalog card (the sheet or /catalog/p/[id]) is not an unfinished order: its draft is kept only once the
+  // customer tried to add it (or an earlier try left one), so /order-by-link never brings back a card only browsed.
+  const [addTriedFor,setAddTriedFor]=useState("");
 
   useEffect(()=>{
     let active=true;
-    void loadCatalog().finally(()=>{if(active&&catalogId)setCatalogContextLoaded(catalogId)});
+    // A catalog card brings its own data; the catalog list is still loaded for the rest of the site.
+    void loadCatalog().finally(()=>{if(active&&catalogId&&!catalogMode)setCatalogContextLoaded(catalogId)});
     return()=>{active=false};
-  },[catalogId,loadCatalog]);
+  },[catalogId,catalogMode,loadCatalog]);
 
   // Opening the page without a link brings back the unfinished draft the customer was last working on, at its own address
   // (so back, forward and reload keep it), and says so. A link the customer started typing, or "Next item", clears that
@@ -487,6 +526,7 @@ export function GlobalLinkOrder() {
     // Not while the store is asked or a choice waits to be applied: an in-between form would overwrite the customer's choice.
     // Not before it is known who is here: the draft is saved under that account (or as a guest's).
     if(!draftPersistenceReady.current||checking||reapply.current||!source||!draftKey||viewer===null)return;
+    if(catalogMode&&addTriedFor!==draftKey&&!draftRestored.current)return;
     writeDraft(browserStorage(),draftKey,{
       done:Boolean(added),owner:viewer,pageUrl:requestedUrl,catalogId,dealId,
       url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,
@@ -495,10 +535,10 @@ export function GlobalLinkOrder() {
       picked,manualQuantity,comment,
     },Date.now(),prunedFor.current!==draftKey);
     prunedFor.current=draftKey;
-  },[draftKey,viewer,checking,choicesApplied,added,requestedUrl,catalogId,dealId,url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,weight,weightBasis,weightOrigin,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,sourceCheckStatus,importedAt,sourceExpiresAt,atlasLocks,picked,manualQuantity,comment,previewSpeed]);
+  },[draftKey,viewer,catalogMode,addTriedFor,checking,choicesApplied,added,requestedUrl,catalogId,dealId,url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,weight,weightBasis,weightOrigin,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,sourceCheckStatus,importedAt,sourceExpiresAt,atlasLocks,picked,manualQuantity,comment,previewSpeed]);
   const [sizeFormat,setSizeFormat]=useState<"us"|"uk"|"eu"|"cm">("us");
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
-  const currentCatalogSeed=catalogLinkSeed(catalogProducts,catalogId,requestedUrl,url);
+  const currentCatalogSeed=seedFor(url);
   const catalogProductFlow=Boolean(currentCatalogSeed || (dealSeed && url===requestedUrl));
   // Incomplete merchant/catalog responses must never leave an empty read-only price.
   const catalogPriceLocked=catalogProductFlow && Boolean(catalogLinkPrice(currentCatalogSeed) || dealSeed);
@@ -539,7 +579,7 @@ export function GlobalLinkOrder() {
   const sizeLabels = variantsForColor.map(item => item.sizeLabel?.trim().toLowerCase()).filter(Boolean);
   const sizeStep = Boolean(nikeSizeSystem || adidasSizes || (sizeLabels.length && sizeLabels.every(label => label === 'размер' || label === 'size' || label === 'size us')));
   // The store's product price applies to options it lists without their own; only from a store check (locked there).
-  const storeBasePrice=sourceCheckStatus==='verified'&&atlasLocks?.price&&!unlocked.price?basePrice:undefined;
+  const storeBasePrice=(sourceCheckStatus==='verified'&&atlasLocks?.price||sourceCheckStatus==='catalog')&&!unlocked.price?basePrice:undefined;
   function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){
     if(!item){setVariant("");setSelectedSize("");return}
     setVariant(item.label);setSelectedColor(item.color??"");setSelectedSize(item.size??"");
@@ -671,7 +711,7 @@ export function GlobalLinkOrder() {
       reapply.current=null;
       return;
     }
-    const linkSeed=catalogLinkSeed(catalogProducts,catalogId,requestedUrl,link);
+    const linkSeed=seedFor(link);
     const linkDealSeed=link===requestedUrl?dealSeed:undefined;
     const linkIsCatalogFlow=Boolean(linkSeed||linkDealSeed);
     const linkSeedPrice=catalogLinkPrice(linkSeed);
@@ -1014,6 +1054,14 @@ export function GlobalLinkOrder() {
     // After this page's saved draft was looked at: a fresh one is shown as it was, any other is reloaded with the choice.
     if (!requestedUrl || (catalogId&&catalogContextLoaded!==catalogId) || draftDecidedFor !== draftKey || automaticallyLoaded.current === loadKey) return;
     setAutoLoadStarted(loadKey);
+    // A catalog card shown from its stored data is not asked again on opening; an earlier choice from this device is
+    // applied to its options at once (the effect above, on a finished "load").
+    if(seedReady){
+      automaticallyLoaded.current=loadKey;
+      if(reapply.current)setLoadsDone(count=>count+1);
+      return;
+    }
+    if(datedCatalog){automaticallyLoaded.current=loadKey;return}
     if(draftRestored.current&&draftCanSkipAutomaticLoad.current){
       automaticallyLoaded.current=loadKey;
       setShowSourceForm(false);
@@ -1025,7 +1073,7 @@ export function GlobalLinkOrder() {
     void load(requestedUrl);
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedUrl, catalogId, catalogContextLoaded, draftDecidedFor, draftKey]);
+  }, [requestedUrl, catalogId, catalogContextLoaded, draftDecidedFor, draftKey, seedReady, datedCatalog]);
   // The options the customer chose, with quantities: from the option buttons, or the typed option.
   const picks: [string, number][] = variants.length
     ? Object.entries(picked).filter(([label]) => variants.some(item => item.label === label))
@@ -1063,10 +1111,16 @@ export function GlobalLinkOrder() {
   const customsPreview = previewItems.length ? cartCustomsEstimate({ ...state, cart: [...state.cart, ...previewItems] }, pricing, { profile: primaryProfile }, { outsideUsed: false, help: false }) : null;
   const k = calcCopy[lang];
   const sourceHost = (() => { try { return source ? new URL(source).hostname.replace(/^www\./, "") : ""; } catch { return ""; } })();
+  // The brand line as the catalog card writes it (lib/market/product-name.ts): no slug ("kylie-cosmetics"), no
+  // marketplace taken for the maker, and the store named once when the brand is the store itself.
+  const storeName = sourceHost ? storefrontLabel(sourceHost, lang) : "";
+  const hostBrand = sourceHost ? brandForHost(sourceHost) : undefined;
+  const brandShown = displayBrand(brand, storeName, hostBrand?.focus === "marketplace" ? hostBrand.name : undefined);
+  const brandLine = [brandShown && brandShown !== storeName ? brandShown : "", storeName].filter(Boolean).join(" · ");
   const previewProduct: Product = {
     id: "preview",
     name: name || "Фото товара",
-    brand: brand || sourceHost,
+    brand: brandShown || storeName,
     category,
     usd: 1,
     weight: 1,
@@ -1079,21 +1133,21 @@ export function GlobalLinkOrder() {
    * The item went to the cart: the draft is done (before anything else is awaited) and what was added is no longer
    * chosen, so a new choice here holds only new options; the cart merges equal lines, so repeating it would add twice.
    */
-  function finishAdd(lines: number, units: number) {
+  function finishAdd(lines: number, units: number, message = pd.added(units)) {
     markDraftDone(browserStorage(), draftKey);
     setAdded({ lines, units });
     setPicked(variants.length === 1 ? { [variants[0].label]: 1 } : {});
     setManualQuantity(1);
     if (!variants.length) setVariant("");
      setComment(""); setFormIssue(""); setGoneOptions([]); setChoiceNote(""); setResumedFrom("");
-    // Added: straight to the cart, where delivery and payment are chosen (owner, 12 October 2026).
-    router.push("/cart");
+    // Added: the page stays, and the message leads on to checkout (redesign stage 5, 1 November 2026; until then the
+    // page went straight to the cart).
+    toast.success(message, { action: { label: pd.checkout, onClick: () => router.push("/cart") } });
   }
   // A guest's "add to cart" is sent once after sign-in, when this product is on screen again (app/pending-cart-add.ts).
   const pendingAdd = usePendingCartAdd(!checking && !adding && Boolean(source) && draftDecidedFor === draftKey, (result: PendingCartAddResult) => {
     if (result.status === "added") {
-      toast.success(lc.pending.added(result.pending.units) + (result.speedKept ? " " + lc.pending.speedKept : ""));
-      finishAdd(result.pending.lines, result.pending.units);
+      finishAdd(result.pending.lines, result.pending.units, lc.pending.added(result.pending.units) + (result.speedKept ? " " + lc.pending.speedKept : ""));
       return;
     }
     setFormIssue(result.status === "changed" ? lc.pending.changed : lc.pending.failed);
@@ -1108,6 +1162,9 @@ export function GlobalLinkOrder() {
   // A catalog item can be saved to favourites right here; a link outside the catalog has nothing to save.
   const favoriteId = currentCatalogSeed && ready && !isGuest ? currentCatalogSeed.id : "";
   const favoriteSaved = Boolean(favoriteId) && state.favorites.includes(favoriteId);
+  // A guest's heart on a catalog card signs in first and then saves it, as on the catalog card (app/catalog-card.tsx):
+  // back to the catalog with this card open, where app/catalog-view.tsx saves the remembered item.
+  const guestFavoriteId = catalogMode && isGuest && currentCatalogSeed ? currentCatalogSeed.id : "";
   const dc = dealCopy(lang);
   async function toggleFavorite() {
     if (!favoriteId || favoriteBusy) return;
@@ -1123,8 +1180,9 @@ export function GlobalLinkOrder() {
   // Prices on the size buttons only when sizes of the chosen colour cost differently; the colour's price is shown above.
   const sizePricesDiffer = new Set(variantsForColor.filter(item => item.available && item.quantity !== 0).map(item => item.price).filter((value): value is number => value !== undefined)).size > 1;
   const countryText = country === "Другая страна" ? otherCountry.trim() || countryLabel(country, lang) : countryLabel(canonicalCountry(country), lang);
-  // Store money is written one way on the whole page ("15,99 $"): the header, the options and the details alike.
-  const moneyIn = (value: number, code: string) => { try { return new Intl.NumberFormat(lang === "ru" ? "ru-RU" : "en-US", { style: "currency", currency: code, maximumFractionDigits: 2 }).format(value); } catch { return `${value} ${code}`; } };
+  // Store money is written one way on the whole page, as the catalog card writes it (app/catalog-card.tsx): dollars as
+  // "$42" / "$15,99", other currencies by Intl without empty cents ("120 RON").
+  const moneyIn = (value: number, code: string) => { if (code === "USD") return formatPriceUsd(value, lang); try { return new Intl.NumberFormat(lang === "ru" ? "ru-RU" : "en-US", { style: "currency", currency: code, minimumFractionDigits: Number.isInteger(value) ? 0 : 2, maximumFractionDigits: 2 }).format(value); } catch { return `${value} ${code}`; } };
   const sourceFormat = (value: number) => moneyIn(value, currency);
   const typedMoney = (value: string, code: string) => value.trim() !== "" && Number.isFinite(Number(value)) ? moneyIn(Number(value), code) : `${value} ${code}`;
   // The heading follows the colour/size being viewed. The quote below still totals all cart picks.
@@ -1145,7 +1203,7 @@ export function GlobalLinkOrder() {
   const checkedTime = importedAt ? `${String(new Date(importedAt).getHours()).padStart(2, "0")}:${String(new Date(importedAt).getMinutes()).padStart(2, "0")}` : "";
   // Locked: what Atlas got from the store (all of it once the check succeeded) or what an Atlas catalog card fixes.
   // Verified with the store, or typed by the customer for a store Atlas does not read: the item can be ordered.
-  const orderable = sourceCheckStatus === "verified" || sourceCheckStatus === "manual";
+  const orderable = sourceCheckStatus === "verified" || sourceCheckStatus === "manual" || sourceCheckStatus === "catalog";
   // Nothing chosen yet among several options: an honest "from" total for the lowest-priced option that can be ordered
   // (in the colour being viewed, or in any colour while none is chosen). Priced like the real choice; the server prices that.
   const fromSums = (() => {
@@ -1185,7 +1243,7 @@ export function GlobalLinkOrder() {
   const speedFaster = previewSpeed === "standard" && country !== "Другая страна" ? fasterText(pricing, [country], lang) : "";
   const speedLine = <p className="lo-speed">
     <span className="lo-speed-label">{lc.speedLabel}</span>
-    <span className="lo-speed-chip">{deliverySpeedCopy[lang].names[previewSpeed]}{previewSpeed === "express" && <Star size={13} className="speed-option-star" aria-hidden="true" />}{speedRange && <span className="lo-speed-days">{` · ${deliverySpeedCopy[lang].days(speedRange[0], speedRange[1])}`}</span>}</span>
+    <span className="lo-speed-chip">{deliverySpeedCopy[lang].names[previewSpeed]}{previewSpeed === "express" && <Star size={13} className="speed-option-star" aria-hidden="true" />}{/* The window in days is said once, in the trust row (TrustRow). */}</span>
     <small>{previewSpeed === "express" ? lc.standardInCart : speedFaster ? `${speedFaster} — ${lc.expressInCart}` : tx("Скорость доставки выберете в корзине.", "Yetkazish tezligini savatda tanlaysiz.", "Choose delivery speed in your cart.")}</small>
   </p>;
   // The field the shown message under the add button is about; a newer message (or none) unmarks it.
@@ -1202,7 +1260,7 @@ export function GlobalLinkOrder() {
   };
   const anyLocked = Object.values(locks).some(Boolean), allLocked = Object.values(locks).every(Boolean);
   // A confirmed and fully locked import keeps the details folded; anything to fill in or review stays open.
-  const dataExpanded = dataOpen || sourceCheckStatus !== "verified" || !allLocked;
+  const dataExpanded = dataOpen || (sourceCheckStatus !== "verified" && sourceCheckStatus !== "catalog") || !allLocked;
   const dataMode: "atlas" | "catalog" | "manual" = atlasLoaded ? "atlas" : anyLocked ? "catalog" : "manual";
   const ownerKnows = tx("Мы уже знаем о проблеме и можем связаться с вами.", "Muammo haqida bilamiz va siz bilan bog‘lanishimiz mumkin.", "We already know about the problem and may contact you.");
   const dataNote = dataMode === "manual" ? lc.locked.manualNote + (importProblem?.known && !importProblem.retry && sourceCheckStatus === "manual" ? " " + ownerKnows : "") : (dataMode === "atlas" ? lc.locked.note(checkedTime) : lc.locked.catalogNote) + (allLocked ? "" : " " + lc.locked.partNote);
@@ -1248,6 +1306,22 @@ export function GlobalLinkOrder() {
   // The item data card: in the right column under the total, or, for a store Atlas does not read (the customer types
   // every field), under the item card across the wide left column. Rendered in one place only.
   const manualLayout = sourceCheckStatus === "manual";
+  // The product page's own values (app/product-detail.tsx): the heading level, the hero sum and what the trust row says.
+  const TitleTag = catalogMode && !inSheet ? "h1" : "h2";
+  // A dated card before its check: the recorded price, priced like one option, as an estimate ("≈").
+  const awaitingCheck = datedCatalog && sourceCheckStatus === "idle" && !checking;
+  const datedSums = (() => {
+    if (!awaitingCheck || !(Number(amount) > 0)) return null;
+    const items = previewFor([[tx("Вариант уточним", "Variant aniqlanadi", "Option to confirm"), 1]]);
+    return items.length ? sumQuotes(items.map(item => item.quote)) : null;
+  })();
+  const heroTotal = nothingToChoose ? null : previewSums ? previewSums.total : fromSums ? fromSums.total : datedSums ? datedSums.total : null;
+  const heroFrom = !nothingToChoose && !previewSums && Boolean(fromSums);
+  const checkDated = () => { setFormIssue(""); void load(requestedUrl); };
+  const catalogCheckedAt = seed?.sourceCheckedAt ?? (seed?.observedOn ? Date.parse(seed.observedOn) || undefined : undefined);
+  const trustChecked = sourceCheckStatus === "verified" ? { at: importedAt } : sourceCheckStatus === "catalog" ? { at: catalogCheckedAt } : null;
+  // The store's own description (a catalog card keeps it), else the declaration text Atlas drafted from the page.
+  const aboutText = (seed?.description ?? "").trim() || declaration.trim();
   const finishSheet = () => <div className="lo-sheet lo-sheet-finish">
     <section className={"lo-card lo-data" + (dataExpanded ? " open" : "")}>
       <button type="button" className="lo-data-toggle" aria-expanded={dataExpanded} aria-controls="lo-data-fields" onClick={() => setDataOpen(!dataExpanded)}>
@@ -1358,56 +1432,9 @@ export function GlobalLinkOrder() {
       </div>
     </section>
     </div>;
-  // Wide screens: the right column never reaches below the window, so the total and the add button stay in view; what
-  // does not fit (customs, the store-delivery hold, opened item data) scrolls inside the column, with the add button
-  // pinned at its foot (app/customer.css, .lo-side). The room is measured from where the column starts on screen: under
-  // the page heading at first, at its sticky top once the page is scrolled.
-  const sideRef = useRef<HTMLDivElement>(null);
-  const sideShown = Boolean(source || checking);
-  useEffect(() => {
-    const side = sideRef.current;
-    if (!side) return;
-    let frame = 0;
-    const queue = () => { if (!frame) frame = window.requestAnimationFrame(fit); };
-    const observer = new ResizeObserver(queue);
-    // A card added inside a full column does not change the column's own size, so its content is watched too.
-    const cards = new MutationObserver(queue);
-    function fit() {
-      frame = 0;
-      if (!side) return;
-      const stuckAt = parseFloat(getComputedStyle(side).top);
-      const top = Math.max(side.getBoundingClientRect().top, Number.isFinite(stuckAt) ? stuckAt : 0);
-      // Every read comes before any write, and a value is written only when it changed: this runs on every scroll frame,
-      // and a write between reads lays the page out again.
-      const room = `${Math.max(360, Math.round(window.innerHeight - top - 16))}px`;
-      const fits = side.scrollHeight <= side.clientHeight + 1;
-      const confirm = side.querySelector<HTMLElement>(".lo-confirm");
-      const padding = confirm ? `${confirm.offsetHeight + 12}px` : "";
-      for (const card of Array.from(side.children)) observer.observe(card);
-      if (side.style.getPropertyValue("--lo-side-room") !== room) side.style.setProperty("--lo-side-room", room);
-      // The scroll box would cut the cards' shadows, so it is on only while the column is taller than the room.
-      if (side.hasAttribute("data-fits") !== fits) side.toggleAttribute("data-fits", fits);
-      // Tab into the column scrolls a field into view above the pinned button, not under it.
-      if (side.style.scrollPaddingBottom !== padding) side.style.scrollPaddingBottom = padding;
-    }
-    observer.observe(document.body);
-    observer.observe(side);
-    cards.observe(side, { childList: true });
-    // In the next frame, not during mount: the page is laid out by then, so reading the column costs nothing extra.
-    queue();
-    window.addEventListener("scroll", queue, { passive: true });
-    window.addEventListener("resize", queue);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      observer.disconnect();
-      cards.disconnect();
-      window.removeEventListener("scroll", queue);
-      window.removeEventListener("resize", queue);
-    };
-  }, [sideShown]);
   return (
-    <div className={"lo-page" + ((source || isSourcedFlow) && !showSourceForm ? " lo-page-loaded" : "")}>
-      <header className="orders-head"><div><h1>{lc.title}</h1><p>{(source || isSourcedFlow) && !showSourceForm ? lc.leadLoaded : lc.lead}</p></div></header>
+    <div className={"lo-page" + ((source || isSourcedFlow) && !showSourceForm ? " lo-page-loaded" : "") + (catalogMode ? " pd-page" : "") + (inSheet ? " pd-in-sheet" : "")}>
+      {!catalogMode && <header className="orders-head"><div><h1>{lc.title}</h1><p>{(source || isSourcedFlow) && !showSourceForm ? lc.leadLoaded : lc.lead}</p></div></header>}
 
       {(showSourceForm || (!requestedUrl && resumeChecked)) && <form className="lo-link" onSubmit={(e) => { e.preventDefault(); openLink(); }} aria-busy={busy} noValidate>
         <label className="sr-only" htmlFor="source-url">{lc.label}</label>
@@ -1479,7 +1506,7 @@ export function GlobalLinkOrder() {
           <BlankBill pricing={pricing} locale={lang}/>
         </div></>}
 
-      {(isSourcedFlow || source) && !showSourceForm && <div className="lo-source" aria-live="polite">
+      {!catalogMode && (isSourcedFlow || source) && !showSourceForm && <div className="lo-source" aria-live="polite">
         {source && !checking
           ? <a className="lo-source-host" href={source} target="_blank" rel="noopener noreferrer" title={source}><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span><ExternalLink size={13} aria-hidden="true" /><span className="sr-only"> ({lc.openStore})</span></a>
           : <span className="lo-source-host"><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span></span>}
@@ -1498,7 +1525,7 @@ export function GlobalLinkOrder() {
         <button type="button" className="lo-source-link" onClick={startNewLink}>{lc.startNew}</button>
       </div>}
       {pendingAdd.sending && !added && <p className="lo-pending" role="status"><Loader2 className="spin" size={16} aria-hidden="true" />{lc.pending.sending}</p>}
-      {added && <div className="lo-added" role="status">
+      {!catalogMode && added && <div className="lo-added" role="status">
         <Check size={20} aria-hidden="true" />
         <div><b>{tx(`В корзине: +${added.units} шт.`, `Savatda: +${added.units} dona`, `Added to cart: ${added.units} pcs`)}</b><small>{tx("Можно выбрать другой вариант или вставить ссылку на следующий товар — корзина сохранится.", "Boshqa variantni tanlash yoki keyingi tovar havolasini qo‘yish mumkin — savat saqlanadi.", "Choose another option or paste the next product link — your cart is kept.")}</small></div>
         <span className="lo-added-actions">
@@ -1529,13 +1556,14 @@ export function GlobalLinkOrder() {
       {(source || checking) && (
         <form
           id="link-order-form"
-          className={"lo-layout link-order-data-form" + (checking ? " is-checking" : " is-ready") + (manualLayout && !checking ? " manual" : "")}
+          className={"pd link-order-data-form" + (checking ? " is-checking" : " is-ready") + (manualLayout && !checking ? " manual" : "")}
           noValidate
           aria-busy={checking}
           onChangeCapture={() => setFormIssue("")}
           onSubmit={async (e) => {
             e.preventDefault();
             if (checking) return;
+            if (catalogMode) setAddTriedFor(draftKey);
             try {
               if(!orderable){
                 const message=tx('Загрузка ещё не завершилась. Дождитесь результата или вставьте ссылку повторно.','Yuklash hali tugamadi. Natijani kuting yoki havolani qayta kiriting.','Import has not finished. Wait for the result or enter the link again.');
@@ -1664,42 +1692,37 @@ export function GlobalLinkOrder() {
             }
           }}
         >
-          <div className="lo-sheet lo-sheet-pick">
-          <section className={"lo-product" + (image || checking ? "" : " lo-product-plain")} aria-labelledby="lo-product-name">
-            {/* A catalog product keeps its photo and name through the check; a bare link gets their outline. */}
-            {image ? <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang} compact/></div>
-              : checking && <div className="lo-gallery lo-skel lo-skel-photo" aria-hidden="true"><PhotoWait label={tx("Загружаем фото","Suratlar yuklanmoqda","Loading photos")} /></div>}
-            <div className="lo-product-copy">
-              {brand || sourceHost || !checking
-                ? <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
+          {/* The photos: 7 of 12 columns on wide screens, the full width above the details on phones. */}
+          <div className="pd-media">
+            {image ? <div className="pd-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang} compact={inSheet}/></div>
+              : checking ? <div className="pd-gallery lo-skel lo-skel-photo" aria-hidden="true"><PhotoWait label={tx("Загружаем фото","Suratlar yuklanmoqda","Loading photos")} /></div> : null}
+          </div>
+          {/* The decision: brand, name, one big sum in soum, the store price small, the choice, "Из чего сумма", trust. */}
+          <div className="pd-info">
+            <div className="pd-head">
+              {brandLine || !checking
+                ? <p className="pd-brand">{brandLine}</p>
                 : <span className="lo-skel lo-skel-brand" aria-hidden="true" />}
-              <div className="lo-name-row">
-              <h2 id="lo-product-name">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</h2>
-              {favoriteId && <button type="button" className={"find-save lo-save" + (favoriteSaved ? " saved" : "")} aria-pressed={favoriteSaved} aria-label={favoriteSaved ? dc.remove : dc.save} title={favoriteSaved ? dc.remove : dc.save} disabled={favoriteBusy} onClick={() => void toggleFavorite()}><Heart size={20} aria-hidden="true" /></button>}
+              <div className="pd-name-row">
+                <TitleTag id="lo-product-name" className="pd-title">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</TitleTag>
+                {guestFavoriteId && <a className="find-save lo-save" href={loginPath(catalogItemHref("/catalog", guestFavoriteId))} aria-label={dc.signinToSave} title={dc.signinToSave} onClick={() => rememberPendingFavorite(catalogStorage(), guestFavoriteId, Date.now())}><Heart size={20} aria-hidden="true" /></a>}
+                {favoriteId && <button type="button" className={"find-save lo-save" + (favoriteSaved ? " saved" : "")} aria-pressed={favoriteSaved} aria-label={favoriteSaved ? dc.remove : dc.save} title={favoriteSaved ? dc.remove : dc.save} disabled={favoriteBusy} onClick={() => void toggleFavorite()}><Heart size={20} aria-hidden="true" /></button>}
               </div>
               {checking && <LoadStage url={requestedUrl || url} locale={lang} />}
               {checking && name && <p className="lo-note">{tx("Название и фото предварительные. Сверяем данные с магазином.", "Nom va surat dastlabki. Ma’lumotlarni do‘kon bilan tekshiryapmiz.", "The name and photo are preliminary. Checking details with the store.")}</p>}
+              {(checking || heroTotal !== null) && <SumHero total={heroTotal} from={heroFrom} approx={Boolean(datedSums)} pending={checking} locale={lang} id="pd-sum" />}
               {checking
-                ? <p className="lo-store-price">{lc.storePrice}: <span className="lo-skel lo-skel-price" aria-hidden="true" /></p>
-                : sourceCheckStatus === "manual" && !(Number(amount) > 0) ? null : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}</p>}
-              {/* Its own quiet line with a tick: as a tail after the price it wrapped alone, starting with "·", on phones (owner, 27 October 2026). */}
-              {!checking && sourceCheckStatus === "verified" && checkedTime && <p className="lo-checked"><Check size={14} aria-hidden="true" />{lc.checkedAt(checkedTime)}</p>}
+                ? <p className="pd-usd">{lc.storePrice}: <span className="lo-skel lo-skel-price" aria-hidden="true" /></p>
+                : sourceCheckStatus === "manual" && !(Number(amount) > 0) ? null : <p className="pd-usd lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}</p>}
               {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{soldOutAtStore ? soldOutText : importProblem ? importProblem.text ?? tx('Не получилось загрузить автоматически — заполните вручную, мы проверим цену.','Avtomatik yuklab bo‘lmadi — qo‘lda to‘ldiring, narxni tekshiramiz.','We couldn’t load it automatically — fill it in by hand and we’ll check the price.') : tx('Автоматическая проверка не завершена. Сохранённые данные предварительные.','Avtomatik tekshirish tugamadi. Saqlangan ma’lumotlar taxminiy.','Automatic verification is incomplete. Saved details are preliminary.')}{!soldOutAtStore && importProblem?.known ? ' ' + ownerKnows : ''}</p>}
-              {!checking && orderable && variants.length > 1 && variantColors.length > 1 && <div className="variant-step lo-colours-aside"><div><b>{c.color}</b><span>{colourHeading}</span></div>{colourOptions}</div>}
-              {/* Wide screens: what Atlas read from the store, beside the photo, so the card has no empty half
-                  (owner, 26 October 2026). Phones keep it in the "Calculation data" card only. */}
-              {!checking && orderable && dataMode !== "manual" && <dl className="lo-store-facts">
-                {countryText && <div><dt>{tx('Отправка из','Jo‘natish joyi','Ships from')}</dt><dd>{countryText}</dd></div>}
-                {validBoxedWeight(weight) !== undefined && <div><dt>{tx('Вес для расчёта','Hisob uchun og‘irlik','Weight for the estimate')}</dt><dd>{formatKg(validBoxedWeight(weight)!, lang)} {lc.kg}</dd></div>}
-                <div><dt>{tx('Доставка магазина','Do‘kon yetkazishi','Store delivery')}</dt><dd>{lockedShippingText}</dd></div>
-                <div><dt>{tx('Наличие','Mavjudlik','Stock')}</dt><dd>{variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) ? tx('Магазин сообщает остаток по вариантам','Do‘kon variantlar bo‘yicha qoldiqni ko‘rsatadi','The store shows stock per option') : k.stockUnknown}</dd></div>
-                {/* "Price checked" is not repeated here: the line under the price already says it (29 October 2026). */}
-                {(source || url) && <div className="lo-store-facts-link"><a className="lo-source-link" href={source || url} target="_blank" rel="noopener noreferrer">{c.original}<ExternalLink size={14} aria-hidden="true" /></a></div>}
-              </dl>}
             </div>
 
-          {/* The choice sits inside the item card, across its full width under the photo and colours (owner, 12 October 2026). */}
-          {checking ? <StoreCheck host={(() => { try { return new URL(source || url).hostname.replace(/^www\./, ""); } catch { return ""; } })()} locale={lang} /> : orderable && <section className="lo-card lo-variant">
+            {awaitingCheck && <div className="pd-dated" role="note">
+              <p><Info size={18} aria-hidden="true" /><span>{pd.datedNote(catalogCheckedAt ? new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "ru-RU", { day: "2-digit", month: "2-digit", timeZone: "Asia/Tashkent" }).format(catalogCheckedAt) : "—")}</span></p>
+              <button type="button" className="btn primary" onClick={checkDated}>{pd.checkPrice}<ArrowRight size={18} aria-hidden="true" /></button>
+            </div>}
+            {/* Colour tiles with photos and sizes are chosen right here (PR #82 tiles; no hop to another page). */}
+          {checking ? <StoreCheck host={(() => { try { return new URL(source || url).hostname.replace(/^www\./, ""); } catch { return ""; } })()} locale={lang} /> : orderable && <section className="lo-variant pd-pick">
             <div className="field variant-matrix" data-order-variant tabIndex={-1}>
               <label htmlFor="variant">{c.variant}</label>
               {variants.length===1 ? <div className="single-variant-selection lo-single-option">
@@ -1759,62 +1782,55 @@ export function GlobalLinkOrder() {
               <textarea id="order-comment" rows={2} maxLength={500} value={comment} placeholder={k.commentPlaceholder} autoFocus={commentOpen && !comment} onChange={(e) => setComment(e.target.value)} />
             </div> : <button type="button" className="lo-source-link lo-comment-open" aria-expanded={false} onClick={() => setCommentOpen(true)}><Plus size={16} aria-hidden="true" />{tx("Комментарий для Atlas", "Atlas uchun izoh", "Comment for Atlas")}</button>}
           </section>}
-          </section>
-          </div>
 
-          {!checking && orderable && manualLayout && finishSheet()}
-          {/* The right column on wide screens: total, item data and the add button, in this order for the eye, Tab and
-              screen readers; it stays in view while the long item card scrolls (on phones it is one column, as before). */}
-          <div className="lo-side" ref={sideRef}>
-          {/* The bill in a folder: the sheet is the amount to pay, the slip holds the hold and customs that stay outside it. */}
-          <div className="lo-sheet lo-sheet-bill">
-          <aside className="lo-summary basket-summary folio" aria-labelledby="lo-summary-title">
-            <div className="folio-sheet">
-              <h2 id="lo-summary-title">{lc.total}</h2>
-              {checking ? <BillPlaceholder /> : previewSums && !nothingToChoose ? <>
-                {speedLine}
-                <CalcLines sums={previewSums} locale={lang} pricing={pricing} weightKg={previewWeight} storeShippingState={storeShippingState} speed={previewSpeed}/>
-                <div className="basket-total bill-total"><span>{units > 1 ? `${k.lines.total} (${units} ${lang === "en" ? "pcs" : isUzbek(lang) ? uzText(lang, "dona") : "шт."})` : k.lines.total}</span><strong><Money value={previewSums.total} locale={lang}/></strong></div>
-                {/* The allowance in two lines; "Atlas pays customs for me" is chosen in the cart, for the whole order. */}
-                {customsPreview && <CustomsPanel estimate={customsPreview} choices={{ outsideUsed: false, help: false }} locale={lang} pricing={pricing} profiles={primaryProfile ? [primaryProfile] : []} compact/>}
-              </> : fromSums ? <>
-                {speedLine}
-                {/* "From" sits in the label, not in the amount, so the amount is never cut on a phone. */}
-                <div className="basket-total bill-total lo-from-total"><span>{lc.fromLabel}</span><strong><Money value={fromSums.total} locale={lang}/></strong></div>
-                <p className="micro lo-from-note">{lc.fromNote}</p>
-              </> : <p className="cabinet-empty">{soldOutAtStore || nothingToChoose ? noStockText : picks.length ? lc.emptyTotal : sourceCheckStatus === "manual" && !variants.length ? lc.manualTotal : tx("Выберите вариант, и мы покажем итог.", "Variantni tanlang, jamini ko‘rsatamiz.", "Choose an option to see the total.")}</p>}
-            </div>
-            {!checking && !nothingToChoose && previewSums && previewSums.storeShippingHold > 0 && <section className="folio-outside" aria-labelledby="lo-outside-title">
-              <h3 id="lo-outside-title">{k.outside}</h3>
-              <HoldNote amount={previewSums.storeShippingHold} locale={lang} pricing={pricing}/>
-            </section>}
-          </aside>
-          </div>
-          {!checking && orderable && !manualLayout && finishSheet()}
-          {/* The add button sits under the total and the item data: the right column holds the decision (owner, 12 October 2026). */}
-          {!checking && orderable && <section className="lo-card lo-confirm">
+            {!checking && orderable && manualLayout && finishSheet()}
+            {/* "Из чего сумма", open from the start: the same numbers the cart and the server work out. */}
+            {checking ? <BillPlaceholder /> : previewSums && !nothingToChoose
+              ? <SumBreakdown sums={previewSums} locale={lang} pricing={pricing} weightKg={previewWeight} speed={previewSpeed} customs={customsPreview} />
+              : fromSums && !nothingToChoose ? <><SumBreakdown sums={fromSums} locale={lang} pricing={pricing} speed={previewSpeed} /><p className="micro lo-from-note">{lc.fromNote}</p></>
+              : datedSums ? <SumBreakdown sums={datedSums} locale={lang} pricing={pricing} speed={previewSpeed} />
+              : awaitingCheck ? null : <p className="cabinet-empty pd-empty">{soldOutAtStore || nothingToChoose ? noStockText : picks.length ? lc.emptyTotal : sourceCheckStatus === "manual" && !variants.length ? lc.manualTotal : tx("Выберите вариант, и мы покажем итог.", "Variantni tanlang, jamini ko‘rsatamiz.", "Choose an option to see the total.")}</p>}
+            {!checking && !nothingToChoose && previewSums && previewSums.storeShippingHold > 0 && <div className="pd-hold"><HoldNote amount={previewSums.storeShippingHold} locale={lang} pricing={pricing}/></div>}
+            {!checking && orderable && <TrustRow checked={trustChecked} days={speedRange} locale={lang} />}
+            {/* The add button on wide pages; phones and the catalog sheet use the bar pinned to the bottom. */}
+            {!checking && orderable && <section className="lo-confirm pd-confirm">
             {formIssue && <p id="link-form-issue" className="basket-consent-error" role="alert">{formIssue}</p>}
             {sourceCheckStatus==='manual' ? <div className={"basket-consent" + (formIssue && !manualConfirmed ? " invalid" : "")}>
               <input id="manual-confirm" type="checkbox" {...issueProps('manual-confirm')} checked={manualConfirmed} onChange={(e) => { setManualConfirmed(e.target.checked); if (e.target.checked) setFormIssue(""); }} />
               <label htmlFor="manual-confirm">{tx('Я сверил название, цену, вариант и доставку со страницей магазина. Оператор Atlas сверит их с магазином перед выкупом.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirdim. Atlas operatori xariddan oldin ularni do‘kon bilan solishtiradi.','I checked the name, price, option and shipping against the store page. An Atlas operator checks them with the store before buying.')}</label>
-            </div> : sourceCheckStatus !== "verified" ? <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p> : null}
+            </div> : sourceCheckStatus !== "verified" && sourceCheckStatus !== "catalog" ? <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p> : null}
             <div className={"lo-cta-row" + (cartUnits ? " has-cart" : "")}>
             {nothingToChoose ? <button type="button" className="btn primary basket-cta" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary basket-cta" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest ? (canKeep ? lc.signinAdd : lc.signinContinue) : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
             {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
             </div>
             {/* For a guest, right under the button it explains: the item goes to the cart by itself after sign-in. */}
             {isGuest && <p className="lo-guest"><LogIn size={16} aria-hidden="true" /><span>{canKeep ? lc.guest : lc.guestNoKeep}</span></p>}
-            <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li>{/* Trust next to the decision (storefront practice, owner 30 October 2026): only what the offer promises, each linked to its clause. */}<li><RotateCcw size={16} aria-hidden="true" /><a href="/legal#offer-cancel">{tx("До выкупа заказ можно отменить","Xariddan oldin buyurtmani bekor qilish mumkin","You can cancel before we buy it")}</a></li><li><PackageCheck size={16} aria-hidden="true" /><a href="/legal#offer-insurance">{tx("Условия компенсации за посылку","Jo‘natma uchun kompensatsiya shartlari","Parcel compensation terms")}</a></li>{/* Said once: "checked at HH:MM" by the price at the top, or "will check" above the button until then. */}{sourceCheckStatus === "manual" ? <li><Info size={16} aria-hidden="true" />{tx("Данные введены вами по странице магазина.","Ma’lumotlarni do‘kon sahifasi bo‘yicha o‘zingiz kiritdingiz.","You entered the details from the store page.")}</li> : sourceCheckStatus === "verified" && !checkedTime ? <li><ShieldCheck size={16} aria-hidden="true" />{checkedText}</li> : null}</ul>
-          </section>}
+            </section>}
+          </div>
+          {/* "О товаре" and "Доставка", stacked, no tabs: under the photos on wide screens, so neither column runs empty. */}
+          <div className="pd-more">
+            <DetailSection title={pd.about} id="pd-about">
+              {aboutText ? <p className="pd-about-text">{aboutText}</p> : !checking && <p className="pd-about-text muted">{pd.noDescription}</p>}
+              {/* Country, weight and store delivery are in "Данные для расчёта" under "Доставка": not repeated here. */}
+              {(source || url) && <a className="lo-source-link pd-source" href={source || url} target="_blank" rel="noopener noreferrer">{c.original}<ExternalLink size={14} aria-hidden="true" /></a>}
+            </DetailSection>
+            <DetailSection title={pd.deliveryTitle} id="pd-delivery">
+              {!checking && orderable && speedLine}
+              {!checking && !nothingToChoose && customsPreview && <CustomsPanel estimate={customsPreview} choices={{ outsideUsed: false, help: false }} locale={lang} pricing={pricing} profiles={primaryProfile ? [primaryProfile] : []} compact/>}
+              {!checking && orderable && !manualLayout && finishSheet()}
+              <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li>{/* Trust next to the decision (storefront practice, owner 30 October 2026): only what the offer promises, each linked to its clause. */}<li><RotateCcw size={16} aria-hidden="true" /><a href="/legal#offer-cancel">{tx("До выкупа заказ можно отменить","Xariddan oldin buyurtmani bekor qilish mumkin","You can cancel before we buy it")}</a></li><li><PackageCheck size={16} aria-hidden="true" /><a href="/legal#offer-insurance">{tx("Условия компенсации за посылку","Jo‘natma uchun kompensatsiya shartlari","Parcel compensation terms")}</a></li>{/* Said once: "checked at HH:MM" by the price at the top, or "will check" above the button until then. */}{sourceCheckStatus === "manual" ? <li><Info size={16} aria-hidden="true" />{tx("Данные введены вами по странице магазина.","Ma’lumotlarni do‘kon sahifasi bo‘yicha o‘zingiz kiritdingiz.","You entered the details from the store page.")}</li> : sourceCheckStatus === "verified" && !checkedTime ? <li><ShieldCheck size={16} aria-hidden="true" />{checkedText}</li> : null}</ul>
+            </DetailSection>
           </div>
         </form>
       )}
 
-      {/* On phones the total bar stays put through the check, so the page does not jump when the price arrives. */}
-      {(source || checking) && <div className={"basket-sticky lo-sticky" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
-        <div><span>{!checking && !previewSums && fromSums ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : previewSums && !nothingToChoose ? formatSum(previewSums.total, lang) : fromSums ? formatSum(fromSums.total, lang) : "—"}</strong></div>
-        {nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? tx("Добавляем…", "Qo‘shilmoqda…", "Adding…") : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
-        {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
+      {/* The total bar: over the bottom menu on phones (the page), at the foot of the catalog sheet on every screen. It
+          stays put through the check, so the page does not jump when the price arrives. */}
+      {(source || checking) && <div className={inSheet ? "pd-bar pd-bar-sheet" : "basket-sticky lo-sticky pd-bar" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
+        {/* A dated card's sum is an estimate here as at the top: "≈" and its own label, never "К оплате". */}
+        <div><span>{datedSums ? pd.approxTotal : heroFrom ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : heroTotal !== null ? (datedSums ? "≈ " : "") + formatSum(heroTotal, lang) : "—"}</strong></div>
+        {awaitingCheck ? <button type="button" className="btn primary" onClick={checkDated}>{pd.checkPrice}<ArrowRight size={18} aria-hidden="true" /></button> : nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? tx("Добавляем…", "Qo‘shilmoqda…", "Adding…") : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
+        {!inSheet && cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
       </div>}
     </div>
   );

@@ -1,8 +1,8 @@
 import type { Locale, TextLocale } from '../market/i18n.ts';
 import { pickLocale, withCyrillic } from '../market/uz-cyrl.ts';
 
-// schema.org JSON-LD for the public pages. Only facts the site already shows: no prices, stock,
-// ratings or delivery promises (imported products are editable estimates, see CLAUDE.md).
+// schema.org JSON-LD for the public pages. Only facts the site already shows: no stock, ratings or delivery promises
+// (imported products are editable estimates, see CLAUDE.md); a product page states the Atlas sum it shows (productLd).
 
 export const siteOrigin = 'https://atlasmarket.uz';
 
@@ -108,6 +108,29 @@ export function faqPage(items: readonly { q: string; a: string }[]) {
       name: item.q,
       acceptedAnswer: { '@type': 'Answer', text: item.a },
     })),
+  };
+}
+
+/**
+ * A catalog product page (/catalog/p/[id]): what the page itself shows — name, brand, photos, description and the Atlas
+ * sum to Tashkent in soum. No availability, ratings or reviews: the store's stock is checked before buying, never promised.
+ * The address matches the page's canonical: with `?lang=` only when the page was asked in that language.
+ */
+export function productLd(product: { id: string; name: string; brand?: string; description?: string; images: string[]; category?: string; totalSoum?: number }, locale?: Locale) {
+  const path = '/catalog/p/' + encodeURIComponent(product.id);
+  const url = locale ? localizedUrl(path, locale) : siteOrigin + path;
+  const images = [...new Set(product.images)].slice(0, 6);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    '@id': url,
+    url,
+    name: product.name,
+    ...(product.brand ? { brand: { '@type': 'Brand', name: product.brand } } : {}),
+    ...(product.description ? { description: product.description.slice(0, 5000) } : {}),
+    ...(product.category ? { category: product.category } : {}),
+    ...(images.length ? { image: images } : {}),
+    ...(product.totalSoum ? { offers: { '@type': 'Offer', url, price: product.totalSoum, priceCurrency: 'UZS', seller: { '@type': 'Organization', name: 'Atlas', url: siteOrigin } } } : {}),
   };
 }
 

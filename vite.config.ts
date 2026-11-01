@@ -76,7 +76,12 @@ export default defineConfig(async () => {
                 // (css/catalog-cards.<hash>.css), so a page that already links it does not fetch a second copy under the
                 // teaser's name, and the product sheet no longer pulls in the teaser's script for it (14.10.2026).
                 // Joined ahead of vinext's own groups (framework, vinext), which stay as they are.
-                groups: [{ name: "catalog-cards", test: /[\\/]app[\\/]styles[\\/]catalog-cards\.css$/, minSize: 0, priority: 1 }],
+                // app/styles/link-pages.css likewise: the product sheet loads it lazily on pages whose server HTML already
+                // links it (the cart, the account), so the browser file carries the server's name (1 November 2026).
+                groups: [
+                  { name: "catalog-cards", test: /[\\/]app[\\/]styles[\\/]catalog-cards\.css$/, minSize: 0, priority: 1 },
+                  { name: "link-pages", test: /[\\/]app[\\/]styles[\\/]link-pages\.css$/, minSize: 0, priority: 1 },
+                ],
               },
             },
           },

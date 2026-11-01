@@ -148,3 +148,5 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   :root .site-header.shell-header .wordmark { font-size: 24px !important; }
   .shell-actions { gap: 0; }
 }
+/* A product under the catalog: its long name ends the breadcrumb on one line (app/marketplace.tsx `crumb`). */
+.breadcrumb > .breadcrumb-leaf { min-width: 0; max-width: 60ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

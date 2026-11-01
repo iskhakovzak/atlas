@@ -1,6 +1,8 @@
 import {database,pricing as currentPricing} from './server.ts';
 import {readCatalog} from './catalog-server.ts';
 import {catalogSeed,type CatalogSeedValue} from './catalog-seed.ts';
+import {publicCatalog} from './catalog-editor.ts';
+import type {MerchantFind} from './catalog.ts';
 import type {Pricing} from './domain.ts';
 import {parseStoredPricing} from './pricing-equal.ts';
 import {mergeSiteContent,parseStoredSiteContent,siteContentStorageKey,type SiteContentView} from './site-content-schema.ts';
@@ -55,4 +57,15 @@ export async function initialPublicCatalog():Promise<CatalogSeedValue|null>{
   const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
   return catalogSeed(document,pricing);
  }catch{return null}
+}
+
+/**
+ * One published catalog card for its own page (/catalog/p/[id]), read as GET /api/catalog reads the catalog, with the
+ * tariff the page prices it with. Null when no published card has this id (the page answers 404). A database failure
+ * is thrown, not turned into a 404: a product page must not drop out of search because one read failed.
+ */
+export async function publicCatalogProduct(id:string):Promise<{product:MerchantFind;pricing:Pricing}|null>{
+ const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
+ const product=publicCatalog(document,pricing).products.find(item=>item.id===id);
+ return product?{product,pricing:withoutAuthor(pricing)}:null;
 }
