@@ -271,3 +271,64 @@ body:has(.co-paybar) .storage-notice { bottom: 112px; }
 @media (prefers-reduced-motion: reduce) {
   .co-placed-mark path { animation: none; stroke-dashoffset: 0; }
 }
+
+/* ---------- Checkout, 2 November 2026 (owner: the summary "ужасно", the recipient state jumped) ---------- */
+/* The store check is a quiet status line under the title, not a bordered card. */
+.co-main > .co-checking:not(.co-notice) { height: 28px; padding: 0 2px; border: 0; background: none; box-shadow: none; color: var(--text-2); font-size: 13px; }
+.co-main > .co-checking.is-done { box-shadow: none; }
+.co-main > .co-checking > svg { width: 14px; height: 14px; }
+
+/* Recipients: radio cards — name 15/600, phone and address 13 grey in one line, a tick on the chosen card; «+ Новый
+   получатель» is the last, dashed card; its form unfolds under the list. */
+.co-rcards { display: grid; gap: 8px; margin: 0 0 12px; padding: 0; border: 0; }
+.co-rcard { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 24px; align-items: center; gap: 12px; min-height: 60px; padding: 12px 14px 12px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease; }
+.co-rcard:hover { border-color: var(--line-strong, var(--text-2)); }
+.co-rcard.selected { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); background: color-mix(in srgb, var(--brand) 5%, var(--surface)); }
+.co-rcard:has(input:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
+.co-rcard.unavailable { cursor: not-allowed; opacity: .6; }
+.co-rcard-text { display: grid; gap: 2px; min-width: 0; }
+.co-rcard-text b { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--text); font-size: 15px; font-weight: 600; line-height: 1.3; }
+.co-rcard-text b em { padding: 1px 8px; border-radius: 999px; background: var(--sunken); color: var(--text-2); font-size: 12px; font-style: normal; font-weight: 500; }
+.co-rcard-text small { overflow: hidden; color: var(--text-2); font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.co-rcard-mark { display: grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid var(--line-strong, var(--line)); border-radius: 999px; color: transparent; transition: background-color .15s ease, border-color .15s ease, color .15s ease; }
+.co-rcard.selected .co-rcard-mark { border-color: var(--brand); background: var(--brand); color: #fff; }
+.co-rcard-new { border-style: dashed; background: transparent; }
+.co-rcard-new .co-rcard-text b { color: var(--link, var(--brand)); }
+.co-rcards ~ .co-form { animation: atlas-rise-in var(--dur-enter) var(--ease-out) both; }
+
+/* The summary: a structured card — items with 48 px photos, a hairline, the lines in two columns (label 14 with a grey
+   note under it, value 14/600, tabular), «Без пошлины» as a mint pill, the bold «К оплате», a compact promo row that
+   unfolds, and the terms and demo note in small grey text. Paddings 16/20, radius 16. */
+.co-layout .co-summary { gap: 16px; padding: 20px; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-1); }
+.co-layout .co-summary h2 { font-size: 17px; }
+.co-layout .co-items { gap: 12px; padding: 0 0 16px; }
+.co-layout .co-items li { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+.co-item-open { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.co-item-open:hover .co-item-text b { text-decoration: underline; text-underline-offset: 2px; }
+.co-item-open:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px; }
+.co-layout .co-item-photo { width: 48px; height: 48px; border-radius: 10px; }
+.co-layout .co-item-photo img { object-fit: contain; }
+html:not([data-theme="dark"]) .co-layout .co-item-photo img { mix-blend-mode: multiply; }
+.co-layout .co-item-text b { display: block; overflow: hidden; color: var(--text); font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.co-layout .co-item-text small { overflow: hidden; color: var(--text-2); font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+.co-layout .co-item-sum { color: var(--text); font-size: 14px; font-weight: 600; text-align: right; }
+.co-layout .co-lines { gap: 10px; }
+.co-layout .co-lines > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; font-size: 14px; }
+.co-layout .co-lines dt { color: var(--text); font-size: 14px; }
+.co-layout .co-lines dt small { overflow: hidden; color: var(--text-2); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.co-layout .co-lines dd { color: var(--text); font-size: 14px; font-weight: 600; text-align: right; }
+.co-pill { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: color-mix(in srgb, var(--ok, #2f8a5b) 14%, transparent); color: var(--ok, #2f8a5b); font-size: 12.5px; font-weight: 600; }
+.co-layout .co-line-zero dt { color: var(--text); }
+.co-layout .co-total { align-items: baseline; margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--line); }
+.co-layout .co-total dt { font-size: 16px; font-weight: 700; }
+.co-layout .co-total dd { font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+.co-layout .co-promo-open { min-height: 36px; font-size: 14px; }
+.co-layout .co-promo-form { animation: atlas-rise-in var(--dur-enter) var(--ease-out) both; }
+.co-layout .co-promo-form label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.co-layout .co-promo-row input, .co-layout .co-promo-row .btn { min-height: 44px; border-radius: 12px; }
+.co-layout .co-summary > .co-hint, .co-layout .co-demo { margin: 0; color: var(--text-2); font-size: 12px; line-height: 1.45; }
+@media (max-width: 640px) { .co-layout .co-summary { padding: 16px; } }
+html[data-theme="dark"] .co-layout .co-summary { border-color: var(--line); background: var(--surface); }
+html[data-theme="dark"] .co-rcard { background: var(--surface); }
+html[data-theme="dark"] .co-rcard.selected { background: color-mix(in srgb, var(--brand) 12%, var(--surface)); }
+@media (prefers-reduced-motion: reduce) { .co-rcards ~ .co-form, .co-layout .co-promo-form { animation: none; } }
