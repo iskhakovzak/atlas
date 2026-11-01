@@ -4,7 +4,7 @@
 
 export const seoRoutes: { productPages: boolean; storePages: boolean; deliveryPage: boolean } = {
   /** app/catalog/p/[id]/page.tsx (redesign stage 5). */
-  productPages: false,
+  productPages: true,
   /** app/stores/[slug]/page.tsx (redesign stage 8). */
   storePages: false,
   /** app/delivery/page.tsx (redesign stage 8). */
