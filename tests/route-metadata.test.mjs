@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { homeMetadata, privateMetadata, privateRouteMetadata, publicMetadata, publicPages, rootMetadata } from '../app/route-metadata.ts';
+import { homeMetadata, homeText, privateMetadata, privateRouteMetadata, publicMetadata, publicPages, rootMetadata } from '../app/route-metadata.ts';
+import { storeBrands } from '../lib/market/store-brands.ts';
+import { homeCopy } from '../lib/market/home-copy.ts';
 import { renderLocale } from '../lib/market/i18n.ts';
 
 const russianOnly = ['legal', 'privacy', 'terms'];
@@ -56,7 +58,28 @@ test('the x-default page is titled in the language it renders in', () => {
   assert.match(publicMetadata('support', undefined, 'ru').title.absolute, /^Поддержка Atlas$/);
   assert.match(publicMetadata('delete-account', 'en', 'uz').title, /Delete/);
   assert.match(publicMetadata('app', 'uz').title.absolute, /ilovasi/);
-  assert.deepEqual(homeMetadata('en').title, { absolute: 'Atlas — shop international stores with delivery to Tashkent' });
+  assert.equal(homeMetadata('en').title, `Shop Amazon, Nike, Zara and ${storeBrands.length - 3} more from Tashkent`);
+});
+
+test('owner decision 2 November 2026: the home title and description name the stores and their real count, the h1 does not change', () => {
+  const others = storeBrands.length - 3;
+  assert.equal(homeMetadata('ru').title, `Amazon, Nike, Zara и ещё ${others} магазинов — в Ташкент`);
+  assert.equal(homeMetadata('ru').openGraph.title, `Amazon, Nike, Zara и ещё ${others} магазинов — в Ташкент · Atlas`);
+  assert.match(homeMetadata('uz').title, new RegExp(`^Amazon, Nike, Zara va yana ${others} do‘kon`));
+  assert.match(homeMetadata('oz').title, new RegExp(`^Amazon, Nike, Zara ва яна ${others} дўкон`), 'store names stay Latin in Cyrillic Uzbek');
+  for (const lang of ['uz', 'oz', 'ru', 'en']) {
+    const { title, description } = homeMetadata(lang);
+    assert.match(description, new RegExp(`Amazon, eBay, Nike, Zara .*${storeBrands.length - 4}`), lang);
+    assert.ok(`${title} · Atlas`.length <= 60, `${lang}: ${title}`);
+    assert.ok(description.length >= 70 && description.length <= 160, `${lang}: ${description.length}`);
+  }
+  // Russian agrees the noun with the number; a longer list keeps every title within 60 characters.
+  assert.equal(homeText(25).ru.title, 'Amazon, Nike, Zara и ещё 22 магазина — в Ташкент');
+  assert.equal(homeText(24).ru.title, 'Amazon, Nike, Zara и ещё 21 магазин — в Ташкент');
+  assert.equal(homeText(15).ru.title, 'Amazon, Nike, Zara и ещё 12 магазинов — в Ташкент');
+  for (const lang of ['uz', 'oz', 'ru', 'en']) assert.ok(`${homeText(1003)[lang].title} · Atlas`.length <= 60, lang);
+  // The home h1 is the page copy, untouched.
+  assert.doesNotMatch(homeCopy.ru.hero.title, /Amazon|Zara/);
 });
 
 test('Uzbek metadata uses the ‘ letter mark, not ASCII apostrophes', () => {
