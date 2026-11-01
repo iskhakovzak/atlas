@@ -50,7 +50,7 @@ function useInlineRecipient(onAdded:(id:string)=>void){
  * Passport details typed as text: series and number, PINFL, name and date of birth (13.10.2026). Atlas no longer takes
  * scans or photos (they may count as biometric data); scans uploaded before stay listed only so they can be deleted.
  */
-export function IdentityView(){
+export function IdentityView({embedded=false}:{embedded?:boolean}={}){
   const {state,user,ready,act}=useMarket();
   const lang=state.communication.language;
   const c=pickLocale({ru:{notReady:'Войдите, чтобы добавить паспорт',notReadyText:'Паспортные данные доступны только владельцу профиля.',open:'Открыть вход',last:'Фамилия',first:'Имя',birth:'Дата рождения',nationality:'Гражданство',number:'Серия и номер паспорта',numberHint:'Как в паспорте или ID-карте: две буквы и семь цифр.',pinfl:'ПИНФЛ',pinflHint:'14 цифр — на странице с фото паспорта или на обороте ID-карты. Нужен таможне для граждан Узбекистана.',pinflError:'ПИНФЛ — ровно 14 цифр. Проверьте его в паспорте или оставьте поле пустым.',consent:'Согласен на',processing:'обработку паспортных данных',confirmed:'Подтверждено',confirm:'Сохранить паспорт',need:(list:string,consent:boolean)=>list?`Чтобы сохранить, заполните: ${list}${consent?' и отметьте согласие':''}.`:'Чтобы сохранить, отметьте согласие.',textOnly:'Только текст: сканы и фото паспорта Atlas не принимает и не хранит.',deleteData:'Удалить данные паспорта',oldScans:'Ранее загруженные сканы',oldScansNote:'Сканы больше не нужны — данные вводятся текстом. Удалите их: Atlas не хранит изображения документов.',confirmedData:'данные подтверждены',pending:'не подтверждён',delete:'Удалить скан',warning:'Atlas не выполняет государственную проверку документа и не отправляет его в таможню автоматически.'},uz:{notReady:'Pasport qo‘shish uchun kiring',notReadyText:'Pasport ma’lumotlari faqat profil egasiga ko‘rinadi.',open:'Kirishni ochish',last:'Familiya',first:'Ism',birth:'Tug‘ilgan sana',nationality:'Fuqarolik',number:'Pasport seriyasi va raqami',numberHint:'Pasport yoki ID-kartadagidek: ikki harf va yetti raqam.',pinfl:'JSHSHIR (PINFL)',pinflHint:'14 raqam — pasportning suratli sahifasida yoki ID-kartaning orqa tomonida. O‘zbekiston fuqarolari uchun bojxonaga kerak.',pinflError:'JSHSHIR — aniq 14 raqam. Pasportdan tekshiring yoki maydonni bo‘sh qoldiring.',consent:'Men roziman:',processing:'pasport ma’lumotlarini qayta ishlashga',confirmed:'Tasdiqlangan',confirm:'Pasportni saqlash',need:(list:string,consent:boolean)=>list?`Saqlash uchun to‘ldiring: ${list}${consent?' va roziligingizni belgilang':''}.`:'Saqlash uchun roziligingizni belgilang.',textOnly:'Faqat matn: Atlas pasport skanlari va suratlarini qabul qilmaydi va saqlamaydi.',deleteData:'Pasport ma’lumotlarini o‘chirish',oldScans:'Avval yuklangan skanlar',oldScansNote:'Skanlar endi kerak emas — ma’lumotlar matn bilan kiritiladi. Ularni o‘chiring: Atlas hujjat tasvirlarini saqlamaydi.',confirmedData:'ma’lumotlar tasdiqlangan',pending:'tasdiqlanmagan',delete:'Skanni o‘chirish',warning:'Atlas hujjatni davlat tomonidan tekshirmaydi va uni bojxonaga avtomatik yubormaydi.'},en:{notReady:'Sign in to add a passport',notReadyText:'Passport details are available only to the profile owner.',open:'Open sign in',last:'Last name',first:'First name',birth:'Date of birth',nationality:'Nationality',number:'Passport series and number',numberHint:'As in the passport or ID card: two letters and seven digits.',pinfl:'PINFL',pinflHint:'14 digits — on the passport photo page or the back of the ID card. Customs needs it for citizens of Uzbekistan.',pinflError:'The PINFL is exactly 14 digits. Check it in the passport or leave the field empty.',consent:'I agree to',processing:'passport data processing',confirmed:'Confirmed',confirm:'Save passport',need:(list:string,consent:boolean)=>list?`To save, fill in: ${list}${consent?' and tick the consent':''}.`:'To save, tick the consent.',textOnly:'Text only: Atlas does not accept or keep passport scans or photos.',deleteData:'Delete passport details',oldScans:'Scans uploaded earlier',oldScansNote:'Scans are no longer needed — details are typed as text. Delete them: Atlas does not keep document images.',confirmedData:'details confirmed',pending:'not confirmed',delete:'Delete scan',warning:'Atlas does not perform government document verification and does not send it to customs automatically.'}}, lang);
@@ -83,8 +83,9 @@ export function IdentityView(){
   // Deletes a scan, or the typed details of a recipient (their row has no image). A row already gone still clears the entry.
   async function remove(id:string,question:string){if(!window.confirm(question))return;setBusy(true);try{const response=await fetch('/api/passport?id='+encodeURIComponent(id),{method:'DELETE'});if(!response.ok&&response.status!==404){const data=await response.json() as {error?:string};throw Error(data.error??d.deleteError)}if(identities.some(identity=>identity.documentId===id))await act({type:'identity-clear',documentId:id});setDocs(list=>list.filter(doc=>doc.id!==id));toast.success(d.deleted)}catch(error){toast.error((error as Error).message)}finally{setBusy(false)}}
   if(!ready)return <Empty title={c.notReady} description={c.notReadyText} href="/account" label={c.open}/>;
-  return <div className="docs-page">
-    <header className="orders-head"><div><h1>{d.title}</h1><p>{d.lead}</p></div></header>
+  // On /account/documents (1 November 2026) the passports are one section of the page, under its own heading.
+  return <div className="docs-page" id={embedded?'passports':undefined}>
+    <header className="orders-head"><div>{embedded?<h2>{d.title}</h2>:<h1>{d.title}</h1>}<p>{d.lead}</p></div></header>
     <ol className="docs-steps">
       <li className="cabinet-card docs-step">
         <h2><span className="docs-num" aria-hidden="true">1</span>{d.whose}<InfoTip locale={lang}>{d.whoseHint}</InfoTip></h2>
@@ -126,7 +127,7 @@ export function IdentityView(){
   </div>;
 }
 
-export function DeclarationView(){
+export function DeclarationView({embedded=false}:{embedded?:boolean}={}){
   const {state,ready,act,pricing}=useMarket();const eligible=state.orders.filter(order=>!order.cancelled);const [selected,setSelected]=useState<string[]>([]),[busy,setBusy]=useState(false);
   const identities=state.identityProfiles??(state.identityProfile?[state.identityProfile]:[]);
   const selectedOrders=eligible.filter(order=>selected.includes(order.id));
@@ -157,7 +158,7 @@ export function DeclarationView(){
   const inline=useInlineRecipient(noop);
   const checklist:({ok:boolean;label:string;detail?:string;action:string}&({href:string}|{onAction:()=>void}))[]=[
     {ok:state.deliveryProfiles.length>0,label:d.needRecipient,detail:primary?.recipient,onAction:inline.show,action:recipientCopy[lang].addTitle},
-    {ok:Boolean(passportReady),label:d.needPassport,detail:passportReady?.passportMasked,href:passportRecipientId?`/identity?recipient=${encodeURIComponent(passportRecipientId)}`:"/identity",action:d.addPassport},
+    {ok:Boolean(passportReady),label:d.needPassport,detail:passportReady?.passportMasked,href:passportRecipientId?`/account/documents?recipient=${encodeURIComponent(passportRecipientId)}#passports`:"/account/documents#passports",action:d.addPassport},
     {ok:eligible.length>0,label:d.needOrders,detail:eligible.length?orderCount(eligible.length,lang):undefined,href:"/order-by-link",action:d.newOrder},
   ];
   // The order picker stays open while any passport is confirmed, so another recipient's group can still be chosen;
@@ -170,8 +171,8 @@ export function DeclarationView(){
     setSelected(list=>value?[...new Set([...list,order.id])]:list.filter(id=>id!==order.id));
   }
   if(!ready)return <Empty title={c.login} description={c.loginText} href="/account" label={c.open}/>;
-  return <div className="docs-page">
-    <header className="orders-head"><div><h1>{d.declTitle}</h1><p>{d.declLead}</p></div></header>
+  return <div className="docs-page" id={embedded?'declarations':undefined}>
+    <header className="orders-head"><div>{embedded?<h2>{d.declTitle}</h2>:<h1>{d.declTitle}</h1>}<p>{d.declLead}</p></div></header>
     <section className="cabinet-card docs-checklist" aria-labelledby="docs-need-title">
       <h2 id="docs-need-title">{d.need}</h2>
       <ul>{checklist.map(item=><li key={item.label} className={item.ok?'ok':'todo'}>

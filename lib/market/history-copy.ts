@@ -1,4 +1,4 @@
-import { localizedStatuses, type Locale } from './i18n.ts';
+import { localizedParcelStages, localizedStatuses, type Locale } from './i18n.ts';
 import { formatSum } from './format.ts';
 import {withCyrillic,pickLocale,verbatim} from './uz-cyrl.ts';
 import {isUzbek} from './i18n.ts';
@@ -211,6 +211,9 @@ const historyCopy: Record<string, Copy> = {
 };
 const statusName = (locale: Locale, v: Values) => { const name = localizedStatuses(locale)[v.num('status')]; if (!name) throw new MissingParam('status'); return name; };
 historyCopy.status = /*@__PURE__*/withCyrillic({ ru: v => statusName('ru', v), uz: v => statusName('uz', v), en: v => statusName('en', v) });
+// "Таможня" and "В Ташкенте" (1 November 2026): the operator's mark on a parcel already on its way (domain.ts parcelStageOf).
+const stageName = (locale: Locale, v: Values) => { const name = localizedParcelStages(locale)[v.num('stage')]; if (!name) throw new MissingParam('stage'); return name; };
+historyCopy['parcel-stage'] = /*@__PURE__*/withCyrillic({ ru: v => stageName('ru', v), uz: v => stageName('uz', v), en: v => stageName('en', v) });
 
 const noticeTitles: Record<string, Record<Locale, string>> = {
   approval: /*@__PURE__*/withCyrillic({ ru: 'Нужна доплата за доставку магазина', uz: 'Do‘kon yetkazib berishi uchun qo‘shimcha to‘lov kerak', en: 'Extra payment needed for store delivery' }),
@@ -331,6 +334,22 @@ const noticeCopy: Record<string, NoticeCopy> = {
   'change-approved': { title: /*@__PURE__*/withCyrillic({ ru: 'Изменение подтверждено', uz: 'O‘zgarish tasdiqlandi', en: 'Change approved' }), message: /*@__PURE__*/withCyrillic({ ru: v => v.text('title'), uz: v => v.text('title'), en: v => v.text('title') }) },
   'change-declined': { title: /*@__PURE__*/withCyrillic({ ru: 'Изменение отклонено', uz: 'O‘zgarish rad etildi', en: 'Change declined' }), message: /*@__PURE__*/withCyrillic({ ru: v => v.text('title'), uz: v => v.text('title'), en: v => v.text('title') }) },
   status: { title: /*@__PURE__*/withCyrillic({ ru: 'Статус заказа изменён', uz: 'Buyurtma holati o‘zgardi', en: 'Order status changed' }), message: historyCopy.status },
+  // One notice for the whole parcel; the message says what the stage means for the buyer, nothing is promised by date.
+  'parcel-stage': { title: /*@__PURE__*/withCyrillic({
+    ru: v => `Посылка: ${stageName('ru', v)}`,
+    uz: v => `Posilka: ${stageName('uz', v)}`,
+    en: v => `Parcel: ${stageName('en', v)}`,
+  }), message: /*@__PURE__*/withCyrillic({
+    ru: v => v.num('stage') === 5 ? 'Посылка проходит таможенное оформление в Узбекистане. Следующий этап — Ташкент.' : v.num('stage') === 6 ? 'Посылка в Ташкенте. Следующий этап — курьер привезёт её по адресу получателя.' : stageName('ru', v),
+    uz: v => v.num('stage') === 5 ? 'Posilka O‘zbekistonda bojxona rasmiylashtiruvidan o‘tmoqda. Keyingi bosqich — Toshkent.' : v.num('stage') === 6 ? 'Posilka Toshkentda. Keyingi bosqich — kuryer uni qabul qiluvchining manziliga olib boradi.' : stageName('uz', v),
+    en: v => v.num('stage') === 5 ? 'The parcel is going through customs in Uzbekistan. Next stage: Tashkent.' : v.num('stage') === 6 ? 'The parcel is in Tashkent. Next, a courier brings it to the recipient’s address.' : stageName('en', v),
+  }) },
+  // An action notice of its own (Telegram marks it "Нужно ваше действие"); it names no one.
+  'passport-needed': { title: /*@__PURE__*/withCyrillic({ ru: 'Нужен паспорт получателя', uz: 'Qabul qiluvchining pasporti kerak', en: 'Recipient’s passport needed' }), message: /*@__PURE__*/withCyrillic({
+    ru: () => 'Добавьте паспорт получателя: он нужен для таможенной декларации до отправки посылки.',
+    uz: () => 'Qabul qiluvchining pasportini qo‘shing: u posilka jo‘natilishidan oldin bojxona deklaratsiyasi uchun kerak.',
+    en: () => 'Add the recipient’s passport: customs needs it for the declaration before the parcel ships.',
+  }) },
   // The subject the customer wrote; the answer itself stays in the account.
   'support-answered': { title: /*@__PURE__*/withCyrillic({ ru: 'Поддержка ответила', uz: 'Yordam xizmati javob berdi', en: 'Support replied' }), message: /*@__PURE__*/withCyrillic({ ru: v => v.text('subject'), uz: v => v.text('subject'), en: v => v.text('subject') }) },
 };
@@ -611,6 +630,7 @@ export function renderNotification(notice: Coded & { title: string; message: str
  *  the product under it; "Статус заказа изменён" over every status repeated one line on each row. */
 export function renderNoticeRow(notice: Coded & { title: string; message: string }, locale: Locale, product?: string): { title: string; message: string } {
   const text = renderNotification(notice, locale);
+  if (notice.code === 'parcel-stage' && product) return { title: render(historyCopy, notice, locale) ?? text.title, message: product };
   return notice.code === 'status' && product ? { title: text.message, message: product } : text;
 }
 

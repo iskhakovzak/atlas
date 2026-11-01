@@ -148,3 +148,12 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   :root .site-header.shell-header .wordmark { font-size: 24px !important; }
   .shell-actions { gap: 0; }
 }
+
+/* «Ждёт действия» (1 November 2026): one mint line under the header while an order waits for the buyer — a payment,
+   a доплата, a decision or the recipient's passport. It leads straight there (lib/market/profile-strip.ts). */
+.shell-attention { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 4%; border-bottom: 1px solid var(--selected-line); background: var(--discount-bg); color: var(--discount); font-size: var(--fs-14); font-weight: var(--fw-semibold); line-height: var(--lh-snug); text-decoration: none; }
+.shell-attention:hover { text-decoration: underline; text-underline-offset: 3px; }
+.shell-attention-dot { flex: none; width: 8px; height: 8px; border-radius: var(--r-pill); background: currentColor; }
+.shell-attention-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shell-attention svg { flex: none; }
+@media (max-width: 760px) { .shell-attention { padding: 0 16px; font-size: var(--fs-13); } }

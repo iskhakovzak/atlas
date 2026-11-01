@@ -19,7 +19,7 @@ const maxSampleAge = 60 * 60 * 1000;
 
 export function performanceRoute(pathname: string): PerformanceRoute {
   if (pathname === '/' || pathname === '/customs' || pathname === '/legal') return 'catalog';
-  if (pathname === '/account' || pathname === '/identity') return 'account';
+  if (pathname === '/account' || pathname.startsWith('/account/') || pathname === '/identity') return 'account';
   if (pathname === '/orders' || pathname === '/operations' || pathname === '/notifications') return 'orders';
   if (pathname === '/admin' || pathname === '/analytics') return 'admin';
   return 'other';

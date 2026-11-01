@@ -34,7 +34,7 @@ export function queueTabTotals(accounts:readonly {state:Pick<State,'orders'|'ent
 }
 
 /** The operator's own moves (`yours`) and the ones that wait for the customer (`waiting`), as the queue row names them. */
-export type OperatorStepKey='decision'|'payment'|'weighTogether'|'problem'|'storeShipping'|'buyout'|'receive'|'inspect'|'service'|'weigh'|'tracking'|'ship'|'customs'|'deliver';
+export type OperatorStepKey='decision'|'payment'|'weighTogether'|'problem'|'storeShipping'|'buyout'|'receive'|'inspect'|'service'|'weigh'|'tracking'|'ship'|'toCustoms'|'toTashkent'|'customs'|'deliver';
 export type OperatorNextStep={kind:'yours'|'waiting';key:OperatorStepKey;leadId?:string};
 /**
  * Whose move an order waits for and which one: the same checks, in the same order, as the operator's main button
@@ -76,8 +76,11 @@ export function operatorNextStep(order:Order,opts:{weighLeadId?:string}={}):Oper
   return {kind:'yours',key:'weigh'};
  }
  if(order.status===3)return order.parcel?{kind:'yours',key:'ship'}:{kind:'yours',key:'tracking'};
+ // On its way: the operator marks "Таможня", then "В Ташкенте" by hand (domain.ts advanceTransit, 1 November 2026).
+ if(!order.transitStage)return {kind:'yours',key:'toCustoms'};
  // Atlas pays customs for this order: the duty customs charged is entered before the order is marked delivered.
  if(order.quote.customsHelp&&!order.customsSettlement)return {kind:'yours',key:'customs'};
+ if(order.transitStage==='customs')return {kind:'yours',key:'toTashkent'};
  return {kind:'yours',key:'deliver'};
 }
 /** Whole days since the last event of the order (its history), or since it was placed. */

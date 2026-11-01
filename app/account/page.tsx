@@ -9,6 +9,8 @@ import { privateMetadata } from '../route-metadata';
 import '../styles/link-pages.css';
 import '../styles/member-pages.css';
 import '../styles/catalog-cards.css';
+// The parcel-first profile (app/profile.css): hub, parcel page, documents and settings.
+import '../profile.css';
 export async function generateMetadata(): Promise<Metadata> { return privateMetadata('account', await pageLocale()); }
 export const dynamic='force-dynamic';
 export default function Page(){return <Marketplace view="account"><AccountView/></Marketplace>;}

@@ -136,7 +136,7 @@ export function DeleteAccountView(){
   <section className="page-block" aria-labelledby="delete-steps"><h2 id="delete-steps">{t.steps}</h2>
    <ol className="page-steps">{t.step.map((text,index)=><li key={index}><span className="page-step-number" aria-hidden="true">{index+1}</span><p>{text}</p></li>)}</ol>
    <div className="page-actions">{/* Straight to the folded "Consents and account" row, opened (app/account-views.tsx); the delete dialog itself is not opened. */}
-   {signedIn?<Link className="btn primary" href="/account#account-delete">{t.open}<ArrowRight size={18} aria-hidden="true"/></Link>:<a className="btn primary" href={signInPath("/account#account-delete")} target="_top">{t.signin}<ArrowRight size={18} aria-hidden="true"/></a>}</div>
+   {signedIn?<Link className="btn primary" href="/account/settings#account-delete">{t.open}<ArrowRight size={18} aria-hidden="true"/></Link>:<a className="btn primary" href={signInPath("/account/settings#account-delete")} target="_top">{t.signin}<ArrowRight size={18} aria-hidden="true"/></a>}</div>
   </section>
   <section className="page-block" aria-labelledby="delete-what"><h2 id="delete-what">{t.what}</h2>
    <div className="page-grid two-by-two">

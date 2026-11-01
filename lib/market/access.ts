@@ -1,6 +1,6 @@
 import {loginPath} from '../auth/return-to.ts';
 export type SessionStatus = 'loading' | 'guest' | 'authenticated' | 'error';
-export const memberViews = new Set(['account','favorites','cart','orders','balance','notifications','identity','declaration','batch']);
+export const memberViews = new Set(['account','favorites','cart','orders','balance','notifications','identity','declaration','documents','settings','parcel','batch']);
 export const adminViews = new Set(['operations','analytics','admin']);
 
 // ---------- Staff roles and permissions (shared by server and UI; no server imports here) ----------

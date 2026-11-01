@@ -1,6 +1,6 @@
-import { deliveryAddressLine, legacyDeliverySpeed, orderPayable, type DeliveryProfile, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
+import { deliveryAddressLine, deliveredStage, legacyDeliverySpeed, orderPayable, parcelStageOf, type DeliveryProfile, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
 import { orderAttention } from './notice-panel.ts';
-import { localizedStatuses, type Locale } from './i18n.ts';
+import { localizedParcelStages, type Locale } from './i18n.ts';
 import { brandForHost, storefrontLabel } from './store-brands.ts';
 import {withCyrillic} from './uz-cyrl.ts';
 
@@ -65,8 +65,10 @@ export type OrderGroup = {
   stage: OrderGroupStage;
   /** "Нужно решение" when a line waits for the customer, "В работе" while a line moves, "Завершённые" when all are delivered or cancelled. */
   tab: OrderGroupTab;
-  /** Lines not cancelled, counted by status, lowest status first: `[{ status: 3, count: 2 }, { status: 5, count: 1 }]`. */
-  progress: { status: number; count: number }[];
+  /** The least advanced live line on the buyer's eight-stage scale (domain.ts parcelStageOf); 7 when all are delivered. */
+  parcelStage?: number;
+  /** Lines not cancelled, counted by parcel stage (0…7), lowest first: `[{ stage: 3, count: 2 }, { stage: 7, count: 1 }]`. */
+  progress: { stage: number; count: number }[];
   /** Newest history entry over all lines (by time, not position): the last thing that happened to this checkout. */
   latest?: { order: Order; entry: Order['history'][number] };
   /** Things that wait for the customer: one per line decision, plus one for the checkout's payment. */
@@ -221,7 +223,8 @@ function buildGroup(key: string, batchId: string | undefined, orders: Order[]): 
   const status = live.length === 0 ? undefined : inProgress.length ? Math.min(...inProgress.map((order) => order.status)) : 5;
   const stage: OrderGroupStage = live.length === 0 ? 'cancelled' : attention ? 'attention' : inProgress.length ? 'active' : 'done';
   const counts = new Map<number, number>();
-  for (const order of live) counts.set(order.status, (counts.get(order.status) ?? 0) + 1);
+  for (const order of live) counts.set(parcelStageOf(order), (counts.get(parcelStageOf(order)) ?? 0) + 1);
+  const parcelStage = live.length === 0 ? undefined : inProgress.length ? Math.min(...inProgress.map(parcelStageOf)) : deliveredStage;
   return {
     key,
     batchId,
@@ -233,7 +236,8 @@ function buildGroup(key: string, batchId: string | undefined, orders: Order[]): 
     status,
     stage,
     tab: stage === 'cancelled' ? 'done' : stage,
-    progress: [...counts].sort(([a], [b]) => a - b).map(([value, count]) => ({ status: value, count })),
+    ...(parcelStage !== undefined ? { parcelStage } : {}),
+    progress: [...counts].sort(([a], [b]) => a - b).map(([value, count]) => ({ stage: value, count })),
     latest: latestEvent(orders),
     attention,
     ...(payment ? { payment } : {}),
@@ -286,14 +290,14 @@ export function groupStoreNames(group: Pick<OrderGroup, 'stores'>, locale: Local
 export function groupStageText(group: Pick<OrderGroup, 'progress' | 'stage' | 'payment'>, locale: Locale): { label: string; summary?: string; tone: 'ok' | 'info' | 'muted' } {
   const copy = orderGroupCopy[locale];
   if (group.stage === 'cancelled' || !group.progress.length) return { label: copy.stage.cancelled, tone: 'muted' };
-  const names = localizedStatuses(locale);
+  const names = localizedParcelStages(locale);
   if (group.progress.length === 1) {
     const [only] = group.progress;
     // Nothing is bought before the checkout's payment: say so instead of "Ожидает выкупа".
-    if (group.payment && only.status === 0) return { label: copy.awaitingPayment, tone: 'info' };
-    return { label: names[only.status] ?? copy.stage.active, tone: only.status === 5 ? 'ok' : 'info' };
+    if (group.payment && only.stage === 0) return { label: copy.awaitingPayment, tone: 'info' };
+    return { label: names[only.stage] ?? copy.stage.active, tone: only.stage === deliveredStage ? 'ok' : 'info' };
   }
-  return { label: copy.mixed, summary: group.progress.map(({ status, count }) => copy.statusCount(names[status] ?? '', count)).join(' · '), tone: 'info' };
+  return { label: copy.mixed, summary: group.progress.map(({ stage, count }) => copy.statusCount(names[stage] ?? '', count)).join(' · '), tone: 'info' };
 }
 
 export type OrderGroupCopy = {
@@ -431,7 +435,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     payButton: (amount) => `Оплатить ${amount}`,
     payBalance: (amount) => `С баланса уже учтено ${amount}.`,
     extraButton: (amount) => `Доплатить ${amount}`,
-    nextStep: { 0: 'Дальше: выкупим товар в магазине', 1: 'Дальше: склад примет посылку', 2: 'Дальше: склад взвесит посылку', 3: 'Дальше: отправим в Ташкент', 4: 'Дальше: доставка получателю' },
+    nextStep: { 0: 'Дальше: выкупим товар в магазине', 1: 'Дальше: склад примет посылку', 2: 'Дальше: склад взвесит посылку', 3: 'Дальше: отправим в Ташкент', 4: 'Дальше: таможня в Узбекистане', 5: 'Дальше: посылка прибудет в Ташкент', 6: 'Дальше: курьер привезёт её получателю' },
     nextDecision: 'Дальше: ваше решение по позиции ниже',
     nextBuyout: 'Дальше: выкуп в магазине',
     reorder: 'Заказать снова',
@@ -480,7 +484,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     payButton: (amount) => `${amount} to‘lash`,
     payBalance: (amount) => `Balansdan ${amount} hisobga olingan.`,
     extraButton: (amount) => `Qo‘shimcha: ${amount}`,
-    nextStep: { 0: 'Keyingi: tovarni do‘kondan xarid qilamiz', 1: 'Keyingi: ombor posilkani qabul qiladi', 2: 'Keyingi: ombor posilkani tortadi', 3: 'Keyingi: Toshkentga jo‘natamiz', 4: 'Keyingi: qabul qiluvchiga yetkazish' },
+    nextStep: { 0: 'Keyingi: tovarni do‘kondan xarid qilamiz', 1: 'Keyingi: ombor posilkani qabul qiladi', 2: 'Keyingi: ombor posilkani tortadi', 3: 'Keyingi: Toshkentga jo‘natamiz', 4: 'Keyingi: O‘zbekiston bojxonasi', 5: 'Keyingi: posilka Toshkentga yetib keladi', 6: 'Keyingi: kuryer uni qabul qiluvchiga olib boradi' },
     nextDecision: 'Keyingi: quyidagi pozitsiya bo‘yicha qaroringiz',
     nextBuyout: 'Keyingi: do‘kondan xarid',
     reorder: 'Yana buyurtma berish',
@@ -529,7 +533,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     payButton: (amount) => `Pay ${amount}`,
     payBalance: (amount) => `${amount} already covered from your balance.`,
     extraButton: (amount) => `Pay extra ${amount}`,
-    nextStep: { 0: 'Next: we buy the item at the store', 1: 'Next: the warehouse receives the parcel', 2: 'Next: the warehouse weighs the parcel', 3: 'Next: we ship to Tashkent', 4: 'Next: delivery to the recipient' },
+    nextStep: { 0: 'Next: we buy the item at the store', 1: 'Next: the warehouse receives the parcel', 2: 'Next: the warehouse weighs the parcel', 3: 'Next: we ship to Tashkent', 4: 'Next: customs in Uzbekistan', 5: 'Next: the parcel arrives in Tashkent', 6: 'Next: a courier brings it to the recipient' },
     nextDecision: 'Next: your decision on an item below',
     nextBuyout: 'Next: purchase at the store',
     reorder: 'Order again',

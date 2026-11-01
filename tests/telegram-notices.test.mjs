@@ -343,7 +343,8 @@ test('wiring: delivery goes to the account persist saved, after the consent chec
 
 test('the account shows the setting first in "Настройки"; the policy says what Telegram receives', () => {
   const views = read('app/account-views.tsx');
-  assert.match(views, /<TelegramNoticesSetting locale=\{locale\} \/>/);
+  // On /account/settings since 1 November 2026, first under "Уведомления о посылках".
+  assert.match(views, /<h2 id="pf-notices-title">\{p\.settings\.notices\}<\/h2>\n\s*<TelegramNoticesSetting locale=\{lang\} \/>/);
   assert.match(read('app/telegram-notices.tsx'), /id="telegram-notices"/);
   const privacy = read('app/legal-documents.tsx');
   const section = privacy.slice(privacy.indexOf('id="privacy-signin"'), privacy.indexOf('</section>', privacy.indexOf('id="privacy-signin"')));
