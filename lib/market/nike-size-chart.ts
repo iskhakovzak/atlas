@@ -1,3 +1,4 @@
+import { variantSummary } from './variant-label.ts';
 /**
  * Nike footwear conversions from the official U.S. women's and men's charts.
  * The published CM/JP column is a shoe-label size, not foot length. Foot length
@@ -130,6 +131,8 @@ export function readableNikeSizeLabel(text = "") {
  * options ("Nike US men" = "9.5"). When the label ends with that size, the size reads as "US 9.5 · EU 43" too.
  */
 export function readableVariant(variant = "", options?: readonly {name: string; value: string}[]) {
+  // Only the values that chose the option (lib/market/variant-label.ts), then Nike sizes in US and EU.
+  variant = variantSummary(variant, options);
   const nike = options?.find(option => /^Nike US (?:men|women)$/.test(option.name.trim()));
   const row = nike ? findNikeFootwearSizeRow(nike.name.trim().slice(8) as NikeFootwearSizeSystem, nike.value.trim()) : undefined;
   const parts = variant.split(" · ");
