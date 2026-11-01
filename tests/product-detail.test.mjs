@@ -72,7 +72,8 @@ test('wiring: the catalog opens the shared product page in place, without asking
   // A changed store price still reloads the product with the customer's choice.
   assert.match(engine, /lastActionError\(\)\?\.code === "err_34"\) \{ reapply\.current = currentChoices\(\); void load\(requestedUrl \|\| source\); \}/);
   // After adding: a toast with "Оформить", the page stays (no jump to the cart).
-  assert.match(engine, /toast\.success\(message, \{ action: \{ label: pd\.checkout, onClick: \(\) => router\.push\("\/cart"\) \} \}\);/);
+  // The mini-cart card leads on to the cart (app/cart-toast.tsx, 2 November 2026).
+  assert.match(engine, /showCartAdded\(\{ title: message,[^\n]*action: pd\.checkout,[^\n]*onAction: \(\) => router\.push\("\/cart"\) \}\);/);
   assert.doesNotMatch(engine, /\n    router\.push\("\/cart"\);/);
   // No tabs: "Из чего сумма" open, "О товаре" and "Доставка" stacked.
   assert.match(engine, /<SumBreakdown sums=\{previewSums\}/);

@@ -1,5 +1,6 @@
 'use client';
 
+import { popHeart } from '@/lib/market/heart-pop';
 import { useId, type MouseEvent } from 'react';
 import { BadgeCheck, Check, Flame, Heart, Plus, ShoppingBag } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -99,9 +100,9 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const storeBadge = plateBrand ? <span className="pcard-store" title={officialMark ? `${storeText} · ${officialLabel}` : storeText}><StoreBadge brand={plateBrand} size={30} official={Boolean(officialMark)} officialLabel={officialLabel} /><span className="sr-only">{cc.storeOf(storeText)}{officialMark ? `. ${officialLabel}` : ''}</span></span> : null;
   // The new card draws its own heart (pcard-save); the compact card keeps the older one.
   const saveClass = variant === 'compact' ? 'find-save' : 'pcard-save';
-  const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={saveClass + ' ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
+  const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={saveClass + ' ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={(event) => { popHeart(event.currentTarget, !saved); onSave(); }}><Heart size={18} strokeWidth={2} aria-hidden="true" /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
     // The address is read on the tap, not while rendering (the card renders on the server too): back to these filters.
-    : guestSave ? <Tooltip><TooltipTrigger asChild><a className={saveClass} href={loginPath('/catalog')} rel="nofollow" aria-label={copy.signinToSave + ': ' + name} onClick={(event) => { rememberPendingFavorite(browserStorage(), product.id, Date.now()); event.currentTarget.href = loginPath(window.location.pathname + window.location.search); }}><Heart size={20} aria-hidden="true" /></a></TooltipTrigger><TooltipContent>{copy.signinToSave}</TooltipContent></Tooltip>
+    : guestSave ? <Tooltip><TooltipTrigger asChild><a className={saveClass} href={loginPath('/catalog')} rel="nofollow" aria-label={copy.signinToSave + ': ' + name} onClick={(event) => { rememberPendingFavorite(browserStorage(), product.id, Date.now()); event.currentTarget.href = loginPath(window.location.pathname + window.location.search); }}><Heart size={18} strokeWidth={2} aria-hidden="true" /></a></TooltipTrigger><TooltipContent>{copy.signinToSave}</TooltipContent></Tooltip>
     : null;
   // The store discount shows on a dated price too, when that price is the recorded USD one (owner, 12 October 2026).
   const showDiscount = discount > 0 && (!needsPrice || (hasRecordedPrice && product.sourceCurrency === 'USD'));

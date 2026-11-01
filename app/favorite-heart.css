@@ -1,0 +1,53 @@
+/* The favourite heart, 2 November 2026 (owner: the big round white button was "огромное и какое-то странное").
+   On a card photo: a small 32 px frosted circle (translucent white, blur, a whisper of shadow) with an 18 px outline heart,
+   8 px from the top-right corner; the tap area stays 44 px through ::before. Saved: the heart fills warm red (#e5484d;
+   lighter at night), not brand green. A save "pops" (scale 1 → 1.25 → 1 with a faint red ring, popHeart in
+   lib/market/heart-pop.ts); an unsave does not. On the product page: a 40 px outline round button beside the title.
+   Selectors start at html:root body so they outrank the older route rules (catalog-pages.css, catalog-cards.css). */
+html:root body :is(.pcard-save, .find-save):not(.lo-save) {
+  position: absolute; z-index: 2; top: 8px; right: 8px; display: grid; place-items: center; width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 999px; background: rgba(255, 255, 255, .82); color: #141a17;
+  -webkit-backdrop-filter: blur(8px) saturate(1.4); backdrop-filter: blur(8px) saturate(1.4);
+  box-shadow: 0 1px 2px rgba(20, 26, 23, .08), 0 2px 8px rgba(20, 26, 23, .06); cursor: pointer;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, transform var(--dur-fast) ease;
+}
+html:root body :is(.pcard-save, .find-save):not(.lo-save)::before { content: ""; position: absolute; inset: -6px; }
+html:root body :is(.pcard-save, .find-save):not(.lo-save)::after { content: none; }
+html:root body :is(.pcard-save, .find-save) svg { width: 18px; height: 18px; fill: none; stroke-width: 2; }
+html:root body :is(.pcard-save, .find-save):not(.lo-save):hover { background: rgba(255, 255, 255, .96); color: #141a17; }
+html:root body :is(.pcard-save, .find-save).saved:not(.lo-save),
+html:root body :is(.pcard-save, .find-save).saved:not(.lo-save):hover { background: rgba(255, 255, 255, .9); color: #e5484d; }
+html:root body :is(.pcard-save, .find-save).saved svg { fill: currentColor; }
+html:root body :is(.pcard-save, .find-save):not(.lo-save):disabled { opacity: 1; cursor: progress; }
+html:root body :is(.pcard-save, .find-save):focus-visible { outline: 2px solid var(--brand, #1f4d3b); outline-offset: 2px; }
+
+/* The product page and the catalog sheet: an outline round icon button like the others beside the title. */
+html:root body .pd-name-row .find-save.lo-save {
+  position: relative; inset: auto; display: inline-grid; place-items: center; width: 40px; height: 40px; margin: 0;
+  border: 1px solid var(--line-strong, var(--line)); border-radius: 999px; background: var(--surface); color: var(--text); box-shadow: none;
+}
+html:root body .pd-name-row .find-save.lo-save::after { content: ""; position: absolute; inset: -2px; }
+html:root body .pd-name-row .find-save.lo-save:hover { background: var(--hover, var(--sunken)); }
+html:root body .pd-name-row .find-save.lo-save.saved,
+html:root body .pd-name-row .find-save.lo-save[aria-pressed="true"] { border-color: var(--line-strong, var(--line)); background: var(--surface); color: #e5484d; }
+html:root body .pd-name-row .find-save.lo-save svg { width: 20px; height: 20px; }
+html:root body .pd-name-row .find-save.lo-save[aria-pressed="true"] svg { fill: currentColor; }
+
+/* A save pops. */
+html:root body :is(.pcard-save, .find-save)[data-pop] svg { animation: atlas-heart-pop 280ms var(--ease-spring, ease-out); }
+html:root body :is(.pcard-save, .find-save)[data-pop] { animation: atlas-heart-burst 420ms ease-out; }
+@keyframes atlas-heart-pop { 0% { transform: scale(1); } 45% { transform: scale(1.25); } 100% { transform: scale(1); } }
+@keyframes atlas-heart-burst { from { box-shadow: 0 0 0 0 rgba(229, 72, 77, .42); } to { box-shadow: 0 0 0 12px rgba(229, 72, 77, 0); } }
+
+/* Night: the card photos sit on ivory plates, so the circle stays a light frosted disc; the saved heart is lighter red. */
+html:root[data-theme="dark"] body :is(.pcard-save, .find-save):not(.lo-save) { border: 0; background: rgba(255, 255, 255, .78); color: #141a17; }
+html:root[data-theme="dark"] body :is(.pcard-save, .find-save):not(.lo-save):hover { background: rgba(255, 255, 255, .92); color: #141a17; }
+html:root[data-theme="dark"] body :is(.pcard-save, .find-save).saved:not(.lo-save),
+html:root[data-theme="dark"] body :is(.pcard-save, .find-save).saved:not(.lo-save):hover { background: rgba(255, 255, 255, .88); color: #e5484d; }
+html:root[data-theme="dark"] body .pd-name-row .find-save.lo-save.saved,
+html:root[data-theme="dark"] body .pd-name-row .find-save.lo-save[aria-pressed="true"] { color: #ff6b70; }
+
+@media (prefers-reduced-motion: reduce) {
+  html:root body :is(.pcard-save, .find-save)[data-pop],
+  html:root body :is(.pcard-save, .find-save)[data-pop] svg { animation: none; }
+}
