@@ -1137,7 +1137,7 @@ html[data-theme="dark"] .cabinet-next-thumb { border-color: var(--night-line); b
 /* Deep links (?support=new, ?order=…, #account-delete) scroll a card to the top while it still rises in (motion.css, 10 px):
    a margin keeps its edge and heading in view instead of under the top of the screen. */
 .cabinet :is(.cabinet-card[id], .cabinet-setting-more[id]) { scroll-margin-top: 24px; }
-.cabinet-card h2, .cabinet-signin h1 { margin: 0 0 4px; color: var(--home-ink); font-size: 18px; font-weight: 800; line-height: 1.3; }
+.cabinet-card h2, .docs-page .cabinet-card > h3, .docs-page .docs-step > h3, .cabinet-signin h1 { margin: 0 0 4px; color: var(--home-ink); font-size: 18px; font-weight: 800; line-height: 1.3; }
 .cabinet-lead, .cabinet-note { margin: 0 0 14px; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 .cabinet-note { margin: 12px 0 0; font-size: 13px; }
 .cabinet-muted { color: var(--home-muted); }
@@ -1422,7 +1422,7 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
   .docs-steps { grid-template-columns: 1fr 1fr; align-items: start; }
   .docs-steps > li:first-child, .docs-steps > li:last-child:nth-child(2) { grid-column: 1 / -1; }
 }
-.docs-step h2, .docs-checklist h2, .docs-declare h2, .docs-scans h2, .docs-history h2 { display: flex; align-items: center; gap: 10px; }
+.docs-step h2, .docs-checklist h2, .docs-declare h2, .docs-scans h2, .docs-history h2, .docs-step > h3, .docs-checklist > h3, .docs-scans > h3, .docs-history > h3 { display: flex; align-items: center; gap: 10px; }
 .docs-num { display: grid; flex-shrink: 0; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--home-accent); color: var(--home-accent-ink); font-size: 14px; font-weight: 800; }
 .docs-step.muted .docs-num { background: var(--home-line); color: var(--home-muted); }
 .docs-recipients { display: grid; gap: 8px; margin-bottom: 12px; }
@@ -1800,7 +1800,7 @@ html:not([data-theme="dark"]) .recipient-choice-manual strong { color: var(--day
 /* ---------- Phones: a lighter scale ---------- */
 @media (max-width: 600px) {
   /* Page titles 25px, section titles 20–21px, leads 15px; weights one step lighter. */
-  .site-main .cabinet-card h2 { font-size: 16px; }
+  .site-main .cabinet-card h2, .site-main .docs-page .cabinet-card > h3 { font-size: 16px; }
 }
 
 /* ── app/day-folio.css ── */

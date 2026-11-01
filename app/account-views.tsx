@@ -67,6 +67,10 @@ export function AccountView() {
   const parcels = buyerParcels(state.orders);
   const activeParcels = parcels.filter(parcelActive);
   const actions = profileActions(state);
+  // A passport card speaks of the furthest parcel of its recipient: "for customs" once one of them is on its way.
+  const actionStage = (action: (typeof actions)[number]) => action.kind === "passport"
+    ? Math.max(-1, ...activeParcels.filter(parcel => parcel.deliveryProfileId === action.recipientId || parcel.id === action.parcelId).map(parcel => parcel.stage ?? -1))
+    : undefined;
   const unread = state.notifications.filter(item => !item.read).length;
   const balance = balanceOf(state);
   const allowance = monthlyAllowance(state, pricing.fx);
@@ -95,12 +99,12 @@ export function AccountView() {
             eight-stage bar and one button. A new account sees one invitation instead of empty blocks. */}
         {actions.length > 0 && <section className="pf-section" aria-labelledby="pf-actions-title">
           <h2 id="pf-actions-title" className="pf-section-title">{p.hub.actions}<span className="pf-count">{actions.length}</span></h2>
-          <ul className="pf-actions">{actions.map(action => <ProfileActionCard key={action.kind + action.orderId + (action.recipientId ?? "")} action={action} locale={lang} />)}</ul>
+          <ul className="pf-actions">{actions.map(action => <ProfileActionCard key={action.kind + action.orderId + (action.recipientId ?? "")} action={action} locale={lang} stage={actionStage(action)} />)}</ul>
         </section>}
         {activeParcels.length > 0 ? <section className="pf-section" aria-labelledby="pf-parcels-title">
           <div className="pf-section-head"><h2 id="pf-parcels-title" className="pf-section-title">{p.hub.parcels}<span className="pf-count">{activeParcels.length}</span></h2><Link className="pf-section-link" href="/orders">{p.hub.allParcels}<ArrowRight size={15} aria-hidden="true" /></Link></div>
           {!actions.length && <p className="pf-calm"><Check size={16} aria-hidden="true" />{p.hub.allSet}. {p.hub.allSetHint}</p>}
-          <ul className="pf-parcels">{activeParcels.map(parcel => <ParcelCard key={parcel.id} parcel={parcel} action={parcelAction(parcel, actions)} locale={lang} />)}</ul>
+          <ul className="pf-parcels">{activeParcels.map(parcel => <ParcelCard key={parcel.id} parcel={parcel} action={parcelAction(parcel, actions)} locale={lang} listed />)}</ul>
           <TelegramNudge locale={lang} />
         </section> : !actions.length && <section className="pf-empty cabinet-card" aria-labelledby="pf-empty-title">
           <span className="pf-empty-icon" aria-hidden="true"><Package size={22} /></span>
@@ -366,7 +370,15 @@ export function SettingsView() {
         <section className="cabinet-card" aria-labelledby="pf-language-title">
           <h2 id="pf-language-title">{p.settings.language}</h2>
           <div className="pf-segmented" role="radiogroup" aria-labelledby="pf-language-title">
-            {settingsLanguages.map(item => <button key={item.code} type="button" role="radio" lang={item.lang} aria-checked={item.code === lang} className={item.code === lang ? "selected" : undefined} onClick={() => { if (item.code !== lang) setLocale(item.code); }}>{item.name}</button>)}
+            {/* A radio group: one tab stop (the chosen language), arrows move and choose (WAI-ARIA radio group). */}
+            {settingsLanguages.map((item, index) => <button key={item.code} type="button" role="radio" lang={item.lang} aria-checked={item.code === lang} tabIndex={item.code === lang ? 0 : -1} className={item.code === lang ? "selected" : undefined} onClick={() => { if (item.code !== lang) setLocale(item.code); }} onKeyDown={event => {
+              const step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : event.key === "Home" ? -index : event.key === "End" ? settingsLanguages.length - 1 - index : 0;
+              if (!step) return;
+              event.preventDefault();
+              const target = (index + step + settingsLanguages.length) % settingsLanguages.length;
+              (event.currentTarget.parentElement?.children[target] as HTMLElement | undefined)?.focus();
+              setLocale(settingsLanguages[target].code);
+            }}>{item.name}</button>)}
           </div>
           <div className="cabinet-setting pf-theme-row"><span>{p.settings.theme}</span><ThemeToggle locale={lang} /></div>
         </section>

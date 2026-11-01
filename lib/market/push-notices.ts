@@ -1,6 +1,6 @@
 import type { Notification, Order } from './domain.ts';
 import type { Locale } from './i18n.ts';
-import { renderNoticeRow } from './history-copy.ts';
+import { renderNoticeRow, renderNotification } from './history-copy.ts';
 import { noticeTarget } from './notice-panel.ts';
 import { base64UrlDecode, isP256Point, type PushSubscriptionKeys } from './web-push.ts';
 
@@ -18,7 +18,9 @@ export function pushMessages(notices: Notification[], orders: Pick<Order, 'id' |
     const text = renderNoticeRow(notice, locale, order?.product.name);
     const image = order?.product.image;
     return {
-      title: text.title,
+      // A new stage leads with the parcel ("Посылка: Таможня"), the product's name under it: a bare "Таможня" on a
+      // lock screen says nothing about what it is (review, 1 November 2026).
+      title: notice.code === 'parcel-stage' ? renderNotification(notice, locale).title : text.title,
       body: text.message,
       url: noticeTarget(notice)?.href ?? '/notifications?id=' + encodeURIComponent(notice.id),
       // One notification per notice on the device: a retry replaces it instead of ringing twice.

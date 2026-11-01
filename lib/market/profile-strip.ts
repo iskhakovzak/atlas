@@ -1,4 +1,4 @@
-import type { Order, State } from './domain.ts';
+import { needsPassport, type Order, type State } from './domain.ts';
 import type { Locale } from './i18n.ts';
 import { orderAttention } from './notice-panel.ts';
 import { withCyrillic } from './uz-cyrl.ts';
@@ -16,13 +16,13 @@ type PassportState = Pick<State, 'orders' | 'deliveryProfiles'> & Partial<Pick<S
 
 export const documentsPath = (recipientId?: string) => '/account/documents' + (recipientId ? '?recipient=' + encodeURIComponent(recipientId) : '');
 
-/** Recipients of paid orders still on their way whose passport is not in the account — the same rule as "Мои заказы". */
+/** Recipients of paid orders still on their way whose passport is not in the account — domain.ts needsPassport, the rule the notice uses too. */
 export function missingPassports(state: PassportState): { recipientId: string; name: string; order: Order }[] {
   const identities = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
   const seen = new Map<string, { recipientId: string; name: string; order: Order }>();
   for (const order of state.orders) {
     const id = order.deliveryProfileId;
-    if (!id || seen.has(id) || order.cancelled || order.identity || order.status >= 5 || order.payment?.status === 'pending') continue;
+    if (!id || seen.has(id) || !needsPassport(order)) continue;
     if (identities.some((profile) => profile.recipientProfileId === id)) continue;
     const profile = state.deliveryProfiles.find((item) => item.id === id);
     if (!profile) continue;

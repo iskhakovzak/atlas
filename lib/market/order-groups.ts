@@ -1,4 +1,4 @@
-import { deliveryAddressLine, deliveredStage, legacyDeliverySpeed, orderPayable, parcelStageOf, type DeliveryProfile, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
+import { buyerParcelKey, deliveryAddressLine, deliveredStage, legacyDeliverySpeed, orderPayable, parcelStageOf, type DeliveryProfile, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
 import { orderAttention } from './notice-panel.ts';
 import { localizedParcelStages, type Locale } from './i18n.ts';
 import { brandForHost, storefrontLabel } from './store-brands.ts';
@@ -138,12 +138,8 @@ export function parcelServicesFor(orders: readonly Order[], orderId: string): Pa
     .map((request) => ({ request, holder: order.id })));
 }
 
-function storeKey(order: Order) {
-  const host = orderStoreHost(order);
-  // Without a store link (catalogue items), lines of one brand and country still travel as one parcel.
-  if (host) return `store:${host}:${order.product.country ?? ''}`;
-  return order.product.brand ? `brand:${order.product.brand}:${order.product.country ?? ''}` : `item:${order.id}`;
-}
+/** One parcel inside a checkout: the same key the operator's "Таможня" / "В Ташкенте" moves by (domain.ts buyerParcelKey). */
+const storeKey = (order: Order) => buyerParcelKey(order);
 
 function buildModels(orders: Order[]): OrderModelGroup[] {
   const models: OrderModelGroup[] = [];

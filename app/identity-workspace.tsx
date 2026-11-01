@@ -84,11 +84,13 @@ export function IdentityView({embedded=false}:{embedded?:boolean}={}){
   async function remove(id:string,question:string){if(!window.confirm(question))return;setBusy(true);try{const response=await fetch('/api/passport?id='+encodeURIComponent(id),{method:'DELETE'});if(!response.ok&&response.status!==404){const data=await response.json() as {error?:string};throw Error(data.error??d.deleteError)}if(identities.some(identity=>identity.documentId===id))await act({type:'identity-clear',documentId:id});setDocs(list=>list.filter(doc=>doc.id!==id));toast.success(d.deleted)}catch(error){toast.error((error as Error).message)}finally{setBusy(false)}}
   if(!ready)return <Empty title={c.notReady} description={c.notReadyText} href="/account" label={c.open}/>;
   // On /account/documents (1 November 2026) the passports are one section of the page, under its own heading.
+  // Under the page's own h2 for this section, its steps are h3 (one outline for /account/documents).
+  const H=embedded?'h3':'h2';
   return <div className="docs-page" id={embedded?'passports':undefined}>
     <header className="orders-head"><div>{embedded?<h2>{d.title}</h2>:<h1>{d.title}</h1>}<p>{d.lead}</p></div></header>
     <ol className="docs-steps">
       <li className="cabinet-card docs-step">
-        <h2><span className="docs-num" aria-hidden="true">1</span>{d.whose}<InfoTip locale={lang}>{d.whoseHint}</InfoTip></h2>
+        <H><span className="docs-num" aria-hidden="true">1</span>{d.whose}<InfoTip locale={lang}>{d.whoseHint}</InfoTip></H>
         <p className="cabinet-lead tip-text">{d.whoseHint}</p>
         {recipientProfiles.length?<div className="docs-recipients" role="radiogroup" aria-label={d.whose}>{recipientProfiles.map(profile=>{
           const passport=identities.find(identity=>identity.recipientProfileId===profile.id),checked=profile.id===selectedRecipientProfileId;
@@ -101,7 +103,7 @@ export function IdentityView({embedded=false}:{embedded?:boolean}={}){
         <button type="button" className="cabinet-add" onClick={inline.show}><Plus size={18} aria-hidden="true"/>{d.addRecipient}</button>
       </li>
       <li className={'cabinet-card docs-step'+(selectedRecipientProfileId?'':' muted')}>
-        <h2><span className="docs-num" aria-hidden="true">2</span>{current?d.replaceStep:d.uploadStep}</h2>
+        <H><span className="docs-num" aria-hidden="true">2</span>{current?d.replaceStep:d.uploadStep}</H>
         {!selectedRecipientProfileId?<p className="cabinet-empty">{recipientProfiles.length?d.pickFirst:d.noRecipient}</p>:<div className="docs-fields">
           <p className="cabinet-note">{c.textOnly}</p>
           <div className="rf-row"><div className="rf-field"><label htmlFor="last-name">{c.last}</label><input id="last-name" required autoComplete="family-name" autoCapitalize="words" value={filled.lastName} onChange={e=>setForm({...form,lastName:capitalizeWords(e.target.value)})}/></div><div className="rf-field"><label htmlFor="first-name">{c.first}</label><input id="first-name" required autoComplete="given-name" autoCapitalize="words" value={filled.firstName} onChange={e=>setForm({...form,firstName:capitalizeWords(e.target.value)})}/></div></div>
@@ -121,7 +123,7 @@ export function IdentityView({embedded=false}:{embedded?:boolean}={}){
         </div>}
       </li>
     </ol>
-    {docs.length>0&&<section className="cabinet-card docs-scans" aria-labelledby="docs-scans-title"><h2 id="docs-scans-title">{c.oldScans}</h2><p className="lo-note warn"><AlertTriangle size={16} aria-hidden="true"/>{c.oldScansNote}</p><ul className="cabinet-rows">{docs.map(doc=>{const identity=identities.find(item=>item.documentId===doc.id);const recipient=recipientProfiles.find(item=>item.id===identity?.recipientProfileId);return <li key={doc.id} className="docs-scan"><FileCheck2 aria-hidden="true"/><span><b>{doc.filename}</b><small>{Math.ceil(doc.size/1024)} KB · {doc.status==='confirmed'?c.confirmedData:c.pending}{recipient?` · ${recipient.recipient}`:''}</small></span><button type="button" className="icon-btn" aria-label={`${c.delete}: ${doc.filename}`} disabled={busy} onClick={()=>void remove(doc.id,d.deleteConfirm)}><Trash2 aria-hidden="true"/></button></li>})}</ul></section>}
+    {docs.length>0&&<section className="cabinet-card docs-scans" aria-labelledby="docs-scans-title"><H id="docs-scans-title">{c.oldScans}</H><p className="lo-note warn"><AlertTriangle size={16} aria-hidden="true"/>{c.oldScansNote}</p><ul className="cabinet-rows">{docs.map(doc=>{const identity=identities.find(item=>item.documentId===doc.id);const recipient=recipientProfiles.find(item=>item.id===identity?.recipientProfileId);return <li key={doc.id} className="docs-scan"><FileCheck2 aria-hidden="true"/><span><b>{doc.filename}</b><small>{Math.ceil(doc.size/1024)} KB · {doc.status==='confirmed'?c.confirmedData:c.pending}{recipient?` · ${recipient.recipient}`:''}</small></span><button type="button" className="icon-btn" aria-label={`${c.delete}: ${doc.filename}`} disabled={busy} onClick={()=>void remove(doc.id,d.deleteConfirm)}><Trash2 aria-hidden="true"/></button></li>})}</ul></section>}
     <p className="lo-note"><AlertTriangle size={16} aria-hidden="true"/>{c.warning}</p>
     <Modal open={inline.open} onClose={inline.close} title={recipientCopy[lang].addTitle} description={recipientCopy[lang].note} locale={lang}>{inline.open&&<RecipientForm locale={lang} isFirst={!recipientProfiles.length} onSave={inline.save}/>}</Modal>
   </div>;
@@ -171,10 +173,11 @@ export function DeclarationView({embedded=false}:{embedded?:boolean}={}){
     setSelected(list=>value?[...new Set([...list,order.id])]:list.filter(id=>id!==order.id));
   }
   if(!ready)return <Empty title={c.login} description={c.loginText} href="/account" label={c.open}/>;
+  const H=embedded?'h3':'h2';
   return <div className="docs-page" id={embedded?'declarations':undefined}>
     <header className="orders-head"><div>{embedded?<h2>{d.declTitle}</h2>:<h1>{d.declTitle}</h1>}<p>{d.declLead}</p></div></header>
     <section className="cabinet-card docs-checklist" aria-labelledby="docs-need-title">
-      <h2 id="docs-need-title">{d.need}</h2>
+      <H id="docs-need-title">{d.need}</H>
       <ul>{checklist.map(item=><li key={item.label} className={item.ok?'ok':'todo'}>
         <span className="docs-check" aria-hidden="true">{item.ok?<Check size={14}/>:null}</span>
         <span className="docs-check-copy"><b>{item.label}</b>{item.detail&&<small>{item.detail}</small>}</span>
@@ -184,8 +187,8 @@ export function DeclarationView({embedded=false}:{embedded?:boolean}={}){
       </li>)}</ul>
     </section>
     {readyToDeclare&&<div className="docs-declare">
-      <section className="cabinet-card"><h2>{c.recipientData}</h2>{displayIdentity?<dl className="order-x-details"><div><dt>{c.recipientLabel}</dt><dd>{displayIdentity.lastName} {displayIdentity.firstName}</dd></div><div><dt>{c.birth}</dt><dd>{displayIdentity.birthDate}</dd></div><div><dt>{c.passportLabel}</dt><dd>{displayIdentity.passportMasked}</dd></div>{displayDelivery&&<div><dt>{c.address}</dt><dd>{displayDelivery.recipient}<small>{[displayDelivery.region, displayDelivery.city, displayDelivery.address, displayDelivery.postalCode].filter(Boolean).join(", ")}</small></dd></div>}</dl>:<p className="cabinet-empty">{c.notConfirmed}</p>}</section>
-      <section className="cabinet-card docs-orders"><h2>{c.items}</h2>
+      <section className="cabinet-card"><H>{c.recipientData}</H>{displayIdentity?<dl className="order-x-details"><div><dt>{c.recipientLabel}</dt><dd>{displayIdentity.lastName} {displayIdentity.firstName}</dd></div><div><dt>{c.birth}</dt><dd>{displayIdentity.birthDate}</dd></div><div><dt>{c.passportLabel}</dt><dd>{displayIdentity.passportMasked}</dd></div>{displayDelivery&&<div><dt>{c.address}</dt><dd>{displayDelivery.recipient}<small>{[displayDelivery.region, displayDelivery.city, displayDelivery.address, displayDelivery.postalCode].filter(Boolean).join(", ")}</small></dd></div>}</dl>:<p className="cabinet-empty">{c.notConfirmed}</p>}</section>
+      <section className="cabinet-card docs-orders"><H>{c.items}</H>
         {groups.map(group=><div className="docs-group" key={group.key}>
           <div className="docs-group-head"><b>{d.ordersFor(group.name)}</b><button type="button" className="cabinet-text-btn" onClick={()=>setSelected(group.orders.map(order=>order.id))}>{d.selectGroup}</button></div>
           {group.orders.map(order=><label className="docs-order" key={order.id}><Checkbox checked={selected.includes(order.id)} onCheckedChange={value=>toggle(order,value===true)}/><span><b>{order.product.declarationDescription??order.product.name}</b><small>{order.id} · {order.product.country??(lang==='ru'?'Страна не указана':isUzbek(lang)?uzText(lang, 'Mamlakat ko‘rsatilmagan'):'Country not specified')} · {order.quantity} {lang==='ru'?'шт.':isUzbek(lang)?uzText(lang, 'dona'):'pcs'}</small></span><strong>{formatSum(order.quote.merchandise,lang)}</strong></label>)}
@@ -196,7 +199,7 @@ export function DeclarationView({embedded=false}:{embedded?:boolean}={}){
         <p className="cabinet-note">{c.private}</p>
       </section>
     </div>}
-    <section className="cabinet-card docs-history" aria-labelledby="docs-history-title"><h2 id="docs-history-title">{d.history}</h2>{state.declarations.length?<ul className="cabinet-rows">{state.declarations.map(item=><li key={item.id} className="docs-scan"><FileCheck2 aria-hidden="true"/><span><b>{item.id}</b><small>{formatDateTime(item.createdAt,lang)} · {orderCount(item.lines.length,lang)} · {c.draft}</small></span><strong>{formatSum(item.totalValue,lang)}</strong></li>)}</ul>:<p className="cabinet-empty">{c.noDrafts}</p>}</section>
+    <section className="cabinet-card docs-history" aria-labelledby="docs-history-title"><H id="docs-history-title">{d.history}</H>{state.declarations.length?<ul className="cabinet-rows">{state.declarations.map(item=><li key={item.id} className="docs-scan"><FileCheck2 aria-hidden="true"/><span><b>{item.id}</b><small>{formatDateTime(item.createdAt,lang)} · {orderCount(item.lines.length,lang)} · {c.draft}</small></span><strong>{formatSum(item.totalValue,lang)}</strong></li>)}</ul>:<p className="cabinet-empty">{c.noDrafts}</p>}</section>
     <Modal open={inline.open} onClose={inline.close} title={recipientCopy[lang].addTitle} description={recipientCopy[lang].note} locale={lang}>{inline.open&&<RecipientForm locale={lang} isFirst={!state.deliveryProfiles.length} onSave={inline.save}/>}</Modal>
   </div>;
 }

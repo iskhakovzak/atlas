@@ -314,7 +314,7 @@ test('wiring: delivery goes to the account persist saved, after the consent chec
   const deliver = body('deliverTelegramNotices');
   for (const forbidden of ['currentUser', 'signedInUser', 'identity(', 'headers(', 'request']) assert.ok(!deliver.includes(forbidden), forbidden);
   const order = (text, steps) => { let at = -1; for (const step of steps) { const next = text.indexOf(step, at + 1); assert.ok(next > at, step); at = next; } };
-  order(deliver, ['shouldNotifyTelegram(', 'telegramConsentSubject(userId, since)', 'rateLimit(', 'formatTelegramNotices(', 'sendTelegram(', '"blocked"', 'disableTelegramNotices(userId, "blocked", { since })']);
+  order(deliver, ['shouldNotifyTelegram(', 'telegramConsentSubject(userId, since)', 'rateLimit(', 'telegramMessagesFor(', 'sendTelegram(', '"blocked"', 'disableTelegramNotices(userId, "blocked", { since })']);
   order(body('toggleTelegramNotices'), ['rateLimit(', 'telegramConfigured()', 'telegramNoticesLive(request)', 'telegramBotConnected()', 'telegramConsentSubject(userId)', '"sendChatAction"', 'kind: "pending"', 'err_82', 'err_83', 'kind: "on"', 'persist(', 'recordConsent(', 'deferBackground(welcome(']);
   // Telegram's answers: 5-second timeouts; a moved webhook keeps the updates waiting (a /stop must arrive).
   const auth = read('lib/auth/server.ts');

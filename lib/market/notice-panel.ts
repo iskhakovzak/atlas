@@ -21,14 +21,15 @@ export const parcelPath = (orderId: string) => '/account/parcels/' + encodeURICo
 const parcelNoticeCodes = new Set(['status', 'parcel-stage', 'tracking-added']);
 
 /** Where a notification leads: its order (opened in place by the hash), the declaration it saved or the support section. */
-export function noticeTarget(notice: Pick<Notification, 'orderId' | 'code'> & Partial<Pick<Notification, 'params'>>): { href: string; kind: 'order' | 'document' | 'support' } | null {
+export function noticeTarget(notice: Pick<Notification, 'orderId' | 'code'> & Partial<Pick<Notification, 'params'>>): { href: string; kind: 'order' | 'parcel' | 'document' | 'support' } | null {
   // The passport goes to the documents page, opened on that recipient (1 November 2026).
   if (notice.code === 'passport-needed') {
     const recipient = notice.params?.recipient;
     return { href: '/account/documents' + (typeof recipient === 'string' && recipient ? '?recipient=' + encodeURIComponent(recipient) : ''), kind: 'document' };
   }
   // A new stage opens the parcel itself: its eight-stage bar and the one next step (owner, 1 November 2026).
-  if (notice.orderId && notice.code && parcelNoticeCodes.has(notice.code)) return { href: parcelPath(notice.orderId), kind: 'order' };
+  // Its link says "Открыть посылку", not "Открыть заказ" (kind 'parcel').
+  if (notice.orderId && notice.code && parcelNoticeCodes.has(notice.code)) return { href: parcelPath(notice.orderId), kind: 'parcel' };
   if (notice.orderId) return { href: '/orders#' + encodeURIComponent(notice.orderId), kind: 'order' };
   if (notice.code === 'declaration-saved') return { href: '/account/documents#declarations', kind: 'document' };
   if (notice.code === 'support-answered') return { href: '/account#support', kind: 'support' };

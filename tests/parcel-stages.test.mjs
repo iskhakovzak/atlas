@@ -6,17 +6,22 @@ import assert from 'node:assert/strict';
 import {
   products, blank, addToCart, cartSignature, checkoutCart, confirmDemoPayment, advanceOrder, inspectWarehouseOrder,
   saveDeliveryProfile, setParcel, receiveOrder, parseState, parcelStageOf, parcelStages, statuses, deliveredStage,
-  confirmIdentity,
+  confirmIdentity, needsPassport, buyerParcelKey, transitParcelOrders,
 } from '../lib/market/domain.ts';
+import { readFileSync } from 'node:fs';
+import { serverError } from '../lib/market/i18n.ts';
+import { knownParcelEvents, parcelEventText, profileCopy } from '../lib/market/profile-copy.ts';
+import { noticeTarget } from '../lib/market/notice-panel.ts';
+import { noticesCopy } from '../lib/market/notices-copy.ts';
 import { customsVersion } from '../lib/market/world.ts';
 import { localizedParcelStages, localizedStatuses } from '../lib/market/i18n.ts';
 import { newNotices } from '../lib/market/telegram-state.ts';
-import { formatTelegramNotices } from '../lib/market/telegram-notices.ts';
+import { formatTelegramNotices, isActionNotice, telegramMessagesFor } from '../lib/market/telegram-notices.ts';
 import { pushMessages } from '../lib/market/push-notices.ts';
 import { renderNotification } from '../lib/market/history-copy.ts';
 import { operatorNextStep } from '../lib/market/operator-queue.ts';
 import { buyerParcels, parcelOf, profileActions, parcelAction } from '../lib/market/parcels.ts';
-import { firstProfileAction } from '../lib/market/profile-strip.ts';
+import { firstProfileAction, missingPassports } from '../lib/market/profile-strip.ts';
 
 const noon = Date.UTC(2026, 10, 1, 7, 0); // 12:00 in Tashkent: nothing is silenced for the night
 // The checkout names the saved recipient, as the cart does (its passport is looked up by that id).
@@ -82,7 +87,7 @@ test('the operator moves a parcel on its way through "Таможня" and "В Т
   assert.deepEqual(operatorNextStep(s.orders.find((o) => o.id === a)), { kind: 'yours', key: 'toCustoms' });
   // A second click with the stage the operator saw before is refused, as for every other stage.
   const customs = advanceOrder(s, a, 4, 1800);
-  assert.throws(() => advanceOrder(customs, a, 4, 1801), /Статус уже изменился/);
+  assert.throws(() => advanceOrder(customs, a, 4, 1801), (error) => error.code === 'err_86');
   // The box travels whole: both orders of the parcel are at customs, still status 4 for every older reader.
   assert.deepEqual(customs.orders.map((o) => [o.status, o.transitStage, parcelStageOf(o)]), [[4, 'customs', 5], [4, 'customs', 5]]);
   for (const order of customs.orders) {
@@ -138,7 +143,8 @@ test('the stage message in Telegram and push: the stage as the headline, the par
   assert.match(formatTelegramNotices(notices, next.orders, 'oz', 'https://atlasmarket.uz', noon).text, /Посилка: Божхонада/);
   assert.equal(renderNotification(notices[0], 'en').title, 'Parcel: Customs');
   const [push] = pushMessages(notices, next.orders, 'ru');
-  assert.equal(push.title, 'Таможня');
+  assert.equal(push.title, 'Посылка: Таможня');
+  assert.equal(push.body, next.orders.find((o) => o.id === ids[0]).product.name);
   assert.equal(push.url, `/account/parcels/${ids[0]}`);
   const tashkent = advanceOrder(next, ids[0], 5, noon + 1);
   assert.equal(renderNotification(newNotices(next, tashkent, noon + 1)[0], 'uz').title, 'Posilka: Toshkentda');
@@ -191,4 +197,102 @@ test('the profile: one parcel per store box, its stage, «Требует дей�
   assert.deepEqual(parcel.live.map(parcelStageOf).sort(), [0, 1]);
   assert.equal(parcel.stage, 0);
   assert.equal(parcel.awaitingPayment, false);
+});
+
+// Review fixes (1 November 2026).
+const catalogItem = () => ({ ...products[0] }); // a catalogue item: no store link, brand «Обувь · США»
+
+test('after a payment without the passport, Telegram sends the news and then the passport in a message of its own', () => {
+  let s = saveDeliveryProfile(blank(), profile, 'Дом');
+  s = addToCart(s, storeItem('p'), 'US 9', 1000);
+  s = checkout(s, 'k-p', 1001);
+  const before = s;
+  s = confirmDemoPayment(s, s.orders[0].id, noon);
+  const notices = newNotices(before, s, noon);
+  assert.deepEqual(notices.map((n) => n.code).sort(), ['passport-needed', 'payment-recorded']);
+  const messages = telegramMessagesFor(notices, s.orders, 'ru', 'https://atlasmarket.uz', noon);
+  assert.equal(messages.length, 2, 'the action is never folded into "Order updates: 2"');
+  assert.doesNotMatch(messages[0].text, /Нужно ваше действие/);
+  assert.match(messages[1].text, /<i>Нужно ваше действие<\/i>/);
+  assert.deepEqual(messages[1].reply_markup.inline_keyboard, [[{ text: 'Добавить паспорт', url: 'https://atlasmarket.uz/account/documents?recipient=' + encodeURIComponent(s.deliveryProfiles[0].id) }]]);
+  // News alone stays one message; nothing at all sends nothing.
+  assert.equal(telegramMessagesFor([notices[0]], s.orders, 'ru', 'https://atlasmarket.uz', noon).length, 1);
+  assert.deepEqual(telegramMessagesFor([], s.orders, 'ru', 'https://atlasmarket.uz', noon), []);
+  assert.equal(isActionNotice({ code: 'passport-needed' }), true);
+  assert.equal(isActionNotice({ code: 'parcel-stage' }), false);
+});
+
+test('one rule for the passport: only a paid order asks for it (refunded, unpaid or old orders without a payment do not)', () => {
+  const base = { cancelled: false, status: 4, deliveryProfileId: 'r1' };
+  assert.equal(needsPassport({ ...base, payment: { status: 'paid' } }), true);
+  for (const payment of [undefined, { status: 'pending' }, { status: 'refunded' }]) assert.equal(needsPassport({ ...base, payment }), false, JSON.stringify(payment));
+  assert.equal(needsPassport({ ...base, payment: { status: 'paid' }, status: 5 }), false, 'delivered');
+  assert.equal(needsPassport({ ...base, payment: { status: 'paid' }, identity: { passportMasked: 'x' } }), false);
+  // missingPassports reads the same rule: a refunded order is not "waiting for a passport".
+  let s = saveDeliveryProfile(blank(), profile, 'Дом');
+  s = addToCart(s, storeItem('q'), 'US 9', 1000);
+  s = checkout(s, 'k-q', 1001);
+  s = confirmDemoPayment(s, s.orders[0].id, 1100);
+  assert.equal(missingPassports(s).length, 1);
+  const refunded = { ...s, orders: s.orders.map((o) => ({ ...o, payment: { ...o.payment, status: 'refunded' } })) };
+  assert.equal(missingPassports(refunded).length, 0);
+});
+
+test('a catalogue parcel without a store link moves as one box for the buyer and the operator, with one notice', () => {
+  let s = saveDeliveryProfile(blank(), profile, 'Дом');
+  s = addToCart(s, catalogItem(), 'US 9', 1000);
+  s = addToCart(s, catalogItem(), 'US 10', 1000);
+  s = checkout(s, 'k-c', 1001);
+  const ids = s.orders.map((o) => o.id);
+  assert.equal(ids.length, 2);
+  assert.equal(buyerParcels(s.orders).length, 1, 'one parcel for the buyer');
+  assert.equal(buyerParcelKey(s.orders[0]), buyerParcelKey(s.orders[1]));
+  // Put at "В пути" (status 4) directly: the transit step is what is checked here.
+  const onWay = { ...s, orders: s.orders.map((o) => ({ ...o, status: 4, payment: { ...o.payment, status: 'paid' } })) };
+  assert.equal(transitParcelOrders(onWay, onWay.orders[0]).length, 2, 'the operator button says "· 2 заказа"');
+  const customs = advanceOrder(onWay, ids[0], 4, 1800);
+  assert.deepEqual(customs.orders.map((o) => o.transitStage), ['customs', 'customs']);
+  const notices = newNotices(onWay, customs, 1800);
+  assert.equal(notices.length, 1);
+  assert.equal(notices[0].params.orders, 2);
+  assert.equal(buyerParcels(customs.orders)[0].stage, 5, 'the parcel page says «Таможня», not «В пути»');
+});
+
+test('"В пути" reaches the buyer once per parcel, not once per order of the box', () => {
+  let { s, ids } = placed();
+  for (const id of ids) { s = advanceOrder(s, id, 0, 1200); s = advanceOrder(s, id, 1, 1300); s = inspectWarehouseOrder(s, id, ok, 1400); }
+  s = receiveOrder(s, ids[0], [0.9, 20, 20, 10], 1500);
+  for (const id of ids) s = setParcel(s, id, 'DHL', 'TRK-' + id, 'TAS-1', 1600);
+  const first = advanceOrder(s, ids[0], 3, 1700);
+  assert.deepEqual(newNotices(s, first, 1700).map((n) => n.code), ['status']);
+  const second = advanceOrder(first, ids[1], 3, 1710);
+  assert.deepEqual(newNotices(first, second, 1710), [], 'the second order of the box adds no second "В пути"');
+  assert.equal(second.orders.find((o) => o.id === ids[1]).history.at(-1).code, 'status', 'its own history still has the step');
+});
+
+test('the operator queue at customs with the duty handled by Atlas: "В Ташкенте" first, the duty before "Доставлен"', () => {
+  const order = { status: 4, transitStage: 'customs', quote: { customsHelp: true }, product: {}, history: [], changeRequests: [], warehouseServiceRequests: [] };
+  assert.deepEqual(operatorNextStep(order), { kind: 'yours', key: 'toTashkent' });
+  assert.deepEqual(operatorNextStep({ ...order, transitStage: 'tashkent' }), { kind: 'yours', key: 'customs' });
+  assert.deepEqual(operatorNextStep({ ...order, transitStage: 'tashkent', customsSettlement: { actual: 0 } }), { kind: 'yours', key: 'deliver' });
+});
+
+test('the stale-stage refusal has its own code in every language; parcel events read in the buyer language', () => {
+  for (const locale of ['ru', 'uz', 'oz', 'en']) assert.notEqual(serverError(locale, 'err_86'), serverError(locale, 'err_unknown'), locale);
+  assert.match(serverError('ru', 'err_86'), /Этап уже изменился/);
+  assert.equal(parcelEventText('Таможенное оформление в Узбекистане', 'en'), 'Customs clearance in Uzbekistan');
+  assert.equal(parcelEventText('Международный маршрут', 'uz'), 'Xalqaro yo‘nalish');
+  assert.doesNotMatch(parcelEventText('Трек-номер подтверждён', 'oz'), /[a-z]/i);
+  assert.equal(parcelEventText('Склад: принято', 'en'), 'Склад: принято', 'an operator line stays as written');
+  for (const locale of ['ru', 'uz', 'oz', 'en']) assert.equal(profileCopy[locale].parcel.eventNames.length, knownParcelEvents.length, locale);
+  // The code still writes exactly these lines.
+  const source = readFileSync(new URL('../lib/market/domain.ts', import.meta.url), 'utf8');
+  for (const line of knownParcelEvents) assert.ok(source.includes(`"${line}"`), line);
+});
+
+test('notices about the parcel open it and say so', () => {
+  assert.equal(noticeTarget({ orderId: 'AT-1', code: 'tracking-added' }).kind, 'parcel');
+  for (const locale of ['ru', 'uz', 'oz', 'en']) assert.ok(noticesCopy[locale].openParcel, locale);
+  const message = formatTelegramNotices([{ id: 'n', at: noon, read: false, title: 't', message: 'm', orderId: 'AT-1', code: 'parcel-stage', params: { stage: 6 } }], [], 'en', 'https://atlasmarket.uz', noon);
+  assert.equal(message.reply_markup.inline_keyboard[0][0].text, 'Open the parcel');
 });

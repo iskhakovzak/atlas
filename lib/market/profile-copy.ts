@@ -26,6 +26,8 @@ export type ProfileCopy = {
     paymentHint: (items: string) => string;
     passportTitle: (name: string) => string;
     passportHint: string;
+    /** From "В пути" on: the passport is needed for the customs clearance of a parcel already shipped. */
+    passportHintTransit: string;
     decisionHint: (name: string) => string;
     pay: (amount: string) => string;
   };
@@ -66,6 +68,8 @@ export type ProfileCopy = {
     claimHint: string;
     total: string;
     support: string;
+    /** knownParcelEvents in the same order, in this language. */
+    eventNames: readonly string[];
   };
   documents: { title: string; lead: string; passports: string; declarations: string };
   settings: { title: string; lead: string; language: string; theme: string; notices: string; noticesLead: string; signIn: string; help: string; account: string };
@@ -103,6 +107,7 @@ export const profileCopy: Record<Locale, ProfileCopy> = /*@__PURE__*/withCyrilli
       paymentHint: (items) => `Один платёж за весь заказ: ${items}. После оплаты выкупим товар в магазине.`,
       passportTitle: (name) => `Нужен паспорт: ${name}`,
       passportHint: 'Он нужен для таможенной декларации до отправки посылки.',
+      passportHintTransit: 'Он нужен для таможенного оформления посылки.',
       decisionHint: (name) => name,
       pay: (amount) => `Оплатить ${amount}`,
     },
@@ -138,6 +143,7 @@ export const profileCopy: Record<Locale, ProfileCopy> = /*@__PURE__*/withCyrilli
       claimHint: 'Претензию подают по заказу: о потере — пока посылка в пути, о повреждении — после доставки.',
       total: 'Сумма заказов',
       support: 'Вопрос по посылке',
+      eventNames: ['Передано в международную доставку', 'Доставлено получателю', 'Таможенное оформление в Узбекистане', 'Посылка прибыла в Ташкент', 'Трек-номер подтверждён', 'Международный маршрут', 'Ташкент'],
     },
     documents: { title: 'Документы', lead: 'Паспорта получателей и таможенные декларации в одном месте. Паспорт нужен для декларации до отправки посылки.', passports: 'Паспорта получателей', declarations: 'Декларации' },
     settings: { title: 'Настройки', lead: 'Язык, тема, уведомления и аккаунт.', language: 'Язык и тема', theme: 'Тема', notices: 'Уведомления о посылках', noticesLead: 'О каждом новом этапе посылки и о том, что нужно сделать, пишем в уведомлениях на сайте, а если включить — в Telegram и в браузере.', signIn: 'Способы входа', help: 'Помощь и документы', account: 'Аккаунт' },
@@ -173,6 +179,7 @@ export const profileCopy: Record<Locale, ProfileCopy> = /*@__PURE__*/withCyrilli
       paymentHint: (items) => `Butun buyurtma uchun bitta to‘lov: ${items}. To‘lovdan keyin tovarni do‘kondan xarid qilamiz.`,
       passportTitle: (name) => `Pasport kerak: ${name}`,
       passportHint: 'U posilka jo‘natilishidan oldin bojxona deklaratsiyasi uchun kerak.',
+      passportHintTransit: 'U posilkani bojxonada rasmiylashtirish uchun kerak.',
       decisionHint: (name) => name,
       pay: (amount) => `${amount} to‘lash`,
     },
@@ -208,6 +215,7 @@ export const profileCopy: Record<Locale, ProfileCopy> = /*@__PURE__*/withCyrilli
       claimHint: 'Da’vo buyurtma bo‘yicha beriladi: yo‘qolish haqida — posilka yo‘lda ekanida, shikastlanish haqida — yetkazilgandan keyin.',
       total: 'Buyurtmalar summasi',
       support: 'Posilka bo‘yicha savol',
+      eventNames: ['Xalqaro yetkazishga topshirildi', 'Qabul qiluvchiga yetkazildi', 'O‘zbekistonda bojxona rasmiylashtiruvi', 'Posilka Toshkentga yetib keldi', 'Trek-raqam tasdiqlandi', 'Xalqaro yo‘nalish', 'Toshkent'],
     },
     documents: { title: 'Hujjatlar', lead: 'Qabul qiluvchilarning pasportlari va bojxona deklaratsiyalari bir joyda. Pasport posilka jo‘natilishidan oldin deklaratsiya uchun kerak.', passports: 'Qabul qiluvchilar pasportlari', declarations: 'Deklaratsiyalar' },
     settings: { title: 'Sozlamalar', lead: 'Til, mavzu, bildirishnomalar va akkaunt.', language: 'Til va mavzu', theme: 'Mavzu', notices: 'Posilkalar haqida bildirishnomalar', noticesLead: 'Posilkaning har bir yangi bosqichi va nima qilish kerakligi haqida saytdagi bildirishnomalarda, yoqsangiz — Telegram va brauzerda ham yozamiz.', signIn: 'Kirish usullari', help: 'Yordam va hujjatlar', account: 'Akkaunt' },
@@ -243,6 +251,7 @@ export const profileCopy: Record<Locale, ProfileCopy> = /*@__PURE__*/withCyrilli
       paymentHint: (items) => `One payment for the whole order: ${items}. Once paid, we buy the item at the store.`,
       passportTitle: (name) => `Passport needed: ${name}`,
       passportHint: 'Customs needs it for the declaration before the parcel ships.',
+      passportHintTransit: 'Customs needs it to clear the parcel.',
       decisionHint: (name) => name,
       pay: (amount) => `Pay ${amount}`,
     },
@@ -278,8 +287,20 @@ export const profileCopy: Record<Locale, ProfileCopy> = /*@__PURE__*/withCyrilli
       claimHint: 'Claims are filed per order: a loss while the parcel is on its way, damage after delivery.',
       total: 'Orders total',
       support: 'Question about the parcel',
+      eventNames: ['Handed over for international shipping', 'Delivered to the recipient', 'Customs clearance in Uzbekistan', 'The parcel arrived in Tashkent', 'Tracking number confirmed', 'International route', 'Tashkent'],
     },
     documents: { title: 'Documents', lead: 'Recipients’ passports and customs declarations in one place. Customs needs the passport for the declaration before the parcel ships.', passports: 'Recipients’ passports', declarations: 'Declarations' },
     settings: { title: 'Settings', lead: 'Language, theme, notifications and account.', language: 'Language and theme', theme: 'Theme', notices: 'Parcel notifications', noticesLead: 'We tell you about every new stage of a parcel and anything you need to do in the site’s notifications — and, if you turn them on, in Telegram and the browser.', signIn: 'Sign-in methods', help: 'Help and documents', account: 'Account' },
   },
 });
+
+/**
+ * Parcel events Atlas itself writes (domain.ts setParcel, advanceOrder, advanceTransit) are stored as Russian lines;
+ * the parcel page shows them in the buyer's language (review, 1 November 2026). A line written by an operator or a
+ * carrier is not in the list and stays as written.
+ */
+export const knownParcelEvents = ['Передано в международную доставку', 'Доставлено получателю', 'Таможенное оформление в Узбекистане', 'Посылка прибыла в Ташкент', 'Трек-номер подтверждён', 'Международный маршрут', 'Ташкент'] as const;
+export function parcelEventText(text: string, locale: Locale): string {
+  const index = (knownParcelEvents as readonly string[]).indexOf(text.trim());
+  return index < 0 ? text : profileCopy[locale].parcel.eventNames[index] ?? text;
+}

@@ -9,7 +9,7 @@ import { localizedParcelStages, type Locale } from "@/lib/market/i18n";
 import { formatDateTime, formatLongDate, itemCount } from "@/lib/market/customer-copy";
 import { orderCustomerTotal, orderGroupCopy } from "@/lib/market/order-groups";
 import { documentsPath, parcelAction, parcelOf, profileActions } from "@/lib/market/parcels";
-import { profileCopy } from "@/lib/market/profile-copy";
+import { parcelEventText, profileCopy } from "@/lib/market/profile-copy";
 import { readableVariant } from "@/lib/market/nike-size-chart";
 import type { Action } from "@/lib/market/actions";
 import { ProductImage } from "./market-ui";
@@ -45,14 +45,15 @@ export function ParcelView({ id }: { id: string }) {
   const total = parcel.live.reduce((sum, order) => sum + orderCustomerTotal(order), 0);
   const items = parcel.live.reduce((sum, order) => sum + order.quantity, 0);
   const tracked = parcel.live.find((order) => order.parcel)?.parcel;
-  // Events of the parcel, once each (orders of one box carry the same warehouse and transit events), newest first.
+  // Events of the parcel, once each: the orders of one box carry the same events, written a few milliseconds apart when
+  // the operator moved them one by one — the earliest stays (review, 1 November 2026). Newest first.
   const seen = new Set<string>();
-  const events = parcel.live.flatMap((order) => order.parcel?.events ?? []).filter((event) => {
-    const key = `${event.at}|${event.status}`;
+  const events = parcel.live.flatMap((order) => order.parcel?.events ?? []).sort((a, b) => a.at - b.at).filter((event) => {
+    const key = `${event.status}|${event.location ?? ""}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
-  }).sort((a, b) => b.at - a.at);
+  }).reverse();
   const identities = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
   const passport = parcel.live.find((order) => order.identity)?.identity ?? (parcel.deliveryProfileId ? identities.find((profile) => profile.recipientProfileId === parcel.deliveryProfileId) : undefined);
   const orderIds = new Set(parcel.orders.map((order) => order.id));
@@ -80,7 +81,7 @@ export function ParcelView({ id }: { id: string }) {
             <h2 id="pf-stage-title" className="pf-stage-title">{parcel.awaitingPayment && stage === 0 ? t.stage.awaitingPayment : names[stage]}</h2>
             {!delivered && stage + 1 < names.length && <p className="pf-stage-next">{t.stage.next(names[stage + 1])}</p>}
             <ParcelStageBar stage={stage} awaitingPayment={parcel.awaitingPayment} locale={locale} size="full" />
-            {action ? <ul className="pf-actions pf-actions-inline"><ProfileActionCard action={action} locale={locale} /></ul>
+            {action ? <ul className="pf-actions pf-actions-inline"><ProfileActionCard action={action} locale={locale} stage={stage} /></ul>
               : <p className="pf-calm"><Check size={16} aria-hidden="true" />{delivered ? t.parcel.delivered : t.parcel.nothingToDo}</p>}
           </>}
         </section>
@@ -105,7 +106,7 @@ export function ParcelView({ id }: { id: string }) {
             <div><dt>{t.parcel.carrier}</dt><dd>{tracked.carrier}</dd></div>
             <div><dt>{t.parcel.trackingNumber}</dt><dd><span className="pf-mono">{tracked.trackingNumber}</span><CopyText text={tracked.trackingNumber} locale={locale} what="tracking" /></dd></div>
           </dl> : <p className="cabinet-muted">{t.parcel.noTracking}</p>}
-          {events.length > 0 && <ol className="pf-events" aria-label={t.parcel.events}>{events.slice(0, 8).map((event) => <li key={`${event.at}-${event.status}`}><time>{formatDateTime(event.at, locale)}</time><span>{event.status}{event.location ? ` · ${event.location}` : ""}</span></li>)}</ol>}
+          {events.length > 0 && <ol className="pf-events" aria-label={t.parcel.events}>{events.slice(0, 8).map((event) => <li key={`${event.at}-${event.status}-${event.location ?? ""}`}><time>{formatDateTime(event.at, locale)}</time><span>{parcelEventText(event.status, locale)}{event.location ? ` · ${parcelEventText(event.location, locale)}` : ""}</span></li>)}</ol>}
         </section>
 
         <section className="cabinet-card pf-side-card" aria-labelledby="pf-documents-title">

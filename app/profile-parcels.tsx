@@ -38,11 +38,14 @@ export function ParcelStageBar({ stage, awaitingPayment = false, locale, size = 
 
 const actionIcon = { extra: AlertCircle, change: AlertCircle, payment: Wallet, passport: FileText } as const;
 
-/** One «Требует действия» card: what, why, one button. */
-export function ProfileActionCard({ action, locale }: { action: ProfileAction; locale: Locale }) {
+/** "В пути" and on: the passport is no longer "before dispatch" but for the customs clearance (review, 1 November 2026). */
+const transitFrom = 4;
+
+/** One «Требует действия» card: what, why, one button. `stage`: the furthest stage of the parcels it is about. */
+export function ProfileActionCard({ action, locale, stage }: { action: ProfileAction; locale: Locale; stage?: number }) {
   const t = profileCopy[locale].action, Icon = actionIcon[action.kind];
   const title = action.kind === "passport" && action.recipientName ? t.passportTitle(action.recipientName) : t[action.kind].title;
-  const hint = action.kind === "payment" ? t.paymentHint(itemCount(action.items ?? 1, locale)) : action.kind === "passport" ? t.passportHint : t.decisionHint(action.name);
+  const hint = action.kind === "payment" ? t.paymentHint(itemCount(action.items ?? 1, locale)) : action.kind === "passport" ? (stage !== undefined && stage >= transitFrom ? t.passportHintTransit : t.passportHint) : t.decisionHint(action.name);
   const button = action.kind === "payment" && action.amount !== undefined ? t.pay(formatSum(action.amount, locale)) : t[action.kind].button;
   return <li className="pf-action" data-kind={action.kind}>
     <span className="pf-action-icon" aria-hidden="true"><Icon size={20} /></span>
@@ -54,13 +57,19 @@ export function ProfileActionCard({ action, locale }: { action: ProfileAction; l
 /** The title of a parcel: "Посылка из Nike (США)". */
 export function parcelTitle(parcel: BuyerParcel, locale: Locale) {
   const store = storeGroupName(parcel.store, locale), country = parcel.store.country ? countryLabel(parcel.store.country, locale) : "";
-  // A catalogue item without a store link is named by its brand, which may already name the country.
-  const name = country && !store.includes(country) ? `${store} (${country})` : store;
+  // A catalogue item without a store link is named by its brand, which may already name the country — in the stored
+  // (Russian) words as well as in this language's.
+  const name = country && !store.includes(country) && !store.includes(parcel.store.country) ? `${store} (${country})` : store;
   return name ? profileCopy[locale].parcel.title(name) : profileCopy[locale].parcel.fallbackTitle;
 }
 
-/** An active parcel on the profile: photos, title, the stage bar and its one button (its action, or open the parcel). */
-export function ParcelCard({ parcel, action, locale }: { parcel: BuyerParcel; action?: ProfileAction; locale: Locale }) {
+/**
+ * An active parcel on the profile: photos, title, the stage bar and its one button (its action, or open the parcel).
+ * `listed`: the passport this parcel waits for is already a card in «Требует действия» above — one recipient's passport
+ * is shared by all their parcels, so the cards here open the parcel instead of repeating the primary button.
+ */
+export function ParcelCard({ parcel, action: found, locale, listed = false }: { parcel: BuyerParcel; action?: ProfileAction; locale: Locale; listed?: boolean }) {
+  const action = found?.kind === "passport" && listed ? undefined : found;
   const t = profileCopy[locale];
   const items = parcel.live.reduce((sum, order) => sum + order.quantity, 0);
   const photos = parcel.live.slice(0, 3);

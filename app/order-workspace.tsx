@@ -79,13 +79,15 @@ import {
   legacyDeliverySpeed,
   parcelStageOf,
   deliveredStage,
+  transitParcelOrders,
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
+import { noticeTarget, parcelPath } from "@/lib/market/notice-panel";
 import { countries } from "@/lib/market/world";
 import { localizedParcelStages, navCopy, type Locale } from "@/lib/market/i18n";
 import {requestImport} from "@/lib/market/import-client";
 import { homeCopy } from "@/lib/market/home-copy";
-import { formatKg, formatPercent, formatSum } from "@/lib/market/format";
+import { formatKg, formatPercent, formatSum, ruPlural } from "@/lib/market/format";
 import { localizeLegacyStoredCopy, renderHistory, renderNoticeRow, renderNotification } from "@/lib/market/history-copy";
 import { deliveryDaysFor, deliveryRegions, siteContent, type DeliveryRegion } from "@/lib/market/site-content";
 import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderCustomerTotal, orderGroupCopy, parcelServicesFor, shipAddressText, storeGroupName, storeShortName, type OrderGroup, type ParcelServiceRequest } from "@/lib/market/order-groups";
@@ -127,11 +129,15 @@ const customsWords = /*@__PURE__*/withCyrillic({
   en: { over: "Duty above the prepayment", confirm: "Confirm duty", title: "Duty charged by customs", description: "Enter the actual duty in USD. If it is below the prepayment, the rest returns to the customer’s balance at once; if above, the customer approves the difference.", actual: "Duty charged, USD", prepaid: "Duty prepaid", settled: (actual: string) => `Customs charged ${actual}.`, refund: (amount: string) => `${amount} returned to the balance.`, extra: (amount: string) => `Extra ${amount}`, saved: "Duty confirmed", helpTitle: "Atlas handles customs", helpDuty: (estimate: string) => `Request accepted. Duty prepaid ≈ ${estimate}: after release we settle it with customs — the rest returns to your balance, any extra only with your consent.`, helpNoDuty: "Request accepted. The parcel is within the allowance — no duty expected; Atlas prepares the declaration." },
 });
 // The operator's button on a parcel already on its way (1 November 2026): two stages set by hand, then delivery.
+// The whole parcel moves at once, so the button says how many orders it moves (review, 1 November 2026).
 const transitWords = /*@__PURE__*/withCyrillic({
-  ru: { toCustoms: "Отметить: Таможня", toTashkent: "Отметить: В Ташкенте" },
-  uz: { toCustoms: "Belgilash: Bojxonada", toTashkent: "Belgilash: Toshkentda" },
-  en: { toCustoms: "Mark: Customs", toTashkent: "Mark: In Tashkent" },
+  ru: { toCustoms: "Отметить: Таможня", toTashkent: "Отметить: В Ташкенте", orders: (n: number) => ` · ${n} ${ruPlural(n, ["заказ", "заказа", "заказов"])}`, customsFirst: "Сначала подтвердите пошлину, начисленную таможней: после неё станет доступно «Подтвердить доставку»." },
+  uz: { toCustoms: "Belgilash: Bojxonada", toTashkent: "Belgilash: Toshkentda", orders: (n: number) => ` · ${n} ta buyurtma`, customsFirst: "Avval bojxona hisoblagan bojni tasdiqlang: shundan keyin «Yetkazib berishni tasdiqlash» ochiladi." },
+  en: { toCustoms: "Mark: Customs", toTashkent: "Mark: In Tashkent", orders: (n: number) => ` · ${n} orders`, customsFirst: "Confirm the duty customs charged first: then “Confirm delivery” becomes available." },
 });
+/** At "В Ташкенте", an order whose customs Atlas handles waits for the duty before "Доставлен" (domain.ts advanceOrder). */
+const dutyBeforeDelivery = (o: Order) =>
+  !o.cancelled && o.status === 4 && o.transitStage === "tashkent" && Boolean(o.quote.customsHelp) && (!o.customsSettlement || Boolean(o.customsSettlement.extra && !o.customsExtraApproved));
 const pendingChange = (o: Order) => (o.changeRequests ?? []).some((request) => request.status === "pending");
 const usd = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -1382,6 +1388,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
   const allowanceFor = (order: Order) => !order.cancelled && countsTowardAllowance(order) && allowanceMonth(order) === currentMonth ? monthlyUsedFor(state, orderPerson(state, order), pricing.fx) : undefined;
   // Recipients of placed orders whose passport is not linked yet: the declaration needs it.
   const identityList = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  // "Отметить: Таможня · 2 заказа": the orders of the buyer's parcel the mark moves together (domain.ts transitParcelOrders).
+  const transitCount = (o: Order) => { const n = transitParcelOrders({ orders: orderAccount.get(o.id)?.state.orders ?? orders }, o).length; return n > 1 ? transitWords[locale].orders(n) : ""; };
   const passportMissing = operations ? [] : [...new Map(orders
     .filter(order => !order.cancelled && order.status < 5 && !order.identity && order.deliveryProfileId && !identityList.some(profile => profile.recipientProfileId === order.deliveryProfileId))
     .map(order => [order.deliveryProfileId!, state.deliveryProfiles.find(profile => profile.id === order.deliveryProfileId)] as const)).entries()]
@@ -1804,7 +1812,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 ) && (
                 <button
                   className="btn primary"
-                  disabled={isExtra(o) || pendingChange(o) || (o.status === 2 && !o.warehouseInspection) || (o.status === 0 && o.payment?.status === "pending") || (o.status === 3 && !o.parcel)}
+                  disabled={isExtra(o) || pendingChange(o) || (o.status === 2 && !o.warehouseInspection) || (o.status === 0 && o.payment?.status === "pending") || (o.status === 3 && !o.parcel) || dutyBeforeDelivery(o)}
                   onClick={async () => {
                     if (o.status === 2) {
                       setWarehouse(o.id);
@@ -1842,9 +1850,9 @@ export function OrdersView({ operations }: { operations: boolean }) {
                         : o.status === 3
                            ? ow.sendUzbekistan
                            : !o.transitStage
-                             ? transitWords[locale].toCustoms
+                             ? transitWords[locale].toCustoms + transitCount(o)
                              : o.transitStage === "customs"
-                               ? transitWords[locale].toTashkent
+                               ? transitWords[locale].toTashkent + transitCount(o)
                                : ow.confirmDelivery}
                   <ArrowRight size={16} />
                 </button>
@@ -1861,6 +1869,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               {operations && o.status === 3 && !o.parcel && (
                 <p className="micro">{ow.trackingFirst}</p>
               )}
+              {operations && dutyBeforeDelivery(o) && <p className="micro">{transitWords[locale].customsFirst}</p>}
             </div>}
             {operations&&<OperatorOrderContacts order={o} account={orderAccount.get(o.id)} locale={locale}/>}
             <div className="order-product">
@@ -2889,7 +2898,9 @@ export function NotificationsView() {
               <div className="notice-x-body">
                 <div className="notice-x-head"><h2>{renderNoticeRow(item, locale, item.orderId ? state.orders.find(order => order.id === item.orderId)?.product.name : undefined).title}</h2>{!item.read && <span className="notice-x-new">{c.newBadge}</span>}</div>
                 <p>{renderNoticeRow(item, locale, item.orderId ? state.orders.find(order => order.id === item.orderId)?.product.name : undefined).message}</p>
-                <div className="notice-x-foot"><time dateTime={new Date(item.at).toISOString()}>{formatDateTime(item.at, locale)}</time>{item.orderId && <Link className="order-x-link" href={"/orders#" + item.orderId}>{c.openOrder} {item.orderId}<ArrowRight size={14} aria-hidden="true" /></Link>}</div>
+                <div className="notice-x-foot"><time dateTime={new Date(item.at).toISOString()}>{formatDateTime(item.at, locale)}</time>{item.orderId && (noticeTarget(item)?.kind === "parcel"
+                  ? <Link className="order-x-link" href={parcelPath(item.orderId)}>{c.openParcel}<ArrowRight size={14} aria-hidden="true" /></Link>
+                  : <Link className="order-x-link" href={"/orders#" + item.orderId}>{c.openOrder} {item.orderId}<ArrowRight size={14} aria-hidden="true" /></Link>)}</div>
                 {history.length > 0 && <details className="notice-x-history"><summary>{c.more(history.length)}</summary><ol>{history.map(previous => <li key={previous.id} id={"notice-" + previous.id} tabIndex={-1} className={linked === previous.id ? "linked" : undefined}><b>{renderNotification(previous, locale).title}</b><p>{renderNotification(previous, locale).message}</p><time dateTime={new Date(previous.at).toISOString()}>{formatDateTime(previous.at, locale)}</time></li>)}</ol></details>}
               </div>
             </li>)}
