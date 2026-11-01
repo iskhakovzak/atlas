@@ -402,11 +402,11 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pr
 /* `.site-main` too: its `text-wrap: pretty` on every p (globals.css) would turn the wrap back on ("Go‘zallik va / parvarish"). */
 .pcard-brand, .site-main .pcard-brand { margin: 0; overflow: hidden; color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-medium); line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
 .site-main .pcard-title { min-height: 40px; margin: 2px 0 0; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-medium); letter-spacing: 0; line-height: 20px; }
-.pcard-title > button { display: -webkit-box; width: 100%; padding: 0; overflow: hidden; border: 0; background: none; color: inherit; font: inherit; text-align: left; overflow-wrap: anywhere; cursor: pointer; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-/* The title button covers the whole card: a tap anywhere opens the product. */
-.pcard-title > button::after { content: ""; position: absolute; inset: 0; z-index: 1; }
-.site-main .pcard-title > button:focus-visible { outline: 0; }
-.pcard:has(.pcard-title > button:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pcard-title > a { display: -webkit-box; width: 100%; padding: 0; overflow: hidden; border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; overflow-wrap: anywhere; cursor: pointer; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+/* The title link covers the whole card: a tap anywhere opens the product. */
+.pcard-title > a::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+.site-main .pcard-title > a:focus-visible { outline: 0; }
+.pcard:has(.pcard-title > a:focus-visible) { outline: 2px solid var(--brand); outline-offset: 2px; }
 .pcard-sum { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; margin: 6px 0 0; color: var(--text); }
 .pcard-sum > strong { min-width: 0; color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-bold); letter-spacing: -.01em; line-height: 1.3; font-variant-numeric: tabular-nums; }
 /* If the sum still does not fit, "сум" moves to the next line whole; the digits never break. */

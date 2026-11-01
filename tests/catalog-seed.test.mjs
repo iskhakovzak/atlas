@@ -32,15 +32,15 @@ test('nothing published or a catalog too large to inline: the page loads it in t
   assert.equal(catalogSeed(many, tariff, now), null);
 });
 
-test('the server reads the seed as the API does; /stores passes it on, /catalog does not', () => {
+test('the server reads the seed as the API does; /stores passes it on, /catalog only its first page', () => {
   const data = source('lib/market/initial-data.ts');
   assert.match(data, /export async function initialPublicCatalog\(\):Promise<CatalogSeedValue\|null>\{\n try\{\n  const \[\{document\},pricing\]=await Promise\.all\(\[readCatalog\(\{backfill:true\}\),currentPricing\(\)\]\);\n  return catalogSeed\(document,pricing\);\n \}catch\{return null\}\n\}/);
   assert.match(source('app/api/catalog/route.ts'), /const \[\{document\},currentPricing\]=await Promise\.all\(\[readCatalog\(\{backfill:!admin\}\),pricing\(\)\]\);/);
-  // /catalog keeps loading the catalog in the browser: with the full grid in the first paint Lighthouse's mobile simulation
-  // scored it 79 instead of 85 (14.10.2026), and its skeleton shift is small enough to cost no score.
+  // /catalog keeps loading the whole catalog in the browser: inlined, Lighthouse's mobile simulation scored it 79 instead
+  // of 85 (14.10.2026). Since 2 November 2026 only the first page's cards are in the HTML (tests/catalog-first-page.test.mjs).
   const catalogPage = source('app/catalog/page.tsx');
   assert.doesNotMatch(catalogPage, /CatalogSeed|initialPublicCatalog/);
-  assert.match(catalogPage, /return <Marketplace view="products"><CatalogView mode="catalog" initial=\{readCatalogQuery\(params\)\} lang=\{typeof params\.lang === \x27string\x27 \? params\.lang : undefined\} \/><\/Marketplace>;/);
+  assert.match(catalogPage, /return <Marketplace view="products"><CatalogView mode="catalog" initial=\{initial\} firstPage=\{firstPage\} lang=\{typeof params\.lang === \x27string\x27 \? params\.lang : undefined\} \/><\/Marketplace>;/);
   assert.match(source('app/stores/page.tsx'), /<CatalogSeed value=\{await initialPublicCatalog\(\)\}><Marketplace view="stores"><StoresDirectory\/><\/Marketplace><\/CatalogSeed>/);
 });
 

@@ -31,6 +31,7 @@ import { CatalogCard, CatalogSkeleton } from './catalog-card';
 import { CatalogStoreRow } from './catalog-store-row';
 import { ActiveFilters, attrLabel, clearedQuery, collectionName, FilterPanel, filterLabel, presentCategories, type Collection } from './catalog-filters';
 import { CatalogMore, CatalogPagination } from './catalog-pagination';
+import { firstPageEager, firstPageHigh } from '@/lib/market/catalog-first-page';
 import { LazyProductSheet, preloadProductSheet } from './product-sheet-lazy';
 import { useSheetSide } from './use-sheet-side';
 import {uzText} from '@/lib/market/uz-cyrl';
@@ -72,7 +73,7 @@ export type CatalogStore = { slug: string; count: number | null; head: ReactNode
  * The catalog, the saved-products page and a store's page. Filters, sort and page live in the URL (`?cat=shoes&size=9&page=2`),
  * so a selection can be shared and survives a reload; counts next to every option say what it shows.
  */
-export function CatalogView({ mode, initial, lang, store }: { mode: 'catalog' | 'favorites'; initial?: CatalogQuery; lang?: string; store?: CatalogStore }) {
+export function CatalogView({ mode, initial, lang, store, firstPage }: { mode: 'catalog' | 'favorites'; initial?: CatalogQuery; lang?: string; store?: CatalogStore; /** The server's first page (app/catalog/page.tsx), shown until the catalog arrives. */ firstPage?: CatalogItem[] | null }) {
   const { state, pricing, ready, status, act, catalogProducts, catalogReady, collections, catalogError, loadCatalog } = useMarket();
   const locale = state.communication.language as Locale;
   const cc = catalogCopy[locale], copy = dealCopy(locale);
@@ -183,6 +184,11 @@ export function CatalogView({ mode, initial, lang, store }: { mode: 'catalog' | 
   // reload or a shared link shows the same products. Computers keep page numbers and the page size.
   const phone = side === 'bottom';
   const visible = phone ? list.slice(0, paged.end) : paged.items;
+  // Until the catalog arrives the grid shows the server's first page (the same cards, in the same order): the full ones
+  // take their place by key, so nothing moves and no photo loads twice. A tap before that opens the product's own page.
+  const serverCards = !catalogReady && firstPage?.length ? firstPage : null;
+  const gridItems = serverCards ?? visible;
+  const openProductPage = (product: Product) => window.location.assign(productPath(product.id, langParam));
   // A phone opened at `?page=N` (a reload, a shared link) shows pages 1..N once it knows it is a phone: it scrolls once to
   // the first product of page N, so the reader lands where the address points, not at the top of the longer list. After
   // "Показать ещё" the focus moves to the first product added (the button it was on has moved below the new cards).
@@ -194,7 +200,7 @@ export function CatalogView({ mode, initial, lang, store }: { mode: 'catalog' | 
     const at = focusFrom.current;
     if (at !== null) {
       focusFrom.current = null;
-      cards.children[at]?.querySelector<HTMLElement>('.pcard-title > button')?.focus();
+      cards.children[at]?.querySelector<HTMLElement>('.pcard-title > a')?.focus();
       return;
     }
     if (landed.current) return;
@@ -295,10 +301,11 @@ export function CatalogView({ mode, initial, lang, store }: { mode: 'catalog' | 
               saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)} speed={speed} />)}
           </div>
         </section>}
-        {!catalogReady ? <CatalogSkeleton label={cc.loading} /> : visible.length > 0 ? <div ref={cardsRef} className="finds-grid" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
-          {visible.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select}
+        {!catalogReady && !serverCards ? <CatalogSkeleton label={cc.loading} /> : gridItems.length > 0 ? <div ref={cardsRef} className="finds-grid" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
+          {gridItems.map((item, index) => <CatalogCard key={item.product.id} item={item} locale={locale} select={serverCards ? openProductPage : select}
             saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)}
-            signals={signalsOf(item)} inCart={inCart(item.product)} speed={speed} />)}
+            signals={serverCards ? [] : signalsOf(item)} inCart={!serverCards && inCart(item.product)} speed={serverCards ? catalogDeliverySpeed : speed}
+            priority={paged.page === 1 && index < firstPageEager ? (index < firstPageHigh ? 'high' : 'eager') : undefined} />)}
         </div> : <EmptyResult mode={mode} empty={!pool.length} query={query} setQuery={setQuery} cc={cc} copy={copy} options={options} collections={collections} locale={locale} />}
         {suggest.length > 0 && <section className="favorites-suggest" aria-labelledby="favorites-suggest-title">
           <div className="favorites-suggest-head"><h2 id="favorites-suggest-title">{copy.suggestTitle}</h2><Link className="text-link" href="/catalog?sale=1">{copy.suggestAll}<ArrowRight size={16} aria-hidden="true" /></Link></div>

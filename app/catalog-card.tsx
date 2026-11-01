@@ -50,13 +50,15 @@ export type CatalogCardProps = {
   variant?: 'full' | 'compact';
   /** A guest sees the heart too: it leads to sign-in and the tapped product is saved on return. */
   guestSave?: boolean;
+  /** The first cards of the catalog: the photo loads at once ('eager'), the first row asked first ('high'). */
+  priority?: 'high' | 'eager';
 };
 
 /**
  * One catalog product. The whole card opens the product sheet (an unconfirmed price too: the sheet says so and the
  * order flow fetches the price again); "В корзину" on a computer and the round "+" on a phone go to the variant choice.
  */
-export function CatalogCard({ item, locale, select, saved, canSave, saving, onSave, signals = [], inCart = false, speed = catalogDeliverySpeed, variant = 'full', guestSave = false }: CatalogCardProps) {
+export function CatalogCard({ item, locale, select, saved, canSave, saving, onSave, signals = [], inCart = false, speed = catalogDeliverySpeed, variant = 'full', guestSave = false, priority }: CatalogCardProps) {
   const { product, referenceUsd, discount } = item;
   const { pricing } = useMarket();
   const copy = dealCopy(locale), cc = catalogCopy[locale];
@@ -127,7 +129,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const parcel = signals.find((signal) => signal.kind === 'parcel');
   return <article className="pcard" data-stale={needsPrice || undefined} data-saved={saved || undefined}>
     <div className="pcard-visual">
-      <span className="pcard-photo"><ProductImage product={product} decorative locale={locale} /></span>
+      <span className="pcard-photo"><ProductImage product={product} decorative locale={locale} dims priority={priority} sizes={cardSizes} /></span>
       {(showDiscount || item.topDeal) && <span className="pcard-badges">
         {showDiscount && <em className="pcard-off" title={copy.compareHint}>−{discount}&#x202F;%</em>}
         {item.topDeal && <span className="pcard-top"><Flame size={14} aria-hidden="true" />{copy.topDeal}</span>}
@@ -141,9 +143,10 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
     </div>
     <div className="pcard-body">
       <p className="pcard-brand">{brandName}</p>
-      {/* The title button covers the whole card (::after), so a tap anywhere opens the product; the heart, "+", the
-         store mark and "В корзину" sit above it. */}
-      <h3 className="pcard-title"><button type="button" onClick={open} aria-label={cc.open(name)} aria-describedby={priceId + ' ' + usdId}>{title}</button></h3>
+      {/* The title link covers the whole card (::after), so a tap anywhere opens the product; the heart, "+", the store
+         mark and "В корзину" sit above it. A link to /catalog/p/<id> (owner, 2 November 2026: crawlers follow the name),
+         opened as the sheet over the catalog like the other two. */}
+      <h3 className="pcard-title"><a href={productHref} onClick={openFromLink} aria-label={cc.open(name)} aria-describedby={priceId + ' ' + usdId}>{title}</a></h3>
       {costs
         ? <p className="pcard-sum" id={priceId}><strong>{needsPrice && <><span aria-hidden="true">≈&#x202F;</span><span className="sr-only">{cc.about} </span></>}<Money value={costs.total} locale={locale} /></strong> <span>{cc.toTashkent}</span></p>
         : <p className="pcard-sum pcard-sum-pending" id={priceId}>{cc.afterCheck}</p>}
@@ -163,6 +166,9 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
     </div>
   </article>;
 }
+
+/** The card photo's width in the grid (catalog-pages.css: 2 columns, 3 from 761 px, 4 from 1280 px, 5 from 1600 px). */
+const cardSizes = '(min-width: 1600px) 20vw, (min-width: 1280px) 25vw, (min-width: 761px) 33vw, 50vw';
 
 /** The item's costs at the quoted speed: the catalog prices at standard; an express cart re-prices the same lines. */
 function costsAt(item: CatalogItem, speed: DeliverySpeed, pricing = tariff): Costs | null {

@@ -162,7 +162,7 @@ try {
     if(categoryMatched===false)throw Error(`No category filter matches '${visibleCategory}'`);
     if(categoryMatched)await check(`document.querySelectorAll('.find-card').length>0 && [...document.querySelectorAll('.find-card .find-meta span:first-child')].every(el=>el.textContent.trim()===${JSON.stringify(visibleCategory)})`,"category filtering");
     else checks.push('category filtering skipped: single-category catalog');
-    await evaluate("document.querySelector('.pcard-title button').click()");
+    await evaluate("document.querySelector('.pcard-title a').click()");
     await check("!!document.querySelector('.pd-sheet .pd') && !!document.querySelector('.pd-bar-sheet .btn')","guest product page opens with its add button");
     await evaluate("document.querySelector('.pd-sheet-actions .sheet-close').click()");
   }
@@ -170,14 +170,14 @@ try {
   await check("document.documentElement.lang==='en' && document.querySelector('.home-hero h1').textContent.includes('US, European and Chinese stores')","guest language works without saving an account");
   await check("document.querySelector('.home-link-form button')?.textContent.includes('Calculate') && document.querySelector('#home-link-note')?.textContent.includes('No sign-up')","guest link CTA is honest in English");
   if(catalogReady){
-    await evaluate("document.querySelector('.pcard-title button').click()");
+    await evaluate("document.querySelector('.pcard-title a').click()");
     await check("document.querySelector('.pd-sheet')?.textContent.includes('What the sum is made of')","product details localize to English");
     await evaluate("document.querySelector('.pd-sheet-actions .sheet-close').click()");
   }
   await evaluate("document.querySelector('.lang-menu-list [data-locale=uz]').click()");
   await check("document.documentElement.lang==='uz' && document.querySelector('.home-link-form button')?.textContent.includes('Hisoblash')","guest link CTA localizes to Uzbek");
   if(catalogReady){
-    await evaluate("document.querySelector('.pcard-title button').click()");
+    await evaluate("document.querySelector('.pcard-title a').click()");
     await check("document.querySelector('.pd-sheet')?.textContent.includes('Summa nimadan iborat')","product details localize to Uzbek");
     await evaluate("document.querySelector('.pd-sheet-actions .sheet-close').click()");
   }

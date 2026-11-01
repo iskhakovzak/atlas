@@ -16,16 +16,19 @@ function markPhotoShape(image:HTMLImageElement){
  const ratio=image.naturalWidth/image.naturalHeight;
  if(ratio>0)image.dataset.shape=ratio>0.8&&ratio<1.25?'square':'odd';
 }
-export function ProductImage({product,className='',decorative=false,locale='ru',size=600}:{product:Product;className?:string;decorative?:boolean;locale?:Locale;size?:number}){
+/** `priority`: the photo loads at once ('eager'), or first of all ('high'); a lazy one picks its file by its box (`sizes="auto"`),
+ *  an eager one by `sizes`. `dims`: width and height attributes, so the box has its shape before the file arrives. */
+export function ProductImage({product,className='',decorative=false,locale='ru',size=600,priority,dims=false,sizes}:{product:Product;className?:string;decorative?:boolean;locale?:Locale;size?:number;priority?:'high'|'eager';dims?:boolean;sizes?:string}){
  const [failedImage,setFailedImage]=useState('');
  const label=locale==='ru'?'Товар по ссылке':isUzbek(locale)?uzText(locale, 'Havoladagi tovar'):'Linked item';
  if(!product.image||product.image===failedImage)return <div className={'no-photo '+className}><Package size={35}/><span>{label}</span></div>;
  // Store images load straight from the store, asked at about `size` pixels where its image server allows (lib/market/image-size.ts).
  // A photo still on its way fades in when it arrives (app/motion.css); one already loaded or cached shows at once.
  // `sizes="auto"`: a lazy image picks from srcset by the box it actually gets (Chromium); others take the `size` copy as before.
+ // A priority photo is the page's largest paint: it shows as soon as it is decoded, without the fade-in.
  // eslint-disable-next-line @next/next/no-img-element
- return <img className={'product-img '+className} src={sizedImage(product.image,size)} srcSet={sizedSrcSet(product.image,size)} sizes={`auto, ${size}px`} onError={event=>{if(!retryOriginal(event.currentTarget,product.image))setFailedImage(product.image)}} alt={decorative?'':product.name} loading="lazy" decoding="async" referrerPolicy="no-referrer"
-  ref={image=>{if(!image)return;if(image.complete)markPhotoShape(image);else image.dataset.fade=''}} onLoad={event=>{delete event.currentTarget.dataset.fade;markPhotoShape(event.currentTarget)}}/>;
+ return <img className={'product-img '+className} src={sizedImage(product.image,size)} srcSet={sizedSrcSet(product.image,size)} sizes={priority?sizes??`${size}px`:`auto, ${size}px`} onError={event=>{if(!retryOriginal(event.currentTarget,product.image))setFailedImage(product.image)}} alt={decorative?'':product.name} loading={priority?'eager':'lazy'} fetchPriority={priority==='high'?'high':undefined} width={dims?size:undefined} height={dims?size:undefined} decoding="async" referrerPolicy="no-referrer"
+  ref={image=>{if(!image)return;if(image.complete)markPhotoShape(image);else if(!priority)image.dataset.fade=''}} onLoad={event=>{delete event.currentTarget.dataset.fade;markPhotoShape(event.currentTarget)}}/>;
 }
 export function PageHeading({overline,title,description,children}:{overline:string;title:string;description:string;children?:ReactNode}){return <div className="page-heading"><div><div className="eyebrow">{overline}</div><h1>{title.replace(/\.$/,'')}</h1><p>{description}</p></div>{children}</div>}
 export function Empty({title,description,href,label,children}:{title:string;description:string;href?:string;label?:string;children?:ReactNode}){return <div className="empty-state"><span className="empty-icon"><Package size={30}/></span><h2>{title}</h2><p>{description}</p>{href&&<Link href={href} className="btn primary">{label??'В каталог'}<ArrowUpRight size={18}/></Link>}{children}</div>}
