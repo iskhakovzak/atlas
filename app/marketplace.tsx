@@ -1,4 +1,5 @@
 'use client';
+import {useKeyboardInset} from '@/lib/market/keyboard-inset';
 import {Suspense,lazy,useEffect,useLayoutEffect,useMemo,useState,useSyncExternalStore,type MouseEvent,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import Link,{usePageLang,useWarmLinks} from '@/components/site-link';
@@ -94,6 +95,7 @@ function HeaderSearch({nav}:{nav:NavCopy}){
 /** `crumb`: a page under its section (a catalog product, a store): the breadcrumb then reads Home / section / this page;
  * with `crumbPath` (the page's own address) its BreadcrumbList names all three. */
 export default function Marketplace({view,children,crumb,crumbPath}:{view:string;children?:ReactNode;crumb?:string;crumbPath?:string}) {
+ useKeyboardInset();
   const {state,ready,status,error,user,refresh,setLocale,sessionHint,siteContent}=useMarket();
   const supportBot=siteContent.contacts.telegramSupport;
   const {theme}=useTheme();

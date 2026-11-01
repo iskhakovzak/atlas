@@ -22,8 +22,8 @@ test('never more than two chips, and at most one of them coloured', () => {
   assert.equal(colours(signals).length, 1);
   assert.deepEqual(kinds(signals), ['parcel', 'cart']);
   assert.equal(signals[0].tone, 'mint');
-  assert.equal(signals[0].text, 'С посылкой Nike в корзине: +118 000 сум');
-  assert.match(signals[0].hint, /Отдельной посылкой — \d/);
+  assert.match(signals[0].text, /^Одной посылкой −[\d,]+ (тыс\.|млн)$/);
+  assert.match(signals[0].hint, /товар из Nike.*добавится 118\D000 сум, а не \d/);
 });
 
 test('mint priority: the parcel, then the allowance, then free store delivery', () => {
@@ -86,5 +86,7 @@ test('every language has its own wording', () => {
   assert.equal(signalsFor(item, { ...member(200), locale: 'uz' })[0].text, '$200 limit ichida');
   assert.equal(signalsFor(item, { ...member(200), locale: 'en' })[1].text, '3 sizes');
   assert.equal(signalsFor(item, { ...member(200), locale: 'uz' })[1].text, '3 ta o‘lcham');
-  assert.equal(signalsFor(item, { ...guest, locale: 'en', parcel: { store: 'nike.com', extra: 1000 } })[0].text, 'With the Nike parcel in your cart: +1 000 UZS');
+  assert.match(signalsFor(item, { ...guest, locale: 'en', parcel: { store: 'nike.com', extra: 1000 } })[0].text, /^One parcel −[\d.]+[km]$/);
+  // Nothing saved in one parcel: no parcel chip.
+  assert.notEqual(signalsFor(item, { ...guest, parcel: { store: 'nike.com', extra: 1e12 } })[0]?.kind, 'parcel');
 });

@@ -74,6 +74,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Android: the on-screen keyboard shrinks the layout, so bottom sheets and sticky bars sit above it (owner, 2 November 2026).
+  interactiveWidget: "resizes-content",
   themeColor: "#ffffff",
 };
 
