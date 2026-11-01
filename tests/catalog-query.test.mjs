@@ -332,6 +332,11 @@ test('a cart line made by the link order is the catalog product it came from', (
   assert.ok(sameCatalogProduct({ id: 'x', sourceUrl: 'https://nike.com/t/runner?utm_source=atlas#top' }, runner));
   assert.equal(sameCatalogProduct({ id: 'x', sourceUrl: 'https://www.nike.com/t/other' }, runner), false);
   assert.equal(sameCatalogProduct({ id: 'x', sourceUrl: 'https://www.nike.com/t/runner?color=red' }, runner), false);
+  // A line added from the product page carries the chosen option of the listing (eBay ?var=, Shopify ?variant=).
+  const listing = { id: 'find-1', sourceUrl: 'https://www.ebay.com/itm/157747312106' };
+  assert.ok(sameCatalogProduct({ id: 'https://www.ebay.com/itm/157747312106?var=459450747722#Grey Six · XL', sourceUrl: 'https://www.ebay.com/itm/157747312106?var=459450747722' }, listing));
+  assert.ok(sameCatalogProduct({ id: 'x', sourceUrl: 'https://shop.example.com/products/tee?variant=42' }, { id: 'y', sourceUrl: 'https://shop.example.com/products/tee' }));
+  assert.equal(sameCatalogProduct({ id: 'x', sourceUrl: 'https://www.ebay.com/itm/157747312107?var=1' }, listing), false);
   // Products without a store link compare by id alone.
   assert.ok(sameCatalogProduct({ id: 'manual' }, { id: 'manual' }));
   assert.equal(sameCatalogProduct({ id: 'manual' }, { id: 'manual', sourceUrl: 'https://www.nike.com/t/runner' }), false);
