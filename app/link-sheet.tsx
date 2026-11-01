@@ -9,6 +9,7 @@ import {validateSource} from '@/lib/market/domain';
 import {looksLikeLink,normalizeProductLink} from '@/lib/market/shared-link';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
 import {withCyrillic} from '@/lib/market/uz-cyrl';
+import {useSwipeClose} from './use-swipe-close';
 import type {Locale} from '@/lib/market/i18n';
 import {useClipboardLink} from './use-clipboard-link';
 import './link-sheet.css';
@@ -38,6 +39,7 @@ export function LinkSheet({open,onOpenChange,locale,member}:{open:boolean;onOpen
   const leaving=useRef(false);
   // Closing leaves the next opening clean (the typed link stays, in case it is wanted again).
   const change=(next:boolean)=>{if(!next){setError('');setSearch('');setBusy(false)}onOpenChange(next)};
+  const swipe=useSwipeClose(()=>change(false));
   const leave=()=>{leaving.current=true;change(false)};
   function go(value:string){
     const raw=value.trim();
@@ -66,7 +68,7 @@ export function LinkSheet({open,onOpenChange,locale,member}:{open:boolean;onOpen
     <SheetContent side="bottom" showCloseButton={false} className="link-sheet" onOpenAutoFocus={event=>{event.preventDefault();leaving.current=false;input.current?.focus({preventScroll:true})}}
       // Opened from code, so Radix has no trigger to return focus to: Escape, the cross or a swipe put it back on the bar's button.
       onCloseAutoFocus={event=>{if(leaving.current)return;event.preventDefault();document.querySelector<HTMLElement>('.mobile-nav a[data-tab="link"]')?.focus({preventScroll:true})}}>
-      <div className="link-sheet-grip" aria-hidden="true"/>
+      <div className="link-sheet-grip" aria-hidden="true" {...swipe}/>
       <div className="link-sheet-head">
         <span className="link-sheet-mark" aria-hidden="true"><Link2 size={20}/></span>
         <div><SheetTitle className="link-sheet-title">{c.title}</SheetTitle><SheetDescription className="link-sheet-lead">{c.lead}</SheetDescription></div>

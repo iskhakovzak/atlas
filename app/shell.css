@@ -35,7 +35,7 @@ html body .shell-search input { flex: 1 1 auto; min-width: 0; min-height: 0; hei
 .shell-search-submit:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 
 /* ---------- Actions on the right ---------- */
-.shell-actions { display: flex; flex: none; align-items: center; gap: 6px; margin-left: 8px; }
+.shell-actions { display: flex; flex: none; align-items: center; gap: var(--space-2); margin-left: 8px; }
 .shell-header .shell-search ~ .shell-actions { margin-left: 8px; }
 .shell-wide { display: inline-flex; }
 .shell-icon { position: relative; display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-control); color: var(--text-2); text-decoration: none; transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease; }
@@ -122,13 +122,15 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   .shell-actions > .shell-icon.shell-wide { display: none; }
 }
 @media (min-width: 761px) and (max-width: 900px) {
-  .shell-actions { gap: 2px; }
+  .shell-actions { gap: 6px; }
   :root .site-header.shell-header { gap: 8px; }
+  .shell-nav a { padding: 0 8px; }
+  .shell-profile-trigger .shell-chevron { display: none; }
 }
 
 /* ---------- Phones: logo · search · language (· bell) ---------- */
 @media (max-width: 760px) {
-  :root .site-header.shell-header { gap: 4px; min-height: 56px; padding-top: env(safe-area-inset-top); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  :root .site-header.shell-header { gap: 4px; min-height: 56px; padding-top: env(safe-area-inset-top); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
   :root .site-header.shell-header .wordmark { font-size: 26px; }
   :root .site-header.shell-header .wordmark svg { width: 21px; height: 21px; }
   /* Help stays as a 44 px icon (its word is hidden from 1279 px down): the app has no footer to find it in. */
@@ -145,7 +147,7 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   .home-footer .home-footer-brand .wordmark svg { width: 20px; height: 20px; }
 }
 @media (max-width: 359px) {
-  :root .site-header.shell-header { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(6px, env(safe-area-inset-right)); }
+  :root .site-header.shell-header { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
   :root .site-header.shell-header .wordmark { font-size: 24px !important; }
   .shell-actions { gap: 0; }
 }
@@ -163,3 +165,21 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
 
 /* A product under the catalog: its long name ends the breadcrumb on one line (app/marketplace.tsx `crumb`). */
 .breadcrumb > .breadcrumb-leaf { min-width: 0; max-width: 60ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Touch tablets and a phone held sideways: the header's words are 44 px finger targets. */
+@media (pointer: coarse) { .shell-nav a { min-height: 44px; } }
+
+/* A mouse needs 24 px: the short standalone links take clicks from a little above and below their line. */
+@media (pointer: fine) {
+  :is(.pd-trust a, .basket-assurance a, .delivery-country-stores, .pf-section-link, .pf-parcel-head h3 a) { position: relative; }
+  :is(.pd-trust a, .basket-assurance a, .delivery-country-stores, .pf-section-link, .pf-parcel-head h3 a)::after { content: ""; position: absolute; inset: -4px 0; }
+}
+
+/* Hover on computers (polish, 1 November 2026): links of the breadcrumb and card titles underline; quiet controls,
+   disclosure headers and unchosen options take the hover fill of the tokens. Touch screens keep no sticky hover. */
+@media (hover: hover) {
+  .breadcrumb a:hover, .pcard-title > button:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+  :is(.basket-qty button, .product-gallery-thumbnails button, .speed-option:not(.selected)):hover { background-color: var(--hover); }
+  :is(.pd-breakdown, .home-faq details, .ux-disclosure, .order-x-more, .customs-estimate-how) > summary:hover { background-color: var(--hover); }
+  .order-tabs [data-slot=tabs-trigger]:not([data-state=active]):hover { color: var(--text); background-color: var(--hover); }
+}

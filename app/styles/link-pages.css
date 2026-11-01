@@ -211,6 +211,11 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
   .basket-sticky .btn { flex-shrink: 0; min-height: 48px; padding-inline: 18px; border-radius: var(--r-control); }
   .basket-sticky { transition: opacity .18s ease, transform .18s ease, visibility .18s; }
 }
+@media (min-width: 761px) and (max-width: 959px) {
+  .basket-sticky { bottom: 0; padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: max(10px, env(safe-area-inset-bottom)); padding-left: max(16px, env(safe-area-inset-left)); }
+  main.site-main:is([data-view="cart"]:has(.basket-sticky), [data-view="link"]:has(.lo-sticky)) { padding-bottom: 96px; }
+  html:has(main[data-view="cart"] .basket-sticky:not(.is-hidden)) { scroll-padding-bottom: 96px; }
+}
 /* Narrow phones: the sum always shows in full ("13 668 999 сум"); the button gives way — no arrow, tighter padding,
    and on the narrowest screens its text wraps onto two lines (12 October 2026). */
 @media (max-width: 430px) {
@@ -1258,7 +1263,7 @@ html[data-theme="dark"] .lo-cat-chips > button[aria-checked="true"] { background
 /* Photos: square on wide screens, a fixed band on phones so the name and the sum show in the first screen. */
 .lo-page .pd-gallery .product-gallery-stage { aspect-ratio: 1; height: auto; max-height: min(640px, 74vh); border-radius: var(--r-control); background-color: var(--sunken); }
 @media (max-width: 899px) {
-  .lo-page .pd-gallery .product-gallery-stage { aspect-ratio: auto; height: clamp(260px, 86vw, 420px); }
+  .lo-page .pd-gallery .product-gallery-stage { aspect-ratio: auto; height: clamp(220px, min(86vw, 42svh), 420px); }
 }
 .product-sheet.pd-sheet .pd-gallery .product-gallery-stage { aspect-ratio: auto; height: clamp(240px, 38dvh, 340px); }
 /* White store photos melt into the stage instead of standing as a white box on it (light theme only: multiply would

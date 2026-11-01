@@ -44,7 +44,7 @@ html[data-theme="dark"] :is(.lang-trigger, .lang-menu-list button):focus-visible
 }
 /* Phones: the compact trigger keeps the language code; the list opens under it, inside the screen. */
 @media (max-width: 600px) {
-  .lang-trigger { min-width: 40px; min-height: 40px; padding: 0 7px; gap: 3px; }
+  .lang-trigger { min-width: 44px; min-height: 44px; padding: 0 7px; gap: 3px; }
   .lang-trigger .lang-chevron { display: none; }
   .site-header .header-theme .theme-toggle { min-width: 40px; min-height: 40px; }
   .lang-menu-list { position: fixed; top: calc(64px + env(safe-area-inset-top, 0px)); right: 12px; left: auto; max-width: calc(100vw - 24px); }

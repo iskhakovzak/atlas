@@ -8,6 +8,7 @@ import {productDetailCopy} from '@/lib/market/product-detail-copy';
 import type {Locale} from '@/lib/market/i18n';
 import {ProductOrder} from './global-link-order';
 import {useSheetSide} from './use-sheet-side';
+import {useSwipeClose} from './use-swipe-close';
 // Styles of this lazily loaded part: they arrive with its chunk, before it renders. The product page is the link
 // page's component, so its rules come along (vite.config.ts gives the file its own chunk, named as on the server).
 import './styles/link-pages.css';
@@ -20,12 +21,13 @@ import './styles/catalog-cards.css';
  */
 export function ProductSheet({product,onClose}:{product:Product|null;onClose:()=>void}){
   const side=useSheetSide();
+  const swipe=useSwipeClose(onClose);
   const {state}=useMarket();
   const t=productDetailCopy[state.communication.language as Locale];
   return <Sheet open={!!product} onOpenChange={open=>{if(!open)onClose()}}>
     {/* Focus goes to the sheet itself, not the "×": a ring on the close button was the first thing seen on every open. */}
     <SheetContent side={side} showCloseButton={false} className={'product-sheet pd-sheet product-sheet-'+side} onOpenAutoFocus={event=>{event.preventDefault();(event.currentTarget as HTMLElement|null)?.focus({preventScroll:true})}}>
-      {side==='bottom'&&<span className="sheet-handle" aria-hidden="true"/>}
+      {side==='bottom'&&<span className="sheet-handle" aria-hidden="true" {...swipe}/>}
       {product&&<>
         <SheetTitle className="sr-only">{product.name}</SheetTitle>
         <SheetDescription className="sr-only">{product.brand}</SheetDescription>

@@ -431,6 +431,8 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pr
   .site-main .pcard-buy > .btn.primary:hover { border-color: var(--brand-hover); background-color: var(--brand-hover); }
   .site-main .pcard-buy > .btn.secondary { border-color: var(--line-strong); background-color: var(--surface); color: var(--text); }
 }
+/* Tablets and a phone held sideways: the card's button is a 44 px finger target. */
+@media (min-width: 761px) and (pointer: coarse) { .site-main .pcard-buy > .btn { min-height: 44px; } }
 @media (hover: hover) and (pointer: fine) {
   .pcard:hover { box-shadow: var(--shadow-3); transform: translateY(-2px); }
   .pcard:hover .pcard-photo > .product-img { transform: scale(1.03); }
