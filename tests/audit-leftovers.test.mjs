@@ -85,7 +85,8 @@ test('err_75–err_77 read in ru, uz and en, and the client reloads the account 
     }
   assert.match(serverError('en', 'err_76'), /rates/i);
   assert.match(serverError('uz', 'err_77'), /boj/i);
-  assert.deepEqual([...reloadAfterErrorCodes], ['err_75', 'err_76', 'err_77']);
+  // err_91 (a promo discount recalculated, redesign stage 6) reloads the account too.
+  assert.deepEqual([...reloadAfterErrorCodes], ['err_75', 'err_76', 'err_77', 'err_91']);
   assert.match(source('lib/market/store.tsx'), /reloadAfterErrorCodes\.includes\(data\.errorCode\)\)\)await refresh\(\)/);
 });
 

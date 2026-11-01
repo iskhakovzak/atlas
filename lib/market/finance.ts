@@ -82,6 +82,8 @@ export type OrderFinance = {
   paidAt?: number; month?: string;
   goods: number; storeShipping: number; reserve: number; payable: number;
   commission: number; delivery: number; fxGain: number; services: number; revenue: number;
+  /** A promo code's discount on the Atlas fee (redesign stage 6), already taken off `commission`; shown, never added back. */
+  promoDiscount?: number;
 };
 export const monthOf = (at: number) => new Date(at + 5 * 3600_000).toISOString().slice(0, 7); // Tashkent time
 
@@ -93,7 +95,9 @@ export function orderFinance(order: Order, customerId: string): OrderFinance {
   const delta = (kinds: string[]) => approved.filter((item) => kinds.includes(item.kind)).reduce((sum, item) => sum + item.amountDelta, 0);
   // After weighing, the final shipping replaces the estimate; the unused reserve went back to the customer.
   const shipping = order.settlement ? order.settlement.shipping : q.shipping;
-  const commission = q.service + (q.buyout ?? 0) + (q.conversion ?? 0);
+  // A promo code lowers the Atlas fee only: Atlas's own income, never the goods (transit).
+  const promoDiscount = q.promoDiscount ?? 0;
+  const commission = q.service + (q.buyout ?? 0) + (q.conversion ?? 0) - promoDiscount;
   const delivery = shipping + (q.deliveryMargin ?? 0);
   // Parcel insurance (value-percent services) is Atlas income like the other services.
   // Insurance on later goods price changes rides on the change request or the extra invoice: income too, not goods.
@@ -110,12 +114,15 @@ export function orderFinance(order: Order, customerId: string): OrderFinance {
     orderId: order.id, customerId, createdAt: order.createdAt, status, paidAt, month: paidAt ? monthOf(paidAt) : undefined,
     goods, storeShipping, reserve: order.settlement ? 0 : q.reserve, payable: q.total,
     commission, delivery, fxGain, services, revenue: commission + delivery + fxGain + services,
+    ...(promoDiscount ? { promoDiscount } : {}),
   };
 }
 
 export type MonthSummary = {
   month: string; orders: number;
-  income: { commission: number; delivery: number; fxGain: number; services: number; other: number; total: number };
+  income: { commission: number; delivery: number; fxGain: number; services: number; other: number; total: number;
+    /** Promo-code discounts of the month's paid orders, already inside `commission` (informational). */
+    promoDiscounts?: number };
   transit: { goodsCharged: number; storeShippingCharged: number; in: number; out: number };
   expenses: Partial<Record<LedgerKind, number>> & { total: number };
   profit: number; taxRate: number; tax: number; net: number; taxPaid: number;
@@ -131,6 +138,7 @@ export function monthSummary(month: string, orders: OrderFinance[], entries: Led
     commission: sum(paid.map((order) => order.commission)), delivery: sum(paid.map((order) => order.delivery)),
     fxGain: sum(paid.map((order) => order.fxGain)), services: sum(paid.map((order) => order.services)),
     other: sum(of("income").map((entry) => entry.amountUzs)), total: 0,
+    promoDiscounts: sum(paid.map((order) => order.promoDiscount ?? 0)),
   };
   income.total = income.commission + income.delivery + income.fxGain + income.services + income.other;
   const expenses: MonthSummary["expenses"] = { total: 0 };
@@ -151,8 +159,8 @@ const statusRu = { pending: "ожидает оплаты", paid: "оплачен
 
 export function ordersCsv(orders: OrderFinance[]) {
   return toCsv([
-    ["Заказ", "Клиент", "Создан", "Оплачен", "Статус", "Товар (транзит)", "Доставка магазина (транзит)", "Резерв (транзит)", "Комиссия Atlas", "Международная доставка", "Курсовая наценка", "Услуги", "Доход Atlas", "К оплате клиентом"],
-    ...orders.map((o) => [o.orderId, o.customerId, day(o.createdAt), day(o.paidAt), statusRu[o.status], o.goods, o.storeShipping, o.reserve, o.commission, o.delivery, o.fxGain, o.services, o.revenue, o.payable]),
+    ["Заказ", "Клиент", "Создан", "Оплачен", "Статус", "Товар (транзит)", "Доставка магазина (транзит)", "Резерв (транзит)", "Комиссия Atlas", "Международная доставка", "Курсовая наценка", "Услуги", "Доход Atlas", "К оплате клиентом", "Скидка по промокоду (уже в комиссии)"],
+    ...orders.map((o) => [o.orderId, o.customerId, day(o.createdAt), day(o.paidAt), statusRu[o.status], o.goods, o.storeShipping, o.reserve, o.commission, o.delivery, o.fxGain, o.services, o.revenue, o.payable, o.promoDiscount ?? 0]),
   ]);
 }
 
@@ -194,7 +202,7 @@ export function sumSummaries(label: string, months: MonthSummary[]): PeriodTotal
   for (const m of months) for (const [kind, value] of Object.entries(m.expenses)) if (kind !== "total") expenses[kind as LedgerKind] = (expenses[kind as LedgerKind] ?? 0) + (value as number);
   return {
     label, months: months.map((m) => m.month), orders: sum((m) => m.orders),
-    income: { commission: sum((m) => m.income.commission), delivery: sum((m) => m.income.delivery), fxGain: sum((m) => m.income.fxGain), services: sum((m) => m.income.services), other: sum((m) => m.income.other), total: sum((m) => m.income.total) },
+    income: { commission: sum((m) => m.income.commission), delivery: sum((m) => m.income.delivery), fxGain: sum((m) => m.income.fxGain), services: sum((m) => m.income.services), other: sum((m) => m.income.other), total: sum((m) => m.income.total), promoDiscounts: sum((m) => m.income.promoDiscounts ?? 0) },
     transit: { goodsCharged: sum((m) => m.transit.goodsCharged), storeShippingCharged: sum((m) => m.transit.storeShippingCharged), in: sum((m) => m.transit.in), out: sum((m) => m.transit.out) },
     expenses, profit: sum((m) => m.profit), tax: sum((m) => m.tax), net: sum((m) => m.net), taxPaid: sum((m) => m.taxPaid),
   };

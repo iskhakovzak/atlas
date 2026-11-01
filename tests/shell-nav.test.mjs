@@ -55,7 +55,8 @@ test('the sign-in tab on /login keeps the page the guest came from', () => {
   assert.match(shell, /\{href:signInPath\(signInReturn\(here\)\),key:'login',Icon:UserRound,label:nav\.profile,active:view==='login'&&!cartReturn\}/);
   // Sent to sign-in by the cart tab: the cart stays lit, not the profile; "Несколько ссылок" lights "Ссылка".
   assert.match(shell, /const cartReturn=view==='login'&&signInReturn\(here\)\.startsWith\('\/cart'\);/);
-  assert.match(shell, /key:'cart',Icon:ShoppingBag,label:words\.cart,active:view==='cart'\|\|\(view==='login'&&cartReturn\)\}/);
+  // The checkout (/cart/checkout, redesign stage 6) keeps the cart tab lit too.
+  assert.match(shell, /key:'cart',Icon:ShoppingBag,label:words\.cart,active:view==='cart'\|\|view==='checkout'\|\|\(view==='login'&&cartReturn\)\}/);
   assert.match(shell, /key:'link',Icon:Plus,label:nav\.link,active:view==='link'\|\|view==='batch'\}/);
 });
 
@@ -72,8 +73,11 @@ test('the profile shows a dot while an order waits for the customer, said to scr
 
 test('the cart keeps its count in its name in the header and the bottom bar', () => {
   const shell = source('app/marketplace.tsx');
-  // A guest (no count known) hears just "Корзина", not "Корзина, товаров:" with nothing after it.
-  assert.match(shell, /const cartLabel=known\?modalWords\.cart\+shownCount:words\.cart;/);
+  // While the account loads (no count known) it is just "Корзина"; a guest's browser cart is counted (redesign stage 6).
+  assert.match(shell, /const cartLabel=known\|\|status==='guest'\?modalWords\.cart\+shownCount:words\.cart;/);
+  assert.match(shell, /const count=ready\?state\.cart\.reduce\(\(s,i\)=>s\+i\.quantity,0\):status==='guest'\?guestUnits\(guestCart\):0/);
+  // Guests open the cart itself, not the sign-in page.
+  assert.match(shell, /const cartHref='\/cart',/);
   assert.match(shell, /aria-label=\{key==='cart'\?cartLabel:/);
   assert.match(shell, /className=\{'shell-cart shell-wide'[^}]*\} aria-label=\{cartLabel\}/);
   assert.match(shell, /<CartAnnouncer count=\{count\} ready=\{ready\} locale=\{locale\}\/>/, 'changes are said politely');

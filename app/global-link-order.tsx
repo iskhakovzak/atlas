@@ -96,6 +96,12 @@ import {requestImport} from "@/lib/market/import-client";
 import {productDetailCopy} from "@/lib/market/product-detail-copy";
 import {DetailSection, SumBreakdown, SumHero, TrustRow} from "./product-detail";
 import {readImportCachePreview} from "@/lib/market/import-cache-preview";
+import {updateGuestCart} from "./use-guest-cart";
+import {addGuestLines, type GuestAdd} from "@/lib/market/guest-cart";
+import {checkoutCopy} from "@/lib/market/checkout-copy";
+
+/** Puts lines into this browser's guest cart (redesign stage 6); `full` at 20 lines, `ok` false when nothing is kept. */
+function addToGuestCart(items: GuestAdd[]) { let full = false; const ok = updateGuestCart((cart) => { const next = addGuestLines(cart, items); full = next.full; return next.cart; }); return { ok: ok && !full, full }; }
 
 const countryAliases:Record<string,string>={'United States':'США','US':'США','AQSh':'США','Spain':'Испания','Ispaniya':'Испания','Germany':'Германия','Germaniya':'Германия','United Kingdom':'Великобритания','Buyuk Britaniya':'Великобритания','France':'Франция','Fransiya':'Франция','Italy':'Италия','Italiya':'Италия','Romania':'Румыния','Ruminiya':'Румыния','China':'Китай','Xitoy':'Китай','Turkey':'Турция','Turkiya':'Турция','Japan':'Япония','Yaponiya':'Япония','South Korea':'Южная Корея','Janubiy Koreya':'Южная Корея','United Arab Emirates':'ОАЭ','BAA':'ОАЭ','Canada':'Канада','Kanada':'Канада','Australia':'Австралия','Avstraliya':'Австралия','Other country':'Другая страна','Boshqa mamlakat':'Другая страна'};
 const categoryAliases:Record<string,string>={'Shoes':'Обувь','Oyoq kiyim':'Обувь','Clothing':'Одежда','Kiyim':'Одежда','Electronics':'Электроника','Elektronika':'Электроника','Accessories':'Аксессуары','Aksessuarlar':'Аксессуары','Beauty & care':'Красота и уход','Go‘zallik va parvarish':'Красота и уход','Home & living':'Дом и быт','Uy va maishiy':'Дом и быт','Sports':'Спорт','Boshqa':'Другое','Other':'Другое'};
@@ -1667,13 +1673,18 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
                 ? { type: "cart-add", product: productFor(picks[0][0]), variant: picks[0][0], quantity: picks[0][1], note }
                 : { type: "cart-add-many", items: picks.map(([label, quantity]) => ({ product: productFor(label), variant: label, quantity })), note };
               if (!ready) {
-                // A guest signs in first; this exact add is then sent once (app/pending-cart-add.ts) and the server
-                // checks it with the store like any other. Where this device keeps nothing, the button never promised it;
-                // if keeping it fails now, the customer is told before leaving and the button says so.
+                // A guest's cart lives in this browser (redesign stage 6): the item goes there and the page stays, as for
+                // a customer; it moves into the account at sign-in, where the server checks it with the store again.
                 const here = window.location.pathname + window.location.search;
-                if (canKeep && !savePendingCartAdd(browserStorage(), { action, returnTo: here, draftKey })) {
-                  setCanKeep(false); setFormIssue(lc.pending.notKept); return;
+                if (canKeep) {
+                  const lines = action.type === "cart-add" ? [{ product: action.product, variant: action.variant, quantity: action.quantity ?? 1 }] : action.items;
+                  const kept = addToGuestCart(lines.map((line) => ({ ...line, note: action.note, href: here })));
+                  if (kept.ok) { finishAdd(picks.length, units); return; }
+                  if (kept.full) { setFormIssue(checkoutCopy[lang].guest.full); return; }
+                  setCanKeep(false);
                 }
+                // This browser keeps nothing (private mode): sign in first; the add is sent once after it if it can be kept.
+                savePendingCartAdd(browserStorage(), { action, returnTo: here, draftKey });
                 window.location.assign(signInPath(here));
                 return;
               }
@@ -1800,7 +1811,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
               <label htmlFor="manual-confirm">{tx('Я сверил название, цену, вариант и доставку со страницей магазина. Оператор Atlas сверит их с магазином перед выкупом.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirdim. Atlas operatori xariddan oldin ularni do‘kon bilan solishtiradi.','I checked the name, price, option and shipping against the store page. An Atlas operator checks them with the store before buying.')}</label>
             </div> : sourceCheckStatus !== "verified" && sourceCheckStatus !== "catalog" ? <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p> : null}
             <div className={"lo-cta-row" + (cartUnits ? " has-cart" : "")}>
-            {nothingToChoose ? <button type="button" className="btn primary basket-cta" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary basket-cta" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest ? (canKeep ? lc.signinAdd : lc.signinContinue) : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
+            {nothingToChoose ? <button type="button" className="btn primary basket-cta" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary basket-cta" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest && !canKeep ? lc.signinContinue : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
             {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
             </div>
             {/* For a guest, right under the button it explains: the item goes to the cart by itself after sign-in. */}
@@ -1829,7 +1840,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
       {(source || checking) && <div className={inSheet ? "pd-bar pd-bar-sheet" : "basket-sticky lo-sticky pd-bar" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
         {/* A dated card's sum is an estimate here as at the top: "≈" and its own label, never "К оплате". */}
         <div><span>{datedSums ? pd.approxTotal : heroFrom ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : heroTotal !== null ? (datedSums ? "≈ " : "") + formatSum(heroTotal, lang) : "—"}</strong></div>
-        {awaitingCheck ? <button type="button" className="btn primary" onClick={checkDated}>{pd.checkPrice}<ArrowRight size={18} aria-hidden="true" /></button> : nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? tx("Добавляем…", "Qo‘shilmoqda…", "Adding…") : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
+        {awaitingCheck ? <button type="button" className="btn primary" onClick={checkDated}>{pd.checkPrice}<ArrowRight size={18} aria-hidden="true" /></button> : nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? tx("Добавляем…", "Qo‘shilmoqda…", "Adding…") : isGuest && !canKeep ? lc.signinContinue : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
         {!inSheet && cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
       </div>}
     </div>

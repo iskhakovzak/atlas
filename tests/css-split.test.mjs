@@ -45,6 +45,8 @@ const PAGES = {
   'app/account/page.tsx': CUSTOMER_ROUTE,
   'app/balance/page.tsx': CUSTOMER_ROUTE,
   'app/cart/page.tsx': CUSTOMER_ROUTE,
+  // The one-page checkout (redesign stage 6): the cart's rules without the catalog cards.
+  'app/cart/checkout/page.tsx': [LINK, MEMBER],
   // The parcel-first profile (1 November 2026); /identity and /declaration redirect to /account/documents.
   'app/account/documents/page.tsx': CUSTOMER_ROUTE,
   'app/account/settings/page.tsx': CUSTOMER_ROUTE,

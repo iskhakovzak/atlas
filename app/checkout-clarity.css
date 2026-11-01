@@ -31,3 +31,6 @@ html[data-theme="dark"] .checkout-add-comment{color:var(--night-jade)}
 
 /* /customs, after the calculator: the full order total by link, and both ways to pay customs described side by side. */
 .customs-next-actions .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px}
+
+/* A promo code's discount in an order's bill (app/cost-lines.tsx, redesign stage 6). */
+.cost-lines .cost-promo dt,.cost-lines .cost-promo dd{color:var(--discount)}

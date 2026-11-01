@@ -856,7 +856,7 @@ function LineCalculation({ order: o, storeCredited, locale, payment = true }: { 
   const ow = { ...customerOrderCopy[locale], ...customerOrderDisclosureCopy[locale] };
   const kg = locale === "ru" || locale === "oz" ? "кг" : "kg";
   return <>
-    <CostLines q={o.quote} storeReserveWaived={o.product.sourceShippingEstimated === true} locale={locale} />
+    <CostLines q={o.quote} storeReserveWaived={o.product.sourceShippingEstimated === true} locale={locale} promoCode={o.promo?.code} />
     <ExtraChargeHistory order={o} locale={locale} />
     {o.storeShippingSettlement && <div className={"order-x-note " + (storeShippingExtra(o) ? "warn" : "info")}>
       <Package size={18} aria-hidden="true" />
@@ -2071,7 +2071,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 <summary>{ow.calculationHistory}</summary>
                 <div className="order-detail-grid">
                   <div>
-                    <CostLines q={o.quote} storeReserveWaived={o.product.sourceShippingEstimated === true} locale={state.communication.language}/>
+                    <CostLines q={o.quote} storeReserveWaived={o.product.sourceShippingEstimated === true} locale={state.communication.language} promoCode={o.promo?.code}/>
                     {o.customsConsent && (
                       <p className="micro">
                         {ow.customsAccepted}:{" "}

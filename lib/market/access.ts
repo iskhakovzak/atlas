@@ -1,6 +1,8 @@
 import {loginPath} from '../auth/return-to.ts';
 export type SessionStatus = 'loading' | 'guest' | 'authenticated' | 'error';
-export const memberViews = new Set(['account','favorites','cart','orders','balance','notifications','identity','declaration','documents','settings','parcel','batch']);
+// The cart and /cart/checkout are open to guests (redesign stage 6): the cart lives in the browser, sign-in is inside the checkout.
+// The parcel-first profile (stage 7): documents, settings and parcel pages stay member-only.
+export const memberViews = new Set(['account','favorites','orders','balance','notifications','identity','declaration','documents','settings','parcel','batch']);
 export const adminViews = new Set(['operations','analytics','admin']);
 
 // ---------- Staff roles and permissions (shared by server and UI; no server imports here) ----------
@@ -163,7 +165,7 @@ export const operationsQueryPermissions: Record<string, Permission> = {
 /** Admin tabs → permission (`null` = any staff member). */
 export const adminTabPermissions: Record<string, Permission | null> = {
   overview: null, catalog: 'catalog.manage', content: 'content.manage', customers: 'customers.manage', support: 'support.reply', finance: 'finance.read',
-  pricing: 'pricing.manage', staff: 'staff.manage', rules: 'policy.manage', system: 'system.manage', audit: 'audit.read', investor: 'finance.read',
+  pricing: 'pricing.manage', promo: 'pricing.manage', staff: 'staff.manage', rules: 'policy.manage', system: 'system.manage', audit: 'audit.read', investor: 'finance.read',
 };
 /** Admin views → permission: /operations needs the queue, /analytics the books, /admin any staff right. */
 export const adminViewPermissions: Record<string, Permission | null> = { operations: 'operations.read', analytics: 'finance.read', admin: null };

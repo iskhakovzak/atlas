@@ -314,7 +314,8 @@ export function invoiceData(finance: OrderFinance, feeLines: InvoiceLine[], cust
     number: finance.orderId, issuedAt: now, createdAt: finance.createdAt, ...(finance.paidAt !== undefined ? { paidAt: finance.paidAt } : {}),
     status: finance.status, statusRu: invoiceStatusRu[finance.status], customer, lines,
     goods: of("item", "adjustment_price", "adjustment_variant", "adjustment_substitution"),
-    services: of("service", "buyout", "conversion", "optional_services", "customs_help", "adjustment_warehouse-service"),
+    // A promo code's discount (a negative line) comes off the Atlas service, so the services subtotal is what was charged.
+    services: of("service", "buyout", "conversion", "optional_services", "customs_help", "adjustment_warehouse-service", "promo_discount"),
     delivery: of("merchant_shipping", "international_shipping", "delivery_margin", "international_reserve", "adjustment_source-shipping"),
     total: total ?? Math.max(0, finance.payable + adjustments),
     split: { transit: finance.goods + finance.storeShipping + finance.reserve, atlasIncome: finance.revenue },
@@ -329,7 +330,7 @@ export function fullBookCsv(month: string, orders: OrderFinance[], entries: Ledg
   const rows: unknown[][] = [["Полная книга месяца", month], ["Доход Atlas", summary.income.total, "Расходы", summary.expenses.total, "Прибыль до налога", summary.profit, `Налог (${Math.round(summary.taxRate * 1000) / 10}%, ориентир)`, summary.tax, "Налог уплачен", summary.taxPaid], []];
   rows.push(["Журнал"], ["Номер", "Источник", "Дата", "Вид", "Группа", "Направление", "Сумма, сум", "Сумма в валюте", "Валюта", "Заказ", "Контрагент", "Комментарий", "Внёс", "Аннулировано", "Причина"]);
   for (const e of entries) { const k = ledgerKinds[e.kind]; rows.push([e.id, entrySourceRu(e.id), e.occurredOn, k.ru, { transit: "транзит", expense: "расход", income: "доход", tax: "налог" }[k.group], k.direction === "in" ? "приход" : "расход", e.amountUzs, e.originalAmount === undefined ? "" : String(e.originalAmount).replace(".", ","), e.originalCurrency ?? "", e.orderId ?? "", e.counterparty ?? "", e.note ?? "", e.createdBy, dayText(e.voidedAt), e.voidReason ?? ""]); }
-  rows.push([], ["Заказы"], ["Заказ", "Клиент", "Создан", "Оплачен", "Статус", "Товар (транзит)", "Доставка магазина (транзит)", "Резерв (транзит)", "Комиссия Atlas", "Международная доставка", "Курсовая наценка", "Услуги", "Доход Atlas", "К оплате клиентом"]);
-  for (const o of orders) rows.push([o.orderId, o.customerId, dayText(o.createdAt), dayText(o.paidAt), statusRu[o.status], o.goods, o.storeShipping, o.reserve, o.commission, o.delivery, o.fxGain, o.services, o.revenue, o.payable]);
+  rows.push([], ["Заказы"], ["Заказ", "Клиент", "Создан", "Оплачен", "Статус", "Товар (транзит)", "Доставка магазина (транзит)", "Резерв (транзит)", "Комиссия Atlas", "Международная доставка", "Курсовая наценка", "Услуги", "Доход Atlas", "К оплате клиентом", "Скидка по промокоду (уже в комиссии)"]);
+  for (const o of orders) rows.push([o.orderId, o.customerId, dayText(o.createdAt), dayText(o.paidAt), statusRu[o.status], o.goods, o.storeShipping, o.reserve, o.commission, o.delivery, o.fxGain, o.services, o.revenue, o.payable, o.promoDiscount ?? 0]);
   return toCsv(rows);
 }

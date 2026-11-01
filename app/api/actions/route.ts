@@ -8,6 +8,8 @@ import {codedActionError,editorialShippingFor,prepareAction,staleRevision,type E
 import {initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from '@/lib/market/catalog-editor';
 import {cleanPassportNumber,cleanPinfl,type Product,type State} from '@/lib/market/domain';
 import {addCustomerLinkDraft,readStoredCatalogDocument} from '@/lib/market/catalog-server';
+import {findPromo,placeWithPromo} from '@/lib/market/promo-store';
+import {promoErrors} from '@/lib/market/promo';
 /**
  * The catalog's delivery record for a product link, read once per request and only when an action needs it.
  * Read-only: the bundled cards are merged in memory, nothing is written. Without the stored catalog
@@ -39,12 +41,15 @@ export async function POST(request:Request){try{
   const storeCheck=['cart-add','cart-add-many','cart-check','checkout'].includes(parsed.data.type);
   // Independent reads go out together with the limits: one wait instead of up to five in a row on every action.
   const identityAction=parsed.data.type==='identity-confirm'?parsed.data:undefined;
+  // A checkout with a promo code: the stored code is read with the rest (migration 0017); a missing table reads as no code.
+  const promoCode=parsed.data.type==='checkout'?parsed.data.promoCode:undefined;
   // An older scan's id must be the caller's own; text-only details (13.10.2026) get an id assigned below.
-  const [,,status,current,settings,owned]=await Promise.all([
+  const [,,status,current,settings,owned,promo]=await Promise.all([
     rateLimit(`${user.userId}:actions`,60,60_000),
     storeCheck?rateLimit(`${user.userId}:store-checks`,40,10*60_000,'err_39'):undefined,
     customerStatus(user.userId),account(user),pricingAndPolicy(),
     identityAction?.documentId?database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first():undefined,
+    promoCode?rateLimit(`${user.userId}:promo`,30,10*60_000).then(()=>findPromo(database(),promoCode)).catch(error=>{if(error instanceof HttpError)throw error;console.error('Promo code read failed',error);return null}):undefined,
   ]);
   if(status==='blocked')throw new HttpError(403, 'err_11');
   if(status==='review'&&['checkout','payment-demo','payment-demo-batch','extra-charge-pay'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
@@ -74,7 +79,7 @@ export async function POST(request:Request){try{
     const source=parsed.data.type==='cart-add'||parsed.data.type==='cart-add-many'
       ?withRecentImport(live,async(url,since)=>{const row=await database().prepare('SELECT payload,updated_at FROM market_import_cache WHERE url=? AND updated_at>?').bind(url,since).first<{payload:string;updated_at:number}>();return row?{payload:row.payload,updatedAt:row.updated_at}:undefined},now,recentCheckMs)
       :{fetchProduct:live,snapshotAt:undefined};
-    ({next,refusal,verifiedSource}=await prepareAction(current.state,action,{fetchProduct:source.fetchProduct,snapshotAt:source.snapshotAt,pricing,policy,operator:operator(user.email),now,recentCheckMs,editorialShipping:editorialShippingLookup()}));
+    ({next,refusal,verifiedSource}=await prepareAction(current.state,action,{fetchProduct:source.fetchProduct,snapshotAt:source.snapshotAt,pricing,policy,operator:operator(user.email),now,recentCheckMs,editorialShipping:editorialShippingLookup(),promo}));
   }catch(e){
     if(e instanceof HttpError)throw e;
     const coded=codedActionError(e);
@@ -85,7 +90,13 @@ export async function POST(request:Request){try{
     if(message&&/[А-Яа-яЁё]/.test(message))throw new HttpError(400,message.slice(0,500));
     throw e;
   }
-  await persist(user.userId,next,current.revision,current.state);
+  // The promo code's use is counted only for a checkout that places its orders now (not a repeated key, not a refusal):
+  // the use and its record are written together before the save, so the cap holds when several customers pay at once,
+  // and both are given back if the save fails (lib/market/promo-store.ts placeWithPromo).
+  const placedBatch=action.type==='checkout'&&!refusal&&promo&&!current.state.checkoutKeys.includes(action.key)?next.orders.filter(order=>order.batchId===action.key&&order.promo):[];
+  const use=placedBatch.length&&promo&&action.type==='checkout'?{codeId:promo.id,code:promo.code,userId:user.userId,batchId:action.key,orderIds:placedBatch.map(order=>order.id),discount:placedBatch.reduce((sum,order)=>sum+(order.quote.promoDiscount??0),0)}:null;
+  const placed=await placeWithPromo(database(),use,()=>persist(user.userId,next,current.revision,current.state));
+  if(placed.usedUp)throw new HttpError(409,promoErrors.usedUp);
   if(refusal)return json({error:serverError(requestLocale(request),refusal),errorCode:refusal,state:next,revision:current.revision+1},409);
   const addedProduct=parsed.data.type==='cart-add'?parsed.data.product:parsed.data.type==='cart-add-many'?parsed.data.items[0].product:undefined;
   if(addedProduct?.sourceUrl&&verifiedSource){

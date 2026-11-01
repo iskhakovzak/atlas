@@ -15,6 +15,8 @@ export function summarizeSavedQuotes(orders:Order[]){
   {key:'international-reserve',label:'Резерв международной доставки',amount:sum(order=>order.quote.reserve)},
   {key:'delivery-margin',label:'Маржа доставки',amount:sum(order=>order.quote.deliveryMargin??0)},
   {key:'optional-services',label:'Дополнительные услуги',amount:sum(order=>order.quote.optionalServices??0)},
+  // Promo codes take money off the Atlas fee only (redesign stage 6): a negative line, and less in Atlas's fees.
+  {key:'promo-discount',label:'Скидки по промокодам',amount:0-sum(order=>order.quote.promoDiscount??0)||0},
  ];
  const paymentStates={pending:{count:0,amount:0},paid:{count:0,amount:0},refunded:{count:0,amount:0},unrecorded:{count:0,amount:0}};
  for(const order of included){
@@ -28,7 +30,7 @@ export function summarizeSavedQuotes(orders:Order[]){
   includedCount:included.length,
   cancelledCount:orders.length-included.length,
   quoteTotal:sum(order=>order.quote.total),
-  atlasFees:lines.filter(line=>['service','buyout','conversion','delivery-margin','optional-services'].includes(line.key)).reduce((total,line)=>total+line.amount,0),
+  atlasFees:lines.filter(line=>['service','buyout','conversion','delivery-margin','optional-services','promo-discount'].includes(line.key)).reduce((total,line)=>total+line.amount,0),
   lines,
   paymentStates,
  };
