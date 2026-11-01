@@ -782,3 +782,8 @@ html[data-theme="dark"] .find-card .find-official { color: var(--night-accent, #
 /* Compact cards (home rail, «Вы смотрели»): a square store photo fills the square frame like the catalog card's
    (app/styles/catalog-pages.css .pcard-photo); a tall or wide one stays whole. */
 .find-card.find-card-compact .find-visual > .find-photo .product-img:not([data-shape="odd"]) { padding: 0; object-fit: cover !important; mix-blend-mode: normal !important; }
+
+/* Compact cards (home rail, «Вы смотрели»): the badges stack in the photo's top-left corner, as on the catalog card —
+   at the bottom they ran into the store plate (owner's iPhone, 2 November 2026). Discount first, then «Топ-цена». */
+.find-card.find-card-compact .find-photo-badges { top: 8px; right: auto; bottom: auto; left: 8px; max-width: calc(100% - 64px); flex-direction: column; flex-wrap: nowrap; align-items: flex-start; }
+.find-card.find-card-compact .find-photo-badges > .find-discount { order: -1; }
