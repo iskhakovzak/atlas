@@ -1,0 +1,39 @@
+/* "What waits for you" (app/action-card.tsx, 1 November 2026): a white card with a soft shadow on the home hero and in
+   the profile's «Требует действия». Amber for what holds the order back (a доплата, a decision, the passport), mint for a
+   payment or the cart. Tokens only (app/tokens.css), so the dark theme follows. */
+.action-card {
+  display: grid; gap: 14px;
+  padding: 16px; border: 1px solid var(--line); border-radius: var(--r-card);
+  background: var(--surface); box-shadow: var(--shadow-2); color: var(--text);
+  list-style: none; text-align: left;
+}
+.action-card-top { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: start; }
+.action-card-icon {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  background: var(--warn-bg); color: var(--warn);
+}
+.action-card:is([data-kind="payment"], [data-kind="cart"]) .action-card-icon { background: var(--discount-bg); color: var(--discount); }
+.action-card-copy { display: grid; gap: 3px; min-width: 0; padding-top: 1px; }
+:root .action-card-copy b { color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
+:root .action-card-copy p {
+  display: -webkit-box; margin: 0; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+  color: var(--text-2); font-size: var(--fs-14); line-height: 1.4;
+}
+:root .action-card-copy small { overflow: hidden; color: var(--text-3); font-size: var(--fs-12); font-feature-settings: var(--tnum); white-space: nowrap; text-overflow: ellipsis; }
+.action-card-thumb { display: block; overflow: hidden; width: 40px; height: 40px; border-radius: 10px; background: var(--sunken, var(--bg)); }
+:root .action-card-thumb :is(img, .no-photo) { display: block; width: 100%; height: 100%; object-fit: cover; }
+:root .action-card-thumb .no-photo { display: grid; place-items: center; }
+:root .action-card-thumb .no-photo svg { width: 18px; height: 18px; }
+:root .action-card-thumb .no-photo span { display: none; }
+.action-card-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+:root .action-card-buttons .btn { min-height: 44px; padding-inline: 18px; font-size: var(--fs-15, 15px); }
+:root .action-card-go { flex: 1 1 auto; }
+:root .action-card-later { flex: 0 0 auto; }
+/* Wide screens: the buttons keep their own width, from under the text. */
+@media (min-width: 761px) {
+  .action-card-buttons { padding-left: 52px; }
+  :root .action-card-go { flex: 0 0 auto; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .action-card { animation: atlas-rise-in var(--dur-slow, 320ms) var(--ease-out, ease-out) both; }
+}

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "@/components/site-link";
-import { AlertCircle, ArrowRight, Check, FileText, Wallet } from "lucide-react";
-import { deliveredStage } from "@/lib/market/domain";
+import { ArrowRight, Check } from "lucide-react";
+import { deliveredStage, type Order } from "@/lib/market/domain";
 import { localizedParcelStages, type Locale } from "@/lib/market/i18n";
 import { countryLabel, formatShortDate, itemCount } from "@/lib/market/customer-copy";
 import { storeGroupName } from "@/lib/market/order-groups";
@@ -10,6 +10,8 @@ import { parcelPath, type BuyerParcel, type ProfileAction } from "@/lib/market/p
 import { profileCopy } from "@/lib/market/profile-copy";
 import { formatSum } from "@/lib/market/format";
 import { ProductImage } from "./market-ui";
+import { stepOfAction } from "@/lib/market/next-step";
+import { ActionCard } from "./action-card";
 
 /**
  * The eight stages of a parcel (GLOSSARY.md «Этап посылки», owner 1 November 2026). `mini`: eight segments and one line
@@ -36,22 +38,10 @@ export function ParcelStageBar({ stage, awaitingPayment = false, locale, size = 
   </ol>;
 }
 
-const actionIcon = { extra: AlertCircle, change: AlertCircle, payment: Wallet, passport: FileText } as const;
-
-/** "В пути" and on: the passport is no longer "before dispatch" but for the customs clearance (review, 1 November 2026). */
-const transitFrom = 4;
-
-/** One «Требует действия» card: what, why, one button. `stage`: the furthest stage of the parcels it is about. */
-export function ProfileActionCard({ action, locale, stage }: { action: ProfileAction; locale: Locale; stage?: number }) {
-  const t = profileCopy[locale].action, Icon = actionIcon[action.kind];
-  const title = action.kind === "passport" && action.recipientName ? t.passportTitle(action.recipientName) : t[action.kind].title;
-  const hint = action.kind === "payment" ? t.paymentHint(itemCount(action.items ?? 1, locale)) : action.kind === "passport" ? (stage !== undefined && stage >= transitFrom ? t.passportHintTransit : t.passportHint) : t.decisionHint(action.name);
-  const button = action.kind === "payment" && action.amount !== undefined ? t.pay(formatSum(action.amount, locale)) : t[action.kind].button;
-  return <li className="pf-action" data-kind={action.kind}>
-    <span className="pf-action-icon" aria-hidden="true"><Icon size={20} /></span>
-    <div className="pf-action-copy"><b>{title}</b><p>{hint}</p>{action.kind !== "passport" && <small>{action.orderId}</small>}</div>
-    <Link className="btn primary pf-action-button" href={action.href}>{button}<ArrowRight size={16} aria-hidden="true" /></Link>
-  </li>;
+/** One «Требует действия» card (1 November 2026): the same card as the home hero's (app/action-card.tsx) — what is needed
+ *  in plain words, the product's photo and name, the order number small and grey, one button. */
+export function ProfileActionCard({ action, locale, orders }: { action: ProfileAction; locale: Locale; orders: readonly Order[] }) {
+  return <ActionCard as="li" step={stepOfAction(action, orders)} locale={locale} />;
 }
 
 /** The title of a parcel: "Посылка из Nike (США)". */

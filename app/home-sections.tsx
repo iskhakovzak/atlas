@@ -17,7 +17,7 @@ import {expressLead,factPrice,speedDaysRange,speedPriceRange,tariffRows} from '@
 import {catalogSearchFor,looksLikeLink,normalizeProductLink,storeNamedIn} from '@/lib/market/shared-link';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
 import {loadChunk} from '@/lib/market/stale-build';
-import {nextStepOf} from '@/lib/market/next-step';
+import {firstProfileAction} from '@/lib/market/profile-strip';
 import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import type {Locale} from '@/lib/market/i18n';
 import {pickLocale} from '@/lib/market/uz-cyrl';
@@ -145,7 +145,8 @@ export function HomeHero(){
       jump down when it arrives (mobile CLS, 26 October 2026). */}
   {/* Once the account is known, the place is kept only when there is a step to continue: an empty slot left a blank
       band above the products on a phone (owner's iPhone, 2 November 2026). */}
-  {ready&&status==='authenticated'?nextStepOf(state)&&<Suspense fallback={<div className="home-resume-slot" aria-hidden="true"/>}><HomeResume/></Suspense>:sessionHint&&!ready&&<div className="home-resume-slot" aria-hidden="true"/>}
+  {/* The shell's own rule (already in every page's chunk) says whether anything waits; the card's chunk ranks it. */}
+  {ready&&status==='authenticated'?(firstProfileAction(state)||state.cart.length>0)&&<Suspense fallback={<div className="home-resume-slot" aria-hidden="true"/>}><HomeResume/></Suspense>:sessionHint&&!ready&&<div className="home-resume-slot" aria-hidden="true"/>}
  </section>;
 }
 
