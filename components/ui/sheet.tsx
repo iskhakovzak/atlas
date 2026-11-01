@@ -53,6 +53,7 @@ function SheetContent({
   showCloseButton = true,
   overlayClassName,
   size,
+  onInteractOutside,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
@@ -67,6 +68,12 @@ function SheetContent({
       <SheetOverlay className={overlayClassName} />
       <SheetPrimitive.Content
         data-slot="sheet-content"
+        // A toast over an open sheet ("Добавлено в корзину · Оформить") is outside the dialog: a tap on it must work and
+        // must not close the sheet (owner, 2 November 2026).
+        onInteractOutside={(event) => {
+          if ((event.target as Element | null)?.closest?.("[data-sonner-toaster]")) event.preventDefault()
+          onInteractOutside?.(event)
+        }}
         data-size={size}
         data-side={side}
         className={cn(

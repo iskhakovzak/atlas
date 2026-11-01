@@ -162,3 +162,6 @@ body > section[aria-live][tabindex="-1"] { position: fixed; z-index: 999999999; 
 /* Paragraphs and list items avoid a lone last word ("заказе." on a line of its own); the browser balances the last
    lines, the text and its measure are unchanged (impeccable detector, 27 October 2026). */
 .site-main :is(p, li) { text-wrap: pretty; }
+
+/* A modal sheet sets pointer-events: none on <body>; the toasts stay tappable above it (owner, 2 November 2026). */
+[data-sonner-toaster], [data-sonner-toaster] [data-sonner-toast] { pointer-events: auto !important; }
