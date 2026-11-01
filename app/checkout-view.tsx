@@ -1,4 +1,5 @@
 "use client";
+import { withoutDepartment } from "@/lib/market/product-name";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import Link from "@/components/site-link";
@@ -354,7 +355,7 @@ export function CheckoutView() {
           <h2 id="co-changes-title"><Info size={16} aria-hidden="true" />{blocked ? cc.item.issues.variant : t.checkout.check.changedTitle}</h2>
           <ul>{changes.map((item) => {
             const change = item.priceChange, currency = change?.currency ?? item.product.sourceCurrency ?? "USD";
-            return <li key={item.id}><b>{item.product.name}</b>
+            return <li key={item.id}><b>{withoutDepartment(item.product.name, item.product.brand)}</b>
               {change && change.price !== change.previousPrice && <span>{(change.price > change.previousPrice ? cc.item.priceUp : cc.item.priceDown)(storeMoney(change.previousPrice, currency, locale), storeMoney(change.price, currency, locale))}</span>}
               {change?.shipping !== undefined && change.shipping !== change.previousShipping && <span>{cc.item.shippingChanged(storeMoney(change.previousShipping ?? 0, item.product.sourceShippingCurrency ?? currency, locale), storeMoney(change.shipping, item.product.sourceShippingCurrency ?? currency, locale))}</span>}
               {item.sourceIssue && <span className={blockingSourceIssue(item) ? "co-issue" : ""}>{cc.item.issues[item.sourceIssue.kind]}</span>}
@@ -427,7 +428,7 @@ export function CheckoutView() {
         <ul className="co-items">{shownLines.map((item) => <li key={item.id}>
           <button type="button" className="co-item-open" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet} onClick={() => openItem(item)} aria-label={item.product.name}>
             <span className="co-item-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span>
-            <span className="co-item-text"><b>{item.product.name}</b><small>{[shownVariant(item.variant, item.product.sourceOptions), item.quantity > 1 ? `× ${item.quantity}` : ""].filter(Boolean).join(" · ")}</small></span>
+            <span className="co-item-text"><b>{withoutDepartment(item.product.name, item.product.brand)}</b><small>{[shownVariant(item.variant, item.product.sourceOptions), item.quantity > 1 ? `× ${item.quantity}` : ""].filter(Boolean).join(" · ")}</small></span>
           </button>
           <span className="co-item-sum">{formatSum(item.quote.merchandise, locale)}</span>
         </li>)}</ul>

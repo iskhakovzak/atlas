@@ -32,3 +32,46 @@ export function displayBrand(brand: string | undefined, store: string, marketpla
   if (marketplace && [store, marketplace].some((name) => name && letters(text) === letters(name))) return '';
   return store && letters(text) === letters(store) ? store : text;
 }
+
+const departmentWords = /^(?:(men|man|mens|men's|male)|(women|woman|womens|women's|ladies|female)|(kids|kid's|kids'|youth|boys|boy's|girls|girl's|junior|juniors)|(baby|babies|infant|infants|toddler|toddlers)|(unisex))(?=[\s·•|:,–—\-]|$)[\s·•|:,–—\-]*/iu;
+const departmentKeys = ['men', 'women', 'kids', 'baby', 'unisex'] as const;
+export type NameDepartment = typeof departmentKeys[number];
+
+/**
+ * Store titles often start with who the item is for ("adidas men Core Pants", "Women's Swift Run"): the card says it as a
+ * small label instead (owner, 2 November 2026), so the word leaves the shown title — at the start or right after the
+ * brand. Display only: the stored name and the search keep it.
+ */
+export function withoutDepartment(name: string, brand?: string) {
+  const full = name.trim(), mark = (brand ?? '').trim();
+  const strip = (text: string) => { const rest = text.replace(departmentWords, ''); return rest.length >= 3 && /\p{L}/u.test(rest) ? rest : text; };
+  if (mark && full.slice(0, mark.length).toLocaleLowerCase() === mark.toLocaleLowerCase() && /^\s/.test(full.slice(mark.length))) {
+    const after = full.slice(mark.length).trimStart(), rest = strip(after);
+    return rest === after ? full : `${full.slice(0, mark.length)} ${rest}`;
+  }
+  return strip(full);
+}
+
+/** Who the item is for, read from the start of its title (or right after the brand) when the facets do not say it. */
+export function departmentInName(name: string, brand?: string): NameDepartment | undefined {
+  let text = name.trim();
+  const mark = (brand ?? '').trim();
+  if (mark && text.slice(0, mark.length).toLocaleLowerCase() === mark.toLocaleLowerCase()) text = text.slice(mark.length).trimStart();
+  const match = departmentWords.exec(text);
+  if (!match) return undefined;
+  const index = match.slice(1).findIndex(Boolean);
+  return index >= 0 ? departmentKeys[index] : undefined;
+}
+
+const departmentText: Record<NameDepartment, { ru: string; uz: string; en: string }> = {
+  men: { ru: 'Мужское', uz: 'Erkaklar uchun', en: 'Men' },
+  women: { ru: 'Женское', uz: 'Ayollar uchun', en: 'Women' },
+  kids: { ru: 'Детское', uz: 'Bolalar uchun', en: 'Kids' },
+  baby: { ru: 'Для малышей', uz: 'Chaqaloqlar uchun', en: 'Baby' },
+  unisex: { ru: 'Унисекс', uz: 'Uniseks', en: 'Unisex' },
+};
+/** The card's small "who it is for" label: the facets' department, else the word read from the title. Latin uz; the caller converts for oz. */
+export function departmentLabel(product: { name: string; brand?: string; facets?: { department?: string } }, locale: 'ru' | 'uz' | 'en'): string {
+  const key = (product.facets?.department ?? departmentInName(product.name, product.brand)) as NameDepartment | undefined;
+  return key && departmentText[key] ? departmentText[key][locale] : '';
+}

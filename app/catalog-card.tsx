@@ -17,7 +17,7 @@ import { browserStorage, productPath, rememberPendingFavorite } from '@/lib/mark
 import { loginPath } from '@/lib/auth/return-to';
 import type { Locale } from '@/lib/market/i18n';
 import { brandForHost } from '@/lib/market/store-brands';
-import { displayBrand, nameWithoutBrand } from '@/lib/market/product-name';
+import { departmentLabel, displayBrand, nameWithoutBrand, withoutDepartment } from '@/lib/market/product-name';
 import { useMarket } from '@/lib/market/store';
 import { ProductImage } from './market-ui';
 import { Swatch } from './catalog-swatch';
@@ -70,7 +70,9 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const { pricing } = useMarket();
   const copy = dealCopy(locale), cc = catalogCopy[locale];
   const { fmt } = catalogFormatter(locale);
-  const name = product.name;
+  // "men"/"women" leave the shown title; the card says it as a small label (owner, 2 November 2026).
+  const name = withoutDepartment(product.name, product.brand);
+  const department = (() => { const text = departmentLabel(product, locale === 'ru' || locale === 'en' ? locale : 'uz'); return locale === 'oz' ? uzText(locale, text) : text; })();
   const needsPrice = product.priceNeedsConfirmation === true;
   const hasRecordedPrice = needsPrice && product.sourcePrice !== undefined && Boolean(product.sourceCurrency);
   const category = cc.categories[product.category] ?? product.category;
@@ -153,7 +155,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
     </div>
     <div className="pcard-body">
       {/* «Топ-цена» and the discount sit in the text, small, so the photo stays clear (owner, 2 November 2026). */}
-      <p className="pcard-brand"><span>{brandName}</span>{item.topDeal && <span className="card-chip card-chip-top"><Flame size={12} aria-hidden="true" />{copy.topDeal}</span>}</p>
+      <p className="pcard-brand"><span>{brandName}{department && <span className="pcard-dept"> · {department}</span>}</span>{item.topDeal && <span className="card-chip card-chip-top"><Flame size={12} aria-hidden="true" />{copy.topDeal}</span>}</p>
       {/* The title link covers the whole card (::after), so a tap anywhere opens the product; the heart, "+", the store
          mark and "В корзину" sit above it. A link to /catalog/p/<id> (owner, 2 November 2026: crawlers follow the name),
          opened as the sheet over the catalog like the other two. */}
