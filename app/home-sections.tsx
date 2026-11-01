@@ -17,6 +17,7 @@ import {expressLead,factPrice,speedDaysRange,speedPriceRange,tariffRows} from '@
 import {catalogSearchFor,looksLikeLink,normalizeProductLink,storeNamedIn} from '@/lib/market/shared-link';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
 import {loadChunk} from '@/lib/market/stale-build';
+import {nextStepOf} from '@/lib/market/next-step';
 import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import type {Locale} from '@/lib/market/i18n';
 import {pickLocale} from '@/lib/market/uz-cyrl';
@@ -134,7 +135,7 @@ function HomeLinkForm(){
 const HomeResume=lazy(()=>loadChunk(()=>import('./home-resume')).then(module=>({default:module.HomeResume})));
 
 export function HomeHero(){
- const {status,ready,sessionHint}=useMarket();
+ const {status,ready,sessionHint,state}=useMarket();
  const {c}=useHomeCopy();
  return <section className="home-hero" aria-labelledby="home-title">
   <h1 id="home-title">{c.hero.title}</h1>
@@ -142,7 +143,9 @@ export function HomeHero(){
   <HomeLinkForm/>
   {/* A signed-in visitor (session cookie) keeps the card's place while the account loads, so the products below do not
       jump down when it arrives (mobile CLS, 26 October 2026). */}
-  {ready&&status==='authenticated'?<Suspense fallback={<div className="home-resume-slot" aria-hidden="true"/>}><HomeResume/></Suspense>:sessionHint&&!ready&&<div className="home-resume-slot" aria-hidden="true"/>}
+  {/* Once the account is known, the place is kept only when there is a step to continue: an empty slot left a blank
+      band above the products on a phone (owner's iPhone, 2 November 2026). */}
+  {ready&&status==='authenticated'?nextStepOf(state)&&<Suspense fallback={<div className="home-resume-slot" aria-hidden="true"/>}><HomeResume/></Suspense>:sessionHint&&!ready&&<div className="home-resume-slot" aria-hidden="true"/>}
  </section>;
 }
 

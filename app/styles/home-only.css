@@ -196,6 +196,8 @@ html[data-theme="dark"] .home-main .home-trust-icon { color: var(--link); }
 
 /* Phones: the number or icon beside the card's title, so each card is a few lines shorter; links are 44px to tap. */
 @media (max-width: 760px) {
+  /* The products follow the link field closely: the 44px tap row under the field already adds air (owner, 2 November 2026). */
+  .home-main .home-top { gap: var(--space-4); }
   .home-main :is(.home-link-batch, .home-rail-all, .home-step-link, .home-bill-parts > summary) { min-height: 44px; }
   .home-main :is(.home-step, .home-trust-cards li) { grid-template-columns: auto minmax(0, 1fr); column-gap: var(--space-3); padding: var(--space-4); }
   .home-main :is(.home-step, .home-trust-cards li) > :not(.home-step-number, .home-trust-icon, h3) { grid-column: 1 / -1; }

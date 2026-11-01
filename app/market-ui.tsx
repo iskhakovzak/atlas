@@ -8,6 +8,14 @@ import {uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek,type Locale} from '@/lib/market/i18n';
 import {retryOriginal,sizedImage,sizedSrcSet} from '@/lib/market/image-size';
 /** `size`: about how many pixels wide the store should send the photo (twice the largest box it fills, for sharp phone screens). */
+/**
+ * Cards show a store photo edge to edge when it is about square (most store photos, with their own backdrop); a tall or
+ * wide one is marked `data-shape="odd"` and stays whole inside the frame instead of being cropped (catalog-pages.css).
+ */
+function markPhotoShape(image:HTMLImageElement){
+ const ratio=image.naturalWidth/image.naturalHeight;
+ if(ratio>0)image.dataset.shape=ratio>0.8&&ratio<1.25?'square':'odd';
+}
 export function ProductImage({product,className='',decorative=false,locale='ru',size=600}:{product:Product;className?:string;decorative?:boolean;locale?:Locale;size?:number}){
  const [failedImage,setFailedImage]=useState('');
  const label=locale==='ru'?'Товар по ссылке':isUzbek(locale)?uzText(locale, 'Havoladagi tovar'):'Linked item';
@@ -17,7 +25,7 @@ export function ProductImage({product,className='',decorative=false,locale='ru',
  // `sizes="auto"`: a lazy image picks from srcset by the box it actually gets (Chromium); others take the `size` copy as before.
  // eslint-disable-next-line @next/next/no-img-element
  return <img className={'product-img '+className} src={sizedImage(product.image,size)} srcSet={sizedSrcSet(product.image,size)} sizes={`auto, ${size}px`} onError={event=>{if(!retryOriginal(event.currentTarget,product.image))setFailedImage(product.image)}} alt={decorative?'':product.name} loading="lazy" decoding="async" referrerPolicy="no-referrer"
-  ref={image=>{if(image&&!image.complete)image.dataset.fade=''}} onLoad={event=>{delete event.currentTarget.dataset.fade}}/>;
+  ref={image=>{if(!image)return;if(image.complete)markPhotoShape(image);else image.dataset.fade=''}} onLoad={event=>{delete event.currentTarget.dataset.fade;markPhotoShape(event.currentTarget)}}/>;
 }
 export function PageHeading({overline,title,description,children}:{overline:string;title:string;description:string;children?:ReactNode}){return <div className="page-heading"><div><div className="eyebrow">{overline}</div><h1>{title.replace(/\.$/,'')}</h1><p>{description}</p></div>{children}</div>}
 export function Empty({title,description,href,label,children}:{title:string;description:string;href?:string;label?:string;children?:ReactNode}){return <div className="empty-state"><span className="empty-icon"><Package size={30}/></span><h2>{title}</h2><p>{description}</p>{href&&<Link href={href} className="btn primary">{label??'В каталог'}<ArrowUpRight size={18}/></Link>}{children}</div>}
