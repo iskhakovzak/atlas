@@ -5,7 +5,7 @@
    layers (day-folio.css, theme-night.css) without !important.
 
    Wide screens (64 px): logo · Каталог · Магазины · Купить по ссылке · Доставка · [search or link] · language · ♥ · cart · profile.
-   Phones (56 px): logo · search · language (the bell for members); the bottom bar carries the rest. */
+   Phones (56 px): logo · search field · language · bell (members); the bottom bar carries the rest. */
 
 :root .site-header.shell-header {
   display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 64px;
@@ -128,36 +128,93 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   .shell-profile-trigger .shell-chevron { display: none; }
 }
 
-/* ---------- Phones: logo · search · language (· bell) ---------- */
+/* ---------- Phones: logo · search field · language · bell ---------- */
+/* Owner, 1.11.2026: "сейчас просто по углам, посередине пустота". The middle is the search field (a 40 px pill, words to
+   the catalog, a pasted store link to its calculation); on the right a quiet language code and the bell with a small
+   counter. The catalog and the checkout (header data-search="off") keep the logo and the icons only. Every control is
+   a 40 px square with 22 px icons, 4 px apart; mobile.css widens their touch area by 2 px on each side (44 px). */
 @media (max-width: 760px) {
-  :root .site-header.shell-header { gap: 4px; min-height: calc(56px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
-  :root .site-header.shell-header .wordmark { font-size: 26px; }
-  :root .site-header.shell-header .wordmark svg { width: 21px; height: 21px; }
-  /* Help stays as a 44 px icon (its word is hidden from 1279 px down): the app has no footer to find it in. */
-  .shell-nav, .shell-wide { display: none; }
-  :root .site-header.shell-header .shell-help { width: 44px; min-width: 44px; padding: 0; }
-  .shell-actions { gap: 2px; }
+  :root .site-header.shell-header { gap: 10px; min-height: calc(56px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  /* The wordmark: 24 px Manrope, its arrow 15 px sitting on the cap line of "tl" instead of floating above it. */
+  :root .site-header.shell-header .wordmark { gap: 1px; min-height: 44px; font-size: 24px; letter-spacing: -.05em; }
+  :root .site-header.shell-header .wordmark svg { align-self: center; width: 15px; height: 15px; margin-top: -9px; stroke-width: 2.75; }
+  /* Help stays as an icon (its word is hidden from 1279 px down): the app has no footer to find it in. */
+  .shell-nav, .shell-wide, .shell-search-icon { display: none; }
+  .shell-actions, .shell-header .shell-search ~ .shell-actions { gap: 4px; margin-left: 0; }
+  .shell-header[data-search="off"] .shell-actions { margin-left: auto; }
+  :root .site-header.shell-header :is(.shell-help, .notice-link) { width: 40px; min-width: 40px; height: 40px; min-height: 40px; padding: 0; border-radius: var(--r-pill); }
+  :root .site-header.shell-header :is(.shell-help, .notice-link) svg { width: 22px; height: 22px; }
+
+  /* The field: what is left between the logo and the icons. 16 px text, so iOS does not zoom the page on focus. */
+  :root .site-header.shell-header .shell-search { display: flex; flex: 1 1 auto; min-width: 0; max-width: none; height: 40px; margin-left: 0; padding: 0 10px 0 2px; gap: 0; border-color: transparent; background: var(--sunken); }
+  :root .site-header.shell-header[data-search="off"] .shell-search { display: none; }
+  :root .site-header.shell-header .shell-search:focus-within { border-color: var(--link); background: var(--surface); }
+  html body .site-header .shell-search input { height: 38px; font-size: 16px; text-overflow: ellipsis; }
+  .shell-search input::placeholder { font-size: 15px; color: var(--text-3); }
+  .shell-search-submit { width: 34px; height: 36px; color: var(--text-2); }
+  .shell-search-submit svg { width: 18px; height: 18px; }
+
+  /* The language: its code alone, no ring (the footer and the account settings have the full list). */
+  :root .site-header.shell-header .lang-trigger { min-width: 32px; height: 40px; min-height: 40px; padding: 0 4px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-2); font-size: 13px; font-weight: var(--fw-semibold); letter-spacing: .04em; }
+  :root .site-header.shell-header .lang-trigger:hover, :root .site-header.shell-header .lang-trigger[aria-expanded="true"] { background: var(--hover); color: var(--text); }
+  :root .site-header.shell-header .lang-trigger > svg { display: none; }
+  .lang-menu-list { top: calc(60px + env(safe-area-inset-top, 0px)); }
+
+  /* The bell's counter: 16 px, 10.5 px digits, ringed with the header colour so it reads as cut out of the bell. */
+  :root .site-header.shell-header .notice-link { color: var(--text-2); }
+  :root .site-header.shell-header .notice-link > b { position: absolute; top: 3px; right: 2px; display: block; min-width: 16px; height: 16px; padding: 0 4px; border: 0; border-radius: var(--r-pill); background: var(--c-danger); color: #fff; font-size: 10.5px; font-weight: var(--fw-bold); line-height: 16px; text-align: center; letter-spacing: 0; box-shadow: 0 0 0 2px var(--surface); }
+
   /* Pages start under the header without the breadcrumb (its JSON-LD stays in the page). */
   .site-main > .breadcrumb { display: none; }
   /* A page's JSON-LD script may stand between the breadcrumb and the head. */
   .site-main > .breadcrumb + *, .site-main > .breadcrumb + script + * { margin-top: var(--space-6); }
 }
+/* The catalog and a store's page on phones (1.11.2026): the header's field is their search (app/marketplace.tsx
+   HeaderSearch, data-live). The sticky row under it keeps «Фильтры (N)» and the sort, led by a search button that brings
+   the header back and focuses its field; the page's own field is hidden. From 761 px the page keeps its own field. */
+.catalog-search-jump, .shell-search-clear { display: none; }
+@media (max-width: 760px) {
+  .shell-search-clear { display: grid; flex: none; place-items: center; width: 32px; height: 32px; margin-right: -6px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-3); cursor: pointer; }
+  .shell-search-clear:hover { background: var(--hover); color: var(--text); }
+  .shell-search-clear:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+  :root .catalog-page:is([data-mode="catalog"], [data-mode="store"]) .catalog-sticky > .catalog-search { display: none; }
+  :root .catalog-page .catalog-sticky > .catalog-search-jump { display: grid; flex: none; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r-control); background-color: var(--surface); color: var(--text); cursor: pointer; }
+  :root .catalog-page .catalog-sticky > .catalog-search-jump:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  :root .catalog-page:is([data-mode="catalog"], [data-mode="store"]) .catalog-sticky .catalog-facets-button { flex: 1 1 auto; width: auto; padding: 0 12px; justify-content: center; }
+  /* Without the field the row has room for the word «Фильтры» on every phone (catalog-pages.css hides it under 380 px). */
+  :root .catalog-page:is([data-mode="catalog"], [data-mode="store"]) .catalog-sticky .catalog-facets-button > span { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
+}
+
+/* 360–379 px (Galaxy S24): the placeholder steps down to 14 px so «Товар или ссылка» stays whole. */
+@media (max-width: 379px) {
+  .shell-search input::placeholder { font-size: 14px; }
+}
 @media (max-width: 359px) {
-  :root .site-header.shell-header { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
-  :root .site-header.shell-header .wordmark { font-size: 24px !important; }
-  .shell-actions { gap: 0; }
+  :root .site-header.shell-header { gap: 8px; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+  :root .site-header.shell-header .wordmark { font-size: 22px !important; }
+  .shell-actions, .shell-header .shell-search ~ .shell-actions { gap: 0; }
 }
 
 /* «Ждёт действия» (1 November 2026): one mint line under the header while an order waits for the buyer — a payment,
    a доплата, a decision or the recipient's passport. It leads straight there (lib/market/profile-strip.ts). */
 .shell-attention { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 4%; border-bottom: 1px solid var(--selected-line); background: var(--discount-bg); color: var(--discount); font-size: var(--fs-14); font-weight: var(--fw-semibold); line-height: var(--lh-snug); text-decoration: none; }
+.shell-attention-short { display: none; }
 .shell-attention:hover { text-decoration: underline; text-underline-offset: 3px; }
 .shell-attention-dot { flex: none; width: 8px; height: 8px; border-radius: var(--r-pill); background: currentColor; }
 .shell-attention-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .shell-attention svg { flex: none; }
 /* Its text starts where the header's logo does (layout-desktop.css: the header's padding-inline), not 10 px left of it. */
 @media (min-width: 761px) { .shell-attention { padding-left: max(var(--gutter), calc((100% - 1500px) / 2 + 72px), env(safe-area-inset-left)); padding-right: max(var(--gutter), calc((100% - 1500px) / 2 + 72px), env(safe-area-inset-right)); } }
-@media (max-width: 760px) { .shell-attention { padding: 0 16px; font-size: var(--fs-13); } }
+/* Phones: a calm 36 px line — the short text (…101DC), a 6 px dot, a chevron on the header's right edge. */
+@media (max-width: 760px) {
+  .shell-attention { gap: 8px; min-height: 36px; padding: 0 max(14px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); border-bottom-color: color-mix(in srgb, var(--discount) 14%, transparent); font-size: 13px; font-weight: var(--fw-medium); }
+  .shell-attention-full { display: none; }
+  .shell-attention-short { display: inline; }
+  .shell-attention-dot { width: 6px; height: 6px; }
+  .shell-attention > svg { margin-left: auto; opacity: .8; }
+  .shell-attention:hover { text-decoration: none; }
+  .shell-attention:active { background: color-mix(in srgb, var(--discount) 20%, transparent); }
+}
 
 /* A product under the catalog: its long name ends the breadcrumb on one line (app/marketplace.tsx `crumb`). */
 .breadcrumb > .breadcrumb-leaf { min-width: 0; max-width: 60ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

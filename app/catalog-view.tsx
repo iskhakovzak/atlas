@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowDownUp, ArrowRight, Heart, Link2, Search, SlidersHorizontal, Store, X } from 'lucide-react';
 import Link from '@/components/site-link';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
@@ -20,7 +20,7 @@ import { signalsFor } from '@/lib/market/catalog-signals';
 import { searchWords } from '@/lib/market/catalog-synonyms';
 import { browserStorage, clearRecentProducts, readRecentProducts, rememberRecentProduct, itemParam, pendingFavoriteToSave, productPath, takePendingFavorite, withoutItemParam } from '@/lib/market/catalog-links';
 import { toast } from '@/lib/market/toast';
-import { focusSearchKey } from '@/lib/market/shell-search';
+import { focusSearchKey, publishCatalogSearch } from '@/lib/market/shell-search';
 import {
   activeFilterCount, applyCatalogQuery, catalogFacets, catalogItems, catalogQueryString, cartParcelStores, emptyCatalogQuery, filterId,
   paginate, parcelExtra, quickChipActive, quickChips, readCatalogQuery, relaxations, sameCatalogProduct, toggleQuickChip, withoutFilter,
@@ -111,8 +111,9 @@ export function CatalogView({ mode, initial, lang, store, firstPage }: { mode: '
   useEffect(() => {
     let asked = false;
     try { asked = sessionStorage.getItem(focusSearchKey) === '1'; sessionStorage.removeItem(focusSearchKey); } catch { /* private mode */ }
-    if (asked) document.getElementById('catalog-search-input')?.focus({ preventScroll: false });
-  }, []);
+    // Phones search in the header's field (lib/market/shell-search.ts); wider screens in the catalog's own.
+    if (asked) document.getElementById(window.matchMedia('(max-width: 760px)').matches && mode === 'catalog' ? 'shell-search-input' : 'catalog-search-input')?.focus({ preventScroll: false });
+  }, [mode]);
   // Pages rendered without a server query (or opened from history) take it from the address.
   useEffect(() => { if (!initial) queueMicrotask(() => setQueryState(readCatalogQuery(window.location.search))); }, [initial]);
   useEffect(() => {
@@ -121,6 +122,11 @@ export function CatalogView({ mode, initial, lang, store, firstPage }: { mode: '
   }, [query]);
   // Any change of filters, sort or page size starts again at page 1; only the pager keeps the page.
   const setQuery = (next: CatalogQuery) => setQueryState({ ...next, page: 1 });
+  // Phones (≤ 760 px, 1.11.2026): the header's field is this page's search (app/marketplace.tsx HeaderSearch); the page
+  // publishes its query and placeholder and takes what is typed, as its own field did (at most 80 characters, page 1).
+  const [searchOwner] = useState(() => ({}));
+  const setSearchText = useCallback((q: string) => setQueryState((prev) => ({ ...prev, q: q.slice(0, 80), page: 1 })), []);
+  useEffect(() => () => publishCatalogSearch(searchOwner, null), [searchOwner]);
   const setPage = (page: number) => {
     setQueryState({ ...query, page });
     requestAnimationFrame(() => {
@@ -158,6 +164,8 @@ export function CatalogView({ mode, initial, lang, store, firstPage }: { mode: '
   const storeSlug = store?.slug;
   // On a store's page the search is inside that store: «Товар в Nike», not «товар, бренд или магазин».
   const storeName = storeSlug ? storeBySlug(storeSlug)?.name : undefined;
+  const headerPlaceholder = storeName ? cc.searchInStore(storeName) : undefined;
+  useEffect(() => { if (mode === 'catalog') publishCatalogSearch(searchOwner, { q: query.q, placeholder: headerPlaceholder, set: setSearchText }); }, [mode, searchOwner, query.q, headerPlaceholder, setSearchText]);
   const allowance = ready ? catalogAllowance(state, pricing.fx) : null;
   const dutyLimitUsd = allowance?.remainingUsd ?? courierAllowanceUsd;
   // Everything that walks the products sits in one memo (a few thousand products, one pass per filter group): it reruns
@@ -251,6 +259,13 @@ export function CatalogView({ mode, initial, lang, store, firstPage }: { mode: '
     observer.observe(probe);
     return () => observer.disconnect();
   }, [showControls]);
+  function jumpToSearch() {
+    const field = document.getElementById('shell-search-input');
+    if (!(field instanceof HTMLInputElement)) return;
+    // Focus first, inside the tap, so iOS opens the keyboard; then the page goes up to the header.
+    field.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
   const dutyHint = allowance && allowance.usedUsd > 0 ? cc.dutyMember(allowance.remainingUsd, allowance.name) : cc.dutyGuest(limitUsd);
   const filtered = list.length !== pool.length;
   const panel = <FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} locale={locale} dutyHint={dutyHint} categories={categories} />;
@@ -269,6 +284,9 @@ export function CatalogView({ mode, initial, lang, store, firstPage }: { mode: '
     {/* One row: search, "Фильтры (N)" (a sheet below 1024 px) and the sort. Sticky on phones (app/styles/catalog-pages.css):
        a sibling of the page's blocks, not inside the toolbar section, so it stays stuck over the whole grid. */}
     {showControls && <div className="catalog-sticky" role="search" aria-label={cc.search} data-stuck={stuck || undefined}>
+        {/* Phones: the search is the header's field (it scrolls away); this button brings it back and focuses it. Hidden
+           from 761 px, where the catalog's own field below is the search (app/shell.css). */}
+        {mode === 'catalog' && <button type="button" className="catalog-search-jump" aria-label={cc.search} onClick={jumpToSearch}><Search size={20} aria-hidden="true" /></button>}
         <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input id="catalog-search-input" type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={storeName ? cc.searchInStore(storeName) : side === 'bottom' ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
         <button type="button" className="catalog-facets-button" aria-haspopup="dialog" onClick={() => setFiltersOpen(true)}><SlidersHorizontal size={18} aria-hidden="true" /><span>{cc.filters}</span>{filterCount > 0 && <b aria-label={String(filterCount)}>{filterCount}</b>}</button>
         {/* A phone shows the sort as an icon over the native picker (the picker names the chosen order); a dot marks a changed one. */}

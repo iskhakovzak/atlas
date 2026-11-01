@@ -20,3 +20,24 @@ export function headerSearchTarget(text: string): string {
   const link = headerSearchLink(raw);
   return link ? '/order-by-link?url=' + encodeURIComponent(link) : '/catalog?q=' + encodeURIComponent(raw.slice(0, 80));
 }
+
+/**
+ * Phones (≤ 760 px), 1.11.2026: on the catalog and a store's page the header's field IS the catalog search (owner: the
+ * phone's /catalog header had an empty middle). The page publishes its query here; the header reads it and sends what is
+ * typed back, so the grid filters in place and ?q= follows (app/catalog-view.tsx). One page at a time; null when none.
+ */
+export type CatalogSearch = { owner: object; q: string; placeholder?: string; set: (q: string) => void };
+let catalogSearch: CatalogSearch | null = null;
+const catalogSearchListeners = new Set<() => void>();
+export function subscribeCatalogSearch(listener: () => void): () => void {
+  catalogSearchListeners.add(listener);
+  return () => { catalogSearchListeners.delete(listener); };
+}
+export const readCatalogSearch = (): CatalogSearch | null => catalogSearch;
+/** The page's search now (its query, placeholder and setter); `null` with its owner takes it away if it is still that page's. */
+export function publishCatalogSearch(owner: object, next: Omit<CatalogSearch, 'owner'> | null): void {
+  if (!next) { if (catalogSearch?.owner !== owner) return; catalogSearch = null; }
+  else if (catalogSearch?.owner === owner && catalogSearch.q === next.q && catalogSearch.placeholder === next.placeholder && catalogSearch.set === next.set) return;
+  else catalogSearch = { owner, ...next };
+  for (const listener of catalogSearchListeners) listener();
+}

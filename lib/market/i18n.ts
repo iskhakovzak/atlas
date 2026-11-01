@@ -414,18 +414,18 @@ export function serverError(locale:Locale, key:string, params?:Record<string,str
 /** Header, bottom bar and profile menu words (app/marketplace.tsx, app/profile-menu.tsx). `byLink` is the old short tab name,
  *  kept for the footer and tests; the bottom bar's centre button says `link`. */
 export type NavCopy = { catalog: string; byLink: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string; help: string;
-  link: string; buyByLink: string; delivery: string; profile: string; profileMenu: string; search: string; searchPlaceholder: string; searchShort: string;
+  link: string; buyByLink: string; delivery: string; profile: string; profileMenu: string; search: string; searchPlaceholder: string; searchShort: string; clearSearch: string;
   balance: string; notifications: string; favorites: string; documents: string; settings: string; theme: string; signOut: string; needsAction: string };
 /** Header navigation words, kept here (loaded on every page) rather than in the home page copy, which uses them as `nav`. */
 export const navCopy: Record<Locale, NavCopy> = /*@__PURE__*/withCyrillic({
   ru: { catalog: 'Каталог', byLink: 'По ссылке', stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта', help: 'Помощь',
-    link: 'Ссылка', buyByLink: 'Купить по ссылке', delivery: 'Доставка', profile: 'Профиль', profileMenu: 'Меню профиля', search: 'Поиск', searchPlaceholder: 'Товар или ссылка', searchShort: 'Найти',
+    link: 'Ссылка', buyByLink: 'Купить по ссылке', delivery: 'Доставка', profile: 'Профиль', profileMenu: 'Меню профиля', search: 'Поиск', searchPlaceholder: 'Товар или ссылка', searchShort: 'Найти', clearSearch: 'Очистить поиск',
     balance: 'Баланс', notifications: 'Уведомления', favorites: 'Избранное', documents: 'Документы', settings: 'Настройки', theme: 'Тема', signOut: 'Выйти', needsAction: 'заказ ждёт вашего действия' },
   uz: { catalog: 'Katalog', byLink: 'Havola', stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili', help: 'Yordam',
-    link: 'Havola', buyByLink: 'Havola orqali xarid', delivery: 'Yetkazib berish', profile: 'Profil', profileMenu: 'Profil menyusi', search: 'Qidiruv', searchPlaceholder: 'Tovar yoki havola', searchShort: 'Topish',
+    link: 'Havola', buyByLink: 'Havola orqali xarid', delivery: 'Yetkazib berish', profile: 'Profil', profileMenu: 'Profil menyusi', search: 'Qidiruv', searchPlaceholder: 'Tovar yoki havola', searchShort: 'Topish', clearSearch: 'Qidiruvni tozalash',
     balance: 'Balans', notifications: 'Bildirishnomalar', favorites: 'Saqlanganlar', documents: 'Hujjatlar', settings: 'Sozlamalar', theme: 'Mavzu', signOut: 'Chiqish', needsAction: 'buyurtma harakatingizni kutmoqda' },
   en: { catalog: 'Catalog', byLink: 'By link', stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language', help: 'Help',
-    link: 'Link', buyByLink: 'Buy by link', delivery: 'Delivery', profile: 'Profile', profileMenu: 'Profile menu', search: 'Search', searchPlaceholder: 'Item or link', searchShort: 'Find',
+    link: 'Link', buyByLink: 'Buy by link', delivery: 'Delivery', profile: 'Profile', profileMenu: 'Profile menu', search: 'Search', searchPlaceholder: 'Item or link', searchShort: 'Find', clearSearch: 'Clear search',
     balance: 'Balance', notifications: 'Notifications', favorites: 'Saved', documents: 'Documents', settings: 'Settings', theme: 'Theme', signOut: 'Sign out', needsAction: 'an order needs your action' },
 });
 

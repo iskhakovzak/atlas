@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { navCopy, routeTitle, locales } from '../lib/market/i18n.ts';
 import { signInPath } from '../lib/market/access.ts';
-import { headerSearchLink, headerSearchTarget } from '../lib/market/shell-search.ts';
+import { headerSearchLink, headerSearchTarget, publishCatalogSearch, readCatalogSearch, subscribeCatalogSearch } from '../lib/market/shell-search.ts';
+import { orderTail, stripCopy, stripShortCopy } from '../lib/market/profile-strip.ts';
 
 const source = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
@@ -64,7 +65,7 @@ test('the profile shows a dot while an order waits for the customer, said to scr
   const shell = source('app/marketplace.tsx');
   // Since 1 November 2026 the recipient's passport counts too, and the same first action is the mint strip under the header.
   assert.match(shell, /const firstAction=ready\?firstProfileAction\(state\):undefined;\r?\n  const attention=Boolean\(firstAction\);/);
-  assert.match(shell, /<Link className="shell-attention" href=\{strip\.href\}>/);
+  assert.match(shell, /<Link className="shell-attention" href=\{strip\.href\} aria-label=\{stripCopy\[locale\]\[strip\.kind\]\(strip\.orderId\)\}>/, 'the strip is named by its full line');
   assert.match(shell, /dot\?`\$\{label\} — \$\{nav\.needsAction\}`/);
   // The button's name starts with the word it shows ("Профиль"), so a voice command finds it; the list keeps "Меню профиля".
   assert.match(source('app/profile-menu.tsx'), /aria-label=\{nav\.profile\+\(attention\?' — '\+nav\.needsAction:''\)\}/);
@@ -118,4 +119,54 @@ test('the notification sheet titles are not in capitals; the UI audit expects th
   const audit = source('scripts/audit-ui.mjs');
   assert.doesNotMatch(audit, /!document\.querySelector\('\.mobile-nav'\)/);
   assert.match(audit, /guest mobile has the bottom navigation/);
+});
+
+test('phones: the header is logo · search field · language · bell, the field left out on the checkout', () => {
+  const shell = source('app/marketplace.tsx'), css = source('app/shell.css');
+  assert.match(shell, /data-search=\{view==='checkout'\?'off':undefined\}/, 'only the checkout leaves the header field out');
+  const phone = css.slice(css.indexOf('/* ---------- Phones: logo · search field · language · bell'), css.indexOf('@media (max-width: 359px)'));
+  assert.match(phone, /\.shell-search \{ display: flex; flex: 1 1 auto; min-width: 0;[^}]*height: 40px;/, 'the field fills the middle, 40 px tall');
+  assert.match(phone, /\[data-search="off"\] \.shell-search \{ display: none; \}/);
+  assert.match(phone, /\.shell-search input \{[^}]*font-size: 16px;/, '16 px text: iOS does not zoom on focus');
+  assert.match(phone, /\.shell-wide, \.shell-search-icon \{ display: none; \}/, 'no separate search icon on phones');
+  assert.match(phone, /\.lang-trigger \{[^}]*border: 0;/, 'the language is a quiet code, no ring');
+  assert.match(phone, /\.notice-link > b \{[^}]*height: 16px;[^}]*box-shadow: 0 0 0 2px var\(--surface\);/, 'a 16 px counter ringed with the header colour');
+  assert.match(phone, /min-height: calc\(56px \+ env\(safe-area-inset-top\)\)/, '56 px under the safe area');
+});
+
+test('phones: the attention strip reads short (…101DC), its name stays full', () => {
+  assert.equal(orderTail('AT-FC5B6C1101DC'), '…101DC');
+  assert.equal(stripShortCopy.ru.passport(orderTail('AT-FC5B6C1101DC')), 'Заказ …101DC ждёт паспорт');
+  for (const locale of ['ru', 'uz', 'oz', 'en']) for (const kind of ['extra', 'change', 'payment', 'passport']) {
+    const short = stripShortCopy[locale][kind](orderTail('AT-FC5B6C1101DC'));
+    assert.ok(short.includes('101DC'), `${locale}.${kind} keeps the number's tail: ${short}`);
+    assert.ok(short.length <= 36 && short.length < stripCopy[locale][kind]('AT-FC5B6C1101DC').length, `${locale}.${kind} is short: ${short}`);
+  }
+  assert.match(stripShortCopy.oz.passport(orderTail('AT-FC5B6C1101DC')), /^Буюртма …101DC: паспорт керак$/, 'oz is Cyrillic, the number stays Latin');
+  const css = source('app/shell.css');
+  assert.match(css, /\.shell-attention-short \{ display: none; \}/);
+  assert.match(css, /@media \(max-width: 760px\) \{\s+\.shell-attention \{[^}]*min-height: 36px;[^}]*font-size: 13px;/);
+});
+
+test('phones: on the catalog and a store page the header field is the catalog search', () => {
+  const page = {}, other = {};
+  let calls = 0; const stop = subscribeCatalogSearch(() => calls++);
+  const set = () => {};
+  publishCatalogSearch(page, { q: 'nike', placeholder: 'Товар в Nike', set });
+  assert.deepEqual(readCatalogSearch(), { owner: page, q: 'nike', placeholder: 'Товар в Nike', set });
+  publishCatalogSearch(page, { q: 'nike', placeholder: 'Товар в Nike', set });
+  assert.equal(calls, 1, 'the same query is not announced again');
+  publishCatalogSearch(other, null);
+  assert.ok(readCatalogSearch(), 'another page cannot take this page’s search away');
+  publishCatalogSearch(page, null);
+  assert.equal(readCatalogSearch(), null);
+  stop();
+  const view = source('app/catalog-view.tsx'), shell = source('app/marketplace.tsx'), css = source('app/shell.css');
+  assert.match(view, /if \(mode === 'catalog'\) publishCatalogSearch\(searchOwner, \{ q: query\.q, placeholder: headerPlaceholder, set: setSearchText \}\)/);
+  assert.match(view, /setQueryState\(\(prev\) => \(\{ \.\.\.prev, q: q\.slice\(0, 80\), page: 1 \}\)\)/, 'at most 80 characters, back to page 1, as the catalog field');
+  assert.match(view, /className="catalog-search-jump"/);
+  assert.match(shell, /const live=phone\?catalog:null/, 'only phones: wider screens keep the catalog field');
+  assert.match(shell, /if\(live&&!headerSearchLink\(value\)\)live\.set\(value\);/, 'a link being typed is not a search');
+  assert.match(css, /:root \.catalog-page:is\(\[data-mode="catalog"\], \[data-mode="store"\]\) \.catalog-sticky > \.catalog-search \{ display: none; \}/);
+  assert.match(css, /^\.catalog-search-jump, \.shell-search-clear \{ display: none; \}/m, 'desktop and tablets: no jump button');
 });
