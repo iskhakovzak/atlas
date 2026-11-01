@@ -57,6 +57,7 @@ const PAGES = {
   'app/login/page.tsx': [CATALOG, MEMBER],
   'app/stores/page.tsx': [STORES, CARDS],
   'app/order-by-link/page.tsx': [STORES, LINK, CARDS],
+  'app/catalog/p/[id]/page.tsx': [STORES, LINK, CARDS],
   'app/legal/page.tsx': [STORES, MEMBER],
   'app/privacy/page.tsx': [STORES, MEMBER],
   'app/terms/page.tsx': [STORES, MEMBER],
@@ -67,7 +68,7 @@ const PAGES = {
 const LAZY = {
   'app/home-resume.tsx': ['home-resume.css'],
   'app/catalog-teaser.tsx': [CARDS],
-  'app/product-sheet.tsx': [CARDS],
+  'app/product-sheet.tsx': [LINK, CARDS],
 };
 /** Rules that need a width of 481px or more: linked with media, so on phones they do not block the first paint. */
 const DESKTOP = { 'app/layout.tsx': ['layoutDesktopHref', 'layout-desktop.css'] };
@@ -96,7 +97,9 @@ test('lazily loaded parts import their own split CSS', () => {
 // after every other stylesheet (14.10.2026).
 test('the client build gives catalog-cards.css its own chunk, named as on the server', () => {
   const config = source('vite.config.ts');
-  assert.ok(config.includes('groups: [{ name: "catalog-cards", test: /[\\\\/]app[\\\\/]styles[\\\\/]catalog-cards\\.css$/, minSize: 0, priority: 1 }]'));
+  assert.ok(config.includes('{ name: "catalog-cards", test: /[\\\\/]app[\\\\/]styles[\\\\/]catalog-cards\\.css$/, minSize: 0, priority: 1 }'));
+  // The product sheet brings link-pages.css too (the product page is the link page's component), named as on the server.
+  assert.ok(config.includes('{ name: "link-pages", test: /[\\\\/]app[\\\\/]styles[\\\\/]link-pages\\.css$/, minSize: 0, priority: 1 }'));
   assert.deepEqual(Object.entries(LAZY).filter(([, files]) => files.includes(CARDS)).map(([part]) => part).sort(), ['app/catalog-teaser.tsx', 'app/product-sheet.tsx']);
 });
 

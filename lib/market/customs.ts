@@ -9,6 +9,8 @@ import type { CustomsEstimate, Pricing } from './domain.ts';
 // - UP-174 of 27.08.2026, §8: the same 20% / $2 per kg "from 1 January 2027". The dates conflict, so the
 //   estimate says so and the parameters can be overridden in the tariff settings (Pricing.customs*).
 export const customsCheckedOn = '2026-10-04';
+/** The date /customs shows as "checked on" (app/customs-view.tsx, all languages); its WebPage JSON-LD repeats it as dateModified. */
+export const customsPageCheckedOn = '2026-09-11';
 export const courierAllowanceUsd = 200;
 const customsRuleDisputeStart = '2026-09-01';
 const scheduledCourierRateStart = '2027-01-01';

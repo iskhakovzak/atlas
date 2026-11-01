@@ -261,8 +261,10 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
 /* The country picked on a dispatch card, shown among the region chips so it can be cleared there too. */
 .stores-country-chip .flag { width: 18px; height: 12px; }
 .stores-group { margin-top: 22px; }
-.stores-group h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; color: var(--cat-ink); font-size: 16px; letter-spacing: -.01em; }
-.stores-group h3 span { color: var(--cat-muted); font-size: 13px; font-weight: 700; }
+/* The count sits next to the heading, not inside it: the heading text stays the group name for search engines. */
+.stores-group-head { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; }
+.stores-group h3 { margin: 0; color: var(--cat-ink); font-size: 16px; letter-spacing: -.01em; }
+.stores-group-head > span { color: var(--cat-muted); font-size: 13px; font-weight: 700; }
 .stores-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
 /* Tile 2.0: logo (with a mark when the visitor ordered here), name with the catalog count, and a geography line.
    Full height of its grid cell, so tiles in a row stay level when a name wraps to a second line. */

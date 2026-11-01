@@ -16,7 +16,7 @@ import { courierAllowanceUsd } from '@/lib/market/customs';
 import { storeBrands } from '@/lib/market/store-brands';
 import { signalsFor } from '@/lib/market/catalog-signals';
 import { searchWords } from '@/lib/market/catalog-synonyms';
-import { browserStorage, clearRecentProducts, readRecentProducts, rememberRecentProduct, itemParam, pendingFavoriteToSave, takePendingFavorite, withoutItemParam } from '@/lib/market/catalog-links';
+import { browserStorage, clearRecentProducts, readRecentProducts, rememberRecentProduct, itemParam, pendingFavoriteToSave, productPath, takePendingFavorite, withoutItemParam } from '@/lib/market/catalog-links';
 import { toast } from '@/lib/market/toast';
 import { focusSearchKey } from '@/lib/market/shell-search';
 import {
@@ -77,7 +77,25 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
   // "Recently viewed": ids kept on this device, read after hydration so the first render matches the server's.
   const [recentIds, setRecentIds] = useState<string[]>([]);
   useEffect(() => { queueMicrotask(() => setRecentIds(readRecentProducts(browserStorage()))); }, []);
-  const select = (product: Product) => { setSelected(product); setRecentIds(rememberRecentProduct(browserStorage(), product.id)); };
+  // While a product's sheet is open the address is its own page (/catalog/p/[id]), pushed without a request: back closes
+  // the sheet, and a reload or a shared link opens the product page. The filters stay in the catalog entry under it.
+  const pushedItem = useRef(false);
+  const select = (product: Product) => {
+    setSelected(product); setRecentIds(rememberRecentProduct(browserStorage(), product.id));
+    if (!product.sourceUrl || pushedItem.current) return;
+    const language = lang && /^[a-z]{2}(-[a-z]{2,4})?$/i.test(lang) ? lang : undefined;
+    window.history.pushState(window.history.state, '', productPath(product.id, language));
+    pushedItem.current = true;
+  };
+  useEffect(() => {
+    const back = () => { if (!pushedItem.current) return; pushedItem.current = false; setSelected(null); };
+    window.addEventListener('popstate', back);
+    return () => window.removeEventListener('popstate', back);
+  }, []);
+  const closeSelected = () => {
+    setSelected(null);
+    if (pushedItem.current) { pushedItem.current = false; window.history.back(); } else dropItemParam();
+  };
   useEffect(() => { void loadCatalog(); }, [loadCatalog]);
   // The header's search icon led here (app/marketplace.tsx): the search field takes the focus once.
   useEffect(() => {
@@ -287,7 +305,7 @@ export function CatalogView({ mode, initial, lang }: { mode: 'catalog' | 'favori
         <footer>{filterCount > 0 && <button type="button" className="btn secondary" onClick={() => setQuery(clearedQuery(query))}>{cc.reset}</button>}<button type="button" className="btn primary" onClick={() => setFiltersOpen(false)}>{cc.show(list.length)}</button></footer>
       </SheetContent>
     </Sheet>
-    <LazyProductSheet product={selected} onClose={() => { setSelected(null); dropItemParam(); }} />
+    <LazyProductSheet product={selected} onClose={closeSelected} />
   </div></TooltipProvider>;
 }
 

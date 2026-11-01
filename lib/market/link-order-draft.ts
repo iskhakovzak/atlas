@@ -36,7 +36,8 @@ export const maxQuantity = 10;
 const clockSkewMs = 5 * 60_000;
 
 /** 'manual': a store Atlas does not read (manualEntryStoreRoots); the customer types the details and confirms them. */
-export type CheckStatus = 'idle' | 'checking' | 'verified' | 'failed' | 'manual';
+/** `catalog`: an Atlas catalog card shown from its stored data, not asked again on opening; the server checks it with the store on add. */
+export type CheckStatus = 'idle' | 'checking' | 'verified' | 'failed' | 'manual' | 'catalog';
 export type DraftSpeed = 'express' | 'standard';
 export type WeightBasis = 'store' | 'estimate' | 'title' | 'catalog' | 'customer';
 /** Fields Atlas filled from the store: shown locked on the page, as read-only lines. */
@@ -85,7 +86,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const text = (value: unknown, max = 3000, fallback = '') => typeof value === 'string' ? value.slice(0, max) : fallback;
 const finite = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 const positive = (value: unknown) => { const number = finite(value); return number !== undefined && number > 0 ? number : undefined; };
-const statuses: readonly CheckStatus[] = ['idle', 'checking', 'verified', 'failed', 'manual'];
+const statuses: readonly CheckStatus[] = ['idle', 'checking', 'verified', 'failed', 'manual', 'catalog'];
 const bases: readonly WeightBasis[] = ['store', 'estimate', 'title', 'catalog', 'customer'];
 const lockNames = ['name', 'price', 'shipping', 'country', 'category', 'weight'] as const;
 /** A link as the page accepts it (https, a real host), or empty. */

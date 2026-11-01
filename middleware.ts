@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { pageLocaleHeader, supportedLocale } from "@/lib/market/i18n";
+import { isPublicPath } from "@/lib/seo/locales";
+import { SESSION_COOKIE } from "@/lib/auth/core";
 
 /** Old document pages → their section of /account/documents (query kept, e.g. ?recipient=). */
 export const movedDocumentPages: Record<string, string> = { "/identity": "#passports", "/declaration": "#declarations" };
@@ -13,12 +15,40 @@ export function middleware(request: NextRequest) {
   // Passports and declarations live on one page since 1 November 2026; old links and bookmarks keep working.
   const moved = movedDocumentPages[request.nextUrl.pathname];
   if (moved) return NextResponse.redirect(new URL("/account/documents" + request.nextUrl.search + moved, request.nextUrl.origin), 308);
-  const requested = supportedLocale(request.nextUrl.searchParams.get("lang"));
-  if (!requested && !request.headers.has(pageLocaleHeader)) return NextResponse.next();
+  const lang = request.nextUrl.searchParams.get("lang");
+  // `?lang=RU` is the same version spelled differently: one redirect to the lowercase address keeps a single canonical
+  // (it used to render in Uzbek with the x-default canonical; SEO verification, 1 November 2026).
+  if (lang && !supportedLocale(lang) && supportedLocale(lang.toLowerCase())) {
+    const url = request.nextUrl.clone();
+    url.searchParams.set("lang", lang.toLowerCase());
+    return NextResponse.redirect(url, 308);
+  }
+  const requested = supportedLocale(lang);
+  if (!requested && !request.headers.has(pageLocaleHeader)) return publicCache(request, xDefault(NextResponse.next()));
   const headers = new Headers(request.headers);
   headers.delete(pageLocaleHeader);
-  if (requested) headers.set(pageLocaleHeader, requested);
-  return NextResponse.next({ request: { headers } });
+  if (!requested) return publicCache(request, xDefault(NextResponse.next({ request: { headers } })));
+  headers.set(pageLocaleHeader, requested);
+  return publicCache(request, NextResponse.next({ request: { headers } }));
+}
+
+// Without `?lang` a page follows the saved choice (cookie) and the browser language: caches and crawlers are told the
+// response depends on both, so one visitor's language is never served to another (SEO audit, 1 November 2026).
+function xDefault(response: NextResponse) {
+  response.headers.append("Vary", "Accept-Language, Cookie");
+  return response;
+}
+
+// Vinext marks every dynamic page `no-store`, which also keeps it out of the back/forward cache. A public page opened
+// without a session is the same for every guest, so it may be stored but is checked with the server on every use
+// (max-age=0, must-revalidate). Signed-in requests and private pages keep `no-store`. Middleware owns Cache-Control
+// in vinext (server/middleware-response-headers.js), so this replaces the page default.
+function publicCache(request: NextRequest, response: NextResponse) {
+  if (!isPublicPath(request.nextUrl.pathname) || request.cookies.has(SESSION_COOKIE)) return response;
+  response.headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+  // A session cookie changes the header shape (app/layout.tsx), so a stored guest copy is never reused for it.
+  if (!/\bcookie\b/i.test(response.headers.get("Vary") ?? "")) response.headers.append("Vary", "Cookie");
+  return response;
 }
 
 // Pages only: API routes, build assets and public files (anything with an extension) skip it.
