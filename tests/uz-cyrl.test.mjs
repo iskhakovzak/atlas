@@ -11,6 +11,13 @@ test('Uzbek letters map to Cyrillic', () => {
   assert.equal(toCyrillic('Elektron'), 'Электрон');
 });
 
+test('brands keep Latin, their Uzbek suffix and the words around them do not', () => {
+  assert.equal(toCyrillic('Biz cookie-fayllardan foydalanamiz'), 'Биз cookie-файллардан фойдаланамиз');
+  assert.equal(toCyrillic('eBay’dagi rasmiy adidas do‘koni'), 'eBay’даги расмий adidas дўкони');
+  assert.equal(toCyrillic('iHerb’dan, Atlasda'), 'iHerb’дан, Atlasда');
+  assert.equal(toCyrillic('eBay va iHerb'), 'eBay ва iHerb');
+});
+
 test('loanwords keep the soft sign and hard forms', () => {
   assert.equal(toCyrillic('Profil, profilda'), 'Профиль, профильда');
   assert.equal(toCyrillic('Sentabr, 1-sentabrdagi'), 'Сентябрь, 1-сентябрьдаги');

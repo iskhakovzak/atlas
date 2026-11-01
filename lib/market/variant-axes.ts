@@ -183,15 +183,15 @@ export function withOptionAxes<T extends AxisVariant>(items: T[]): T[] {
 }
 
 const axisNames: Record<string, [string, string, string]> = {
-  'color': ['Цвет', 'Rang', 'Color'], 'colour': ['Цвет', 'Rang', 'Colour'], 'main color': ['Цвет', 'Rang', 'Color'],
+  'color': ['Цвет', 'Rang', 'Color'], 'colour': ['Цвет', 'Rang', 'Colour'], 'main color': ['Цвет', 'Rang', 'Color'], 'exterior color': ['Цвет', 'Rang', 'Color'],
   'цвет': ['Цвет', 'Rang', 'Color'], 'shade': ['Оттенок', 'Tus', 'Shade'],
   'size type': ['Тип размера', 'O‘lcham turi', 'Size type'], 'size range': ['Тип размера', 'O‘lcham turi', 'Size type'],
   'size': ['Размер', 'O‘lcham', 'Size'], 'размер': ['Размер', 'O‘lcham', 'Size'],
-  'us shoe size': ['Размер US', 'US o‘lcham', 'US size'], 'size us': ['Размер US', 'US o‘lcham', 'US size'], 'us': ['Размер US', 'US o‘lcham', 'US size'],
+  'us shoe size': ['Размер US', 'US o‘lcham', 'US size'], 'size us': ['Размер US', 'US o‘lcham', 'US size'], 'us': ['Размер US', 'US o‘lcham', 'US size'], 'us size': ['Размер US', 'US o‘lcham', 'US size'],
   'shoe size': ['Размер обуви', 'Poyabzal o‘lchami', 'Shoe size'],
   'style': ['Стиль', 'Uslub', 'Style'], 'material': ['Материал', 'Material', 'Material'],
   'width': ['Ширина', 'Kenglik', 'Width'], 'shoe width': ['Ширина', 'Kenglik', 'Width'],
-  'length': ['Длина', 'Uzunlik', 'Length'], 'inseam': ['Длина по шаговому шву', 'Ichki chok uzunligi', 'Inseam'],
+  'length': ['Длина', 'Uzunlik', 'Length'], 'skirt length': ['Длина', 'Uzunlik', 'Length'], 'inseam': ['Длина по шаговому шву', 'Ichki chok uzunligi', 'Inseam'],
   'waist': ['Талия', 'Bel', 'Waist'], 'waist size': ['Талия', 'Bel', 'Waist'],
   'fit': ['Посадка', 'Bichim', 'Fit'],
   'pack': ['В упаковке', 'Qadoqda', 'Pack'], 'pack size': ['В упаковке', 'Qadoqda', 'Pack'], 'count': ['Количество', 'Soni', 'Count'],

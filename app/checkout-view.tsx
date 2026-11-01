@@ -27,7 +27,7 @@ import { Money } from "./money";
 import { UzPhoneInput } from "./phone-input";
 import { CheckoutSignIn } from "./checkout-signin";
 import { shownVariant } from "./checkout-review";
-import { LazyProductSheet } from "./product-sheet-lazy";
+import { LazyProductSheet, preloadProductSheet } from "./product-sheet-lazy";
 import { catalogUrlKey } from "@/lib/market/catalog-query";
 import { useGuestCart, useGuestMerging } from "./use-guest-cart";
 
@@ -72,6 +72,8 @@ function Block({ index, title, done, locked, lockedText, aside, children, id }: 
 export function CheckoutView() {
   const { status, ready, state, act, pricing, user, refresh, lastActionError, catalogProducts, catalogReady, loadCatalog } = useMarket();
   const [sheetProduct, setSheetProduct] = useState<Product | null>(null);
+  // The tapped line's option: the sheet opens with it chosen.
+  const [sheetVariant, setSheetVariant] = useState<string | undefined>();
   const [opening, setOpening] = useState("");
   // The catalog arrived after a tap: open what was tapped, or its link page when it is not in the catalog.
   useEffect(() => {
@@ -285,6 +287,7 @@ export function CheckoutView() {
   function openItem(item: CartItem) {
     const url = item.product.sourceUrl;
     if (!url) return;
+    setSheetVariant(item.variant);
     const match = catalogProducts.find((product) => product.sourceUrl && catalogUrlKey(product.sourceUrl) === catalogUrlKey(url));
     if (match) { setSheetProduct(match); return; }
     if (catalogReady) { window.location.assign(`/order-by-link?url=${encodeURIComponent(url)}`); return; }
@@ -422,7 +425,7 @@ export function CheckoutView() {
         <h2 id="co-sum-title">{t.checkout.sum.title}</h2>
         {/* Each item opens its product in the sheet (the catalog card behind it), or its link page (2 November 2026). */}
         <ul className="co-items">{shownLines.map((item) => <li key={item.id}>
-          <button type="button" className="co-item-open" onClick={() => openItem(item)} aria-label={item.product.name}>
+          <button type="button" className="co-item-open" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet} onClick={() => openItem(item)} aria-label={item.product.name}>
             <span className="co-item-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span>
             <span className="co-item-text"><b>{item.product.name}</b><small>{[shownVariant(item.variant, item.product.sourceOptions), item.quantity > 1 ? `× ${item.quantity}` : ""].filter(Boolean).join(" · ")}</small></span>
           </button>
@@ -478,7 +481,7 @@ export function CheckoutView() {
         {payButton(true)}
       </div>
     </div>
-    <LazyProductSheet product={sheetProduct} onClose={() => setSheetProduct(null)} />
+    <LazyProductSheet product={sheetProduct} variant={sheetVariant} onClose={() => setSheetProduct(null)} />
   </div>;
 }
 

@@ -637,5 +637,14 @@ html[data-theme="dark"] .store-link .store-link-field > input:not([type="checkbo
 .pcard-usd > .card-chip { align-self: center; }
 
 /* The shared-parcel saving reads as good news: mint chip-like note (owner, 2 November 2026). */
-.pcard-note { position: relative; z-index: 2; display: inline-flex; align-self: flex-start; align-items: center; gap: 2px; max-width: 100%; padding: 2px 4px 2px 8px; border-radius: var(--r-pill); background-color: var(--c-ok-bg); color: var(--c-ok); font-size: 11px; font-weight: var(--fw-bold); line-height: 18px; white-space: nowrap; }
-.pcard-note > span { overflow: hidden; text-overflow: ellipsis; }
+/* Owner, 3 November 2026: «Одной посылкой дешевле на 114 тыс.» as a compact mint block (not a pill) across the card's
+   content width, so its right edge lines up with the price; evenly left-aligned lines, the sum in bold. The small «?»
+   floats at the right of the first line (its 32 px tap area comes from ::before, no circle around it), so the second
+   line runs under it: on a 360 px phone the Russian text then still fits in two lines. */
+.pcard-note { position: relative; z-index: 2; display: block; align-self: stretch; padding: 6px 8px; border-radius: 10px; background-color: var(--c-ok-bg); color: var(--c-ok); font-size: 12px; font-weight: var(--fw-semibold); line-height: 16px; letter-spacing: -.005em; text-align: left; overflow-wrap: anywhere; }
+.pcard-note b { font-weight: var(--fw-bold); white-space: nowrap; }
+.pcard-note .info-tip { float: right; width: 16px; height: 16px; margin: 0 0 0 4px; border-radius: 0; color: var(--c-ok); opacity: .7; }
+.pcard-note .info-tip::before { inset: -8px; }
+.pcard-note .info-tip svg { width: 16px; height: 16px; }
+.pcard-note .info-tip[data-state="open"] { background: transparent; color: var(--c-ok); opacity: 1; }
+@media (hover: hover) { .pcard-note .info-tip:hover { background: transparent; color: var(--c-ok); opacity: 1; } }

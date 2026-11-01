@@ -12,7 +12,7 @@ const keepLatin = new Set([
   "telegram", "google", "apple", "android", "ios", "iphone", "ipad", "safari", "chrome", "firefox", "gmail", "whatsapp",
   "instagram", "facebook", "youtube", "tiktok", "click", "payme", "uzcard", "humo", "visa", "mastercard", "paypal",
   "email", "e-mail", "dhl", "fedex", "ups", "usps", "cdek", "express", "id", "pdf", "csv", "sms", "ok",
-  "app", "store", "play", "uz", "ru", "en", "latn", "cyrl",
+  "app", "store", "play", "uz", "ru", "en", "latn", "cyrl", "cookie", "cookies",
 ]);
 
 /** Brands that take Uzbek suffixes (Atlasda, Telegramga): the brand stays Latin, the suffix turns Cyrillic (Atlasда). */
@@ -143,7 +143,8 @@ export function toCyrillic(text: string): string {
     let back = tail;
     if (tail && /[oOgG]$/.test(core) && turned.has(tail[0])) { core += tail[0]; back = tail.slice(1); }
     if (!core) return match;
-    const parts = core.split("-").map(part => (part && !keep(part) ? branded(part) ?? word(part) : part));
+    // A brand with an Uzbek suffix first (eBay’dagi → eBay’даги), even when the brand alone would be kept as written.
+    const parts = core.split("-").map(part => (part ? branded(part) ?? (keep(part) ? part : word(part)) : part));
     return lead + parts.join("-") + back;
   });
 }

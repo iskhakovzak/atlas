@@ -90,6 +90,9 @@ test('a sparse size-type list keeps the size, not the size type it implies', () 
 test('axis names in the page language; unknown names stay as the store wrote them', () => {
   assert.deepEqual(axisLabel('Size Type'), ['Тип размера', 'O‘lcham turi', 'Size type']);
   assert.deepEqual(axisLabel('Colour'), ['Цвет', 'Rang', 'Colour']);
+  // Names the live eBay catalog uses on its axes (1 November 2026).
+  assert.deepEqual(axisLabel('US Size'), ['Размер US', 'US o‘lcham', 'US size']);
+  assert.deepEqual(axisLabel('Exterior Color'), ['Цвет', 'Rang', 'Color']);
   assert.equal(axisLabel('Inseam')[0], 'Длина по шаговому шву');
   assert.deepEqual(axisLabel('Heel Height'), ['Heel Height', 'Heel Height', 'Heel Height']);
 });

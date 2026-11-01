@@ -61,6 +61,9 @@ const reducedMotion = () => { try { return window.matchMedia("(prefers-reduced-m
  * the current privacy policy and terms (state.consents), the card says so and either choice records them — never
  * automatically from a device flag, which may belong to someone else. Not shown on /login; nothing is blocked while open.
  */
+/** What the card never covers on a phone: the bottom bar (with its raised centre button) and the pinned bars above it. */
+const keepClearOf = ".mobile-nav, .mobile-nav a, .mobile-nav a > *, .co-paybar, .basket-sticky:not(.is-hidden), main[data-view=\"link\"] .lo-sticky";
+
 export function StorageNotice({ choice, known }: { choice: CookieChoice | null; known: boolean }) {
   const { state, ready, act } = useMarket();
   const pathname = usePathname() ?? "";
@@ -97,6 +100,32 @@ export function StorageNotice({ choice, known }: { choice: CookieChoice | null; 
   }, [choice]);
 
   useEffect(() => () => window.clearTimeout(leaveTimer.current), []);
+
+  // Phones: the stylesheet places the card above the bottom bar and the pinned pay/cart/product bars by their usual
+  // heights; a bar that grew (a two-line button in Uzbek, a 360 px screen) would still reach under it. While the card is
+  // up it is lifted, when needed, to 12 px above the highest of those bars as measured.
+  useEffect(() => {
+    if (phase === "hidden") return;
+    const place = () => {
+      const element = card.current;
+      if (!element) return;
+      element.style.removeProperty("bottom");
+      if (!window.matchMedia("(max-width: 760px)").matches) return;
+      const height = window.innerHeight;
+      let top = height;
+      for (const bar of document.querySelectorAll<HTMLElement>(keepClearOf)) {
+        const box = bar.getBoundingClientRect();
+        if (!box.height || box.top < height * 0.4 || getComputedStyle(bar).visibility === "hidden") continue;
+        top = Math.min(top, box.top);
+      }
+      const needed = Math.ceil(height - top + 12), current = parseFloat(getComputedStyle(element).bottom) || 0;
+      if (needed > current) element.style.bottom = `${needed}px`;
+    };
+    place();
+    const timer = window.setInterval(place, 400);
+    window.addEventListener("resize", place);
+    return () => { window.clearInterval(timer); window.removeEventListener("resize", place); };
+  }, [phase]);
 
   if (phase === "hidden" || (onLogin && phase === "shown" && !settings)) return null;
   const c = copy[state.communication.language];

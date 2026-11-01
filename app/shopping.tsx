@@ -8,7 +8,7 @@ import { useMarket } from "@/lib/market/store";
 import { cartDeliverySpeed, checkoutLines, customsHelpChosen, inCheckout, maxLineQuantity, parcelServiceUnits, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, withCustomsHelpFor, type CartItem, type DeliverySpeed, type Product } from "@/lib/market/domain";
 import { guaranteeAmount, parcelRoomKg, parcelStoreHost, reorderCandidates, uninsuredParcelLimit } from "@/lib/market/cart-parcel";
 import { orderGroupCopy } from "@/lib/market/order-groups";
-import { LazyProductSheet } from "./product-sheet-lazy";
+import { LazyProductSheet, preloadProductSheet } from "./product-sheet-lazy";
 import { loadChunk } from "@/lib/market/stale-build";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, fasterText } from "@/lib/market/delivery-speed";
 import { countryName } from "@/lib/market/world";
@@ -137,6 +137,9 @@ export function CartView() {
   const needsCatalog = ready && (!state.cart.length || state.favorites.length > 0 || state.cart.some((line) => line.product.sourceUrl));
   // The product opened from a row of catalog cards under the cart (CartPicks).
   const [picked, setPicked] = useState<Product | null>(null);
+  // The option of the cart line the sheet was opened from: it opens already chosen (a suggested card opens without one).
+  const [pickedVariant, setPickedVariant] = useState<string | undefined>();
+  const pickCard = (product: Product) => { setPickedVariant(undefined); setPicked(product); };
   // Stores the catalog has more of (by host, products not already in the cart): a parcel from one links to the catalog filtered by it.
   const catalogHosts = useMemo(() => new Set(catalogProducts.flatMap((product) => product.sourceUrl && !state.cart.some((line) => sameCatalogProduct(line.product, product)) ? [storeHost(product)] : [])), [catalogProducts, state.cart]);
   // Saved products not already in the cart, shown under it: the customer's own choice, not a recommendation.
@@ -344,7 +347,7 @@ export function CartView() {
   /** The catalog card behind a line opens in the product sheet; a line ordered by link opens its link page. */
   function openLine(item: CartItem) {
     const match = catalogMatch(item);
-    if (match) { setPicked(match); return; }
+    if (match) { setPickedVariant(item.variant); setPicked(match); return; }
     if (item.product.sourceUrl) window.location.assign(`/order-by-link?url=${encodeURIComponent(item.product.sourceUrl)}`);
   }
   const lineName = (item: CartItem) => [item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
@@ -356,7 +359,7 @@ export function CartView() {
   function renderItem(item: CartItem) {
     const meta = shownVariant(item.variant, item.product.sourceOptions);
     const issue = item.sourceIssue, stock = lowStock(item);
-    return <article className={"basket-item cl" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
+    return <article className={"basket-item cl" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id} onPointerEnter={catalogMatch(item) ? preloadProductSheet : undefined} onFocus={catalogMatch(item) ? preloadProductSheet : undefined}>
       {selectBox([item], s.selectLine(lineName(item)))}
       <button type="button" className="cl-photo" aria-label={item.product.name} onClick={() => openLine(item)}><ProductImage product={item.product} locale={locale} decorative size={160} /></button>
       <div className="cl-text">
@@ -565,9 +568,9 @@ export function CartView() {
         </li>)}</ul>
       </section>}
       {/* The catalog's picks, in the storefront's order; a card opens the product sheet. */}
-      {catalogReady && catalogProducts.length >= 4 && <Suspense fallback={null}><CartPicks products={catalogProducts} onSelect={setPicked} /></Suspense>}
+      {catalogReady && catalogProducts.length >= 4 && <Suspense fallback={null}><CartPicks products={catalogProducts} onSelect={pickCard} /></Suspense>}
     </>}
-    <LazyProductSheet product={picked} onClose={() => setPicked(null)} />
+    <LazyProductSheet product={picked} variant={pickedVariant} onClose={() => setPicked(null)} />
   </div>;
 
   return <div className="basket-page has-sticky">
@@ -630,8 +633,8 @@ export function CartView() {
     </div>
 
     {/* Saved products not in the cart (14.10.2026), under both columns: they open the product sheet, where they are added as anywhere. */}
-    {savedPicks.length > 0 && <Suspense fallback={null}><CartPicks title={kc.saved} link={{ href: "/favorites", label: kc.open }} products={savedPicks} limit={4} onSelect={setPicked} /></Suspense>}
-    <LazyProductSheet product={picked} onClose={() => setPicked(null)} />
+    {savedPicks.length > 0 && <Suspense fallback={null}><CartPicks title={kc.saved} link={{ href: "/favorites", label: kc.open }} products={savedPicks} limit={4} onSelect={pickCard} /></Suspense>}
+    <LazyProductSheet product={picked} variant={pickedVariant} onClose={() => setPicked(null)} />
 
     <div className={"basket-sticky" + (summaryCtaInView ? " is-hidden" : "")} role="region" aria-label={c.sticky.label} aria-hidden={summaryCtaInView || undefined}>
       <div><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>
