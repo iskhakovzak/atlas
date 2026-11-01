@@ -212,7 +212,8 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
   .basket-sticky > div { flex: none; }
   .basket-sticky strong { font-size: 16px; }
   .basket-sticky .btn { flex-shrink: 1; min-width: 0; padding-inline: 14px; white-space: normal; line-height: 1.15; text-align: center; }
-  .basket-sticky .btn > svg { display: none; }
+  /* The cart's «Оформить» drops its arrow; the product bar has none at any width, and keeps its spinner. */
+  .basket-sticky:not(.pd-bar) .btn > svg { display: none; }
 }
 
 /* Checkout dialog additions. */
@@ -697,12 +698,11 @@ html[data-theme="dark"] .lo-cart-entry b { background: #9fdeb8; color: #10241a; 
 @media (max-width: 420px) {
   .lo-cta-row .lo-cart-entry span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
-/* Phones up to 430 px (most of them): the total must stay whole, so the cart becomes an icon with a corner badge and
-   the add button drops its arrow; at 390 px the sum otherwise touched the button (owner, 12 October 2026). */
+/* Phones up to 430 px (most of them): the total must stay whole, so the cart becomes an icon with a corner badge (owner,
+   12 October 2026); the bar's button has no arrow on any width (owner, 2 November 2026). */
 @media (max-width: 430px) {
   .lo-sticky:has(.lo-cart-entry) { gap: 8px; }
   .lo-sticky:has(.lo-cart-entry) .btn { margin-left: auto; padding-inline: 14px; }
-  .lo-sticky:has(.lo-cart-entry) .btn > svg:last-child { display: none; }
   /* The busy button kept its long label and spinner and slid over the sum (owner, 30 October 2026): the sum never
      shrinks, the button takes what is left and clips, its busy label is one word. */
   .lo-sticky > div { flex: 0 0 auto; }
@@ -1363,7 +1363,7 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 .pd-bar > div > strong { color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-bold); white-space: nowrap; font-feature-settings: var(--tnum); }
 .pd-bar-sheet { position: sticky; bottom: 0; z-index: 4; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin: var(--space-4) calc(var(--pd-sheet-pad, 16px) * -1) 0; padding: var(--space-3) var(--pd-sheet-pad, 16px) calc(var(--space-3) + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background-color: var(--surface); box-shadow: var(--shadow-up); }
 .pd-bar-sheet .btn { flex: 0 1 auto; min-width: 0; min-height: var(--h-md); padding-inline: var(--space-6); }
-@media (max-width: 380px) { .pd-bar-sheet .btn { padding-inline: var(--space-4); } .pd-bar-sheet .btn > svg:last-child { display: none; } }
+@media (max-width: 380px) { .pd-bar-sheet .btn { padding-inline: var(--space-4); } }
 /* The product page on a phone: the form ends above the bar and the bottom menu. */
 @media (max-width: 760px) {
   body:has(.mobile-nav) main.site-main:has(.pd-page .lo-sticky) { padding-bottom: calc(var(--atlas-mobile-nav-clearance) + 96px); }
