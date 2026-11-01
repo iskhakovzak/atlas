@@ -37,9 +37,9 @@ const CartPicks = lazy(() => loadChunk(() => import("./cart-picks")).then((modul
 
 /** Favourites and removal in the cart: saving keeps the line; "save for later" saves and then removes it. */
 const keepCopy = /*@__PURE__*/withCyrillic({
-  ru: { save: "В избранное", saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removed: (name: string) => `Удалено из корзины: ${name}`, undo: "Вернуть", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
-  uz: { save: "Saqlanganlarga", saved: "Saqlanganlarda", later: "Qoldirish", laterLabel: "Saqlanganlarga qoldirish", laterDone: "Saqlanganlarga qoldirildi", open: "Saqlanganlarni ochish", removed: (name: string) => `Savatdan olib tashlandi: ${name}`, undo: "Qaytarish", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
-  en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removed: (name: string) => `Removed from cart: ${name}`, undo: "Undo", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
+  ru: { save: "В избранное", saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removed: (name: string) => `Удалено из корзины: ${name}`, undo: "Вернуть", note: "Комментарий к заказу", noteShort: "Комментарий", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
+  uz: { save: "Saqlanganlarga", saved: "Saqlanganlarda", later: "Qoldirish", laterLabel: "Saqlanganlarga qoldirish", laterDone: "Saqlanganlarga qoldirildi", open: "Saqlanganlarni ochish", removed: (name: string) => `Savatdan olib tashlandi: ${name}`, undo: "Qaytarish", note: "Buyurtmaga izoh", noteShort: "Izoh", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
+  en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removed: (name: string) => `Removed from cart: ${name}`, undo: "Undo", note: "Order comment", noteShort: "Comment", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
 });
 import { useStickyFit } from "./sticky-fit";
 import { productGroups, shownVariant, storeName } from "./checkout-review";
@@ -92,16 +92,19 @@ function QuantityControl({ item, c, save, pending }: { item: CartItem; c: CartCo
   </div>;
 }
 
-/** The customer's note on a cart line (or on all options of one product): shown when set, edited in place, saved on blur; never sent to the store. */
-function ItemNote({ id, note, locale, save }: { id: string; note: string; locale: Locale; save: (note: string) => Promise<boolean> }) {
+/** The customer's note on a cart line (or on all options of one product): never sent to the store. Closed, it is a small
+ *  "Comment" button in the line's text (no row of its own, 1 November 2026); open or set, the field spans the line under it. */
+function NoteToggle({ id, label, short, onOpen }: { id: string; label: string; short: string; onOpen: () => void }) {
+  return <button type="button" className="cl-note-toggle" aria-expanded={false} aria-controls={`note-${id}`} aria-label={label} title={label} onClick={onOpen}><MessageSquare size={14} aria-hidden="true" /><span>{short}</span></button>;
+}
+/** The note's field, saved on blur; emptied, it closes again. `focus` puts the cursor in it when it was just opened. */
+function NoteField({ id, note, locale, focus, save, onClose }: { id: string; note: string; locale: Locale; focus: boolean; save: (note: string) => Promise<boolean>; onClose: () => void }) {
   const k = calcCopy[locale];
-  const [open, setOpen] = useState(Boolean(note));
   const [text, setText] = useState(note);
-  if (!open) return <button type="button" className="basket-note-add" onClick={() => setOpen(true)}><MessageSquare size={16} aria-hidden="true" />{k.blocks.comment}</button>;
-  return <div className="basket-note">
+  return <div className="basket-note cl-note">
     <label htmlFor={`note-${id}`}>{k.blocks.comment}<small> · {k.commentHint}</small></label>
-    <textarea id={`note-${id}`} rows={2} maxLength={500} value={text} placeholder={k.commentPlaceholder} onChange={(event) => setText(event.target.value)}
-      onBlur={() => { if (text.trim() !== note) void save(text); if (!text.trim()) setOpen(false); }} />
+    <textarea id={`note-${id}`} rows={2} maxLength={500} value={text} autoFocus={focus} placeholder={k.commentPlaceholder} onChange={(event) => setText(event.target.value)}
+      onBlur={() => { if (text.trim() !== note) void save(text); if (!text.trim()) onClose(); }} />
   </div>;
 }
 
@@ -163,6 +166,8 @@ export function CartView() {
   const setDrafts = (next: typeof serviceDrafts) => { serviceDraftsRef.current = next; setServiceDrafts(next); };
   // Checkboxes shown at once while the server reprices the lines left for later (line id -> ticked).
   const [selectDrafts, setSelectDrafts] = useState<Record<string, boolean>>({});
+  // Comment fields opened from a line's "Comment" button (line id -> open); a line with a note always shows its field.
+  const [openNotes, setOpenNotes] = useState<Record<string, boolean>>({});
   const [verifying, setVerifying] = useState(false);
   const [summaryCta, setSummaryCta] = useState<HTMLButtonElement | null>(null);
   const [customsRecipient, setCustomsRecipient] = useState("");
@@ -208,6 +213,8 @@ export function CartView() {
   const count = lines.reduce((sum, item) => sum + item.quantity, 0);
   const allCount = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   const laterCount = allCount - count;
+  // Units ticked on screen (drafts included), for "N of M selected" beside "select all".
+  const selectedUnits = state.cart.filter(ticked).reduce((sum, item) => sum + item.quantity, 0);
   // Customs: the allowance is per recipient and calendar month; the customer picks whose it is.
   const primaryProfile = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
   const customsProfile = state.deliveryProfiles.find(profile => profile.id === customsRecipient) ?? primaryProfile;
@@ -353,43 +360,66 @@ export function CartView() {
   }
   const lineName = (item: CartItem) => [item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
 
+  /** The store price as the shop shows it (× quantity), linked to the store page when there is one. */
+  const storeLine = (item: CartItem) => {
+    const text = `${storePrice(item, locale)}${item.quantity > 1 ? ` × ${item.quantity}` : ""}`;
+    return item.product.sourceUrl
+      ? <a href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{text}<ArrowUpRight size={12} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a>
+      : text;
+  };
+  const quantity = (item: CartItem) => <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(next) => act({ type: "cart-quantity", id: item.id, quantity: next }, { queue: true })} />;
+  const notes = (item: CartItem) => {
+    const stock = lowStock(item);
+    return (item.priceChange || item.sourceIssue || stock) ? <div className="cl-notes">{itemNotes(item)}{stock && <p className="cl-stock">{stock}</p>}</div> : null;
+  };
+  const noteShown = (item: CartItem) => Boolean(item.note) || Boolean(openNotes[item.id]);
+
   /**
-   * One cart line on an even grid (2 November 2026): [tick] [photo 64] [name 15/600 in two lines · the option 13 grey in
-   * one · the store price 13 grey] [the sum 16/700], then the notes, and a bottom row with the quantity and remove.
+   * One cart line (1 November 2026, owner: "скомпонуй как в каталоге … лишнего пространства нет"). Wide: one row —
+   * [tick] [photo 72] [name, one line · option · store price ↗ · Comment] [quantity] [sum] [♡ ⌑ 🗑]. Narrow (phones, a
+   * narrow column): the sum beside the name and the quantity with the icons in a row under the text. Notes and an open
+   * comment span the text column under it.
    */
   function renderItem(item: CartItem) {
     const meta = shownVariant(item.variant, item.product.sourceOptions);
-    const issue = item.sourceIssue, stock = lowStock(item);
+    const issue = item.sourceIssue;
     return <article className={"basket-item cl" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id} onPointerEnter={catalogMatch(item) ? preloadProductSheet : undefined} onFocus={catalogMatch(item) ? preloadProductSheet : undefined}>
       {selectBox([item], s.selectLine(lineName(item)))}
       <button type="button" className="cl-photo" aria-label={item.product.name} onClick={() => openLine(item)}><ProductImage product={item.product} locale={locale} decorative size={160} /></button>
       <div className="cl-text">
         <h3 className="cl-title"><button type="button" onClick={() => openLine(item)}><span>{withoutDepartment(item.product.name, item.product.brand)}</span></button></h3>
         {meta && <p className="cl-option">{meta}</p>}
-        <p className="cl-store">{item.product.sourceUrl ? <a href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}<ArrowUpRight size={12} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</>}</p>
-        {!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
+        <div className="cl-sub"><p className="cl-store">{storeLine(item)}</p>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}{noteToggle(item)}</div>
       </div>
+      <div className="cl-qty">{quantity(item)}</div>
       <strong className="cl-sum">{formatSum(lineTotal(item), locale)}</strong>
-      {(item.priceChange || item.sourceIssue || stock) && <div className="cl-notes">{itemNotes(item)}{stock && <p className="cl-stock">{stock}</p>}</div>}
       <div className="cl-actions">
-        <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity }, { queue: true })} />
         {keepActions([item])}
         <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} instant onConfirm={() => removeWithUndo([item.id], item.product.name)} />
       </div>
+      {notes(item)}
       {renderNote(item)}
     </article>;
   }
 
+  /** "Comment" in the line's text while the line has no note and its field is closed. */
+  function noteToggle(item: CartItem) {
+    if (noteShown(item)) return null;
+    return <NoteToggle id={item.id} label={kc.note} short={kc.noteShort} onOpen={() => setOpenNotes((open) => ({ ...open, [item.id]: true }))} />;
+  }
   /** The customer's note on one option (owner, 7.10.2026: each size keeps its own note; nothing is merged). */
   function renderNote(item: CartItem) {
+    if (!noteShown(item)) return null;
     const note = item.note ?? "";
-    return <ItemNote key={`${item.id}:${note}`} id={item.id} note={note} locale={locale} save={(text) => act({ type: "cart-note", id: item.id, note: text }, { queue: true })} />;
+    return <NoteField key={`${item.id}:${note}`} id={item.id} note={note} locale={locale} focus={!note && Boolean(openNotes[item.id])}
+      save={(text) => act({ type: "cart-note", id: item.id, note: text }, { queue: true })}
+      onClose={() => setOpenNotes((open) => { const rest = { ...open }; delete rest[item.id]; return rest; })} />;
   }
 
   /**
-   * Options of one product: the product once (tick for all, photo, name, store, total, favourites, "remove all"), then
-   * one compact row per option (tick, option, quantity, sum, remove) with that option's own note. Warehouse services
-   * are chosen for the whole store parcel below.
+   * Options of one product: the product once (tick for all, photo, name, colour, "for N pcs", total, favourites, "remove
+   * all"), then one row per option on the same columns (tick, option with its store price and comment, quantity, sum,
+   * remove). Warehouse services are chosen for the whole store parcel below.
    */
   function renderGroup(lines: CartItem[]) {
     const lead = lines[0], ids = lines.map((line) => line.id);
@@ -411,20 +441,20 @@ export function CartView() {
         </div>
       </article>
       <ul className="basket-variants cl-variants" aria-label={kc.variants}>{lines.map((item) => {
-        const issue = item.sourceIssue, stock = lowStock(item);
+        const issue = item.sourceIssue;
         const name = shownVariant(item.variant, item.product.sourceOptions) || readableNikeSizeLabel(cartColourOptions(item.product)?.label ?? "") || item.variant;
         return <li className={"cl-variant" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
           {selectBox([item], s.selectLine(lineName(item)))}
           <div className="cl-text">
-            <b className="cl-variant-name">{name}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
-            <p className="cl-store">{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</p>
+            <b className="cl-variant-name">{name}</b>
+            <div className="cl-sub"><p className="cl-store">{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</p>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}{noteToggle(item)}</div>
           </div>
+          <div className="cl-qty">{quantity(item)}</div>
           <strong className="cl-sum">{formatSum(lineTotal(item), locale)}</strong>
-          {(item.priceChange || item.sourceIssue || stock) && <div className="cl-notes">{itemNotes(item)}{stock && <p className="cl-stock">{stock}</p>}</div>}
           <div className="cl-actions">
-            <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity }, { queue: true })} />
             <SafeDeleteButton label={kc.removeVariant} itemName={lineName(item)} locale={locale} instant onConfirm={() => removeWithUndo([item.id], lineName(item))} />
           </div>
+          {notes(item)}
           {renderNote(item)}
         </li>;
       })}</ul>
@@ -575,15 +605,18 @@ export function CartView() {
   </div>;
 
   return <div className="basket-page has-sticky">
-    <header className="basket-head"><h1>{c.title}</h1><p>{itemCount(allCount, locale)} · {parcelCount(parcels.length, locale)}</p></header>
+    {/* The title row of the list column (1 November 2026): what is in the cart on the left, "select all" on the right,
+        instead of a card of its own; "N of M selected" shows only while some lines wait for later. */}
+    <header className="basket-head cl-head"><h1>{c.title}</h1><p>{itemCount(allCount, locale)} · {parcelCount(parcels.length, locale)}</p>
+      {state.cart.length > 1 && <div className="basket-select-all">
+        <small aria-live="polite" className={selecting || selectedUnits < allCount ? undefined : "sr-only"}>{selecting ? s.saving : s.selectedOf(selectedUnits, allCount)}</small>
+        <label>{selectBox(state.cart, s.selectAll)}{s.selectAll}</label>
+      </div>}
+    </header>
     <div className="basket-layout">
       <div className="basket-parcels">
         {merging && <p className="basket-loading" role="status"><Loader2 size={18} className="spin" aria-hidden="true" /> {checkoutCopy[locale].merge.moving}</p>}
         <GuestProblems lines={guestProblems} locale={locale} onDismiss={(key) => guestCart.remove([key])} />
-        {state.cart.length > 1 && <div className="basket-select-bar">
-          <label>{selectBox(state.cart, s.selectAll)}{s.selectAll}</label>
-          <small aria-live="polite">{selecting ? s.saving : s.selectedOf(state.cart.filter(ticked).reduce((sum, item) => sum + item.quantity, 0), allCount)}</small>
-        </div>}
         {parcels.map(parcel => {
           const reserve = reserves.find(entry => parcel.items.some(item => entry.itemIds.includes(item.id)));
           const reserveShown = Boolean(reserve && reserve.reserveUsd > 0);

@@ -4,9 +4,6 @@
  */
 
 /* ---------- cart: selection ---------- */
-.basket-select-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; padding: 10px 14px; border-radius: var(--r-control); background: var(--day-surface, #fff); border: 1px solid var(--day-line, var(--c-line)); font-size: 14px; }
-.basket-select-bar label { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: var(--fw-semibold); color: var(--day-ink, var(--c-ink)); }
-.basket-select-bar small { color: var(--day-muted, var(--c-ink-2)); font-size: 13px; }
 .basket-select { display: inline-flex; align-items: center; flex-shrink: 0; }
 .basket-step-name { font-weight: inherit; }
 .basket-parcel-title .basket-select { margin-right: 2px; }
@@ -169,9 +166,9 @@
 }
 
 /* ---------- Night ---------- */
-html[data-theme="dark"] .basket-select-bar, html[data-theme="dark"] .review-table, html[data-theme="dark"] .review-checklist { background: var(--night-surface); border-color: var(--night-line-strong); }
-html[data-theme="dark"] .basket-select-bar label, html[data-theme="dark"] .review-sum, html[data-theme="dark"] .review-name, html[data-theme="dark"] .review-variant, html[data-theme="dark"] .review-check-body > b, html[data-theme="dark"] .review-note b, html[data-theme="dark"] .review-row-note b, html[data-theme="dark"] .review-services b { color: var(--night-ink); }
-html[data-theme="dark"] .basket-select-bar small, html[data-theme="dark"] .basket-none-hint, html[data-theme="dark"] .basket-later-note, html[data-theme="dark"] .review-n, html[data-theme="dark"] .review-note, html[data-theme="dark"] .review-row-note, html[data-theme="dark"] .review-services, html[data-theme="dark"] .review-check-body > span, html[data-theme="dark"] .basket-service-unit { color: var(--night-muted); }
+html[data-theme="dark"] .review-table, html[data-theme="dark"] .review-checklist { background: var(--night-surface); border-color: var(--night-line-strong); }
+html[data-theme="dark"] .review-sum, html[data-theme="dark"] .review-name, html[data-theme="dark"] .review-variant, html[data-theme="dark"] .review-check-body > b, html[data-theme="dark"] .review-note b, html[data-theme="dark"] .review-row-note b, html[data-theme="dark"] .review-services b { color: var(--night-ink); }
+html[data-theme="dark"] .basket-none-hint, html[data-theme="dark"] .basket-later-note, html[data-theme="dark"] .review-n, html[data-theme="dark"] .review-note, html[data-theme="dark"] .review-row-note, html[data-theme="dark"] .review-services, html[data-theme="dark"] .review-check-body > span, html[data-theme="dark"] .basket-service-unit { color: var(--night-muted); }
 html[data-theme="dark"] .basket-item > .basket-select { background: color-mix(in srgb, var(--night-surface) 88%, transparent); }
 html[data-theme="dark"] .basket-later-tag, html[data-theme="dark"] .review-head, html[data-theme="dark"] .review-photo { background: var(--night-raised); color: var(--night-muted); }
 html[data-theme="dark"] .review-parcel + .review-parcel { border-top-color: var(--night-line-strong); }
@@ -195,64 +192,122 @@ html[data-theme="dark"] .review-confirm-bar { border-top-color: var(--night-line
 
 /* "Some of them" on a store or model checkbox: a dash instead of the tick (app/checkbox.css). */
 
-/* ---------- Cart line, 2 November 2026 (app/shopping.tsx renderItem/renderGroup) ----------
-   Owner: "оставь самое основное … основной текст крупнее, остальное чуть меньше, ровной сеткой". One grid on every
-   width: [tick] [photo 64] [name 15/600, two lines · the option 13 grey, one line · the store price 13 grey] [sum 16/700];
-   the notes span the text column; the bottom row holds a compact 36 px quantity and remove, aligned right. The tick
-   sits at the photo's middle. */
-.basket-item.cl, .cl-variant {
-  position: relative; display: grid; grid-template-columns: 24px 64px minmax(0, 1fr) auto;
-  grid-template-areas: "sel photo text sum" ". . notes notes" ". . actions actions" ". . note note";
-  align-items: start; column-gap: 12px; row-gap: 8px; padding: 14px 16px;
+/* ---------- Cart page and line, 1 November 2026 (app/shopping.tsx renderItem/renderGroup) ----------
+   Owner: "скомпонуй как в каталоге — всё скомпоновано, лишнего пространства нет". The title row carries "select all"
+   (no card of its own). A parcel 700 px wide or more puts each line in one row:
+   [tick 20] [photo 72] [name, one line · option · store price ↗ · Comment] [quantity 32] [sum] [♡ ⌑ 🗑 as quiet icons].
+   Narrower (phones, a narrow column): [tick] [photo 64] [name in two lines …] [sum], the quantity and the icons in a row
+   under it. Notes and an open comment span the text column under the line; hairlines between lines. */
+.basket-head.cl-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 16px; }
+.cl-head > h1 { grid-column: 1 / -1; }
+.cl-head > p { grid-column: 1; }
+.basket-select-all { grid-column: 2; display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; }
+.basket-select-all label { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--home-ink); font-size: 14px; font-weight: var(--fw-semibold); white-space: nowrap; cursor: pointer; }
+.basket-select-all small { color: var(--home-muted); font-size: 13px; white-space: nowrap; }
+@media (min-width: 761px) {
+  .basket-head.cl-head { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 14px; }
+  .basket-select-all { align-self: center; margin-left: auto; }
 }
-.cl-variant { grid-template-columns: 24px minmax(0, 1fr) auto; grid-template-areas: "sel text sum" ". notes notes" ". actions actions" ". note note"; padding: 10px 16px 10px 16px; border-top: 1px solid var(--home-line); list-style: none; }
-.basket-item.cl > .basket-select, .cl-variant > .basket-select { position: static; grid-area: sel; align-self: start; margin-top: 20px; padding: 0; background: none; }
-.cl-variant > .basket-select { margin-top: 2px; }
+/* Two columns: the title row ends where the list does, so "select all" stands over the list, not over the bill. */
+@media (min-width: 960px) {
+  .basket-head.cl-head { padding-right: calc(380px + 24px); }
+}
+
+.basket-parcel { container: cartparcel / inline-size; }
+.basket-parcel-title { min-height: 40px; padding-block: 8px; }
+
+.basket-item.cl, .cl-variant {
+  position: relative; display: grid; grid-template-columns: 20px 64px minmax(0, 1fr) auto;
+  grid-template-areas: "sel photo text sum" ". bar bar bar" ". notes notes notes" ". note note note";
+  align-items: start; column-gap: 12px; row-gap: 0; padding: 14px 16px;
+}
+.cl-variant { grid-template-columns: 20px minmax(0, 1fr) auto; grid-template-areas: "sel text sum" ". bar bar" ". notes notes" ". note note"; padding: 10px 16px; border-top: 1px solid var(--home-line); list-style: none; }
+.basket-item.cl > .basket-select, .cl-variant > .basket-select { position: static; grid-area: sel; align-self: start; margin-top: 22px; padding: 0; background: none; }
+.cl-variant > .basket-select { margin-top: 1px; }
 .cl-photo { grid-area: photo; display: block; width: 64px; height: 64px; padding: 0; overflow: hidden; border: 0; border-radius: 12px; background: var(--home-soft); cursor: pointer; }
 .cl-photo .product-img, .cl-photo .no-photo { width: 100%; height: 100%; border-radius: 0; object-fit: contain; }
 .cl-photo .no-photo span { display: none; }
+.cl-photo:focus-visible, .cl-title button:focus-visible, .cl-note-toggle:focus-visible, .cl-store a:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
 html:not([data-theme="dark"]) .cl-photo .product-img { mix-blend-mode: multiply; }
 .cl-text { grid-area: text; display: grid; gap: 2px; min-width: 0; }
 .cl-title { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.3; }
 .cl-title button { display: block; width: 100%; padding: 0; border: 0; background: none; color: var(--home-ink); font: inherit; text-align: left; cursor: pointer; }
 .cl-title button > span { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .cl-title button:hover { text-decoration: underline; text-underline-offset: 3px; }
-:is(.cl-variant-name) { overflow: hidden; color: var(--home-ink); font-size: 14px; font-weight: 600; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.cl-variant-name { overflow: hidden; color: var(--home-ink); font-size: 14px; font-weight: 600; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
 .cl-variant > .cl-text { gap: 1px; }
-.cl-text > .cl-option, .cl-text > .cl-store { overflow: hidden; margin: 0; color: var(--home-muted); font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.cl-text > .cl-option, .cl-text .cl-store { overflow: hidden; margin: 0; color: var(--home-muted); font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+/* The store price, "for later" and "Comment" on one line. */
+.cl-sub { display: flex; align-items: center; gap: 4px 12px; min-width: 0; }
+.cl-sub > .cl-store { flex: 0 1 auto; min-width: 0; }
+.cl-sub > .basket-later-tag { flex: none; margin: 0; }
 .cl-store a { display: inline-flex; align-items: center; gap: 3px; color: inherit; text-decoration: none; }
 .cl-store a:hover { color: var(--home-accent); text-decoration: underline; text-underline-offset: 2px; }
-.cl-text > .basket-later-tag { justify-self: start; margin: 2px 0 0; }
+.cl-note-toggle { position: relative; display: inline-flex; flex: none; align-items: center; gap: 4px; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--home-accent); font: inherit; font-size: 13px; font-weight: 600; line-height: 1.35; cursor: pointer; }
+.cl-note-toggle::after { content: ""; position: absolute; inset: -12px -6px; }
+.cl-note-toggle:hover span { text-decoration: underline; text-underline-offset: 2px; }
 .cl-sum { grid-area: sum; color: var(--home-ink); font-size: 16px; font-weight: 700; line-height: 1.3; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.cl-notes { grid-area: notes; display: grid; gap: 6px; min-width: 0; }
+.cl-notes { grid-area: notes; display: grid; gap: 6px; min-width: 0; margin-top: 10px; }
 .cl-notes > .basket-item-note { margin: 0; }
 .cl-stock { margin: 0; color: #9a5b00; font-size: 12px; font-weight: 600; }
-.cl-actions { grid-area: actions; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 8px; }
-.cl-actions .basket-qty { margin-right: auto; border-radius: 12px; }
-.cl-actions .basket-qty button { width: 36px; height: 36px; border-radius: 11px; }
-.cl-actions .basket-qty output { min-width: 26px; font-size: 14px; }
-.cl-actions .remove-item { min-height: 36px; margin: 0; }
-/* Remove is an icon; its words stay for screen readers (and show while it asks to confirm). */
-.cl-actions .remove-item:not(.confirming) { justify-content: center; min-width: 36px; padding: 0 6px; border-radius: 10px; }
-.cl-actions .remove-item:not(.confirming) span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.cl-actions .remove-item:not(.confirming):hover { background: var(--home-soft); }
-.cl-actions :is(.basket-fav, .basket-later) { min-height: 36px; }
-.basket-item.cl > :is(.basket-note, .basket-note-add), .cl-variant > :is(.basket-note, .basket-note-add) { grid-area: note; justify-self: start; margin: 0; }
-:is(.basket-item.cl, .cl-variant) > .basket-note-add { min-height: 32px; padding: 0; color: var(--home-accent); font-size: 13px; font-weight: 600; }
+.basket-item.cl > .cl-note, .cl-variant > .cl-note { grid-area: note; margin: 10px 0 0; }
+/* Narrow: the quantity on the left and the icons on the right share the row under the text. */
+.cl-qty { grid-area: bar; justify-self: start; align-self: center; margin-top: 10px; }
+.cl-actions { grid-area: bar; justify-self: end; align-self: center; margin-top: 10px; display: flex; align-items: center; gap: 4px; }
+.cl-qty .basket-qty { border-radius: 10px; }
+.cl-qty .basket-qty button { position: relative; width: 32px; height: 32px; border-radius: 9px; }
+.cl-qty .basket-qty button::after { content: ""; position: absolute; inset: -6px 0; }
+.cl-qty .basket-qty output { min-width: 26px; font-size: 14px; }
+/* Heart, "save for later" and remove: 32 px ghost icons, each taking taps from a 44 px frame; the words stay for screen readers. */
+.cl-actions :is(.basket-fav, .basket-later, .remove-item) { position: relative; display: inline-grid; place-items: center; width: 32px; min-width: 32px; height: 32px; min-height: 32px; margin: 0; padding: 0; border: 0; border-radius: 9px; background: transparent; color: var(--home-muted); }
+.cl-actions :is(.basket-fav, .basket-later, .remove-item)::after { content: ""; position: absolute; inset: -6px; }
+.cl-actions :is(.basket-fav, .basket-later, .remove-item):hover:not(:disabled) { background: var(--home-soft); color: var(--home-ink); }
+.cl-actions .remove-item:not(.confirming):hover:not(:disabled) { color: #a33236; }
+.cl-actions :is(.basket-fav, .basket-later, .remove-item):focus-visible { outline: 2px solid var(--home-accent); outline-offset: 0; }
+.cl-actions .basket-fav.saved { border: 0; background: transparent; color: #c0392b; }
+.cl-actions .basket-fav.saved svg { fill: currentColor; }
+.cl-actions :is(.basket-later, .remove-item:not(.confirming)) span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cl-actions .remove-item.confirming { width: auto; padding: 0 8px; }
 .basket-item.cl.is-later > :not(.basket-select), .cl-variant.is-later > :not(.basket-select) { opacity: .62; }
 .basket-item.cl.is-later { opacity: 1; }
 /* A product with several options: its head row has no quantity (each option has its own below). */
-.basket-group-head.cl { grid-template-areas: "sel photo text sum" ". . actions actions"; }
-.cl-variants { margin: 0; padding: 0 0 4px; }
-@media (min-width: 640px) {
-  .basket-item.cl { grid-template-columns: 24px 72px minmax(0, 1fr) auto; padding: 16px 20px; column-gap: 16px; }
+.cl-variants { margin: 0; padding: 0; }
+.basket-group-head.cl { padding-bottom: 10px; }
+
+/* Wide parcel: one row per line. Fixed quantity, sum and icon columns, so option rows line up under their product. */
+@container cartparcel (min-width: 700px) {
+  .basket-item.cl, .cl-variant {
+    grid-template-columns: 20px 72px minmax(0, 1fr) 96px 132px 112px;
+    grid-template-areas: "sel photo text qty sum actions" ". . notes notes notes notes" ". . note note note note";
+    align-items: center; column-gap: 16px; row-gap: 0; padding: 14px 16px;
+  }
   .cl-photo { width: 72px; height: 72px; }
-  .basket-item.cl > .basket-select { margin-top: 24px; }
-  .cl-variant { padding: 10px 20px; grid-template-columns: 24px minmax(0, 1fr) auto auto; grid-template-areas: "sel text actions sum" ". notes notes notes" ". note note note"; align-items: center; column-gap: 16px; }
-  .cl-variant > .basket-select { margin-top: 0; align-self: center; }
-  .cl-variant > .cl-actions { flex-wrap: nowrap; }
-  .cl-variant > .cl-sum { min-width: 110px; }
+  .basket-item.cl > .basket-select, .cl-variant > .basket-select { align-self: center; margin-top: 0; }
+  .cl-title button > span { -webkit-line-clamp: 1; }
+  .cl-qty { grid-area: qty; justify-self: center; margin-top: 0; }
+  .cl-sum { grid-area: sum; align-self: center; }
+  .cl-actions { grid-area: actions; justify-self: end; margin-top: 0; }
+  /* Option rows: the tick moves under the product photo's right edge, the option name under the product name. */
+  .cl-variant { grid-template-areas: "sel . text qty sum actions" ". . notes notes notes notes" ". . note note note note"; padding: 8px 16px; border-top-style: dashed; }
+  .cl-variant > .basket-select { grid-area: auto; grid-column: 2; grid-row: 1; justify-self: end; }
+  .basket-group-head.cl { padding-bottom: 8px; }
+  /* Quiet icons until the line is pointed at or focused; a saved heart stays in colour. */
+  @media (hover: hover) and (pointer: fine) {
+    .cl-actions :is(.basket-later, .remove-item:not(.confirming), .basket-fav:not(.saved)) { opacity: .55; transition: opacity .15s ease; }
+    :is(.basket-item.cl, .cl-variant):is(:hover, :focus-within) .cl-actions > * { opacity: 1; }
+  }
+}
+@container cartparcel (min-width: 1000px) {
+  .basket-item.cl, .cl-variant { column-gap: 20px; padding-inline: 20px; }
 }
 html[data-theme="dark"] .cl-stock { color: #e8b05c; }
 html[data-theme="dark"] .cl-photo { background: radial-gradient(120% 110% at 50% 8%, #f6f3ec 0%, #e6e1d5 100%); }
 html[data-theme="dark"] .cl-photo .product-img { mix-blend-mode: multiply; }
+html[data-theme="dark"] .cl-actions .basket-fav.saved { color: #f08a7e; }
+html[data-theme="dark"] .cl-actions .remove-item:not(.confirming):hover:not(:disabled) { color: #ffb4a8; }
+html[data-theme="dark"] .cl-actions .remove-item:not(.confirming) { background-color: transparent; color: var(--home-muted); }
+html[data-theme="dark"] .cl-actions .remove-item:not(.confirming):hover:not(:disabled) { background-color: var(--home-soft); }
+/* A list column under 900 px (laptops with the bill beside it): the name takes two lines instead of being cut short. */
+@container cartparcel (min-width: 700px) and (max-width: 899px) {
+  .cl-title button > span { -webkit-line-clamp: 2; }
+}
