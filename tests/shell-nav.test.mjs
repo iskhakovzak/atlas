@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { navCopy, routeTitle, locales } from '../lib/market/i18n.ts';
 import { signInPath } from '../lib/market/access.ts';
-import { headerSearchLink, headerSearchTarget } from '../lib/market/shell-search.ts';
+import { headerSearchLink, headerSearchTarget, publishCatalogSearch, readCatalogSearch, subscribeCatalogSearch } from '../lib/market/shell-search.ts';
 import { orderTail, stripCopy, stripShortCopy } from '../lib/market/profile-strip.ts';
 
 const source = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
@@ -121,9 +121,9 @@ test('the notification sheet titles are not in capitals; the UI audit expects th
   assert.match(audit, /guest mobile has the bottom navigation/);
 });
 
-test('phones: the header is logo · search field · language · bell, the field left out on the catalog and the checkout', () => {
+test('phones: the header is logo · search field · language · bell, the field left out on the checkout', () => {
   const shell = source('app/marketplace.tsx'), css = source('app/shell.css');
-  assert.match(shell, /data-search=\{\(view==='products'&&!crumb\)\|\|view==='checkout'\?'off':undefined\}/, 'the catalog (not a product) and the checkout have no header field');
+  assert.match(shell, /data-search=\{view==='checkout'\?'off':undefined\}/, 'only the checkout leaves the header field out');
   const phone = css.slice(css.indexOf('/* ---------- Phones: logo · search field · language · bell'), css.indexOf('@media (max-width: 359px)'));
   assert.match(phone, /\.shell-search \{ display: flex; flex: 1 1 auto; min-width: 0;[^}]*height: 40px;/, 'the field fills the middle, 40 px tall');
   assert.match(phone, /\[data-search="off"\] \.shell-search \{ display: none; \}/);
@@ -146,4 +146,27 @@ test('phones: the attention strip reads short (…101DC), its name stays full', 
   const css = source('app/shell.css');
   assert.match(css, /\.shell-attention-short \{ display: none; \}/);
   assert.match(css, /@media \(max-width: 760px\) \{\s+\.shell-attention \{[^}]*min-height: 36px;[^}]*font-size: 13px;/);
+});
+
+test('phones: on the catalog and a store page the header field is the catalog search', () => {
+  const page = {}, other = {};
+  let calls = 0; const stop = subscribeCatalogSearch(() => calls++);
+  const set = () => {};
+  publishCatalogSearch(page, { q: 'nike', placeholder: 'Товар в Nike', set });
+  assert.deepEqual(readCatalogSearch(), { owner: page, q: 'nike', placeholder: 'Товар в Nike', set });
+  publishCatalogSearch(page, { q: 'nike', placeholder: 'Товар в Nike', set });
+  assert.equal(calls, 1, 'the same query is not announced again');
+  publishCatalogSearch(other, null);
+  assert.ok(readCatalogSearch(), 'another page cannot take this page’s search away');
+  publishCatalogSearch(page, null);
+  assert.equal(readCatalogSearch(), null);
+  stop();
+  const view = source('app/catalog-view.tsx'), shell = source('app/marketplace.tsx'), css = source('app/shell.css');
+  assert.match(view, /if \(mode === 'catalog'\) publishCatalogSearch\(searchOwner, \{ q: query\.q, placeholder: headerPlaceholder, set: setSearchText \}\)/);
+  assert.match(view, /setQueryState\(\(prev\) => \(\{ \.\.\.prev, q: q\.slice\(0, 80\), page: 1 \}\)\)/, 'at most 80 characters, back to page 1, as the catalog field');
+  assert.match(view, /className="catalog-search-jump"/);
+  assert.match(shell, /const live=phone\?catalog:null/, 'only phones: wider screens keep the catalog field');
+  assert.match(shell, /if\(live&&!headerSearchLink\(value\)\)live\.set\(value\);/, 'a link being typed is not a search');
+  assert.match(css, /:root \.catalog-page:is\(\[data-mode="catalog"\], \[data-mode="store"\]\) \.catalog-sticky > \.catalog-search \{ display: none; \}/);
+  assert.match(css, /^\.catalog-search-jump, \.shell-search-clear \{ display: none; \}/m, 'desktop and tablets: no jump button');
 });

@@ -3,7 +3,7 @@ import {useKeyboardInset} from '@/lib/market/keyboard-inset';
 import {Suspense,lazy,useEffect,useLayoutEffect,useMemo,useState,useSyncExternalStore,type MouseEvent,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import Link,{usePageLang,useWarmLinks} from '@/components/site-link';
-import {ArrowUpRight,ArrowRight,ChevronRight,ShoppingBag,Heart,LayoutGrid,Settings2,House,UserRound,MessageCircle,Plus,Search} from 'lucide-react';
+import {ArrowUpRight,ArrowRight,ChevronRight,ShoppingBag,Heart,LayoutGrid,Settings2,House,UserRound,MessageCircle,Plus,Search,X} from 'lucide-react';
 import {ToasterSlot} from './toaster-slot';
 import {money,balanceOf} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
@@ -29,7 +29,7 @@ import {guestUnits} from '@/lib/market/guest-cart';
 import {ProfileMenu} from './profile-menu';
 import {firstProfileAction,orderTail,stripCopy,stripShortCopy} from '@/lib/market/profile-strip';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
-import {focusSearchKey,headerSearchLink,headerSearchTarget} from '@/lib/market/shell-search';
+import {focusSearchKey,headerSearchLink,headerSearchTarget,readCatalogSearch,subscribeCatalogSearch} from '@/lib/market/shell-search';
 
 const breadcrumbLabel:Record<Locale,string>=/*@__PURE__*/withCyrillic({uz:'Sahifa yo‘li',ru:'Путь по сайту',en:'Breadcrumb'});
 const returnPath=()=>typeof window==='undefined'?'/':window.location.pathname+window.location.search;
@@ -69,28 +69,50 @@ const profileViews=new Set(['account','orders','balance','notifications','favori
 const stripHidden=new Set(['account','parcel','orders','cart','checkout','login','operations','admin','analytics','documents','batch']);
 
 
+/** Phones (≤ 760 px): the header field is then the catalog's own search on /catalog and a store's page. */
+const phoneMedia='(max-width: 760px)';
+const subscribePhone=(change:()=>void)=>{const media=window.matchMedia(phoneMedia);media.addEventListener('change',change);return()=>media.removeEventListener('change',change)};
+const readPhone=()=>window.matchMedia(phoneMedia).matches;
+
 /** One field for the catalog search and for a pasted store link (a pasted link opens its calculation): wide screens from
- *  1200 px, and phones (≤ 760 px) between the logo and the bell, where it is a 40 px pill (app/shell.css, 1.11.2026). */
+ *  1200 px, and phones (≤ 760 px) between the logo and the bell, where it is a 40 px pill (app/shell.css, 1.11.2026).
+ *  On a phone's catalog or store page (lib/market/shell-search.ts publishCatalogSearch) it is that page's search: what is
+ *  typed filters the grid in place and goes to ?q= as the catalog's field did; a link still opens its calculation. */
 function HeaderSearch({nav}:{nav:NavCopy}){
   const router=useRouter();
+  const phone=useSyncExternalStore(subscribePhone,readPhone,()=>false);
+  const catalog=useSyncExternalStore(subscribeCatalogSearch,readCatalogSearch,()=>null);
+  const live=phone?catalog:null,liveQ=live?live.q:null;
   const [text,setText]=useState('');
+  // The field follows the page's query (the address, «Сбросить всё», another page): adjusted while rendering.
+  const [mirrored,setMirrored]=useState<string|null>(null);
+  if(liveQ!==mirrored){setMirrored(liveQ);setText(liveQ??'')}
+  const field=()=>document.getElementById('shell-search-input');
   function go(value:string){
+    // On the catalog words are already searched as they are typed: Enter only puts the keyboard away.
+    if(live&&!headerSearchLink(value)){field()?.blur();return}
     const href=headerSearchTarget(value);
     if(!href)return;
     // The phone's keyboard goes down with the field's focus before the next page comes.
-    if(document.activeElement instanceof HTMLElement&&document.activeElement.id==='shell-search-input')document.activeElement.blur();
+    field()?.blur();
     // The same page with another query is a full load, as SiteLink does (those pages read the address once).
     if(window.location.pathname===href.split('?')[0]){window.location.assign(href);return}
     startNavigationFeedback();
     router.push(href);
     setText('');
   }
-  return <form role="search" className="shell-search" onSubmit={event=>{event.preventDefault();go(text)}}>
+  function change(value:string){
+    setText(value);
+    // A link being typed is not a search: the grid stays as it is until Enter opens the link's calculation.
+    if(live&&!headerSearchLink(value))live.set(value);
+  }
+  return <form role="search" className="shell-search" data-live={live?'':undefined} onSubmit={event=>{event.preventDefault();go(text)}}>
     {/* The magnifier is the field's submit button (Enter does the same); no word button, so long languages keep the field. */}
     <label className="sr-only" htmlFor="shell-search-input">{nav.search}</label>
-    <input id="shell-search-input" type="search" enterKeyHint="search" autoComplete="off" spellCheck={false} maxLength={2048} value={text} placeholder={nav.searchPlaceholder}
-      onChange={event=>setText(event.target.value)}
+    <input id="shell-search-input" type="search" enterKeyHint="search" autoComplete="off" spellCheck={false} maxLength={2048} value={text} placeholder={live?.placeholder??nav.searchPlaceholder}
+      onChange={event=>change(event.target.value)}
       onPaste={event=>{const pasted=event.clipboardData.getData('text');if(!headerSearchLink(pasted))return;event.preventDefault();setText(pasted.trim());go(pasted)}}/>
+    {live&&text&&<button type="button" className="shell-search-clear" aria-label={nav.clearSearch} onClick={()=>{change('');field()?.focus()}}><X size={18} aria-hidden="true"/></button>}
     {/* After the field in the tab order; drawn before it (order: -1, app/shell.css). */}
     <button type="submit" className="shell-search-submit" aria-label={nav.searchShort} title={nav.searchShort}><Search size={18} aria-hidden="true"/></button>
   </form>;
@@ -171,9 +193,9 @@ export default function Marketplace({view,children,crumb,crumbPath}:{view:string
   }
   return <><ViewMark view={view}/><a className="skip-link" href="#main">{modalWords.skip}</a><ToasterSlot theme={theme==='dark'?'dark':theme==='light'?'light':'system'} label={pickLocale({ru:'Сообщения',uz:'Xabarlar',en:'Messages'},locale)}/>
   {/* Wide screens: logo · Каталог · Магазины · Купить по ссылке · Доставка · search · language · ♥ · cart · profile.
-      Phones: logo · search field (not on the catalog and the checkout) · language · bell; the bottom bar carries the rest (app/shell.css). */}
-  {/* data-search="off": the catalog (its own search field under the header) and the checkout leave the phone's field out. */}
-  <header className="site-header shell-header" data-search={(view==='products'&&!crumb)||view==='checkout'?'off':undefined}>
+      Phones: logo · search field (the catalog's own on /catalog; none on the checkout) · language · bell; the bottom bar carries the rest (app/shell.css). */}
+  {/* data-search="off": the checkout leaves the phone's field out; on the catalog and a store's page it is their search. */}
+  <header className="site-header shell-header" data-search={view==='checkout'?'off':undefined}>
    <Link className="wordmark" href="/" aria-label={modalWords.homeLabel}>atlas<ArrowUpRight aria-hidden="true"/></Link>
    <nav className="shell-nav" aria-label={modalWords.navigation}>{navItems.map(([href,key,label])=><Link key={key} data-nav={key} className={key===view?'active':''} aria-current={key===view?'page':undefined} href={href}>{label}</Link>)}</nav>
    <HeaderSearch nav={nav}/>

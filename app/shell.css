@@ -169,6 +169,22 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   /* A page's JSON-LD script may stand between the breadcrumb and the head. */
   .site-main > .breadcrumb + *, .site-main > .breadcrumb + script + * { margin-top: var(--space-6); }
 }
+/* The catalog and a store's page on phones (1.11.2026): the header's field is their search (app/marketplace.tsx
+   HeaderSearch, data-live). The sticky row under it keeps «Фильтры (N)» and the sort, led by a search button that brings
+   the header back and focuses its field; the page's own field is hidden. From 761 px the page keeps its own field. */
+.catalog-search-jump, .shell-search-clear { display: none; }
+@media (max-width: 760px) {
+  .shell-search-clear { display: grid; flex: none; place-items: center; width: 32px; height: 32px; margin-right: -6px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-3); cursor: pointer; }
+  .shell-search-clear:hover { background: var(--hover); color: var(--text); }
+  .shell-search-clear:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+  :root .catalog-page:is([data-mode="catalog"], [data-mode="store"]) .catalog-sticky > .catalog-search { display: none; }
+  :root .catalog-page .catalog-sticky > .catalog-search-jump { display: grid; flex: none; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line-strong); border-radius: var(--r-control); background-color: var(--surface); color: var(--text); cursor: pointer; }
+  :root .catalog-page .catalog-sticky > .catalog-search-jump:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  :root .catalog-page:is([data-mode="catalog"], [data-mode="store"]) .catalog-sticky .catalog-facets-button { flex: 1 1 auto; width: auto; padding: 0 12px; justify-content: center; }
+  /* Without the field the row has room for the word «Фильтры» on every phone (catalog-pages.css hides it under 380 px). */
+  :root .catalog-page:is([data-mode="catalog"], [data-mode="store"]) .catalog-sticky .catalog-facets-button > span { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
+}
+
 /* 360–379 px (Galaxy S24): the placeholder steps down to 14 px so «Товар или ссылка» stays whole. */
 @media (max-width: 379px) {
   .shell-search input::placeholder { font-size: 14px; }
