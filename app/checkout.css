@@ -48,14 +48,20 @@ html .co-block-head .text-button.co-aside { margin-left: auto; min-height: 44px;
 .co-signed svg { flex: none; color: var(--ok); }
 
 /* Сверка цены: the check running, a failure, and what changed at the store. */
-.co-checking { display: flex; align-items: center; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--r-control); background: var(--sunken); color: var(--text-2); font-size: var(--fs-14); }
-/* A check that answers within half a second takes no room at all (it used to push the blocks down and back up);
-   a longer one shows its line. Not motion: the line appears at once, so it stays under reduced motion too. */
-.co-checking { animation: co-checking-late 1ms linear 500ms both; }
-@keyframes co-checking-late { from { position: absolute; visibility: hidden; } to { position: static; visibility: visible; } }
+/* One row of a fixed height for the whole check (owner, 2 November 2026): it stands from the first paint and changes only
+   its words and icon, so nothing below it moves (it used to appear after half a second and vanish again: two shifts). */
+.co-checking { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--space-2); height: 44px; margin: 0; padding: 0 var(--space-4); overflow: hidden; border-radius: var(--r-control); background: var(--sunken); color: var(--text-2); font-size: var(--fs-14); line-height: 1.25; }
+.co-checking > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.co-checking > svg { flex: none; }
+.co-checking.is-done { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.co-checking.is-done > svg { color: var(--ok); }
+.co-checking.co-notice .text-button { flex: none; }
 .co-notice { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--r-control); font-size: var(--fs-14); }
 .co-notice.warn { background: var(--warn-bg); color: var(--warn); }
 .co-notice .text-button { min-height: 44px; margin-left: auto; }
+/* A failed check keeps the row's place and may wrap its sentence with «Повторить» (rare: the stores did not answer). */
+.co-checking.co-notice { height: auto; min-height: 44px; padding-block: 0; }
+.co-checking.co-notice > span { white-space: normal; }
 .co-changes { display: grid; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-radius: var(--r-card); background: var(--warn-bg); color: var(--text); }
 .co-changes.is-blocked { background: var(--danger-bg); }
 .co-changes h2 { display: flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--warn); font-size: var(--fs-16); font-weight: var(--fw-semibold); }

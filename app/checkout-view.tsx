@@ -326,8 +326,12 @@ export function CheckoutView() {
         {/* What changed at the store since the item was added (Сверка цены), and anything blocking the order. The live
             region is on the page from the start, so a screen reader announces the change when the check brings it. */}
         <p className="sr-only" aria-live="polite">{signedIn && changes.length > 0 ? (blocked ? cc.item.issues.variant : t.checkout.check.changedTitle) : ""}</p>
-        {signedIn && (check === "running" || merging || waitingGuest) && <p className="co-checking" role="status"><Loader2 size={16} className="spin" aria-hidden="true" />{merging || waitingGuest ? t.merge.moving : t.checkout.check.running}</p>}
-        {signedIn && check === "failed" && <p className="co-notice warn" role="alert"><TriangleAlert size={16} aria-hidden="true" /><span>{t.checkout.check.failed}</span><button type="button" className="text-button" onClick={() => void runCheck()}>{t.checkout.check.retry}</button></p>}
+        {/* Сверка цены has one row of a fixed height from the first paint to the answer: «Сверяем…», then «сверены» (or the
+            failure with «Повторить» in the same place), so the blocks below never move when the stores answer (layout
+            shift 0.08 on phones before, owner 2 November 2026). */}
+        {signedIn && (lines.length > 0 || merging || waitingGuest) && (check === "failed"
+          ? <p className="co-checking co-notice warn" role="alert"><TriangleAlert size={16} aria-hidden="true" /><span>{t.checkout.check.failed}</span><button type="button" className="text-button" onClick={() => void runCheck()}>{t.checkout.check.retry}</button></p>
+          : <p className={"co-checking" + (check === "done" && !merging && !waitingGuest ? " is-done" : "")} role="status">{check === "done" && !merging && !waitingGuest ? <CircleCheck size={16} aria-hidden="true" /> : <Loader2 size={16} className="spin" aria-hidden="true" />}<span>{merging || waitingGuest ? t.merge.moving : check === "done" ? t.checkout.check.done : t.checkout.check.running}</span></p>)}
         {signedIn && changes.length > 0 && <section id="co-changes" className={"co-changes" + (blocked ? " is-blocked" : "")} aria-labelledby="co-changes-title">
           <h2 id="co-changes-title"><Info size={16} aria-hidden="true" />{blocked ? cc.item.issues.variant : t.checkout.check.changedTitle}</h2>
           <ul>{changes.map((item) => {
