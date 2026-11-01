@@ -39,3 +39,20 @@ export function CatalogPagination({ page, pages, start, end, total, per, href, o
     </div>}
   </nav>;
 }
+
+/**
+ * Phones: "Показано 24 из 307" and "Показать ещё 24", which adds the next page under the grid. A real link to the next
+ * `?page=` (open in a new tab works, and without JavaScript it still leads on); a plain tap appends in place.
+ */
+export function CatalogMore({ shown, total, per, href, onMore, cc }: { shown: number; total: number; per: number; href: string; onMore: () => void; cc: Copy }) {
+  if (!total) return null;
+  const next = Math.min(per, total - shown);
+  return <nav className="catalog-pagination catalog-more" aria-label={cc.pages}>
+    <p className="catalog-pagination-range" role="status">{cc.shown(shown, total)}</p>
+    {next > 0 && <a className="btn secondary catalog-more-button" href={href} rel="next" onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+      event.preventDefault();
+      onMore();
+    }}>{cc.showMore(next)}</a>}
+  </nav>;
+}

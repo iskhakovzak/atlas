@@ -167,8 +167,8 @@ try {
     await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");
   }
   await evaluate("document.querySelector('.lang-menu-list button[data-locale=en]').click()");
-  await check("document.documentElement.lang==='en' && document.querySelector('.home-hero h1').textContent.includes('We buy from stores in the USA')","guest language works without saving an account");
-  await check("document.querySelector('.home-link-form button')?.textContent.includes('Calculate') && document.querySelector('.home-link-note')?.textContent.includes('no sign-up')","guest link CTA is honest in English");
+  await check("document.documentElement.lang==='en' && document.querySelector('.home-hero h1').textContent.includes('US, European and Chinese stores')","guest language works without saving an account");
+  await check("document.querySelector('.home-link-form button')?.textContent.includes('Calculate') && document.querySelector('#home-link-note')?.textContent.includes('No sign-up')","guest link CTA is honest in English");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
     await check("document.querySelector('.product-sheet')?.textContent.includes('Cost calculation')","product details localize to English");
@@ -200,7 +200,7 @@ try {
   await visit("/order-by-link");
   await check("!!document.querySelector(\'#source-url\') && !document.querySelector(\'#source-url\').disabled","authenticated product form opens");
   await visit('/');
-  await check(`!!document.querySelector('header a[href=\"/cart\"]') && !document.querySelector('.home-link-note')?.textContent.includes('регистрация не нужна') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.home-link-form')"}`,"member home differs from guest");
+  await check(`!!document.querySelector('header a[href=\"/cart\"]') && !document.querySelector('#home-link-note')?.textContent.includes('Регистрация не нужна') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.home-link-form')"}`,"member home differs from guest");
   if (process.env.ATLAS_AUDIT_IMPORT === '1') {
     await visit('/order-by-link?url='+encodeURIComponent('https://www.stevemadden.com/products/divy-lime-leather'));
     await check("!!document.querySelector('#source-url') && !document.querySelector('#source-url').disabled",'import ready');
