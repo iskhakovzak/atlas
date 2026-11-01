@@ -63,7 +63,7 @@ test('the product page copy exists in every language, Uzbek "dan" after the sum'
 
 test('wiring: the catalog opens the shared product page in place, without asking the store on opening', () => {
   const engine = source('app/global-link-order.tsx');
-  assert.match(engine, /export function ProductOrder\(\{ mode = "link", product, inSheet = false \}/);
+  assert.match(engine, /export function ProductOrder\(\{ mode = "link", product, inSheet = false, chosenVariant \}/);
   assert.match(engine, /export function GlobalLinkOrder\(\) \{\n  return <ProductOrder \/>;/);
   // A current card is ready from its stored options; a dated one waits for a tap ("Сверить цену").
   assert.match(engine, /if\(seedReady\)\{\n      automaticallyLoaded\.current=loadKey;/);
@@ -82,7 +82,7 @@ test('wiring: the catalog opens the shared product page in place, without asking
   assert.match(source('app/product-detail.tsx'), /<details className="pd-breakdown" open>/);
   const sheet = source('app/product-sheet.tsx');
   // The shown product stays on the sheet while it slides away (2 November 2026).
-  assert.match(sheet, /<ProductOrder key=\{[^}]+\} mode="catalog" product=\{view as MerchantFind\} inSheet\/>/);
+  assert.match(sheet, /<ProductOrder key=\{[^}]+\} mode="catalog" product=\{view as MerchantFind\} chosenVariant=\{variant\} inSheet\/>/);
   assert.match(sheet, /const view=product\?\?shown;/);
   assert.doesNotMatch(sheet, /Tabs/);
   const card = source('app/catalog-card.tsx');

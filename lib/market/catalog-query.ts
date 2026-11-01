@@ -156,6 +156,10 @@ export function catalogUrlKey(value: string) {
     url.hash = '';
     url.hostname = url.hostname.toLowerCase().replace(/^www\./, '');
     for (const key of [...url.searchParams.keys()]) if (/^(utm_.+|gclid|fbclid)$/i.test(key)) url.searchParams.delete(key);
+    // One option of the same listing, not another product: eBay's `var` (the product page links the chosen option this
+    // way, so a cart line added there carries it) and Shopify's `variant`. Both keep pointing at the one catalog card.
+    if (/(^|\.)ebay\.[a-z.]+$/.test(url.hostname)) url.searchParams.delete('var');
+    url.searchParams.delete('variant');
     url.searchParams.sort();
     return url.href;
   } catch { return value.trim(); }

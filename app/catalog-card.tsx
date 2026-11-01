@@ -28,6 +28,11 @@ import {isUzbek} from '@/lib/market/i18n';
 
 type Costs = NonNullable<CatalogItem['costs']>;
 
+/** `text` with its `strong` part (the parcel saving's sum) in bold. */
+function boldPart(text: string, strong?: string) {
+  const at = strong ? text.indexOf(strong) : -1;
+  return at < 0 ? text : <>{text.slice(0, at)}<b>{strong}</b>{text.slice(at + strong!.length)}</>;
+}
 export function catalogFormatter(locale: Locale) {
   const numberLocale = locale === 'ru' ? 'ru-RU' : isUzbek(locale) ? uzText(locale, 'uz-UZ') : 'en-US';
   // Dollars are written as on the rest of the site ("$69", "$6,79"); other store currencies keep Intl's form.
@@ -164,7 +169,8 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       </p>
       <Variants item={item} locale={locale} />
       {/* Short chip, the explanation behind «?» (owner, 2 November 2026: the long sentence on every card read as noise). */}
-      {parcel && <p className="pcard-note"><span>{parcel.text}</span>{parcel.hint && <InfoTip locale={locale}>{parcel.hint}</InfoTip>}</p>}
+      {/* The «?» comes first: it floats at the right of the first line and the text flows round it (catalog-pages.css). */}
+      {parcel && <p className="pcard-note">{parcel.hint && <InfoTip locale={locale}>{parcel.hint}</InfoTip>}<span>{boldPart(parcel.text, parcel.strong)}</span></p>}
       <div className="pcard-buy">
         {inCart
           ? <a className="btn secondary" href="/cart"><Check size={18} aria-hidden="true" />{cc.inCart}</a>

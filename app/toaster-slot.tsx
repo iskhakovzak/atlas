@@ -12,13 +12,14 @@ const phoneQuery='(max-width: 639px)';
 /**
  * Where a toast sits on a phone: above whatever is fixed to the bottom of the screen (the bottom bar, a product's or the
  * cart's sticky total), so it lands under the thumb and covers nothing to press. Written as a CSS variable the toaster's
- * offset reads; measured again before every toast, since the bars differ per page.
+ * offset reads; measured again before every toast, since the bars differ per page. The cookie card is not a bar: it
+ * steps aside while a toast is up (app/consent.css).
  */
 function measureBottom(){
   const height=window.innerHeight;
   const tops=[...document.querySelectorAll<HTMLElement>('body > *, .mobile-nav, [class*="sticky"], [class*="-bar"], [class*="dock"]')].filter(element=>{
     const style=getComputedStyle(element);
-    if(style.position!=='fixed'||style.visibility==='hidden'||style.display==='none'||element.closest('[data-sonner-toaster]'))return false;
+    if(style.position!=='fixed'||style.visibility==='hidden'||style.display==='none'||element.closest('[data-sonner-toaster], .consent-card'))return false;
     const box=element.getBoundingClientRect();
     return box.width>window.innerWidth*.6&&box.bottom>height*.75&&box.top>height*.5&&box.height>0;
   }).map(element=>element.getBoundingClientRect().top);

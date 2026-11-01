@@ -294,7 +294,7 @@ export function GlobalLinkOrder() {
  * import limit is shared); the server checks it with the store when it is added, and a changed price reloads it here.
  * `inSheet`: inside the catalog's bottom sheet or side panel (the total bar sticks to the sheet, not the window).
  */
-export function ProductOrder({ mode = "link", product, inSheet = false }: { mode?: "link" | "catalog"; product?: MerchantFind; inSheet?: boolean } = {}) {
+export function ProductOrder({ mode = "link", product, inSheet = false, chosenVariant }: { mode?: "link" | "catalog"; product?: MerchantFind; inSheet?: boolean; chosenVariant?: string } = {}) {
   const { ready, status, error: accountError, user, refresh, pricing, state, act, lastActionError, catalogProducts, loadCatalog } = useMarket();
   // Delivery is chosen only in the cart; estimates follow its current speed.
   const [previewSpeed, setPreviewSpeed] = useState<"express" | "standard">(defaultDeliverySpeed);
@@ -351,13 +351,15 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   // must not spend the guests' shared import limit (lib/market/import-preview.ts).
   const datedCatalog = catalogMode && !seedReady;
   const seedColors = [...new Set(seedSelectable.map(item => item.color).filter((value): value is string => Boolean(value)))];
+  // Opened from a cart line: that line's option is chosen from the start (colour, size, its price and photo).
+  const chosenSeed = seedReady && chosenVariant ? withOptionAxes(seedSelectable).find(item => item.label === chosenVariant) : undefined;
   const [url, setUrl] = useState(() => requestedUrl);
   const [source, setSource] = useState(seed?.sourceUrl ?? dealSeed?.url ?? ""),
     [name, setName] = useState(seed?.name ?? dealSeed?.title ?? ""),
     [brand, setBrand] = useState(seed?.brand ?? dealSeed?.store ?? ""),
     [declaration, setDeclaration] = useState(""),
     [currency, setCurrency] = useState(seed?.sourceCurrency ?? "USD"),
-    [amount, setAmount] = useState(seedPrice ? String(seedPrice.amount) : dealSeed ? String(dealSeed.price) : ""),
+    [amount, setAmount] = useState(chosenSeed?.price !== undefined ? String(chosenSeed.price) : seedPrice ? String(seedPrice.amount) : dealSeed ? String(dealSeed.price) : ""),
     // The store's own "before the discount" price from the import (Shopify), in the store currency.
     [importReference, setImportReference] = useState<number | undefined>(undefined),
     [shipping, setShipping] = useState(String(seed?.sourceShippingUsd ?? 10)),
@@ -367,13 +369,13 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
     [country, setCountry] = useState(canonicalCountry(seed?.country ?? "США")),
     [otherCountry, setOtherCountry] = useState(""),
     [category, setCategory] = useState(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое")),
-    [variant, setVariant] = useState(seedReady ? (seedSelectable.length === 1 ? seedSelectable[0].label : "") : fallbackOptions.length === 1 ? fallbackOptions[0].label : ""),
+    [variant, setVariant] = useState(chosenSeed ? chosenSeed.label : seedReady ? (seedSelectable.length === 1 ? seedSelectable[0].label : "") : fallbackOptions.length === 1 ? fallbackOptions[0].label : ""),
     [rawVariants, setVariants] = useState<ProductVariant[]>(seedReady ? seedSelectable : fallbackOptions),
-    [selectedColor, setSelectedColor] = useState(seedColors.length === 1 ? seedColors[0] : ""),
+    [selectedColor, setSelectedColor] = useState(chosenSeed?.color ?? (seedColors.length === 1 ? seedColors[0] : "")),
     // The colour under the pointer or focus, named in full in the step heading while a long row of colours is shown.
     [colourPeek, setColourPeek] = useState(""),
-    [selectedSize, setSelectedSize] = useState(""),
-    [image, setImage] = useState(seed?.image ?? dealSeed?.image ?? ""),
+    [selectedSize, setSelectedSize] = useState(chosenSeed?.size ?? ""),
+    [image, setImage] = useState(chosenSeed?.image ?? seed?.image ?? dealSeed?.image ?? ""),
     [images, setImages] = useState<string[]>(seedImages),
     [colorwayImages, setColorwayImages] = useState<ProductColorwayGallery[]>(() => seedReady ? cleanColorwayGalleries(seed!.sourceColorwayImages, seed!.sourceUrl ?? requestedUrl) : []),
     [busy, setBusy] = useState(false),
@@ -405,7 +407,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   // Several options of one product can go to the cart at once: option label → quantity.
   // Also on the first paint of the colours, when a colour arrives already chosen from the link.
   useEffect(() => { document.querySelectorAll<HTMLElement>(".lo-colour-rail").forEach(keepChosenColourInView); }, [selectedColor, variants]);
-  const [picked, setPicked] = useState<Record<string, number>>(() => { const start = seedReady ? seedSelectable : fallbackOptions; return start.length === 1 ? { [start[0].label]: 1 } : {}; });
+  const [picked, setPicked] = useState<Record<string, number>>(() => { if (chosenSeed) return { [chosenSeed.label]: 1 }; const start = seedReady ? seedSelectable : fallbackOptions; return start.length === 1 ? { [start[0].label]: 1 } : {}; });
   // One option at a time by default: a tap replaces the choice. "Several or a quantity" turns on the list with
   // quantities (owner, 12 October 2026). A restored draft with several options opens in that mode.
   const [multiPick, setMultiPick] = useState(false);

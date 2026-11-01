@@ -18,9 +18,10 @@ import './styles/catalog-cards.css';
 /**
  * A catalog product opened from a card (redesign stage 5, 1 November 2026): the same product page as /catalog/p/[id] and
  * /order-by-link — photos, one big sum, colours and sizes chosen here, "Из чего сумма" and "В корзину" — in a bottom
- * sheet of 92 % of the screen on phones and a wide panel (photos 7 : details 5) on computers.
+ * sheet of 92 % of the screen on phones and a wide panel (photos 7 : details 5) on computers. Opened from a cart line
+ * (the cart, the checkout summary), `variant` is that line's option: it opens already chosen.
  */
-export function ProductSheet({product,onClose}:{product:Product|null;onClose:()=>void}){
+export function ProductSheet({product,variant,onClose}:{product:Product|null;variant?:string;onClose:()=>void}){
   const side=useSheetSide();
   const swipe=useSwipeClose(onClose);
   const {state}=useMarket();
@@ -39,7 +40,7 @@ export function ProductSheet({product,onClose}:{product:Product|null;onClose:()=
         <SheetDescription className="sr-only">{view.brand}</SheetDescription>
         {/* "×" rides a zero-height sticky bar over the photo, still in reach once the details are scrolled. */}
         <div className="pd-sheet-actions"><SheetClose asChild><button type="button" className="icon-btn sheet-close" aria-label={t.close}><X size={20}/></button></SheetClose></div>
-        <ProductOrder key={view.id+(view.sourceUrl??'')} mode="catalog" product={view as MerchantFind} inSheet/>
+        <ProductOrder key={view.id+(view.sourceUrl??'')+'|'+(variant??'')} mode="catalog" product={view as MerchantFind} chosenVariant={variant} inSheet/>
       </>}
     </SheetContent>
   </Sheet>;

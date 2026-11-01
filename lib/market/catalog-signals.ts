@@ -2,7 +2,7 @@ import { storeShippingHoldUsd, tariff, type Pricing } from './domain.ts';
 import { formatSum, formatUsd, ruPlural } from './format.ts';
 import { storeLabel, type CatalogItem } from './catalog-query.ts';
 import type { Locale } from './i18n.ts';
-import {withCyrillic} from './uz-cyrl.ts';
+import {toCyrillic,withCyrillic} from './uz-cyrl.ts';
 import { compactSum } from './catalog-copy.ts';
 
 /**
@@ -13,6 +13,8 @@ export type Signal = {
   tone: 'mint' | 'neutral';
   text: string;
   hint?: string;
+  /** The part of `text` set in bold (the parcel saving's sum), in the same script as the text. */
+  strong?: string;
 };
 
 export type SignalContext = {
@@ -32,7 +34,8 @@ export type SignalContext = {
 
 const copy = /*@__PURE__*/withCyrillic({
   ru: {
-    parcel: (save: string) => `Одной посылкой −${save}`,
+    parcel: (save: string) => `Одной посылкой дешевле на ${save}`,
+    parcelSum: (save: string) => save,
     parcelHint: (extra: string, alone: string, store: string) => `В корзине уже есть товар из ${store}. Этот поедет вместе с ним одной посылкой, поэтому доставка дешевле: к корзине добавится ${extra}, а не ${alone}.`,
     limit: (limit: string) => `В лимите ${limit}`,
     limitHint: 'По вашим заказам в Atlas за этот месяц; оценка, пошлину считает таможня при ввозе.',
@@ -47,7 +50,8 @@ const copy = /*@__PURE__*/withCyrillic({
     sizesHint: 'По списку размеров магазина; выбранный размер Atlas сверит при добавлении в корзину.',
   },
   uz: {
-    parcel: (save: string) => `Bitta posilkada −${save}`,
+    parcel: (save: string) => `Bitta posilkada ${save} arzon`,
+    parcelSum: (save: string) => save,
     parcelHint: (extra: string, alone: string, store: string) => `Savatda ${store} tovari bor. Bu tovar u bilan bitta posilkada boradi, shuning uchun yetkazish arzonroq: savatga ${alone} emas, ${extra} qo‘shiladi.`,
     limit: (limit: string) => `${limit} limit ichida`,
     limitHint: 'Shu oydagi Atlas buyurtmalaringiz bo‘yicha; taxminiy, bojni olib kirishda bojxona hisoblaydi.',
@@ -62,7 +66,8 @@ const copy = /*@__PURE__*/withCyrillic({
     sizesHint: 'Do‘kon o‘lchamlari ro‘yxati bo‘yicha; tanlangan o‘lchamni Atlas savatga qo‘shishda tekshiradi.',
   },
   en: {
-    parcel: (save: string) => `One parcel −${save}`,
+    parcel: (save: string) => `${save} cheaper in one parcel`,
+    parcelSum: (save: string) => save,
     parcelHint: (extra: string, alone: string, store: string) => `Your cart already has an item from ${store}. This one ships with it in one parcel, so delivery costs less: ${extra} is added to your cart, not ${alone}.`,
     limit: (limit: string) => `Within the ${limit} allowance`,
     limitHint: 'Based on your Atlas orders this month; an estimate, customs assesses duty on import.',
@@ -92,10 +97,13 @@ export function signalsFor(item: CatalogItem, ctx: SignalContext): Signal[] {
   let coloured: Signal | null = null;
 
   // The shared parcel is said as a saving (owner, 2 November 2026: "+223 817 сум" read as a surcharge): how much cheaper
-  // the item is in one parcel with the same store's cart than on its own; no chip when it saves nothing.
+  // the item is in one parcel with the same store's cart than on its own; no chip when it saves nothing. Said in full,
+  // «Одной посылкой дешевле на 114 тыс.», with the sum in bold (`strong`).
   if (!coloured && ctx.parcel && item.costs && Number.isFinite(ctx.parcel.extra)) {
     const extra = Math.max(0, ctx.parcel.extra), save = item.costs.total - extra;
-    if (save >= 1000) coloured = { kind: 'parcel', tone: 'mint', text: c.parcel(compactSum(save, ctx.locale === 'ru' || ctx.locale === 'en' ? ctx.locale : 'uz')), hint: c.parcelHint(fmt(extra), fmt(item.costs.total), storeLabel(ctx.parcel.store, ctx.locale)) };
+    // Uzbek Cyrillic: the sum is an argument of the copy, which keeps arguments as passed, so it is written in Cyrillic here.
+    const latinSum = compactSum(save, ctx.locale === 'ru' || ctx.locale === 'en' ? ctx.locale : 'uz'), sum = ctx.locale === 'oz' ? toCyrillic(latinSum) : latinSum;
+    if (save >= 1000) coloured = { kind: 'parcel', tone: 'mint', text: c.parcel(sum), strong: c.parcelSum(sum), hint: c.parcelHint(fmt(extra), fmt(item.costs.total), storeLabel(ctx.parcel.store, ctx.locale)) };
   }
   if (!coloured && member && usd !== undefined && item.fresh && usd <= ctx.remainingUsd! + 1e-9) {
     coloured = { kind: 'limit', tone: 'mint', text: c.limit(formatUsd(ctx.dutyLimitUsd, ctx.locale)), hint: c.limitHint };

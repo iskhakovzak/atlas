@@ -11,8 +11,8 @@ const ProductSheetChunk=lazy(()=>loadChunk(load).then(module=>({default:module.P
 export const preloadProductSheet=()=>{load().catch(()=>undefined)};
 
 /** Same props as ProductSheet. Mounted from the first opened product on, so the sheet still animates its closing. */
-export function LazyProductSheet({product,onClose}:{product:Product|null;onClose:()=>void}){
+export function LazyProductSheet({product,variant,onClose}:{product:Product|null;variant?:string;onClose:()=>void}){
   const [used,setUsed]=useState(false);
   if(product&&!used)setUsed(true);
-  return used?<Suspense fallback={null}><ProductSheetChunk product={product} onClose={onClose}/></Suspense>:null;
+  return used?<Suspense fallback={null}><ProductSheetChunk product={product} variant={variant} onClose={onClose}/></Suspense>:null;
 }

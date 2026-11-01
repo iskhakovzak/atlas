@@ -85,6 +85,12 @@ html[data-theme="dark"] .consent-switch > span::after { background: #eef0eb; }
   body:has(.mobile-nav):has(.consent-card) .site-main { padding-bottom: calc(var(--atlas-mobile-nav-clearance, 64px) + 150px); }
   body:has(.mobile-nav):has(.consent-card) main.site-main:is([data-view="link"]:has(.lo-sticky), [data-view="cart"]:has(.basket-sticky)) { padding-bottom: calc(var(--atlas-mobile-nav-clearance, 64px) + 230px); }
 }
+/* Phones: a toast rises above the bottom bars, where the card is; the card steps aside while one is up and comes back
+   after it (a filter fade, since the entrance animation holds the opacity). */
+@media (max-width: 760px) {
+  .consent-card { transition: filter var(--dur-base, 200ms) var(--ease-out, ease), visibility 0s linear 0s; }
+  body:has([data-sonner-toast]) .consent-card { filter: opacity(0); visibility: hidden; pointer-events: none; transition: filter var(--dur-exit, 180ms) var(--ease-in, ease), visibility 0s linear var(--dur-exit, 180ms); }
+}
 /* Out of the way while a dialog or a picker is open, and while the visitor types a link (the keyboard is up). */
 body:has([role=dialog][data-state=open], [role=listbox][data-state=open]) .consent-card,
 body:has(#home-link-form:focus-within, .lo-link:focus-within, .stores-link:focus-within, .store-link:focus-within, .batch-import:focus-within, .catalog-importer:focus-within) .consent-card { visibility: hidden; pointer-events: none; }
