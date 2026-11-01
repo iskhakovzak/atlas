@@ -1,0 +1,9 @@
+/* Admin → Промокоды (redesign stage 6, app/admin-promo.tsx). Direction A tokens only. */
+.admin-promo-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.admin-promo-active { display: inline-flex; align-items: center; gap: var(--space-2); min-height: 44px; font-size: var(--fs-14); }
+.admin-promo-table td small { display: block; color: var(--text-2); font-size: var(--fs-12); }
+.admin-promo h2 { display: flex; align-items: center; gap: var(--space-2); }
+.admin-promo-active input { margin: 0; }
+.admin-promo-table .acc-actions { white-space: nowrap; }
+.admin-promo-table .acc-actions .text-button { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-right: var(--space-3); vertical-align: middle; }
+

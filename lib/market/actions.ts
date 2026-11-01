@@ -74,6 +74,7 @@ import { cartCustomsEstimate } from "./allowance.ts";
 import { assertCartPolicy, defaultPolicy, productRestriction, type Policy } from "./policy.ts";
 import { customsVersion, paddedWeight, toUsd } from "./world.ts";
 import { safeImage } from "../importer/extract.ts";
+import { normalizePromoCode, promoDiscount, promoErrors, promoOrderSum, promoProblem, type PromoRule } from "./promo.ts";
 
 /** How long the server keeps removed cart lines for «Вернуть»: the toast shows for 8 s, the rest covers a slow network. */
 export const cartRestoreMs = 60_000;
@@ -88,6 +89,9 @@ export const actionSchema = z.discriminatedUnion("type", [
     variant: z.string(),
     quantity: z.number().int().min(1).max(10).optional(),
     note: z.string().max(500).optional(),
+    // A line of a guest's browser cart moved into the account after sign-in (redesign stage 6): the server checks it with
+    // the store like any add, but a moved store price is taken (and shown on the line) instead of refusing the line.
+    merge: z.boolean().optional(),
   }),
   // Several options of one product at once (sizes, colors), each with its own quantity; one store check covers them.
   z.object({
@@ -129,6 +133,9 @@ export const actionSchema = z.discriminatedUnion("type", [
     postalCode: z.string().trim().max(20).optional(),
     // "Atlas pays customs for me": the duty the confirmation step showed for this recipient (soum).
     customsDuty: amount.optional(),
+    // A promo code (any case) and the discount the checkout page showed for it; the server finds, checks and counts it.
+    promoCode: z.string().trim().min(1).max(40).optional(),
+    promoDiscount: amount.optional(),
   }),
   z.object({ type: z.literal("payment-demo"), id }),
   z.object({ type: z.literal("payment-demo-batch"), batchId: z.string().min(1).max(80), amount: z.number().int().nonnegative() }),
@@ -258,6 +265,8 @@ export function applyAction(
   isOperator: boolean,
   pricing: Pricing = tariff,
   policy: Policy = defaultPolicy,
+  /** Server data an action needs besides the account: the promo code a checkout names, as stored (null: none such). */
+  extras: { promo?: PromoRule | null; now?: number } = {},
 ): State {
   if (
     (a.type === "advance" ||
@@ -390,9 +399,21 @@ export function applyAction(
       // The prepaid duty (checked against the server's figure in checkoutCart) is part of what the balance can pay;
       // with no duty for this recipient the customs fee is not in the bill.
       const billed = withCustomsHelpFor(checkoutLines(s.cart), customs, pricing.fx);
+      // A promo code: the stored one with this text, on, in its dates, under its cap and above its minimum. The count
+      // itself is taken by the route when the order is saved (lib/market/promo-store.ts reservePromo).
+      let promo: Parameters<typeof checkoutCart>[12];
+      if (a.promoCode) {
+        const rule = extras.promo;
+        if (!rule || rule.code !== normalizePromoCode(a.promoCode)) throw Object.assign(new Error("Промокод не найден."), { code: promoErrors.unknown });
+        const problem = promoProblem(rule, extras.now ?? Date.now(), promoOrderSum(billed));
+        if (problem) throw Object.assign(new Error("Промокод сейчас не действует."), { code: problem });
+        const discount = promoDiscount(rule, billed).total;
+        if (!discount || discount !== a.promoDiscount) throw Object.assign(new Error("Скидка по промокоду пересчитана."), { code: promoErrors.changed });
+        promo = { rule: { id: rule.id, code: rule.code, kind: rule.kind, value: rule.value }, expected: discount };
+      }
       if (
         (a.useBalance
-          ? Math.min(totalOf(billed) + (customsHelpChosen(s) ? a.customsDuty ?? 0 : 0), Math.max(0, balanceOf(s)))
+          ? Math.min(totalOf(billed) - (promo?.expected ?? 0) + (customsHelpChosen(s) ? a.customsDuty ?? 0 : 0), Math.max(0, balanceOf(s)))
           : 0) !== a.expectedCredit
       )
         throw Error("Баланс изменился. Проверьте итог заново.");
@@ -409,6 +430,7 @@ export function applyAction(
         pricing,
         customs,
         a.customsDuty,
+        promo,
       );
     }
     case "payment-demo":

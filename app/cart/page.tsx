@@ -11,5 +11,7 @@ import '../styles/member-pages.css';
 import '../styles/catalog-cards.css';
 // Cart selection and the checkout review; not needed by other pages.
 import '../cart-select.css';
+// The guest's cart and the problems of a moved cart share the checkout's layer (redesign stage 6).
+import '../checkout.css';
 export async function generateMetadata(): Promise<Metadata> { return privateMetadata('cart', await pageLocale()); }
 export default function Page(){return <Marketplace view="cart"><CartView/></Marketplace>;}

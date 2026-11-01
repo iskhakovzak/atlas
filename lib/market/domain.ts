@@ -3,6 +3,7 @@ import { combinedShipmentWeight, customsVersion, usdRates } from "./world.ts";
 import {pickLocale} from './uz-cyrl.ts';
 import { isServedRegion } from "./addresses.ts";
 import type {Locale} from './i18n.ts';
+import { promoDiscount, promoErrors, promoKinds, type AppliedPromo } from "./promo.ts";
 
 export const money = (n: number) =>
   new Intl.NumberFormat("ru-RU").format(n) + " сум";
@@ -470,6 +471,11 @@ const quoteSchema = z.object({
   customsDuty: amount.optional(),
   customsHelpRate: z.number().finite().min(0).max(0.2).optional(),
   /**
+   * A promo code's discount on this line's Atlas fee (soum, redesign stage 6), already taken off `total`. Only at
+   * checkout, never in a cart quote; never more than `service` + `buyout` + `conversion` (lib/market/promo.ts).
+   */
+  promoDiscount: amount.optional(),
+  /**
    * Checkout services priced as a percent of the parcel (parcel insurance, since 10 October 2026): this line's share —
    * `rate` of its `merchandise` plus `delivery` — included in `total`. `delivery` (the line's international and store
    * delivery, insured with the goods) is absent on fees counted before the base took in delivery: those insured the goods alone.
@@ -912,6 +918,8 @@ const orderSchema = z.object({
   note: z.string().max(500).optional(),
   /** The customs estimate the customer saw at checkout for this recipient and month (informational). */
   customs: customsEstimateSchema.optional(),
+  /** The promo code of this checkout (redesign stage 6); this order's share of its discount is `quote.promoDiscount`. */
+  promo: z.object({ id: z.string().max(80), code: z.string().max(40), kind: z.enum(promoKinds), value: z.number().finite().nonnegative() }).optional(),
 });
 export type Order = z.infer<typeof orderSchema>;
 const entrySchema = z.object({
@@ -1870,6 +1878,8 @@ export function checkoutCart(
   config: Pricing = tariff,
   customs?: CustomsEstimate,
   expectedCustomsDuty?: number,
+  /** A promo code the server found valid for this checkout, and the discount the customer saw (lib/market/promo.ts). */
+  promo?: { rule: AppliedPromo; expected: number },
 ): State {
   if (state.checkoutKeys.includes(key)) return state;
   if (!state.cart.length) throw Error("Корзина пуста.");
@@ -1922,11 +1932,20 @@ export function checkoutCart(
   const merchandiseTotal = lines.reduce((sum, i) => sum + i.quote.merchandise, 0);
   let dutyLeft = dutyTotal;
   // No duty for this recipient: no fee either (owner, 7.10.2026).
-  const cart = !dutyTotal ? withoutCustomsHelp(lines) : lines.map((i, index, items) => {
+  const dutied = !dutyTotal ? withoutCustomsHelp(lines) : lines.map((i, index, items) => {
     const duty = index === items.length - 1 ? dutyLeft : Math.min(dutyLeft, Math.round(dutyTotal * (merchandiseTotal ? i.quote.merchandise / merchandiseTotal : 1 / items.length)));
     dutyLeft -= duty;
     return { ...i, quote: { ...i.quote, customsDuty: duty, total: i.quote.total + duty } };
   });
+  // A promo code takes its discount off each line's Atlas fee only (owner, 1 November 2026); the amount must be the one
+  // the customer saw, else the checkout page shows the new one first.
+  const discount = promo ? promoDiscount(promo.rule, dutied) : undefined;
+  if (promo && (!discount!.total || discount!.total !== promo.expected))
+    throw codedError(promoErrors.changed, "Скидка по промокоду пересчитана. Проверьте итог и повторите.");
+  const cart = discount ? dutied.map((i) => {
+    const off = discount.perLine.get(i.id) ?? 0;
+    return off ? { ...i, quote: { ...i.quote, promoDiscount: off, total: i.quote.total - off } } : i;
+  }) : dutied;
   const overStock = lines.find((i) => i.quantity > maxLineQuantity(i.product));
   if (overStock) throw Error(`В магазине осталось ${overStock.product.stockQuantity} шт. «${overStock.product.name}». Уменьшите количество.`);
   let available = useBalance ? Math.max(0, balanceOf(state)) : 0;
@@ -2003,6 +2022,7 @@ export function checkoutCart(
       // Each option keeps its own note (owner, 7.10.2026): nothing is merged across sizes.
       ...(i.note ? { note: i.note } : {}),
       ...(customs ? { customs } : {}),
+      ...(promo ? { promo: promo.rule } : {}),
       history: [
         {
           at: now,
@@ -2021,6 +2041,9 @@ export function checkoutCart(
           : []),
         ...(serviceFeesOf(i.quote)
           ? [{ at: now, text: "Гарантия сохранности Atlas: " + money(serviceFeesOf(i.quote)) + " входит в сумму заказа.", code: "insured", params: { fee: serviceFeesOf(i.quote) } }]
+          : []),
+        ...(promo && i.quote.promoDiscount
+          ? [{ at: now, text: "Промокод " + promo.rule.code + ": скидка " + money(i.quote.promoDiscount) + " с сервиса Atlas.", code: "promo", params: { code: promo.rule.code, discount: i.quote.promoDiscount } }]
           : []),
         ...sourceCheckHistory(i, now),
       ],

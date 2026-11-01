@@ -45,6 +45,8 @@ const PAGES = {
   'app/account/page.tsx': CUSTOMER_ROUTE,
   'app/balance/page.tsx': CUSTOMER_ROUTE,
   'app/cart/page.tsx': CUSTOMER_ROUTE,
+  // The one-page checkout (redesign stage 6): the cart's rules without the catalog cards.
+  'app/cart/checkout/page.tsx': [LINK, MEMBER],
   'app/declaration/page.tsx': CUSTOMER_ROUTE,
   'app/identity/page.tsx': CUSTOMER_ROUTE,
   'app/notifications/page.tsx': CUSTOMER_ROUTE,

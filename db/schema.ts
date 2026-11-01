@@ -72,6 +72,8 @@ export const orderFinance=sqliteTable('market_order_finance',{
  orderId:text('order_id').primaryKey(),customerId:text('customer_id').notNull(),status:text('status').notNull(),createdAt:integer('created_at').notNull(),paidAt:integer('paid_at'),month:text('month'),
  goods:integer('goods').notNull(),storeShipping:integer('store_shipping').notNull(),reserve:integer('reserve').notNull(),payable:integer('payable').notNull(),
  commission:integer('commission').notNull(),delivery:integer('delivery').notNull(),fxGain:integer('fx_gain').notNull(),services:integer('services').notNull(),revenue:integer('revenue').notNull(),updatedAt:integer('updated_at').notNull(),
+ // Promo-code discount already taken off `commission` (migration 0017): shown in the books, never added back.
+ promoDiscount:integer('promo_discount').notNull().default(0),
 },table=>[index('idx_market_order_finance_month').on(table.month),index('idx_market_order_finance_customer').on(table.customerId),index('idx_market_order_finance_created').on(table.createdAt),index('idx_market_order_finance_status_created').on(table.status,table.createdAt)]);
 
 export const backupExports=sqliteTable('market_backup_exports',{
@@ -108,3 +110,13 @@ export const pushSubscriptions=sqliteTable('market_push_subscriptions',{
 export const importOutcomes=sqliteTable('market_import_outcomes',{
  id:text('id').primaryKey(),host:text('host').notNull(),kind:text('kind').notNull(),reason:text('reason'),detail:text('detail'),url:text('url').notNull(),userId:text('user_id'),createdAt:integer('created_at').notNull(),
 },table=>[index('idx_market_import_outcomes_host').on(table.host,table.createdAt),index('idx_market_import_outcomes_created').on(table.createdAt)]);
+
+// Promo codes (redesign stage 6, 1 November 2026; lib/market/promo.ts, lib/market/promo-store.ts). A code lowers only the
+// Atlas service of a checkout. `uses` is counted by one conditional UPDATE when an order is placed, so the cap holds under
+// concurrent checkouts; each checkout that used a code leaves one redemption row (unique by its checkout key).
+export const promoCodes=sqliteTable('market_promo_codes',{
+ id:text('id').primaryKey(),code:text('code').notNull(),kind:text('kind').notNull(),value:real('value').notNull(),startsAt:integer('starts_at'),endsAt:integer('ends_at'),maxUses:integer('max_uses'),minOrder:integer('min_order'),active:integer('active').notNull().default(1),uses:integer('uses').notNull().default(0),note:text('note'),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull(),createdBy:text('created_by').notNull(),updatedBy:text('updated_by').notNull(),
+},table=>[uniqueIndex('idx_market_promo_codes_code').on(table.code)]);
+export const promoRedemptions=sqliteTable('market_promo_redemptions',{
+ id:text('id').primaryKey(),codeId:text('code_id').notNull(),code:text('code').notNull(),userId:text('user_id').notNull(),batchId:text('batch_id').notNull(),orderIds:text('order_ids').notNull(),discount:integer('discount').notNull(),createdAt:integer('created_at').notNull(),
+},table=>[uniqueIndex('idx_market_promo_redemptions_batch').on(table.batchId),index('idx_market_promo_redemptions_code').on(table.codeId,table.createdAt)]);

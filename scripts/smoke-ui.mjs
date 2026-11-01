@@ -128,7 +128,7 @@ try {
   // Catalog filter: the count depends on the catalog, so only check that a category narrows it
   // and lands in the address.
   await evaluate("location.assign('/catalog?lang=ru')");
-  const count = "document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length";
+  const count = "document.querySelectorAll('.catalog-results :is(.pcard, .find-card):not(.pcard-skeleton):not(.catalog-skeleton-card)').length";
   await eventually(`location.pathname === '/catalog' && ${count} > 0`, "catalog products");
   const total = await evaluate(count);
   await evaluate(
@@ -145,9 +145,13 @@ try {
     throw Error("Catalog cards neither open the product sheet nor link to the product page");
   }
   const privateLinksHidden = await evaluate(
-    "!document.querySelector('header a[href=\"/cart\"], header a[href=\"/orders\"], header a[href=\"/notifications\"]')",
+    "!document.querySelector('header a[href=\"/orders\"], header a[href=\"/notifications\"]')",
   );
   if (!privateLinksHidden) throw Error("Guest header exposed private navigation");
+  // The cart is open to guests (redesign stage 6): its link is the cart itself, not the sign-in page.
+  if (!(await evaluate("!!document.querySelector('header a.shell-cart[href=\"/cart\"]')"))) throw Error("Guest header cart does not open the cart");
+  await evaluate("location.assign('/cart')");
+  await eventually("location.pathname === '/cart' && !!document.querySelector('main h1')", "guest cart opens without sign-in");
   await evaluate("document.querySelector('footer a[href^=\"/legal\"]')?.click()");
   await eventually("location.pathname === '/legal' && document.querySelector('main h1') !== null", "legal navigation");
   await evaluate("document.querySelector('a.wordmark[href=\"/\"]')?.click()");
@@ -167,7 +171,7 @@ try {
   if (cdp.errors.length)
     throw Error(`Browser exceptions: ${cdp.errors.join(" | ")}`);
   process.stdout.write(
-    "UI smoke passed: Russian home and link calculator, catalog filter, guest navigation gates, legal, guest link order and 404.\n",
+    "UI smoke passed: Russian home and link calculator, catalog filter, guest navigation gates and cart, legal, guest link order and 404.\n",
   );
 } finally {
   cdp?.close();

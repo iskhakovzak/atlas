@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { products, cartSignature } from "../lib/market/domain.ts";
 import { customsVersion } from "../lib/market/world.ts";
+import { promoDiscount } from "../lib/market/promo.ts";
 
 const base = new URL(process.argv[2] ?? "http://127.0.0.1:8787/");
 if (!/^https?:$/.test(base.protocol)) throw Error("Expected an HTTP URL");
@@ -46,7 +47,18 @@ const apply = async (action) => {
 await apply({ type: "communication-save", value: { emailEnabled: true, smsEnabled: true, email: customerEmail, phone: "+998901234567", language: "ru" } });
 await apply({ type: "cart-add", product: products[0], variant: products[0].variants[0] });
 const delivery = { recipient: "Atlas Customer", phone: "+998901234567", region: "Ташкент", city: "Ташкент", address: "ул. Амира Темура, 10", postalCode: "100000", comment: "Предрелизный тест" };
-await apply({ type: "checkout", key: crypto.randomUUID(), signature: cartSignature(account.state.cart), useBalance: false, expectedCredit: 0, consentVersion: customsVersion, delivery });
+// A promo code made by the operator (admin «Промокоды», redesign stage 6): it lowers only the Atlas service, once.
+const promoCode = `SMOKE${Date.now().toString(36).toUpperCase()}`;
+await request("/api/promo-codes", { email: operatorEmail, method: "POST", body: { promo: { code: promoCode.toLowerCase(), kind: "fixed", value: 1000, maxUses: 1, active: true } } });
+const preview = await request("/api/promo", { method: "POST", body: { code: promoCode.toLowerCase() } });
+assert.equal(preview.promo.code, promoCode);
+const promoAmount = promoDiscount(preview.promo, account.state.cart).total;
+assert.ok(promoAmount > 0);
+await apply({ type: "checkout", key: crypto.randomUUID(), signature: cartSignature(account.state.cart), useBalance: false, expectedCredit: 0, consentVersion: customsVersion, delivery, promoCode, promoDiscount: promoAmount });
+assert.equal(account.state.orders[0].quote.promoDiscount, promoAmount);
+assert.equal(account.state.orders[0].promo.code, promoCode);
+const usedUp = await fetch(new URL("/api/promo", base), { method: "POST", headers: { ...auth(customerEmail), "Content-Type": "application/json", Origin: base.origin }, body: JSON.stringify({ code: promoCode }) });
+assert.equal(usedUp.status, 409, "a code with one use is used up after the order");
 const orderId = account.state.orders[0].id;
 assert.equal(account.state.orders[0].payment.status, "pending");
 await apply({ type: "payment-demo", id: orderId });
@@ -120,5 +132,5 @@ assert.equal(account.state.identityProfile.passportMasked,"•••• 4567");c
 await apply({type:"declaration-preview",orderIds:[orderId]});
 assert.equal(account.state.declarations[0].orderIds[0],orderId);
 await request(`/api/passport?id=${encodeURIComponent(typedId)}`,{method:"DELETE",body:{}});
-process.stdout.write(`Authenticated pre-release smoke passed: checkout, fees, ${liveImport?'catalog import/publish, ':''}private order documents, backup export, passport, declaration, operations and delivery.\n`);
+process.stdout.write(`Authenticated pre-release smoke passed: checkout with a promo code, fees, ${liveImport?'catalog import/publish, ':''}private order documents, backup export, passport, declaration, operations and delivery.\n`);
 process.exit(0);

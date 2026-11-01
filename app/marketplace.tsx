@@ -21,6 +21,9 @@ import {isUzbek} from '@/lib/market/i18n';
 import {breadcrumbs,publicViewPaths} from '@/lib/seo/structured-data';
 import {JsonLd} from './json-ld';
 import {CartAnnouncer} from './cart-announcer';
+import {GuestCartMerge} from './guest-cart-merge';
+import {useGuestCart} from './use-guest-cart';
+import {guestUnits} from '@/lib/market/guest-cart';
 import {ProfileMenu} from './profile-menu';
 import {orderAttention} from '@/lib/market/notice-panel';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
@@ -92,7 +95,9 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
   const {theme}=useTheme();
   const locale=state.communication.language as Locale,words=ui(locale);
   const modalWords=marketplaceWords(locale);
-  const count=state.cart.reduce((s,i)=>s+i.quantity,0),balance=balanceOf(state);
+  // A guest's cart lives in the browser (redesign stage 6): its count shows in the header and the bottom bar too.
+  const guestCart=useGuestCart().cart;
+  const count=ready?state.cart.reduce((s,i)=>s+i.quantity,0):status==='guest'?guestUnits(guestCart):0,balance=balanceOf(state);
   const nav=navCopy[locale];
   // The notifications panel belongs to the page it was opened on: moving to another page closes it.
   const [noticesFor,setNoticesFor]=useState<string|null>(null);
@@ -109,14 +114,14 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
   useEffect(()=>{try{if(ready)sessionStorage.setItem('atlas-header',JSON.stringify({balance,count}));else if(status==='guest')sessionStorage.removeItem('atlas-header')}catch{}},[ready,status,balance,count]);
   // A session cookie alone (a new tab) gives the member header too, just without the numbers until the account answers.
   const member=ready||(status==='loading'&&(!!snapshot||sessionHint)),known=ready||!!snapshot;
-  const shownBalance=ready?balance:snapshot?.balance??0,shownCount=ready?count:snapshot?.count??0;
+  const shownBalance=ready?balance:snapshot?.balance??0,shownCount=ready||status==='guest'?count:snapshot?.count??0;
   const walletAmount=known?(locale==='ru'?money(shownBalance):new Intl.NumberFormat(isUzbek(locale)?uzText(locale, 'uz-UZ'):'en-US').format(shownBalance)+(isUzbek(locale)?uzText(locale, ' so‘m'):' UZS')):'';
   // An order waits for the customer (an extra payment, a change to answer, a payment to finish): a dot on the profile.
   const attention=ready&&state.orders.some(order=>orderAttention(order)!==null);
   // The count is in the cart's name (a polite status line says each change, app/cart-announcer.tsx).
-  const cartLabel=known?modalWords.cart+shownCount:words.cart;
-  // A guest's cart and saved items need an account for now: their links sign in first and come back there.
-  const cartHref=member?'/cart':signInPath('/cart'),favoritesHref=member?'/favorites':signInPath('/favorites');
+  const cartLabel=known||status==='guest'?modalWords.cart+shownCount:words.cart;
+  // Saved items need an account: a guest's heart signs in first and comes back. The cart is open to guests (stage 6).
+  const cartHref='/cart',favoritesHref=member?'/favorites':signInPath('/favorites');
   // A guest sent to sign-in by the cart tab still sees that tab lit (return_to=/cart), not the profile.
   const cartReturn=view==='login'&&signInReturn(here).startsWith('/cart');
   // Phones: one bottom bar for everyone. The centre "Ссылка" opens the paste-a-link sheet; without script it is the order page.
@@ -124,7 +129,7 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
     {href:'/',key:'catalog',Icon:House,label:words.home,active:view==='catalog'},
     {href:'/catalog',key:'products',Icon:LayoutGrid,label:words.catalog,active:view==='products'},
     {href:'/order-by-link',key:'link',Icon:Plus,label:nav.link,active:view==='link'||view==='batch'},
-    {href:cartHref,key:'cart',Icon:ShoppingBag,label:words.cart,active:view==='cart'||(view==='login'&&cartReturn)},
+    {href:cartHref,key:'cart',Icon:ShoppingBag,label:words.cart,active:view==='cart'||view==='checkout'||(view==='login'&&cartReturn)},
     member?{href:'/account',key:'account',Icon:UserRound,label:nav.profile,active:profileViews.has(view)}
      :{href:signInPath(signInReturn(here)),key:'login',Icon:UserRound,label:nav.profile,active:view==='login'&&!cartReturn},
   ];
@@ -161,7 +166,7 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
     {supportBot&&<a className="header-help shell-help" href={`https://t.me/${supportBot}`} target="_blank" rel="noopener noreferrer" aria-label={`${nav.help} — Telegram`}><MessageCircle size={18} aria-hidden="true"/><span>{nav.help}</span></a>}
     {member&&<NotificationsPanel open={noticesOpen} onOpenChange={setNoticesOpen} label={modalWords.notifications} active={view==='notifications'}/>}
     <Link aria-label={modalWords.favorites} href={favoritesHref} className={'shell-icon shell-wide'+(view==='favorites'?' active':'')}><Heart size={20} aria-hidden="true"/></Link>
-    <Link href={cartHref} className={'shell-cart shell-wide'+(view==='cart'?' active':'')} aria-label={cartLabel}><ShoppingBag size={19} aria-hidden="true"/><span className="shell-cart-label">{words.cart}</span>{known&&shownCount>0&&<b>{shownCount}</b>}</Link>
+    <Link href={cartHref} className={'shell-cart shell-wide'+(view==='cart'||view==='checkout'?' active':'')} aria-label={cartLabel}><ShoppingBag size={19} aria-hidden="true"/><span className="shell-cart-label">{words.cart}</span>{(known||status==='guest')&&shownCount>0&&<b>{shownCount}</b>}</Link>
     {member?<span className="shell-wide"><ProfileMenu nav={nav} locale={locale} balance={walletAmount} attention={attention} view={view}/></span>
      // A guest goes straight to sign-in and comes back to this page (the href is set on click, so the server and the browser render the same link).
      // On the sign-in page itself the button would lead to the same page: it is left out there.
@@ -169,6 +174,7 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
    </div>
   </header>
   <CartAnnouncer count={count} ready={ready} locale={locale}/>
+  <GuestCartMerge/>
   {/* Phones hide the breadcrumb (app/shell.css); its JSON-LD stays for search engines. */}
   <main className={view==='catalog'?'site-main home-main':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span>{crumb&&publicViewPaths[view]?<><Link href={publicViewPaths[view]}>{routeTitle(state.communication.language,view)}</Link><span aria-hidden="true">/</span><span className="breadcrumb-leaf" aria-current="page">{crumb}</span></>:<span aria-current="page">{routeTitle(state.communication.language,view)}</span>}</nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
   <AccessView view={view}>{children}</AccessView>
@@ -180,7 +186,7 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
    return <Link href={href} key={key} data-tab={key} className={(centre?'mobile-nav-link':'')+(active?' active':'')} aria-current={active?'page':undefined}
     aria-label={key==='cart'?cartLabel:dot?`${label} — ${nav.needsAction}`:undefined} aria-haspopup={centre?'dialog':undefined}
     onClick={centre?openLinkSheet:undefined} onPointerDown={centre?preloadLinkSheet:undefined}>
-    <span className="mobile-nav-icon"><Icon size={centre?24:22} strokeWidth={centre?2.4:1.9} aria-hidden="true"/>{dot&&<i className="shell-dot" aria-hidden="true"/>}</span><span className="mobile-nav-label">{label}</span>{key==='cart'&&known&&shownCount>0&&<b aria-hidden="true">{shownCount}</b>}</Link>})}</nav>
+    <span className="mobile-nav-icon"><Icon size={centre?24:22} strokeWidth={centre?2.4:1.9} aria-hidden="true"/>{dot&&<i className="shell-dot" aria-hidden="true"/>}</span><span className="mobile-nav-label">{label}</span>{key==='cart'&&(known||status==='guest')&&shownCount>0&&<b aria-hidden="true">{shownCount}</b>}</Link>})}</nav>
   {linkUsed&&<Suspense fallback={null}><LinkSheet open={linkOpen} onOpenChange={setLinkOpen} locale={locale} member={!!member}/></Suspense>}
 </>;
 }

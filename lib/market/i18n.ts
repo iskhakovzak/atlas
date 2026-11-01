@@ -107,9 +107,9 @@ const orderStatuses = /*@__PURE__*/withCyrillic({
 });
 export function localizedStatuses(locale:Locale){return orderStatuses[locale]}
 const routeTitles:Record<Locale,Record<string,string>>=/*@__PURE__*/withCyrillic({
-  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена',privacy:'Политика конфиденциальности',terms:'Условия использования',support:'Поддержка',app:'Приложение','delete-account':'Удаление аккаунта'},
-  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi',privacy:'Maxfiylik siyosati',terms:'Foydalanish shartlari',support:'Yordam',app:'Ilova','delete-account':'Akkauntni o‘chirish'},
-  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found',privacy:'Privacy policy',terms:'Terms of use',support:'Support',app:'App','delete-account':'Delete account'},
+  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',checkout:'Оформление',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена',privacy:'Политика конфиденциальности',terms:'Условия использования',support:'Поддержка',app:'Приложение','delete-account':'Удаление аккаунта'},
+  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',checkout:'Rasmiylashtirish',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi',privacy:'Maxfiylik siyosati',terms:'Foydalanish shartlari',support:'Yordam',app:'Ilova','delete-account':'Akkauntni o‘chirish'},
+  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',checkout:'Checkout',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found',privacy:'Privacy policy',terms:'Terms of use',support:'Support',app:'App','delete-account':'Delete account'},
 });
 export function routeTitle(locale:Locale,view:string){return routeTitles[locale][view]??view}
 
@@ -189,6 +189,15 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_83': 'Telegram сейчас не отвечает. Повторите через минуту.',
     'err_84': 'Уведомления в Telegram пока недоступны.',
     'err_85': 'Вернуть товар уже нельзя. Добавьте его снова со страницы товара.',
+    // Promo codes (redesign stage 6, lib/market/promo.ts).
+    'err_86': 'Такого промокода нет или он выключен. Проверьте написание.',
+    'err_87': 'Срок действия промокода закончился или ещё не начался.',
+    'err_88': 'Промокод уже использован максимальное число раз.',
+    'err_89': 'Сумма заказа меньше той, с которой действует промокод.',
+    'err_90': 'Скидка по промокоду пересчитана. Проверьте итог и нажмите «Оплатить» ещё раз.',
+    'err_91': 'Промокоды пока недоступны: примените миграцию базы 0017.',
+    'err_92': 'Проверьте промокод: 3–30 латинских букв или цифр, процент от 1 до 100 или сумма в сумах, конец срока позже начала.',
+    'err_93': 'Промокод с таким текстом уже есть. Придумайте другой.',
     'err_55': 'Нельзя отключить собственный доступ.',
     'err_56': 'Основного администратора из настроек хостинга отключить нельзя.',
     'err_57': 'Заметки о клиентах пока недоступны: примените миграцию базы 0011.',
@@ -268,6 +277,14 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_83': 'Telegram hozir javob bermayapti. Bir daqiqadan so‘ng qayta urining.',
     'err_84': 'Telegramdagi bildirishnomalar hozircha mavjud emas.',
     'err_85': 'Tovarni endi qaytarib bo‘lmaydi. Uni tovar sahifasidan qayta qo‘shing.',
+    'err_86': 'Bunday promokod yo‘q yoki u o‘chirilgan. Yozilishini tekshiring.',
+    'err_87': 'Promokodning amal qilish muddati tugagan yoki hali boshlanmagan.',
+    'err_88': 'Promokod ruxsat etilgan marta ishlatib bo‘lingan.',
+    'err_89': 'Buyurtma summasi promokod amal qiladigan summadan kam.',
+    'err_90': 'Promokod chegirmasi qayta hisoblandi. Jamini tekshirib, «To‘lash»ni yana bosing.',
+    'err_91': 'Promokodlar hozircha mavjud emas: 0017 migratsiyasini qo‘llang.',
+    'err_92': 'Promokodni tekshiring: 3–30 lotin harfi yoki raqam, 1 dan 100 gacha foiz yoki so‘mdagi summa, tugash sanasi boshlanishdan keyin.',
+    'err_93': 'Bunday matnli promokod allaqachon bor. Boshqasini o‘ylab toping.',
     'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
     'err_56': 'Hosting sozlamalaridagi asosiy administratorni o‘chirib bo‘lmaydi.',
     'err_57': 'Mijozlar haqidagi eslatmalar hozircha mavjud emas: 0011 migratsiyasini qo‘llang.',
@@ -347,6 +364,14 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_83': 'Telegram isn’t responding right now. Try again in a minute.',
     'err_84': 'Telegram notifications aren’t available yet.',
     'err_85': 'The item can no longer be restored. Add it again from its page.',
+    'err_86': 'There is no such promo code, or it is switched off. Check the spelling.',
+    'err_87': 'The promo code has expired or is not valid yet.',
+    'err_88': 'The promo code has been used the maximum number of times.',
+    'err_89': 'The order is below the amount this promo code starts from.',
+    'err_90': 'The promo discount was recalculated. Check the total and press “Pay” again.',
+    'err_91': 'Promo codes are not available yet: apply database migration 0017.',
+    'err_92': 'Check the promo code: 3–30 Latin letters or digits, a percent from 1 to 100 or an amount in soum, and an end after the start.',
+    'err_93': 'A promo code with this text already exists. Choose another one.',
     'err_55': 'You cannot disable your own access.',
     'err_56': 'The primary administrator from the hosting settings cannot be disabled.',
     'err_57': 'Customer notes are not available yet: apply database migration 0011.',
@@ -359,7 +384,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
  * (err_76), the duty for the recipient is another (err_77). The client reloads the account after them, so the cart
  * and the tariff it shows are the ones the next attempt is checked against.
  */
-export const reloadAfterErrorCodes: readonly string[] = ['err_75', 'err_76', 'err_77'];
+export const reloadAfterErrorCodes: readonly string[] = ['err_75', 'err_76', 'err_77', 'err_90'];
 /** The localized text of an error code; `{name}` placeholders take the given values. */
 export function serverError(locale:Locale, key:string, params?:Record<string,string|number>){
   const text = serverErrors[locale][key] ?? pickLocale({

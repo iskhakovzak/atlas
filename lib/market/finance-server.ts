@@ -98,8 +98,8 @@ export async function replaceLedgerEntry(id: string, reason: string, input: Ledg
   return nextId;
 }
 
-type FinanceRow = { order_id: string; customer_id: string; status: OrderFinance["status"]; created_at: number; paid_at: number | null; month: string | null; goods: number; store_shipping: number; reserve: number; payable: number; commission: number; delivery: number; fx_gain: number; services: number; revenue: number };
-const financeOf = (r: FinanceRow): OrderFinance => ({ orderId: r.order_id, customerId: r.customer_id, status: r.status, createdAt: r.created_at, ...(r.paid_at !== null ? { paidAt: r.paid_at } : {}), ...(r.month ? { month: r.month } : {}), goods: r.goods, storeShipping: r.store_shipping, reserve: r.reserve, payable: r.payable, commission: r.commission, delivery: r.delivery, fxGain: r.fx_gain, services: r.services, revenue: r.revenue });
+type FinanceRow = { order_id: string; customer_id: string; status: OrderFinance["status"]; created_at: number; paid_at: number | null; month: string | null; goods: number; store_shipping: number; reserve: number; payable: number; commission: number; delivery: number; fx_gain: number; services: number; revenue: number; promo_discount?: number | null };
+const financeOf = (r: FinanceRow): OrderFinance => ({ orderId: r.order_id, customerId: r.customer_id, status: r.status, createdAt: r.created_at, ...(r.paid_at !== null ? { paidAt: r.paid_at } : {}), ...(r.month ? { month: r.month } : {}), goods: r.goods, storeShipping: r.store_shipping, reserve: r.reserve, payable: r.payable, commission: r.commission, delivery: r.delivery, fxGain: r.fx_gain, services: r.services, revenue: r.revenue, ...(r.promo_discount ? { promoDiscount: r.promo_discount } : {}) });
 /** Orders paid in [from, to], plus the ones created then (pending, cancelled), for the books and the export. */
 export async function orderBooks(from: string, to: string): Promise<OrderFinance[]> {
   const start = Date.parse(from + "-01T00:00:00+05:00"), end = Date.parse(to + "-01T00:00:00+05:00") + 31 * 86400_000;

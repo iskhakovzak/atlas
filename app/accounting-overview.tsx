@@ -25,6 +25,7 @@ export function AccountingOverview({ctx,onOpenTab}:{ctx:AccountingContext;onOpen
   </div>
   <dl className="acc-facts" aria-label="Состав дохода и транзит месяца">
    <Fact label="Комиссия"><Amount value={s.income.commission}/></Fact>
+   {(s.income.promoDiscounts??0)>0&&<Fact label="Скидки по промокодам (уже вычтены из комиссии)"><Amount value={-(s.income.promoDiscounts??0)}/></Fact>}
    <Fact label="Международная доставка"><Amount value={s.income.delivery}/></Fact>
    <Fact label="Курсовая наценка"><Amount value={s.income.fxGain}/></Fact>
    <Fact label="Услуги"><Amount value={s.income.services}/></Fact>

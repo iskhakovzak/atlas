@@ -9,6 +9,8 @@ import { canonicalCatalogUrl, type CatalogDocument } from './catalog-editor.ts';
 import { communityCatalogProducts } from './community-deals.ts';
 import { cartSignature, checkoutLines, customsHelpChosen, inCheckout, serviceFeesOf, valueServiceFees, products as serverProducts, renewCart, unknownStoreShippingUsd, type Pricing, type Product, type State } from './domain.ts';
 import type { Policy } from './policy.ts';
+import type { PromoRule } from './promo.ts';
+import type { SourcePriceChange } from '../importer/verify.ts';
 import { validBoxedWeight } from './weight.ts';
 import { toUsd } from './world.ts';
 
@@ -102,6 +104,8 @@ export type PrepareDeps = {
   snapshotAt?: (value: Extracted) => number | undefined;
   /** The catalog's delivery record for this product link, if any; never taken from the request. */
   editorialShipping?: (product: Pick<Product, 'sourceUrl'>) => EditorialShipping | undefined | Promise<EditorialShipping | undefined>;
+  /** The promo code a checkout names, as stored (null: no such code); read by the route from D1. */
+  promo?: PromoRule | null;
 };
 
 export type PreparedAction = {
@@ -120,6 +124,8 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
   const { pricing: currentPricing, policy: currentPolicy, now } = deps;
   let verifiedSource: Extracted | undefined;
   let refusal: string | undefined;
+  // A guest's line moved into the account (cart-add with `merge`): the store's new price is taken and named on the line.
+  let mergedChange: SourcePriceChange | undefined;
   if (action.type === 'cart-add' || action.type === 'cart-add-many') {
     const items = action.type === 'cart-add' ? [{ product: action.product, variant: action.variant }] : action.items;
     // Several options of one product share one request to the store.
@@ -152,7 +158,10 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
           if (check.status === 'blocked') throw new ActionError(400, check.code);
           // The page showed an older price or another store delivery than the store states (or claims one it does not
           // state): the customer reloads it and sees the new total before adding.
-          if (check.status === 'changed') throw new ActionError(409, 'err_34');
+          if (check.status === 'changed') {
+            if (action.type !== 'cart-add' || !action.merge) throw new ActionError(409, 'err_34');
+            mergedChange = check.change;
+          }
           item.product = check.product;
           // A shipping weight the store publishes is used unless the customer entered their own.
           const storeWeight = value.weightKind === 'shipping' ? validBoxedWeight(value.boxedWeight) : undefined;
@@ -222,6 +231,11 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
       state = renewed;
     }
   }
-  const next = refusal ? state : applyAction(state, action, deps.operator, currentPricing, currentPolicy);
+  let next = refusal ? state : applyAction(state, action, deps.operator, currentPricing, currentPolicy, { promo: deps.promo, now });
+  if (mergedChange && action.type === 'cart-add') {
+    // The line shows what moved («было $X, стало $Y»), as after a cart check (CartItem.priceChange).
+    const change = mergedChange, product = action.product;
+    next = { ...next, cart: next.cart.map(item => item.product.id === product.id && item.variant === action.variant ? { ...item, priceChange: { ...change, at: now } } : item) };
+  }
   return { next, refusal, verifiedSource };
 }

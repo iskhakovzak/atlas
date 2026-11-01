@@ -51,7 +51,7 @@ export function AccountingOrders({ctx,onShowInLedger}:{ctx:AccountingContext;onS
       <td data-label="Заказ"><a className="text-link" href={`/operations#${encodeURIComponent(order.orderId)}`}>{order.orderId}</a><small>{order.customerId}</small></td>
       <td data-label="Статус">{statusNames[order.status]}<small>{books.stages[order.orderId]==='cancelled'?'Отменён':stageNames[Number(books.stages[order.orderId])]??'Этап не найден'}</small></td>
       <td data-label="Товар (транзит)" className="num">{money(order.goods)}{order.storeShipping?<small>+ доставка магазина {money(order.storeShipping)}</small>:null}</td>
-      <td data-label="Комиссия" className="num">{money(order.commission)}</td><td data-label="Доставка" className="num">{money(order.delivery)}</td><td data-label="Курс" className="num">{money(order.fxGain)}</td><td data-label="Услуги" className="num">{money(order.services)}</td>
+      <td data-label="Комиссия" className="num">{money(order.commission)}{order.promoDiscount?<small>промокод −{money(order.promoDiscount)}</small>:null}</td><td data-label="Доставка" className="num">{money(order.delivery)}</td><td data-label="Курс" className="num">{money(order.fxGain)}</td><td data-label="Услуги" className="num">{money(order.services)}</td>
       <td data-label="Доход Atlas" className="num"><b>{money(order.revenue)}</b></td>
       <td data-label="Расходы" className="num">{margin.linkedExpenses?<Amount value={-margin.linkedExpenses}/>:'—'}{margin.entries.length?<button type="button" className="text-button acc-link-small" aria-expanded={expanded} onClick={()=>setOpen(expanded?null:order.orderId)}>{margin.entries.length} зап.</button>:null}</td>
       <td data-label="Факт. маржа" className="num"><b><Amount value={margin.margin}/></b></td>

@@ -14,7 +14,8 @@ test('admin finance keeps saved quote components separate and excludes cancelled
  assert.equal(summary.cancelledCount,1);
  assert.equal(summary.quoteTotal,194);
  assert.equal(summary.atlasFees,15);
- assert.deepEqual(summary.lines.map(line=>line.amount),[150,10,2,3,4,20,5,0,0]);
+ // The last line is promo-code discounts (redesign stage 6): none here.
+ assert.deepEqual(summary.lines.map(line=>line.amount),[150,10,2,3,4,20,5,0,0,0]);
  assert.deepEqual(summary.paymentStates.pending,{count:1,amount:144});
  assert.deepEqual(summary.paymentStates.unrecorded,{count:1,amount:0});
  assert.equal(summary.paymentStates.refunded.count,0);

@@ -329,6 +329,10 @@ try {
     await snapshot("guest", productHref);
     await eventually("!!document.querySelector('main h1.pd-title') && !!document.querySelector('.pd-sum') && !!document.querySelector('script[type=\"application/ld+json\"]')?.textContent", "product page heading, sum and JSON-LD");
   }
+  // A guest's cart (redesign stage 6): the cart and the checkout open without signing in, the header counts nothing yet.
+  for (const path of ["/cart", "/cart/checkout"]) await snapshot("guest", path);
+  await open("/cart/checkout");
+  await eventually("!!document.querySelector('.co-page h1') && (!!document.querySelector('.co-empty') || !!document.querySelector('.co-signin'))", "guest checkout: empty or with the sign-in block");
   // Store directory: search goes to the address, a store card opens with the store's own link.
   await open("/stores?lang=ru");
   await eventually("document.querySelectorAll('.store-tile').length > 100", "store directory");
@@ -343,7 +347,7 @@ try {
   // link") instead of an empty field; either way there is a way to give a link. Waited for, not read once.
   await eventually("!!document.querySelector('main input') || !!document.querySelector('main .lo-source-host')", "link field or the resumed link on /order-by-link");
 
-  // 2. Customer: sign in, cart, three-step checkout through the interface, order list.
+  // 2. Customer: sign in, cart, one-page checkout through the interface, «Заказ принят», order list.
   await setViewport(1280); await setPreferences("light"); await signIn(customerEmail);
   const added = await evaluate(`(async () => {
     const account = await fetch('/api/account').then((r) => r.json());
@@ -352,35 +356,40 @@ try {
   })()`);
   if (added !== 200) throw Error(`cart-add returned ${added}`);
   await snapshot("customer", "/cart");
+  // One-page checkout (redesign stage 6): the cart's button opens /cart/checkout, which checks prices with the stores,
+  // takes the recipient, speed, customs and a promo code, and pays (simulated) with «Оплатить N сум».
   await setViewport(1280); await setPreferences("light"); await open("/cart");
   await evaluate("document.querySelector('.basket-cta').click(), true");
-  await eventually("!!document.querySelector('form.basket-checkout #recipient')", "checkout form");
+  await eventually("location.pathname === '/cart/checkout' && !!document.querySelector('#co-recipient')", "checkout page with the recipient form", 200);
+  await eventually("!document.querySelector('.co-checking')", "price check with the stores finished", 200);
+  await snapshot("customer", "/cart/checkout");
+  await open("/cart/checkout");
+  await eventually("!!document.querySelector('#co-recipient') && !document.querySelector('.co-checking') && !document.querySelector('.co-pay[disabled]')", "checkout ready to pay", 200);
   await evaluate(`(() => {
-    const set = (selector, value) => { const el = document.querySelector(selector); const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value); el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); };
-    set('#recipient', 'Atlas E2E Customer');
-    set('#recipient-phone', '90 123 45 67');
-    // Tashkent only for now: the city is fixed and there is no region list; with regions back, the first one is picked.
-    const region = document.querySelector('#region'); if (region) set('#region', [...region.options].find((option) => option.value)?.value ?? '');
+    const set = (selector, value) => { const el = document.querySelector(selector); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, value); el.dispatchEvent(new Event('input', { bubbles: true })); };
+    set('#co-recipient', 'Atlas E2E Customer');
+    set('#co-phone', '90 123 45 67');
+    set('#co-address', 'Amir Temur ko‘chasi, 10');
     return true;
   })()`);
   await sleep(150);
-  await evaluate(`(() => { const el = document.querySelector('#delivery-address'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, 'Amir Temur ko‘chasi, 10'); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
-  // The postal code is required: without it the form does not move on to the review step.
-  await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
-  await sleep(300);
-  if (await evaluate("!!document.querySelector('.review-aside')")) throw Error("checkout reached the review step without a postal code");
-  await evaluate(`(() => { const el = document.querySelector('#postal-code'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '100000'); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+  // The postal code is required: without it «Оплатить» places nothing and the field says why.
+  await evaluate("document.querySelector('.co-pay').click(), true");
+  await eventually("document.querySelector('#co-postal')?.getAttribute('aria-invalid') === 'true'", "postal code required before paying");
+  if (await evaluate("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders.length)")) throw Error("checkout placed an order without a postal code");
+  await evaluate(`(() => { const el = document.querySelector('#co-postal'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '100000'); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
   await sleep(150);
-  await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
-  await eventually("!!document.querySelector('.review-aside')", "review step");
-  // The consent checkbox is asked for only when this recipient owes duty; without duty the button accepts the terms.
-  if (await evaluate("!!document.querySelector('#checkout-consent')")) {
-    await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
-    await eventually("!!document.querySelector('#checkout-consent-error')", "consent is required before placing the order");
-    await evaluate("document.querySelector('#checkout-consent').click(), true");
+  // The consent checkbox is asked for only when this recipient owes duty; without duty paying accepts the terms.
+  if (await evaluate("!!document.querySelector('#co-consent')")) {
+    await evaluate("document.querySelector('.co-pay').click(), true");
+    await eventually("!!document.querySelector('#co-consent-error')", "consent is required before paying");
+    await evaluate("document.querySelector('#co-consent').click(), true");
   }
-  await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
-  await eventually("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders.length === 1)", "order placed", 200);
+  await evaluate("document.querySelector('.co-pay').click(), true");
+  await eventually("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders.length === 1 && a.state.orders[0].payment.status === 'paid')", "order placed and marked paid (demo)", 300);
+  await eventually("new URLSearchParams(location.search).has('placed') && !!document.querySelector('.co-placed h1')", "«Заказ принят» screen");
+  const passportHref = await evaluate("document.querySelector('.co-passport a.btn')?.getAttribute('href') ?? ''");
+  if (!passportHref.startsWith("/identity")) fail("customer /cart/checkout", `«Добавить паспорт» leads to ${passportHref || "nothing"}`);
   const orderId = await evaluate("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders[0].id)");
   await open("/orders");
   // The compact list (#29) shows the number only inside the expanded line; the line carries it as its id and label.
