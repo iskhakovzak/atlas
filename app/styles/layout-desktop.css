@@ -12,24 +12,7 @@
   .home-faq { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; column-gap: 16px; }
 }
 
-/* Footer. */
-/* Compact: brand + tagline on the left, link groups on the right, one bottom line. Groups are a flex row, so a
-   missing contacts group leaves no empty column. */
-@media (min-width: 761px) {
-  .home-footer { grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr); column-gap: 48px; align-items: start; }
-  /* Each group is one aligned row: a fixed title column, then its links in a line. */
-  .home-footer-groups { grid-column: 2; display: grid; gap: 6px; align-content: start; }
-  .home-footer-groups > * { display: grid; grid-template-columns: 180px minmax(0, 1fr); column-gap: 24px; align-items: baseline; min-width: 0; }
-  .home-footer-groups .home-footer-title { margin: 0; padding-top: 12px; }
-  .home-footer :is(nav, section) ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
-  .home-footer-bottom { grid-column: 1 / -1; }
-}
-/* Tablets: the brand on top, the groups under it at the full width (no squeezed pairs of links). */
-@media (min-width: 761px) and (max-width: 1023px) {
-  .home-footer { grid-template-columns: minmax(0, 1fr); }
-  .home-footer-groups { grid-column: 1; }
-  .home-footer-groups > * { grid-template-columns: 160px minmax(0, 1fr); }
-}
+/* Footer: app/footer.css. */
 
 /* ── app/customer.css ── */
 /* A loaded item: the page title steps back to one short line so the item starts high (owner, 11 October 2026). */

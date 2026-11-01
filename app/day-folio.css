@@ -96,11 +96,6 @@ html:not([data-theme="dark"]) .home-faq a { text-decoration: underline; text-dec
 /* Opening an answer: app/home.css (the height and the fade). */
 
 /* ---------- Footer ---------- */
-html:not([data-theme="dark"]) .home-footer { margin-top: calc(var(--day-section) / 2); padding-top: 28px; border-top: 1px solid var(--day-line); }
-html:not([data-theme="dark"]) .home-footer-title { font-size: 13px; font-weight: var(--fw-semibold); letter-spacing: .02em; color: var(--day-ink); }
-html:not([data-theme="dark"]) .home-footer a:not(.wordmark) { font-size: 14px; font-weight: 500; color: var(--day-muted); }
-html:not([data-theme="dark"]) .home-footer a:not(.wordmark):hover { color: var(--day-ink); }
-html:not([data-theme="dark"]) .home-footer-brand p { color: var(--day-muted); }
 
 /* ---------- Buttons and fields ---------- */
 html:not([data-theme="dark"]) .btn { border-radius: var(--day-r-control); font-weight: var(--fw-semibold); letter-spacing: 0; }

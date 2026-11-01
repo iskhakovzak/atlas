@@ -751,7 +751,6 @@ html[data-theme="dark"] :is(.find-card, .docs-recipient):hover { border-color: v
 html[data-theme="dark"] :is(.basket-parcel-title, .home-tariffs thead th) { background: rgba(255, 255, 255, 0.025); color: var(--night-muted); }
 /* The store name heads its parcel: the main text colour, as in the day theme; the country and days under it stay muted. */
 html[data-theme="dark"] :is(.cabinet-recipients li, .docs-group, .basket-balance, .cabinet-empty, .wallet-empty, .basket-line-help, .lo-guest, .cabinet-customs-cart) { background: rgba(255, 255, 255, 0.028); }
-html[data-theme="dark"] .home-footer { border-top-color: var(--night-line); }
 html[data-theme="dark"] .breadcrumb { padding: 14px 0 var(--space-6); color: var(--night-faint); }
 
 /* ---------- Buttons ---------- */

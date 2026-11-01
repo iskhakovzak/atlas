@@ -429,25 +429,25 @@ export const navCopy: Record<Locale, NavCopy> = /*@__PURE__*/withCyrillic({
     balance: 'Balance', notifications: 'Notifications', favorites: 'Saved', documents: 'Documents', settings: 'Settings', theme: 'Theme', signOut: 'Sign out', needsAction: 'an order needs your action' },
 });
 
-export type FooterCopy = { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; email: string; hours: string; pickup: string; theme: string; inn: string; dataSettings: string };
+export type FooterCopy = { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; email: string; hours: string; pickup: string; theme: string; inn: string; dataSettings: string; taglineShort: string };
 /** Footer words (every page), apart from the home page copy, which uses them as `footer` and `trust.inn`. */
 export const footerCopy: Record<Locale, FooterCopy> = /*@__PURE__*/withCyrillic({
   ru: {
       tagline: 'Atlas — сервис-посредник: выкупает товары в зарубежных магазинах и доставляет в Ташкент.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
       support: 'Поддержка в личном кабинете', rules: 'Все документы', privacy: 'Политика данных', customs: 'Таможня', faq: 'Частые вопросы',
       telegramSupport: 'Telegram-бот', telegramChannel: 'Telegram-канал', phone: 'Телефон', instagram: 'Instagram', email: 'Почта', hours: 'Часы работы', pickup: 'Пункт выдачи', theme: 'Тема',
-      inn: 'ИНН', dataSettings: 'Настройки данных',
+      inn: 'ИНН', dataSettings: 'Настройки данных', taglineShort: 'Магазины мира — с доставкой в Ташкент',
   },
   uz: {
       tagline: 'Atlas — vositachi xizmat: xorijiy do‘konlardan tovarlarni sotib olib, Toshkentga yetkazadi.', buyers: 'Xaridorlarga', contacts: 'Bog‘lanish', legal: 'Yuridik ma’lumotlar',
       support: 'Shaxsiy kabinetdagi yordam', rules: 'Barcha hujjatlar', privacy: 'Ma’lumotlar siyosati', customs: 'Bojxona', faq: 'Savollar',
       telegramSupport: 'Telegram-bot', telegramChannel: 'Telegram-kanal', phone: 'Telefon', instagram: 'Instagram', email: 'Pochta', hours: 'Ish vaqti', pickup: 'Topshirish punkti', theme: 'Mavzu',
-      inn: 'STIR', dataSettings: 'Ma’lumotlar sozlamalari',
+      inn: 'STIR', dataSettings: 'Ma’lumotlar sozlamalari', taglineShort: 'Dunyo do‘konlari — Toshkentga yetkazib beramiz',
   },
   en: {
       tagline: 'Atlas is a purchasing service: it buys items from international stores and delivers them to Tashkent.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
       support: 'Support in your account', rules: 'All documents', privacy: 'Privacy policy', customs: 'Customs', faq: 'FAQ',
       telegramSupport: 'Telegram bot', telegramChannel: 'Telegram channel', phone: 'Phone', instagram: 'Instagram', email: 'Email', hours: 'Working hours', pickup: 'Pickup point', theme: 'Theme',
-      inn: 'Tax ID (INN)', dataSettings: 'Data settings',
+      inn: 'Tax ID (INN)', dataSettings: 'Data settings', taglineShort: 'Stores of the world, delivered to Tashkent',
   },
 });
