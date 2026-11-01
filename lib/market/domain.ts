@@ -2073,7 +2073,7 @@ export function checkoutCart(
           ? [{ at: now, text: "Гарантия сохранности Atlas: " + money(serviceFeesOf(i.quote)) + " входит в сумму заказа.", code: "insured", params: { fee: serviceFeesOf(i.quote) } }]
           : []),
         ...(promo && i.quote.promoDiscount
-          ? [{ at: now, text: "Промокод " + promo.rule.code + ": скидка " + money(i.quote.promoDiscount) + " с сервиса Atlas.", code: "promo", params: { code: promo.rule.code, discount: i.quote.promoDiscount } }]
+          ? [{ at: now, text: "Промокод " + promo.rule.code + ": скидка " + money(i.quote.promoDiscount) + " с комиссии Atlas.", code: "promo", params: { code: promo.rule.code, discount: i.quote.promoDiscount } }]
           : []),
         ...sourceCheckHistory(i, now),
       ],

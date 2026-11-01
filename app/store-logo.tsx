@@ -26,6 +26,26 @@ export function StoreMark({ brandKey, height, maxWidth = height * 4 }: { brandKe
 }
 
 /**
+ * The store on a product (owner, 2 November 2026): one white rounded-square plate of the same size on every card and
+ * on the product page, light and dark alike — the vector mark in ink, else the store's icon, else an intentional
+ * monogram — and, only for the brand's own store (lib/market/official-stores.ts officialListing), a small green
+ * verified mark on its corner. The label (store and «official») is the caller's: the plate itself is decorative.
+ */
+export function StoreBadge({ brand, size = 30, official = false, officialLabel }: { brand: Pick<StoreBrand, 'key' | 'name' | 'logo'>; size?: number; official?: boolean; officialLabel?: string }) {
+  const ratio = storeMarkRatios[brand.key];
+  const inner = Math.round(size * 0.66);
+  const mark = ratio !== undefined && ratio <= 3
+    ? <StoreMark brandKey={brand.key} height={ratio > 1 ? Math.round(size * (ratio > 2 ? 0.74 : 0.62)) / ratio : inner} maxWidth={Math.round(size * (ratio > 2 ? 0.74 : 0.62))} />
+    // eslint-disable-next-line @next/next/no-img-element
+    : brand.logo ? <img src={`/store-logos/${brand.key}.webp`} alt="" width={inner} height={inner} loading="lazy" decoding="async" />
+    : <b className="store-badge-mono" style={{ fontSize: Math.round(size * 0.4) }}>{brand.name.replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase()}</b>;
+  return <span className={'store-badge' + (official ? ' is-official' : '')} style={{ '--badge': `${size}px` } as CSSProperties}>
+    <span className="store-badge-plate" aria-hidden="true">{mark}</span>
+    {official && <span className="store-badge-check" title={officialLabel} aria-hidden="true"><svg viewBox="0 0 12 12" width="8" height="8"><path d="M2.5 6.2l2.3 2.3 4.7-4.9" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg></span>}
+  </span>;
+}
+
+/**
  * Store icon on a plate. A store with a vector mark shows it in the text colour on the page's surface (both themes);
  * the rest keep their raster icon on a white plate (logos are drawn for light backgrounds, so the plate stays white in dark mode too).
  * `loading` is lazy by default; shelves above the fold (popular stores, the stores you ordered from) pass 'eager'.

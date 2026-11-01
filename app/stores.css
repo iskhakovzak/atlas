@@ -54,3 +54,18 @@ html[data-theme="dark"] .stores-howto summary { color: var(--night-jade); }
 @media (hover: hover) {
   html[data-theme="dark"] :is(.store-showcase-card, .stores-region-card:not([aria-pressed="true"])):hover { border-color: var(--night-jade); }
 }
+
+/* The store on a product (app/store-logo.tsx StoreBadge, owner 2 November 2026): a white rounded-square plate of one size,
+   the logo padded and centred, the same in light and dark (logos are drawn for white); the verified mark on its corner. */
+.store-badge { position: relative; display: inline-grid; flex: none; width: var(--badge, 30px); height: var(--badge, 30px); }
+.store-badge-plate { display: grid; place-items: center; width: 100%; height: 100%; overflow: hidden; border-radius: 28%; background: #fff; color: #161a18; box-shadow: 0 0 0 1px rgba(20, 35, 30, .1), 0 1px 3px rgba(20, 35, 30, .14); }
+.store-badge-plate > img { width: 66%; height: 66%; object-fit: contain; }
+.store-badge-plate > .store-mark { color: #161a18; }
+.store-badge-mono { color: #1f4d3b; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+.store-badge-check { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: #1f4d3b; color: #fff; box-shadow: 0 0 0 2px #fff; }
+html[data-theme="dark"] .store-badge-plate { box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 1px 4px rgba(0, 0, 0, .45); }
+html[data-theme="dark"] .store-badge-check { box-shadow: 0 0 0 2px var(--night-raised, #1b211e); }
+/* On a card's photo (catalog, store pages, home shelves): the badge in the lower left corner. Clicks go to the card; the
+   verified mark keeps its tooltip. */
+.pcard-store { position: absolute; z-index: 2; left: 8px; bottom: 8px; display: block; line-height: 0; pointer-events: none; }
+.pcard-store .store-badge-check { pointer-events: auto; cursor: help; }

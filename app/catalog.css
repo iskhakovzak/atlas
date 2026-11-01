@@ -5,8 +5,6 @@
 .catalog-head h1 { margin: 0; color: var(--cat-ink); font-size: clamp(30px, 4vw, 40px); line-height: 1.1; }
 
 /* One line: icon, the short fact, the action; the sentence and the "how it works" link open on tap (≤ 56px on phones). */
-.catalog-page .catalog-banner-row > svg { flex: none; color: var(--cat-ok); }
-.catalog-page .catalog-banner-toggle > svg { flex: none; color: var(--cat-muted); transition: transform .15s; }
 
 /* ---------- Chips (categories, prices, sizes, active filters) ---------- */
 :is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button) {

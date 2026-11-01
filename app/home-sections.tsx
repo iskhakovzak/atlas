@@ -150,8 +150,8 @@ export function HomeHero(){
 }
 
 /**
- * The worked example as a compact bill: the item, one «Atlas service» line with its parts folded under it (as the real
- * bill groups them, app/cost-lines.tsx), the total and the monthly duty-free allowance. Every amount comes from price()
+ * The worked example as a compact bill: the item, «Atlas service» and delivery as their own lines (as the real bill shows
+ * them in the cart, the checkout and the orders; owner, 2 November 2026), the total and the monthly duty-free allowance. Every amount comes from price()
  * with the packed weight, as in a real order. Wide screens show it beside the hero; phones fold it under a button.
  */
 function ExampleQuote(){
@@ -170,14 +170,11 @@ function ExampleQuote(){
   <p className="home-bill-head"><span className="home-bill-mark" aria-hidden="true"><StoreMark brandKey="nike" height={14} maxWidth={28}/></span><span className="home-bill-product" aria-hidden="true"><b>{c.trust.trackingProduct}</b><small>nike.com · {usd}</small></span><b id="example-title" className="home-bill-tag">{c.example.title}<span className="sr-only">: {c.example.product(usd)}</span></b></p>
   <dl className="home-bill-lines">
    <div><dt>{c.example.item}<small>{c.example.itemNote(usd)}</small></dt><dd>{formatSum(quote.merchandise,locale)}</dd></div>
-   <div><dt>{c.example.service}<small>{c.example.serviceNote(fee)}</small></dt><dd>{formatSum(parts.service+parts.international,locale)}</dd></div>
+   <div><dt>{c.example.service}<small>{c.example.serviceNote(fee)}</small></dt><dd>{formatSum(parts.service,locale)}</dd></div>
+   <div><dt>{c.example.delivery}<small>{c.example.deliveryNote(formatKg(packed,locale),formatUsd(deliveryPerKgUsdFor(pricing,undefined,exampleSpeed),locale))}</small></dt><dd>{formatSum(parts.international,locale)}</dd></div>
    {/* A reserve on top of delivery only while the tariff sets one (none since 5 October 2026). */}
    {quote.reserve>0&&<div><dt><span>{c.example.reserve}<InfoTip locale={locale}>{c.example.reserveHelp}</InfoTip></span><small>{c.example.reserveNote(formatKg(packagingKg,locale))}</small></dt><dd>{formatSum(quote.reserve,locale)}</dd></div>}
   </dl>
-  <details className="home-bill-parts"><summary>{c.example.serviceParts}</summary><ul>
-   <li><span>{c.example.fee(fee)}</span><span>{formatSum(parts.service,locale)}</span></li>
-   <li><span>{c.example.delivery} <small>{c.example.deliveryNote(formatKg(packed,locale),formatUsd(deliveryPerKgUsdFor(pricing,undefined,exampleSpeed),locale))}</small></span><span>{formatSum(parts.international,locale)}</span></li>
-  </ul></details>
   <p className="home-bill-total"><span>{c.example.total}</span><strong><Money value={quote.total} locale={locale}/></strong></p>
   {(totalUsd||days)&&<p className="home-bill-note">{[totalUsd&&c.example.totalUsd(totalUsd),days&&c.example.days(days[0],days[1])].filter(Boolean).join(' · ')}</p>}
   <p className="home-bill-duty"><ShieldCheck size={16} aria-hidden="true"/><span><b>{c.example.dutyTitle(formatUsd(allowance,locale))}</b>{c.example.dutyUsed(usd,formatUsd(Math.max(0,allowance-exampleUsd),locale))}</span></p>
@@ -248,7 +245,7 @@ export function DeliveryTariffs(){
  </section>;
 }
 
-/** The three money rules in the order of homeCopy.trust.facts: price check, one service line, weighing. */
+/** The three money rules in the order of homeCopy.trust.facts: price check, service and delivery apart, weighing. */
 const factIcons=[SearchCheck,ReceiptText,Scale];
 
 export function TrustSection(){

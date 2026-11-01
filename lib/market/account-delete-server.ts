@@ -3,6 +3,8 @@ import {revokeProviderTokens} from '@/lib/auth/server';
 import {database,syncOperationalProjection} from './server.ts';
 import {cancelOrder,type State} from './domain.ts';
 import {autoCancelledOrders,deletionSummary,pseudonym,type DeletionSummary} from './account-delete.ts';
+import {promoReturns} from './promo.ts';
+import {returnPromoUses} from './promo-store.ts';
 
 export type DeletedAccount={pseudonym:string;summary:DeletionSummary;documents:number};
 
@@ -41,6 +43,9 @@ export async function deleteAccount(user:{userId:string;email:string;contact?:st
  try{
   const final=autoCancelledOrders(state).reduce((current,order)=>cancelOrder(current,order.id,now),state);
   await syncOperationalProjection(id,final,now);
+  // A promo code's use taken by a checkout cancelled here in full goes back to the code (owner, 2 November 2026).
+  const returning=promoReturns(state,final);
+  if(returning.length)await returnPromoUses(db,id,returning,now).catch(error=>console.error('Promo use return before account deletion failed',error));
  }catch(error){console.error('Projection sync before account deletion failed',error)}
  // 4. Tokens Atlas holds at sign-in providers (Sign in with Apple requires revocation). Never throws.
  await revokeProviderTokens(id);
@@ -68,6 +73,8 @@ export async function deleteAccount(user:{userId:string;email:string;contact?:st
   ['auth links','DELETE FROM market_auth_links WHERE user_id=? OR subject=?',[id,id]],
   // Browser push addresses of this account's devices (lib/market/push-server.ts): nothing is sent there any more.
   ['push subscriptions','DELETE FROM market_push_subscriptions WHERE user_id=?',[id]],
+  // Promo uses keep counting under the pseudonym (the account ID names the e-mail or phone).
+  ['promo redemptions','UPDATE market_promo_redemptions SET user_id=? WHERE user_id=?',[alias,id]],
   ['order finance','UPDATE market_order_finance SET customer_id=?,updated_at=? WHERE customer_id=?',[alias,now,id]],
   ['ledger author','UPDATE market_ledger_entries SET created_by=? WHERE created_by=?',[alias,id]],
   ['ledger voider','UPDATE market_ledger_entries SET voided_by=? WHERE voided_by=?',[alias,id]],

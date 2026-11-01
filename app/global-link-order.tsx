@@ -58,7 +58,9 @@ import { displayBrand } from "@/lib/market/product-name";
 import { browserStorage as catalogStorage, catalogItemHref, rememberPendingFavorite } from "@/lib/market/catalog-links";
 import { loginPath } from "@/lib/auth/return-to";
 import { dealCopy } from "@/lib/market/deal-copy";
-import { StoreLogo } from "./store-logo";
+import { StoreBadge, StoreLogo } from "./store-logo";
+import { formCountries, formCountryOption, hasCountryTariff } from "@/lib/market/site-content";
+import { officialBadgeLabel, officialListing } from "@/lib/market/official-stores";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
 import {isOrderableVariant, isStockUnconfirmed} from '@/lib/importer/variant-normalization';
 import { optionStock } from "@/lib/market/link-order-stock";
@@ -1123,6 +1125,8 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   const hostBrand = sourceHost ? brandForHost(sourceHost) : undefined;
   const brandShown = displayBrand(brand, storeName, hostBrand?.focus === "marketplace" ? hostBrand.name : undefined);
   const brandLine = [brandShown && brandShown !== storeName ? brandShown : "", storeName].filter(Boolean).join(" · ");
+  // The store plate before the brand line, as on the catalog card; the verified mark only for the brand's own store.
+  const officialMark = sourceHost ? officialListing({ store: sourceHost, brand, sourceUrl: source || undefined, sourceVariants: variants.map((variant) => ({ ...variant, sellerId: variant.sellerId })) as Product["sourceVariants"] }, hostBrand) : undefined;
   const previewProduct: Product = {
     id: "preview",
     name: name || "Фото товара",
@@ -1388,14 +1392,17 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
             {locks.country ? <LockedFacts hint={lc.locked.value} rows={[{ id: "ship-country", label: tx("Страна", "Mamlakat", "Country"), value: countryText }]} /> : <>
               <div className="field">
                 <label htmlFor="ship-country" className="sr-only">{c.shipCountry}</label>
-                <select id="ship-country" className="select-control" value={canonicalCountry(country)} onChange={(e) => { setCountry(canonicalCountry(e.target.value));  }}>
-                  {countries.map((value) => <option key={value} value={value}>{countryLabel(value,lang)}</option>)}
+                {/* Only the countries /delivery has a tariff for, then «Другая страна» (owner, 2 November 2026). A country an import
+                    named without a tariff stays in the state with its name and shows as «Другая страна» here. */}
+                <select id="ship-country" className="select-control" aria-describedby={!hasCountryTariff(canonicalCountry(country)) ? "ship-country-note" : undefined} value={formCountryOption(canonicalCountry(country))} onChange={(e) => { setCountry(canonicalCountry(e.target.value));  }}>
+                  {formCountries().map((value) => <option key={value} value={value}>{countryLabel(value,lang)}</option>)}
                 </select>
               </div>
-              {country === "Другая страна" && <div className="field">
+              {formCountryOption(canonicalCountry(country)) === "Другая страна" && <div className="field">
                 <label htmlFor="other-country">{c.otherCountry}</label>
-                <input id="other-country" {...issueProps('other-country')} required maxLength={60} value={otherCountry} onChange={(e) => setOtherCountry(e.target.value)} />
+                <input id="other-country" {...issueProps('other-country')} required maxLength={60} value={country === "Другая страна" ? otherCountry : countryLabel(canonicalCountry(country), lang)} onChange={(e) => { setCountry("Другая страна"); setOtherCountry(e.target.value); }} />
               </div>}
+              {!hasCountryTariff(canonicalCountry(country)) && <p id="ship-country-note" className="micro lo-country-note" role="note">{tx("Для этой страны у Atlas пока нет своего тарифа: доставка в сумме — оценка по базовому тарифу. Точную стоимость Atlas подтвердит перед выкупом, доплата — только с вашего согласия.","Bu mamlakat uchun Atlasda hozircha alohida tarif yo‘q: summadagi yetkazish — asosiy tarif bo‘yicha taxmin. Aniq narxni Atlas xariddan oldin tasdiqlaydi, qo‘shimcha to‘lov — faqat roziligingiz bilan.","Atlas has no tariff of its own for this country yet: the delivery in the total is an estimate at the base rate. Atlas confirms the exact cost before buying; any extra payment needs your consent.")}</p>}
             </>}
           </fieldset>
           <fieldset className="lo-block">
@@ -1712,7 +1719,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
           <div className="pd-info">
             <div className="pd-head">
               {brandLine || !checking
-                ? <p className="pd-brand">{brandLine}</p>
+                ? <p className="pd-brand">{hostBrand && <StoreBadge brand={hostBrand} size={28} official={Boolean(officialMark)} officialLabel={officialBadgeLabel(lang)} />}<span>{brandLine}</span>{officialMark && <span className="sr-only">. {officialBadgeLabel(lang)}</span>}</p>
                 : <span className="lo-skel lo-skel-brand" aria-hidden="true" />}
               <div className="pd-name-row">
                 <TitleTag id="lo-product-name" className="pd-title">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</TitleTag>
@@ -1811,7 +1818,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
               <label htmlFor="manual-confirm">{tx('Я сверил название, цену, вариант и доставку со страницей магазина. Оператор Atlas сверит их с магазином перед выкупом.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirdim. Atlas operatori xariddan oldin ularni do‘kon bilan solishtiradi.','I checked the name, price, option and shipping against the store page. An Atlas operator checks them with the store before buying.')}</label>
             </div> : sourceCheckStatus !== "verified" && sourceCheckStatus !== "catalog" ? <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p> : null}
             <div className={"lo-cta-row" + (cartUnits ? " has-cart" : "")}>
-            {nothingToChoose ? <button type="button" className="btn primary basket-cta" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary basket-cta" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest && !canKeep ? lc.signinContinue : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
+            {nothingToChoose ? <button type="button" className="btn primary basket-cta" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary basket-cta" onClick={focusChoice}>{nextChoiceText}</button> : <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest && !canKeep ? lc.signinContinue : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
             {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
             </div>
             {/* For a guest, right under the button it explains: the item goes to the cart by itself after sign-in. */}
@@ -1836,11 +1843,16 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
       )}
 
       {/* The total bar: over the bottom menu on phones (the page), at the foot of the catalog sheet on every screen. It
-          stays put through the check, so the page does not jump when the price arrives. */}
+          stays put through the check, so the page does not jump when the price arrives. Its button has the same label
+          and no arrow on every width, on the page and in the sheet: the sum has the room (owner, 2 November 2026). */}
       {(source || checking) && <div className={inSheet ? "pd-bar pd-bar-sheet" : "basket-sticky lo-sticky pd-bar" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
         {/* A dated card's sum is an estimate here as at the top: "≈" and its own label, never "К оплате". */}
-        <div><span>{datedSums ? pd.approxTotal : heroFrom ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : heroTotal !== null ? (datedSums ? "≈ " : "") + formatSum(heroTotal, lang) : "—"}</strong></div>
-        {awaitingCheck ? <button type="button" className="btn primary" onClick={checkDated}>{pd.checkPrice}<ArrowRight size={18} aria-hidden="true" /></button> : nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? tx("Добавляем…", "Qo‘shilmoqda…", "Adding…") : isGuest && !canKeep ? lc.signinContinue : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
+        {/* No sum yet in the form (the price or another field still empty): the bar says what to fill in instead of «—»;
+            its button submits and the form scrolls to the first missing field with its message (owner, 2 November 2026). */}
+        {!checking && heroTotal === null && orderable && !nothingToChoose && !soldOutAtStore && !needsChoice && !awaitingCheck
+          ? <div className="pd-bar-ask"><span>{k.lines.total}</span><strong>{name.trim() && !(Number(amount) > 0) ? tx("Укажите цену товара", "Tovar narxini kiriting", "Enter the item price") : tx("Заполните данные товара", "Tovar ma’lumotlarini to‘ldiring", "Fill in the item details")}</strong></div>
+          : <div><span>{datedSums ? pd.approxTotal : heroFrom ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : heroTotal !== null ? (datedSums ? "≈ " : "") + formatSum(heroTotal, lang) : "—"}</strong></div>}
+        {awaitingCheck ? <button type="button" className="btn primary" onClick={checkDated}>{pd.checkPrice}</button> : nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}</button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? tx("Добавляем…", "Qo‘shilmoqda…", "Adding…") : isGuest && !canKeep ? lc.signinContinue : lc.addShort}</button>}
         {!inSheet && cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
       </div>}
     </div>

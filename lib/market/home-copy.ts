@@ -29,9 +29,9 @@ export type HomeCopy = {
   example: {
     title: string; product: (usd: string) => string; days: (min: number, max: number) => string;
     item: string; itemNote: (usd: string) => string; totalUsd: (usd: string) => string;
-    /** One «Atlas service» line, as in the real bill (app/cost-lines.tsx); `fee` and `delivery` are its parts. */
-    service: string; serviceParts: string; fee: (percent: string) => string;
-    /** Under the «Atlas service» line: what its sum holds (the fee alone read as the whole line, review 1.11.2026). */
+    /** «Atlas service» and delivery as two lines, as in the real bill (cart, checkout, orders; owner, 2 November 2026). */
+    service: string;
+    /** Under the «Atlas service» line: what its sum holds. */
     serviceNote: (percent: string) => string;
     delivery: string; deliveryNote: (weight: string, perKg: string) => string;
     reserve: string; reserveNote: (packaging: string) => string; reserveHelp: string; total: string;
@@ -76,7 +76,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       title: 'Как это работает',
       steps: [
         { title: 'Вставьте ссылку', text: 'Скопируйте ссылку на товар в зарубежном магазине и вставьте её в поле выше — или выберите товар в каталоге Atlas.' },
-        { title: 'Проверьте счёт и оплатите', text: 'Выберите цвет и размер и проверьте итог в сумах: товар и одна строка «Сервис Atlas». Товар у магазина выкупим мы сами.' },
+        { title: 'Проверьте счёт и оплатите', text: 'Выберите цвет и размер и проверьте итог в сумах: товар, «Сервис Atlas» и доставка — каждая своей строкой. Товар у магазина выкупим мы сами.' },
         { title: 'Получите в Ташкенте', text: 'Привезём посылку в Ташкент. Статус заказа виден в кабинете на каждом этапе.' },
       ],
       paymentsLabel: 'Способы оплаты', deliveryLabel: 'Доставка', courier: 'Курьерская доставка',
@@ -88,8 +88,8 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Цена товара',
       itemNote: usd => `${usd} по курсу Atlas`,
       totalUsd: usd => `≈ ${usd} вместе с доставкой в Ташкент`,
-      service: 'Сервис Atlas', serviceParts: 'Состав сервиса', fee: (percent) => `Комиссия ${percent}`,
-      serviceNote: (percent) => `Комиссия ${percent} и доставка до Ташкента`,
+      service: 'Сервис Atlas',
+      serviceNote: (percent) => `Комиссия ${percent}: выкуп, проверка и упаковка`,
       delivery: 'Доставка', deliveryNote: (weight, perKg) => `${weight} кг × ${perKg}`,
       reserve: 'Возвратный резерв', reserveNote: packaging => `В расчёт веса заложено ${packaging} кг запаса на упаковку. После взвешивания неиспользованную сумму вернём на баланс.`,
       reserveHelp: 'Запас на случай, если посылка окажется тяжелее расчётной. После взвешивания на складе неиспользованную часть вернём на ваш баланс Atlas. Если доставка выйдет дороже резерва, сначала согласуем доплату с вами.',
@@ -116,7 +116,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       title: 'Деньги и гарантии', ordersDone: 'заказов уже доставили',
       facts: ({ fee }) => [
         { title: 'Цена сверяется дважды', text: 'Сверяем цену с магазином, когда вы добавляете товар в корзину, и ещё раз перед оформлением. Если она изменилась, сначала покажем новую сумму. Курс фиксируется при оплате.' },
-        { title: 'Сервис — одной строкой', text: `Комиссия Atlas ${fee} от цены товаров и международная доставка стоят в счёте одной строкой «Сервис Atlas» — состав виден по нажатию.` },
+        { title: 'Сервис и доставка — раздельно', text: `«Сервис Atlas» в счёте — это комиссия Atlas ${fee} от цены товаров. Международная доставка по весу — своя строка: видно, за что вы платите.` },
         { title: 'Легче расчёта — вернём разницу', text: 'Склад взвесит посылку: если она легче расчёта — разницу вернём на баланс. Оплата сверх счёта — только с вашего согласия.' },
       ],
       example: 'Пример', trackingProduct: 'Кроссовки Nike',
@@ -157,7 +157,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       title: 'Bu qanday ishlaydi',
       steps: [
         { title: 'Havolani qo‘ying', text: 'Xorijiy do‘kondagi tovar havolasini nusxalab, yuqoridagi maydonga qo‘ying — yoki Atlas katalogidan tanlang.' },
-        { title: 'Hisobni tekshirib, to‘lang', text: 'Rang va o‘lchamni tanlang, yakuniy narxni so‘mda tekshiring: tovar va bitta «Atlas xizmati» satri. Tovarni do‘kondan o‘zimiz sotib olamiz.' },
+        { title: 'Hisobni tekshirib, to‘lang', text: 'Rang va o‘lchamni tanlang, yakuniy narxni so‘mda tekshiring: tovar, «Atlas xizmati» va yetkazish — har biri alohida satrda. Tovarni do‘kondan o‘zimiz sotib olamiz.' },
         { title: 'Toshkentda qabul qiling', text: 'Jo‘natmani Toshkentga olib kelamiz. Buyurtma holati har bir bosqichda kabinetda ko‘rinadi.' },
       ],
       paymentsLabel: 'To‘lov usullari', deliveryLabel: 'Yetkazib berish', courier: 'Kuryer orqali yetkazib berish',
@@ -169,8 +169,8 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Tovar narxi',
       itemNote: usd => `${usd}, Atlas kursi bilan`,
       totalUsd: usd => `Toshkentga yetkazish bilan ≈ ${usd}`,
-      service: 'Atlas xizmati', serviceParts: 'Xizmat tarkibi', fee: (percent) => `Komissiya ${percent}`,
-      serviceNote: (percent) => `Komissiya ${percent} va Toshkentgacha yetkazish`,
+      service: 'Atlas xizmati',
+      serviceNote: (percent) => `Komissiya ${percent}: xarid, tekshiruv va qadoqlash`,
       delivery: 'Yetkazib berish', deliveryNote: (weight, perKg) => `${weight} kg × ${perKg}`,
       reserve: 'Qaytariladigan zaxira', reserveNote: packaging => `Vazn hisobiga qadoq uchun ${packaging} kg zaxira kiritilgan. Omborda tortilgach, ishlatilmagan summa balansga qaytariladi.`,
       reserveHelp: 'Jo‘natma hisoblangandan og‘irroq chiqsa, ehtiyot uchun qo‘yiladi. Omborda tortilgandan keyin ishlatilmagan qismi Atlas balansingizga qaytariladi. Yetkazib berish zaxiradan qimmatroq bo‘lsa, qo‘shimcha to‘lovni avval siz bilan kelishamiz.',
@@ -197,7 +197,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       title: 'Pul va kafolatlar', ordersDone: 'ta buyurtma yetkazildi',
       facts: ({ fee }) => [
         { title: 'Narx ikki marta tekshiriladi', text: 'Tovarni savatga qo‘shganingizda va rasmiylashtirishdan oldin yana narxni do‘kon bilan solishtiramiz. U o‘zgargan bo‘lsa, avval yangi summani ko‘rsatamiz. Kurs to‘lov paytida qayd etiladi.' },
-        { title: 'Xizmat — bitta satrda', text: `Atlas komissiyasi (tovarlar narxining ${fee}) va xalqaro yetkazish hisobda bitta «Atlas xizmati» satrida turadi — tarkibi bosganda ko‘rinadi.` },
+        { title: 'Xizmat va yetkazish — alohida', text: `Hisobdagi «Atlas xizmati» — bu Atlas komissiyasi, tovarlar narxining ${fee}. Vazn bo‘yicha xalqaro yetkazish — alohida satr: nima uchun to‘layotganingiz ko‘rinib turadi.` },
         { title: 'Yengil chiqsa — farqni qaytaramiz', text: 'Ombor jo‘natmani tortadi: hisobdan yengil chiqsa — farqni balansga qaytaramiz. Hisobdan ortiq to‘lov — faqat roziligingiz bilan.' },
       ],
       example: 'Namuna', trackingProduct: 'Nike krossovkalari',
@@ -238,7 +238,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       title: 'How it works',
       steps: [
         { title: 'Paste the link', text: 'Copy a product link from a store abroad and paste it into the field above — or pick an item in the Atlas catalog.' },
-        { title: 'Check the bill and pay', text: 'Pick the colour and size and check the total in soum: the item and one “Atlas service” line. We buy the item from the store ourselves.' },
+        { title: 'Check the bill and pay', text: 'Pick the colour and size and check the total in soum: the item, the “Atlas service” and delivery, each on its own line. We buy the item from the store ourselves.' },
         { title: 'Collect it in Tashkent', text: 'We bring the parcel to Tashkent. Your account shows the order status at every stage.' },
       ],
       paymentsLabel: 'Payment methods', deliveryLabel: 'Delivery', courier: 'Courier delivery',
@@ -250,8 +250,8 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Item price',
       itemNote: usd => `${usd} at the Atlas rate`,
       totalUsd: usd => `≈ ${usd} including delivery to Tashkent`,
-      service: 'Atlas service', serviceParts: 'Service breakdown', fee: (percent) => `Fee ${percent}`,
-      serviceNote: (percent) => `${percent} fee and delivery to Tashkent`,
+      service: 'Atlas service',
+      serviceNote: (percent) => `${percent} fee: purchase, inspection and packing`,
       delivery: 'Delivery', deliveryNote: (weight, perKg) => `${weight} kg × ${perKg}`,
       reserve: 'Refundable reserve', reserveNote: packaging => `Estimated weight includes a ${packaging} kg packaging allowance. Any unused amount returns to your balance after weighing.`,
       reserveHelp: 'A buffer in case the parcel is heavier than estimated. After warehouse weighing, any unused part returns to your Atlas balance. If delivery costs more than the reserve, we agree the extra payment with you first.',
@@ -278,7 +278,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       title: 'Money and guarantees', ordersDone: 'orders delivered',
       facts: ({ fee }) => [
         { title: 'The price is checked twice', text: 'We check the price with the store when you add an item to the cart and again before checkout. If it has changed, we show you the new total first. The rate is fixed at payment.' },
-        { title: 'The service is one line', text: `The Atlas fee, ${fee} of the item price, and international delivery are one “Atlas service” line in the bill — tap it for the breakdown.` },
+        { title: 'Service and delivery, apart', text: `The “Atlas service” line in the bill is the Atlas fee, ${fee} of the item price. International delivery by weight is a line of its own, so you see what you pay for.` },
         { title: 'Lighter parcel — the difference back', text: 'The warehouse weighs the parcel: if it is lighter than estimated, the difference returns to your balance. Anything above the bill is paid only with your consent.' },
       ],
       example: 'Example', trackingProduct: 'Nike sneakers',

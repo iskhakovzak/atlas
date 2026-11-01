@@ -4,10 +4,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { normalizePromoCode, promoBase, promoDiscount, promoInputSchema, promoOrderSum, promoProblem } from '../lib/market/promo.ts';
-import { findPromo, listPromos, placeWithPromo, recordRedemption, releasePromo, reservePromo, savePromo } from '../lib/market/promo-store.ts';
+import { normalizePromoCode, promoBase, promoDiscount, promoInputSchema, promoOrderSum, promoProblem, promoReturnable, promoReturns } from '../lib/market/promo.ts';
+import { customerPromoUses, findPromo, listPromos, placeWithPromo, recordRedemption, releasePromo, reservePromo, returnPromoUses, savePromo } from '../lib/market/promo-store.ts';
 import { codedActionError, prepareAction } from '../lib/market/actions-server.ts';
-import { addToCart, blank, cartSignature, products, tariff } from '../lib/market/domain.ts';
+import { addToCart, blank, cancelOrder, cartSignature, products, tariff } from '../lib/market/domain.ts';
 import { orderFinance, monthSummary } from '../lib/market/finance.ts';
 import { feeLines } from '../lib/market/projection.ts';
 import { invoiceData } from '../lib/market/finance-auto.ts';
@@ -21,11 +21,16 @@ const now = Date.now();
 const day = 86_400_000;
 const rule = (overrides = {}) => ({ id: 'PROMO-1', code: 'ATLAS10', kind: 'percent', value: 10, startsAt: now - day, endsAt: now + day, maxUses: 5, minOrder: null, active: true, uses: 0, ...overrides });
 
-function fakeD1() {
+const migrate = (sqlite, file) => {
+  const migration = readFileSync(new URL('../drizzle/' + file, import.meta.url), 'utf8');
+  for (const statement of migration.split('--> statement-breakpoint')) if (statement.trim()) sqlite.exec(statement);
+};
+/** `upTo17`: the database as it is before migration 0018 (a test then applies it itself). */
+function fakeD1({ upTo17 = false } = {}) {
   const sqlite = new DatabaseSync(':memory:');
   sqlite.exec('CREATE TABLE market_order_finance (order_id TEXT PRIMARY KEY)');
-  const migration = readFileSync(new URL('../drizzle/0017_promo_codes.sql', import.meta.url), 'utf8');
-  for (const statement of migration.split('--> statement-breakpoint')) if (statement.trim()) sqlite.exec(statement);
+  migrate(sqlite, '0017_promo_codes.sql');
+  if (!upTo17) migrate(sqlite, '0018_promo_once_return.sql');
   // D1's batch: the statements run in order inside one transaction (rolled back as a whole on an error).
   const runSync = (sql, args) => ({ meta: { changes: Number(sqlite.prepare(sql).run(...args).changes) } });
   return {
@@ -73,7 +78,7 @@ test('a code works only while on, inside its dates, under its cap and above its 
   assert.equal(promoProblem(rule({ minOrder: 1_000_000 }), now, 999_999), 'err_90');
   assert.equal(promoProblem(rule({ minOrder: 1_000_000 }), now, 1_000_000), undefined);
   assert.equal(promoProblem(rule({ minOrder: 1_000_000 }), now), undefined, 'the code check alone leaves the minimum to the page');
-  for (const code of ['err_87', 'err_88', 'err_89', 'err_90', 'err_91', 'err_92', 'err_93', 'err_94', 'err_95']) for (const locale of ['ru', 'uz', 'oz', 'en'])
+  for (const code of ['err_87', 'err_88', 'err_89', 'err_90', 'err_91', 'err_92', 'err_93', 'err_94', 'err_95', 'err_96']) for (const locale of ['ru', 'uz', 'oz', 'en'])
     assert.notEqual(serverError(locale, code), serverError(locale, 'err_unknown'), `${code} ${locale}`);
 });
 
@@ -239,7 +244,118 @@ test('route: the last use goes to one checkout, the next one is refused with err
   assert.equal(promoProblem(await findPromo(db, 'ROUTE'), now), 'err_89');
   // Switched off: refused, nothing counted.
   await savePromo(db, promoInputSchema.parse({ id: code.id, code: 'ROUTE', kind: 'fixed', value: 50_000, maxUses: 10, active: false }), 'operator@atlas.local', now);
-  assert.deepEqual(await placeWithPromo(db, use(code.id, 'c'), async () => 'x', now), { usedUp: true });
+  assert.deepEqual(await placeWithPromo(db, use(code.id, 'c'), async () => 'x', now), { usedUp: true, code: 'err_89' });
   // No code: just the save.
   assert.deepEqual(await placeWithPromo(db, null, async () => 'plain', now), { usedUp: false, value: 'plain' });
+});
+
+// ---- Owner decisions, 2 November 2026: «Один раз на покупателя» and the use returned after a cancel before the purchase ----
+const buyer = (userId, id, batchId, discount = 40_000) => ({ codeId: id, code: 'ONCE', userId, batchId, orderIds: ['AT-' + batchId], discount, oncePerCustomer: true });
+
+test('once per customer: on for a new code, off for codes made before migration 0018, kept when the field is absent', async () => {
+  assert.equal(promoInputSchema.parse({ code: 'once', kind: 'percent', value: 10, active: true }).oncePerCustomer, undefined);
+  const old = fakeD1({ upTo17: true });
+  // Made before 0018 (the column does not exist yet): inserted as the stage-6 code did.
+  old.sqlite.prepare("INSERT INTO market_promo_codes (id,code,kind,value,active,uses,created_at,updated_at,created_by,updated_by) VALUES ('PROMO-OLD','EARLY','percent',10,1,0,?,?,'op','op')").run(now, now);
+  assert.equal((await findPromo(old, 'EARLY')).oncePerCustomer, undefined, 'before 0018 the option does not exist');
+  migrate(old.sqlite, '0018_promo_once_return.sql');
+  assert.equal((await findPromo(old, 'EARLY')).oncePerCustomer, false, 'an existing code keeps the old behaviour');
+  // A change from an admin page without the field leaves the setting as it is; the form can switch it either way.
+  await savePromo(old, promoInputSchema.parse({ id: 'PROMO-OLD', code: 'EARLY', kind: 'percent', value: 15, active: true }), 'operator@atlas.local', now);
+  assert.equal((await findPromo(old, 'EARLY')).oncePerCustomer, false);
+  await savePromo(old, promoInputSchema.parse({ id: 'PROMO-OLD', code: 'EARLY', kind: 'percent', value: 15, active: true, oncePerCustomer: true }), 'operator@atlas.local', now);
+  assert.equal((await findPromo(old, 'EARLY')).oncePerCustomer, true);
+  const fresh = await savePromo(old, promoInputSchema.parse({ code: 'fresh', kind: 'percent', value: 10, active: true }), 'operator@atlas.local', now);
+  assert.equal(fresh.oncePerCustomer, true, 'a new code works once per customer unless switched off');
+  const many = await savePromo(old, promoInputSchema.parse({ code: 'many', kind: 'percent', value: 10, active: true, oncePerCustomer: false }), 'operator@atlas.local', now);
+  assert.equal(many.oncePerCustomer, false);
+  // The check: an unreturned use of this account refuses the code with its own message.
+  assert.equal(promoProblem({ ...rule(), oncePerCustomer: true, usedByCustomer: true }, now), 'err_96');
+  assert.equal(promoProblem({ ...rule(), oncePerCustomer: false, usedByCustomer: true }, now), undefined);
+  assert.equal(promoProblem({ ...rule(), oncePerCustomer: true, usedByCustomer: false }, now), undefined);
+  assert.equal(promoProblem({ ...rule(), oncePerCustomer: true, usedByCustomer: true, endsAt: now }, now), 'err_88', 'dates first');
+});
+
+test('once per customer: a second checkout of the same account is refused (err_96), others and the same key are not', async () => {
+  const db = fakeD1();
+  const code = await savePromo(db, promoInputSchema.parse({ code: 'once', kind: 'fixed', value: 50_000, maxUses: 10, active: true }), 'operator@atlas.local', now);
+  assert.deepEqual(await placeWithPromo(db, buyer('email:a@atlas.local', code.id, 'a1'), async () => 'saved', now), { usedUp: false, value: 'saved' });
+  assert.deepEqual(await customerPromoUses(db, code.id, 'email:a@atlas.local'), ['a1']);
+  let saved = false;
+  assert.deepEqual(await placeWithPromo(db, buyer('email:a@atlas.local', code.id, 'a2'), async () => { saved = true; }, now), { usedUp: true, code: 'err_96' });
+  assert.equal(saved, false, 'the refused checkout is not saved');
+  assert.equal(redemptions(db, code.id).n, 1, 'and leaves no record');
+  // The lost answer of the first checkout, sent again with its key: the same checkout, nothing more counted.
+  assert.deepEqual(await placeWithPromo(db, buyer('email:a@atlas.local', code.id, 'a1'), async () => 'again', now), { usedUp: false, value: 'again' });
+  assert.deepEqual(await placeWithPromo(db, buyer('email:b@atlas.local', code.id, 'b1'), async () => 'b', now), { usedUp: false, value: 'b' });
+  assert.equal((await findPromo(db, 'ONCE')).uses, 2);
+  // A code without the option: the same account may use it again.
+  const many = await savePromo(db, promoInputSchema.parse({ code: 'many', kind: 'fixed', value: 50_000, active: true, oncePerCustomer: false }), 'operator@atlas.local', now);
+  for (const key of ['m1', 'm2']) assert.equal((await placeWithPromo(db, { ...buyer('email:a@atlas.local', many.id, key), oncePerCustomer: false }, async () => key, now)).usedUp, false);
+  // The general cap still answers err_89 for a once-per-customer code another account has used up.
+  const last = await savePromo(db, promoInputSchema.parse({ code: 'last', kind: 'fixed', value: 50_000, maxUses: 1, active: true }), 'operator@atlas.local', now);
+  await placeWithPromo(db, buyer('email:a@atlas.local', last.id, 'l1'), async () => 'l1', now);
+  assert.deepEqual(await placeWithPromo(db, buyer('email:c@atlas.local', last.id, 'l2'), async () => 'l2', now), { usedUp: true, code: 'err_89' });
+});
+
+test('once per customer: two checkouts of one account paying at once get the code once', async () => {
+  const db = fakeD1();
+  const code = await savePromo(db, promoInputSchema.parse({ code: 'once', kind: 'fixed', value: 50_000, active: true }), 'operator@atlas.local', now);
+  const saved = [];
+  const results = await Promise.all(['k1', 'k2', 'k3', 'k4'].map((key) => placeWithPromo(db, buyer('email:same@atlas.local', code.id, key), async () => { saved.push(key); return key; }, now)));
+  assert.equal(results.filter((result) => !result.usedUp).length, 1);
+  assert.ok(results.filter((result) => result.usedUp).every((result) => result.code === 'err_96'));
+  assert.equal(saved.length, 1);
+  assert.equal((await findPromo(db, 'ONCE')).uses, 1);
+  assert.equal(redemptions(db, code.id).n, 1);
+});
+
+test('return: a use comes back once, whatever the repeats and races; the admin totals leave it out', async () => {
+  const db = fakeD1();
+  const code = await savePromo(db, promoInputSchema.parse({ code: 'once', kind: 'fixed', value: 50_000, maxUses: 1, active: true }), 'operator@atlas.local', now);
+  await placeWithPromo(db, buyer('email:a@atlas.local', code.id, 'a1'), async () => 'saved', now);
+  assert.equal(promoProblem(await findPromo(db, 'ONCE'), now), 'err_89', 'the only use is taken');
+  // Five returns at once and a later repeat: one use back.
+  const counts = await Promise.all(Array.from({ length: 5 }, () => returnPromoUses(db, 'email:a@atlas.local', ['a1'], now + 1)));
+  assert.equal(counts.reduce((sum, value) => sum + value, 0), 1);
+  assert.equal(await returnPromoUses(db, 'email:a@atlas.local', ['a1', 'a1'], now + 2), 0);
+  assert.equal((await findPromo(db, 'ONCE')).uses, 0);
+  assert.equal(db.sqlite.prepare("SELECT returned_at FROM market_promo_redemptions WHERE batch_id='a1'").get().returned_at, now + 1, 'the record stays, marked');
+  const listed = (await listPromos(db)).find((item) => item.id === code.id);
+  assert.equal(listed.discountTotal, 0);
+  assert.equal(listed.returnedUses, 1);
+  // One account cannot return the use of another; an unknown checkout returns nothing.
+  await placeWithPromo(db, buyer('email:b@atlas.local', code.id, 'b1'), async () => 'b', now);
+  assert.equal(await returnPromoUses(db, 'email:a@atlas.local', ['b1', 'nope'], now), 0);
+  assert.equal((await findPromo(db, 'ONCE')).uses, 1);
+  // The same customer may use the code again after the return (it was never really used).
+  await returnPromoUses(db, 'email:b@atlas.local', ['b1'], now);
+  assert.deepEqual(await customerPromoUses(db, code.id, 'email:a@atlas.local'), []);
+  assert.equal((await placeWithPromo(db, buyer('email:a@atlas.local', code.id, 'a2'), async () => 'again', now)).usedUp, false);
+  assert.equal((await findPromo(db, 'ONCE')).uses, 1);
+  assert.equal((await listPromos(db)).find((item) => item.id === code.id).discountTotal, 40_000);
+});
+
+test('return: only a checkout whose orders with the code are all cancelled before the purchase', async () => {
+  const state = addToCart(addToCart(blank(), product('r1', 40), 'Black · 9', now, tariff), product('r2', 25), 'Black · 9', now, tariff);
+  const code = rule({ kind: 'percent', value: 50, oncePerCustomer: true, usedByCustomer: false });
+  const discount = promoDiscount(code, state.cart).total;
+  const action = checkout(state, { promoCode: 'ATLAS10', promoDiscount: discount });
+  const placed = (await prepareAction(state, action, deps(code))).next;
+  const [first, second] = placed.orders;
+  assert.ok(first.promo && second.promo);
+  assert.deepEqual(promoReturns(state, placed), [], 'placing is not a return');
+  const one = cancelOrder(placed, first.id, now);
+  assert.deepEqual(promoReturns(placed, one), [], 'one order of two still uses the discount');
+  const both = cancelOrder(one, second.id, now);
+  assert.deepEqual(promoReturns(one, both), [action.key]);
+  assert.deepEqual(promoReturns(both, cancelOrder(both, second.id, now)), [], 'a repeated cancel returns nothing again');
+  assert.deepEqual(promoReturnable(both, [action.key, 'other']), [action.key]);
+  assert.deepEqual(promoReturnable(one, [action.key]), []);
+  // Bought from the store: that order cannot be cancelled, and the use stays when the other one is.
+  const bought = { ...placed, orders: placed.orders.map((order, index) => index === 0 ? { ...order, status: 1 } : order) };
+  assert.throws(() => cancelOrder(bought, first.id, now));
+  assert.deepEqual(promoReturns(bought, cancelOrder(bought, second.id, now)), []);
+  // A customer with an unreturned use of a once-per-customer code is refused at checkout with err_96 (409).
+  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: discount }), deps({ ...code, usedByCustomer: true })), (error) => error.code === 'err_96' && codedActionError(error).status === 409);
 });

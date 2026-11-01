@@ -9,8 +9,12 @@ export function atlasServiceBreakdown(quote: AtlasServiceQuote) {
   };
 }
 
-/** Grouped display only; the underlying quote components and calculations stay separate. */
-export function atlasServiceTotal(quote: AtlasServiceQuote) {
+/**
+ * The bill as the cart, the checkout and the orders show it (owner, 2 November 2026): «Сервис Atlas» is the Atlas fee with
+ * the fee for paying customs through Atlas when chosen; international delivery is a line of its own. Display only: the
+ * quote's own components and every calculation stay as they are.
+ */
+export function billLines(quote: AtlasServiceQuote & Pick<Quote, 'customsHelp'>) {
   const parts = atlasServiceBreakdown(quote);
-  return parts.service + parts.international;
+  return { service: parts.service + (quote.customsHelp ?? 0), delivery: parts.international };
 }

@@ -1189,3 +1189,6 @@ html[data-theme="dark"] .field-vitals td[data-verdict="slow"] { color: var(--nig
 /* ── app/link-inputs.css ── */
 .paste-field-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 6px; }
 .paste-field-head > .field { margin: 0; }
+
+/* The operations center before its data (app/admin-view.tsx): a screen tall, so the footer does not jump (2 November 2026). */
+.admin-loading { min-height: 100vh; min-height: 100dvh; }

@@ -136,8 +136,8 @@ try {
   );
   await eventually(`new URLSearchParams(location.search).get('cat') === 'shoes' && ${count} > 0 && ${count} < ${total}`, "catalog category filter");
   // A card opens the product page as a sheet over the catalog, at the product's own address (redesign stage 5).
-  if (await evaluate("!!document.querySelector('.pcard-title button')")) {
-    await evaluate("document.querySelector('.pcard-title button').click()");
+  if (await evaluate("!!document.querySelector('.pcard-title a')")) {
+    await evaluate("document.querySelector('.pcard-title a').click()");
     await eventually("!!document.querySelector('.pd-sheet .pd') && location.pathname.startsWith('/catalog/p/')", "product sheet at its own address");
     await evaluate("document.querySelector('.pd-sheet-actions .sheet-close')?.click()");
     await eventually("location.pathname === '/catalog' && !document.querySelector('.pd-sheet')", "closing the sheet goes back to the catalog");

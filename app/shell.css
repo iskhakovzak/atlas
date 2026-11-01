@@ -189,7 +189,7 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
 /* Hover on computers (polish, 1 November 2026): links of the breadcrumb and card titles underline; quiet controls,
    disclosure headers and unchosen options take the hover fill of the tokens. Touch screens keep no sticky hover. */
 @media (hover: hover) {
-  .breadcrumb a:hover, .pcard-title > button:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+  .breadcrumb a:hover, .pcard-title > a:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
   :is(.basket-qty button, .product-gallery-thumbnails button, .speed-option:not(.selected)):hover { background-color: var(--hover); }
   :is(.pd-breakdown, .home-faq details, .ux-disclosure, .order-x-more, .customs-estimate-how) > summary:hover { background-color: var(--hover); }
   .order-tabs [data-slot=tabs-trigger]:not([data-state=active]):hover { color: var(--text); background-color: var(--hover); }

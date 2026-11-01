@@ -1,5 +1,5 @@
 'use client';
-import {Fragment,useId,useState} from 'react';
+import {useId,useState} from 'react';
 import {Check,HandCoins,Scale,ShieldCheck,Star,Wallet,Zap} from 'lucide-react';
 import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/format';
 import {calcCopy} from '@/lib/market/calc-copy';
@@ -31,40 +31,25 @@ const percent=(value:number,locale:Locale)=>new Intl.NumberFormat(locale==='en'?
 export const usdText=(value:number,locale:Locale)=>'$'+new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{minimumFractionDigits:Number.isInteger(Math.round(value*100)/100)?0:2,maximumFractionDigits:2}).format(value);
 
 /**
- * The calculation as the customer reads it: the items, one "Atlas service" line (owner, 10.10.2026: a pile of fee lines
- * reads like a trick) with its parts — the Atlas fee and international delivery — folded under "Service breakdown", the
- * store delivery, the reserve and customs on their own lines; then the store-delivery hold (never in the total).
- * Same grouping as the item card (app/cost-lines.tsx, lib/market/quote-presentation.ts).
+ * The calculation as the customer reads it, line for line as on the checkout (owner, 2 November 2026): the items, one
+ * «Сервис Atlas» line (the Atlas fee, with the fee for paying customs when chosen, its parts named under it), international
+ * delivery with its weight and speed, then the store delivery, the reserve, the guarantee and customs on their own lines.
+ * Same lines as the checkout (app/checkout-view.tsx) and the order card (app/cost-lines.tsx, lib/market/quote-presentation.ts).
  */
 export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Required<Sums>&GuaranteeRate;locale:Locale;pricing:Pricing;weightKg?:number;storeShippingState:'stated'|'free'|'hold'|'none';anyFree?:boolean;/** Names the chosen delivery speed on the international line. */speed?:DeliverySpeed;children?:React.ReactNode}){
  const c=calcCopy[locale];
- const internationalLabel=speed?`${c.lines.international(kgText(weightKg,locale))} · ${c.speeds[speed]}`:c.lines.international(kgText(weightKg,locale));
  // Free or held store delivery is not a line (owner, 12 October 2026): a held amount has its own block outside the
  // total, so only a stated charge, which is in the total, shows here. storeShippingState and anyFree stay in the props
  // for the callers but no longer change the lines.
- // One "Atlas service" amount: the fee (with buyout and conversion when a tariff sets them) and international delivery.
- const fee=percent(pricing.margin,locale),international=sums.shipping+sums.deliveryMargin;
- // "Atlas pays customs" is part of the Atlas service, not a line of its own (owner, 12 October 2026).
- const serviceTotal=sums.service+sums.buyout+sums.conversion+international+sums.customsHelp;
+ // «Сервис Atlas»: the fee (with buyout and conversion when a tariff sets them) and the fee for paying customs through
+ // Atlas when chosen (owner, 12 October 2026); international delivery is its own line, as on the checkout (2 November 2026).
+ const fee=formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale);
+ const service=sums.service+sums.buyout+sums.conversion+sums.customsHelp,international=sums.shipping+sums.deliveryMargin;
  return <>
   <div className="basket-lines">
    <SummaryLine label={c.lines.items} amount={sums.merchandise} locale={locale}/>
-   <div className="basket-line basket-service-line">
-    <span className="basket-line-label">{c.lines.service}</span>
-    <b>{formatSum(serviceTotal,locale)}</b>
-    <details className="cost-service-breakdown basket-service-breakdown">
-     {/* The link names what the amount holds (14.10.2026: "Сервис Atlas 493 813" read as a ~40 % fee); with buyout or
-         conversion in the tariff, or no weight (nothing ticked), it stays the plain "Service breakdown". */}
-     <summary>{sums.buyout+sums.conversion>0||!weightKg?c.lines.serviceBreakdown:c.lines.serviceSummary(kgText(weightKg,locale),fee,sums.customsHelp>0)}</summary>
-     <div className="basket-lines">
-      <SummaryLine label={c.lines.atlasFee(fee)} amount={sums.service} locale={locale} help={c.feeHelp(fee)} helpLabel={c.lines.atlasFee('')}/>
-      {sums.buyout>0&&<SummaryLine label={c.lines.buyout} amount={sums.buyout} locale={locale}/>}
-      {sums.conversion>0&&<SummaryLine label={c.lines.conversion} amount={sums.conversion} locale={locale}/>}
-      <SummaryLine label={internationalLabel} amount={international} locale={locale} help={c.weightRule(formatKg(packagingKg,locale))} helpLabel={c.blocks.weight}/>
-      {sums.customsHelp>0&&<SummaryLine label={c.lines.customsHelp(percent(pricing.customsHelpFee,locale))} amount={sums.customsHelp} locale={locale} help={c.customsHelpHelp(percent(pricing.customsHelpFee,locale))} helpLabel={c.lines.customsHelp('')}/>}
-     </div>
-    </details>
-   </div>
+   <SummaryLine label={c.lines.service} note={sums.customsHelp>0?c.lines.serviceNoteCustoms(fee,formatSum(sums.customsHelp,locale)):c.lines.serviceNote(fee)} amount={service} locale={locale} help={c.feeHelp(fee)} helpLabel={c.lines.atlasFee('')}/>
+   <SummaryLine label={c.lines.delivery(kgText(weightKg,locale),speed?c.speeds[speed]:'')} amount={international} locale={locale} help={c.weightRule(formatKg(packagingKg,locale))} helpLabel={c.blocks.weight}/>
    {sums.sourceShipping>0&&<SummaryLine label={c.lines.storeShipping} amount={sums.sourceShipping} locale={locale}/>}
    {sums.reserve>0&&<SummaryLine label={c.lines.intlReserve} amount={sums.reserve} locale={locale} help={c.intlReserveHelp} helpLabel={c.lines.intlReserve}/>}
    {/* The rate as on the order card (app/cost-lines.tsx); left out when the cart's parcels have different rates. */}
@@ -110,23 +95,18 @@ export function HoldNote({amount,locale}:{amount:number;locale:Locale;/** Kept f
 }
 
 /**
-/**
- * The bill before a link is pasted: the same rows as a real bill (CalcLines) — the items, one "Atlas service" row with
- * its parts (the Atlas fee and international delivery) — the amounts left as blanks, each row stating its live rule
- * from the tariff. It shows the shape of the answer instead of a list of promises.
+ * The bill before a link is pasted: the same rows as a real bill (CalcLines) — the items, «Сервис Atlas» (the Atlas fee)
+ * and international delivery — the amounts left as blanks, each row stating its live rule from the tariff. It shows the
+ * shape of the answer instead of a list of promises.
  */
 export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
  const c=calcCopy[locale],b=c.blank;
  // Both speeds from the US window (the blank bill has no country yet).
  const daysText=(speed:DeliverySpeed)=>{const range=daysRangeFor(pricing,[],speed);const sc=deliverySpeedCopy[locale];return range?sc.days(range[0],range[1]):sc.daysUnknown;};
- // The parts of "Atlas service", labelled as in the real bill's breakdown.
- const serviceParts:[string,string][]=[
-  [c.lines.atlasFee(''),b.feeRule(formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale))],
-  [c.lines.international(''),b.deliveryRule(c.speedRule(formatUsd(deliveryPerKgUsdFor(pricing),locale),daysText('express'),formatUsd(deliveryPerKgUsdFor(pricing,undefined,'standard'),locale),daysText('standard')),formatKg(packagingKg,locale))],
- ];
  const rows:[string,React.ReactNode][]=[
   [c.lines.items,b.itemSet],
-  [c.lines.service,<>{c.lines.serviceBreakdown}:{serviceParts.map(([label,rule])=><Fragment key={label}><br/>{label} — {rule}</Fragment>)}</>],
+  [c.lines.service,b.feeRule(formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale))],
+  [c.lines.international(''),b.deliveryRule(c.speedRule(formatUsd(deliveryPerKgUsdFor(pricing),locale),daysText('express'),formatUsd(deliveryPerKgUsdFor(pricing,undefined,'standard'),locale),daysText('standard')),formatKg(packagingKg,locale))],
   // A reserve on top of delivery only when the tariff still sets one (none since 5 October 2026).
   ...(pricing.reserve>0?[[c.lines.intlReserve,b.reserveRule] as [string,string]]:[]),
  ];

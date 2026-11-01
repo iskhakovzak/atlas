@@ -365,10 +365,10 @@ try {
   await setViewport(1280); await setPreferences("light"); await open("/cart");
   await evaluate("document.querySelector('.basket-cta').click(), true");
   await eventually("location.pathname === '/cart/checkout' && !!document.querySelector('#co-recipient')", "checkout page with the recipient form", 200);
-  await eventually("!document.querySelector('.co-checking')", "price check with the stores finished", 200);
+  await eventually("!!document.querySelector('.co-checking.is-done, .co-checking.co-notice')", "price check with the stores finished", 200);
   await snapshot("customer", "/cart/checkout");
   await open("/cart/checkout");
-  await eventually("!!document.querySelector('#co-recipient') && !document.querySelector('.co-checking') && !document.querySelector('.co-pay[disabled]')", "checkout ready to pay", 200);
+  await eventually("!!document.querySelector('#co-recipient') && !!document.querySelector('.co-checking.is-done') && !document.querySelector('.co-pay[disabled]')", "checkout ready to pay", 200);
   await evaluate(`(() => {
     const set = (selector, value) => { const el = document.querySelector(selector); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, value); el.dispatchEvent(new Event('input', { bubbles: true })); };
     set('#co-recipient', 'Atlas E2E Customer');

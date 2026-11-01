@@ -1,5 +1,4 @@
 import type { Locale } from './i18n.ts';
-import { tashkentMonth } from './world.ts';
 import { storeCountryNames } from './store-brands.ts';
 import type { CatalogSort } from './catalog-query.ts';
 import {withCyrillic,uzText} from './uz-cyrl.ts';
@@ -16,10 +15,6 @@ const ru = {
   teaserIntro: 'Товары из зарубежных магазинов, отобранные Atlas. Сумма на карточке уже с доставкой в Ташкент.',
   viewAll: (count: number) => `Весь каталог (${count})`,
   viewAllShort: 'Весь каталог',
-  // Compact banners: one line, the sentence opens on tap.
-  bannerLimit: (left: number, limit: number) => `Без пошлины: осталось ${usd(left)} из ${usd(limit)}`,
-  bannerLimitSpent: 'Беспошлинный лимит исчерпан',
-  details: 'Подробнее', collapse: 'Свернуть',
   quickLabel: 'Быстрые фильтры', quickOff: (percent: number) => `−${percent} % и больше`, quickPrice: (max: number) => `До ${compactSum(max, 'ru')}`,
   // Card 2.0.
   storePrice: 'Цена магазина',
@@ -65,9 +60,6 @@ const ru = {
   endLink: 'Заказать по ссылке', endStores: 'Все магазины', order: 'Заказать',
   addToCart: 'В корзину', choose: (name: string) => `Выбрать вариант и добавить в корзину: ${name}`, toTashkent: 'до Ташкента', about: 'примерно', results: 'Товары', priceOn: (date: string) => `на ${date}`,
   showMore: (count: number) => `Показать ещё ${count}`, shown: (count: number, total: number) => `Показано ${count} из ${total}`, storeOf: (store: string) => `Магазин: ${store}`,
-  allowanceLeft: (left: number, name: string, month: string, limit: number) => `Без пошлины в ${month}: осталось ${usd(left)} из ${usd(limit)} для ${name}.`,
-  allowanceSpent: (name: string, month: string) => `Беспошлинный лимит для ${name} в ${month} исчерпан: новые заказы облагаются пошлиной.`,
-  allowanceShow: 'Показать подходящие', allowanceHow: 'Как считается',
   loading: 'Загружаем каталог…',
   chip: { store: 'Магазин', price: 'Цена', size: 'Размер', search: 'Поиск', collection: 'Подборка', category: 'Категория', discount: (percent: number) => percent > 1 ? `Скидка от ${percent} %` : 'Со скидкой' },
   remove: 'Убрать фильтр',
@@ -83,9 +75,6 @@ const uz: Copy = {
   teaserIntro: 'Atlas tanlagan xorijiy do‘kon tovarlari. Kartadagi summa Toshkentga yetkazish bilan.',
   viewAll: (count: number) => `Butun katalog (${count})`,
   viewAllShort: 'Butun katalog',
-  bannerLimit: (left: number, limit: number) => `Bojsiz: ${usd(limit)} dan ${usd(left)} qoldi`,
-  bannerLimitSpent: 'Bojsiz limit tugadi',
-  details: 'Batafsil', collapse: 'Yig‘ish',
   quickLabel: 'Tezkor filtrlar', quickOff: (percent: number) => `−${percent} % va undan ko‘p`, quickPrice: (max: number) => uzJoin(compactSum(max, 'uz'), 'gacha'),
   storePrice: 'Do‘kon narxi',
   storePriceOn: (date: string) => `Do‘kon narxi · ${date}`,
@@ -129,9 +118,6 @@ const uz: Copy = {
   endLink: 'Havola orqali buyurtma', endStores: 'Barcha do‘konlar', order: 'Buyurtma berish',
   addToCart: 'Savatga', choose: (name: string) => `Variantni tanlab, savatga qo‘shish: ${name}`, toTashkent: 'Toshkentgacha', about: 'taxminan', results: 'Tovarlar', priceOn: (date: string) => `${date} holatiga`,
   showMore: (count: number) => `Yana ${count} ta ko‘rsatish`, shown: (count: number, total: number) => `${total} tadan ${count} tasi ko‘rsatildi`, storeOf: (store: string) => `Do‘kon: ${store}`,
-  allowanceLeft: (left: number, name: string, month: string, limit: number) => `${month} oyida bojsiz: ${name} uchun ${usd(limit)} dan ${usd(left)} qoldi.`,
-  allowanceSpent: (name: string, month: string) => `${name} uchun ${month} oyidagi bojsiz limit tugadi: yangi buyurtmalarga boj hisoblanadi.`,
-  allowanceShow: 'Mos tovarlarni ko‘rsatish', allowanceHow: 'Qanday hisoblanadi',
   loading: 'Katalog yuklanmoqda…',
   chip: { store: 'Do‘kon', price: 'Narx', size: 'O‘lcham', search: 'Qidiruv', collection: 'To‘plam', category: 'Toifa', discount: (percent: number) => percent > 1 ? `${percent} % dan chegirma` : 'Chegirmali' },
   remove: 'Filtrni olib tashlash',
@@ -146,9 +132,6 @@ const en: Copy = {
   teaserIntro: 'Products from international stores, selected by Atlas. The amount on each card already includes delivery to Tashkent.',
   viewAll: (count: number) => `Full catalog (${count})`,
   viewAllShort: 'Full catalog',
-  bannerLimit: (left: number, limit: number) => `Duty-free: ${usd(left)} of ${usd(limit)} left`,
-  bannerLimitSpent: 'Duty-free allowance used up',
-  details: 'Details', collapse: 'Collapse',
   quickLabel: 'Quick filters', quickOff: (percent: number) => `${percent}% off or more`, quickPrice: (max: number) => `Under ${compactSum(max, 'en')}`,
   storePrice: 'Store price',
   storePriceOn: (date: string) => `Store price · ${date}`,
@@ -192,9 +175,6 @@ const en: Copy = {
   endLink: 'Order by link', endStores: 'All stores', order: 'Order',
   addToCart: 'Add to cart', choose: (name: string) => `Choose options and add to cart: ${name}`, toTashkent: 'to Tashkent', about: 'about', results: 'Products', priceOn: (date: string) => `as of ${date}`,
   showMore: (count: number) => `Show ${count} more`, shown: (count: number, total: number) => `Showing ${count} of ${total}`, storeOf: (store: string) => `Store: ${store}`,
-  allowanceLeft: (left: number, name: string, month: string, limit: number) => `Duty-free in ${month}: ${usd(left)} of ${usd(limit)} left for ${name}.`,
-  allowanceSpent: (name: string, month: string) => `The ${month} duty-free allowance for ${name} is used up: new orders are subject to duty.`,
-  allowanceShow: 'Show what fits', allowanceHow: 'How it works',
   loading: 'Loading the catalog…',
   chip: { store: 'Store', price: 'Price', size: 'Size', search: 'Search', collection: 'Collection', category: 'Category', discount: (percent: number) => percent > 1 ? `${percent}% off or more` : 'On sale' },
   remove: 'Remove filter',
@@ -258,12 +238,4 @@ export function shortDate(time: number, locale: Locale) {
     const date = new Date(time + 5 * 3_600_000);
     return `${date.getUTCDate()}.${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
   }
-}
-/** Month in the form the allowance sentences need ("октябре", "oktabr", "October"). */
-export function allowanceMonth(locale: Locale, now = Date.now()) {
-  // Tashkent calendar, like the allowance itself (lib/market/allowance.ts monthOf), not the browser time zone.
-  const month = Number(tashkentMonth(now).slice(5, 7)) - 1;
-  if (locale === 'ru') return ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'][month];
-  if (isUzbek(locale)) return uzText(locale, ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'][month]);
-  return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month];
 }

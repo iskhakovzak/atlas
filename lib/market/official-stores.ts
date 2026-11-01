@@ -20,6 +20,32 @@ export function officialStoreBrand(product: { store?: string } & Pick<Product, '
   return officialEbaySellers[[...sellers][0]];
 }
 
+/** Letters and digits only, lower case: «H&M» and «hm», «Kylie Cosmetics» and «kylie» compare as the same name. */
+const letters = (value: string) => value.normalize('NFKD').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+
+/**
+ * The brand whose own store this listing comes from (owner, 2 November 2026: the verified mark next to the store logo),
+ * or undefined. Two cases only: the brand's verified store on a marketplace (officialStoreBrand, eBay adidas_official),
+ * or the brand's own site — a store that is not a marketplace, selling a product of its own brand (nike.com selling Nike,
+ * zara.com selling Zara). A retailer selling other brands (Sephora selling NYX), any marketplace seller and a product
+ * without a brand get no mark: it is never guessed.
+ */
+export function officialListing(product: { store?: string; brand?: string } & Pick<Product, 'sourceUrl' | 'sourceSellerId' | 'sourceVariants'>, store: { name: string; focus: string } | undefined): string | undefined {
+  const marketplace = officialStoreBrand(product);
+  if (marketplace) return marketplace;
+  if (!store || store.focus === 'marketplace') return undefined;
+  const brand = letters(product.brand ?? ''), name = letters(store.name);
+  if (brand.length < 2 || !name) return undefined;
+  return brand === name || name.startsWith(brand) || brand.startsWith(name) ? store.name : undefined;
+}
+
+/** The label of the verified mark (its tooltip and spoken text). */
+export function officialBadgeLabel(locale: Locale) {
+  if (locale === 'ru') return 'Официальный магазин бренда';
+  if (isUzbek(locale)) return uzText(locale, 'Brendning rasmiy do‘koni');
+  return 'Official brand store';
+}
+
 /** "adidas official" for the store line: short enough for a phone card; the title says where. */
 export function officialStoreText(brand: string, locale: Locale) {
   if (locale === 'ru') return { short: `Официальный ${brand}`, full: `Официальный магазин ${brand} на eBay` };

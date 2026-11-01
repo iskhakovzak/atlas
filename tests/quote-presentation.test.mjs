@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {atlasServiceBreakdown,atlasServiceTotal} from '../lib/market/quote-presentation.ts';
+import {atlasServiceBreakdown,billLines} from '../lib/market/quote-presentation.ts';
 
 test('service display groups fees without changing the quote total', () => {
   const quote = {
@@ -15,14 +15,16 @@ test('service display groups fees without changing the quote total', () => {
     reserve: 26_400,
   };
 
-  const groupedService = atlasServiceTotal(quote);
   const breakdown = atlasServiceBreakdown(quote);
-
   assert.deepEqual(breakdown, {service: 115_393, international: 266_640});
-  assert.equal(groupedService, 382_033);
-  assert.equal(quote.merchandise + quote.sourceShipping + groupedService + quote.optionalServices + quote.reserve, 1_416_073);
+  // Cart, checkout and orders (owner, 2 November 2026): «Сервис Atlas» is the fee, delivery its own line; the sum is unchanged.
+  const lines = billLines(quote);
+  assert.deepEqual(lines, {service: 115_393, delivery: 266_640});
+  assert.equal(quote.merchandise + quote.sourceShipping + lines.service + lines.delivery + quote.optionalServices + quote.reserve, 1_416_073);
+  // The fee for paying customs through Atlas stands in «Сервис Atlas», never in delivery.
+  assert.deepEqual(billLines({...quote, customsHelp: 9_000}), {service: 124_393, delivery: 266_640});
 });
 
 test('older quotes without optional fee components remain displayable', () => {
-  assert.equal(atlasServiceTotal({service: 12, shipping: 0}), 12);
+  assert.deepEqual(billLines({service: 12, shipping: 0}), {service: 12, delivery: 0});
 });

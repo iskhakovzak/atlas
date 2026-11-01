@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { deliveryPerKgUsdFor, deliverySpeeds, tariff } from '../lib/market/domain.ts';
 import { deliveryDaysFor, deliveryRegions } from '../lib/market/site-content.ts';
 import { homeCopy } from '../lib/market/home-copy.ts';
-import { expressLead, factPrice, speedDaysRange, speedPriceRange, tariffRows } from '../lib/market/home-facts.ts';
+import { expressLead, factPrice, speedDaysRange, speedPriceRange, tariffRows, tariffUniformity } from '../lib/market/home-facts.ts';
+import { deliveryCopy } from '../lib/market/delivery-copy.ts';
+import { readFileSync } from 'node:fs';
 
 // The rates cards' own calculation before it moved to lib/market/home-facts.ts (app/home-sections.tsx DeliveryTariffs).
 const oldCards = pricing => deliveryRegions.map(region => {
@@ -81,4 +83,29 @@ test('express lead copy: the range with business days in every language', () => 
   // The phone table breaks only «Великобритания», at the syllable; the plain name stays for the cards and other pages.
   assert.equal(homeCopy.ru.tariffs.tableRegions.uk.replace(/\u00ad/g, ''), homeCopy.ru.tariffs.regions.uk);
   assert.equal(homeCopy.ru.tariffs.regions.uk.includes('\u00ad'), false);
+});
+
+test('owner decision 2 November 2026: /delivery says «своя цена» only while a country is really priced apart', () => {
+  const sameNow = tariffUniformity(tariffRows(tariff));
+  assert.equal(sameNow.samePrice, true, 'today every country costs the same per kg');
+  assert.equal(tariffUniformity(tariffRows(withOverrides)).samePrice, false);
+  // An override that repeats the base price changes nothing.
+  const echo = { ...tariff, countryOverrides: { 'Китай': { perKgUsd: deliveryPerKgUsdFor(tariff, 'США', 'express') } } };
+  assert.equal(tariffUniformity(tariffRows(echo)).samePrice, true);
+  for (const locale of ['ru', 'uz', 'oz', 'en']) {
+    const same = deliveryCopy[locale].lead(true, false), apart = deliveryCopy[locale].lead(false, false);
+    assert.notEqual(same, apart, locale);
+  }
+  assert.doesNotMatch(deliveryCopy.ru.lead(true, false), /своя цена/i);
+  assert.match(deliveryCopy.ru.lead(true, false), /одна для всех стран/);
+  assert.match(deliveryCopy.ru.lead(false, false), /Своя цена у каждой страны/);
+  assert.match(deliveryCopy.ru.lead(true, true), /одинаковы для всех стран/);
+  assert.match(deliveryCopy.en.lead(false, true), /its own price per kilogram/);
+  // The page reads the rule from the same rows it shows.
+  const view = readFileSync(new URL('../app/delivery-view.tsx', import.meta.url), 'utf8');
+  assert.match(view, /c\.lead\(uniform\.samePrice,uniform\.sameDays\)/);
+  // Days: an unknown window is not «the same».
+  const rows = tariffRows(tariff);
+  const unknown = rows.map((row, index) => index ? row : { ...row, options: row.options.map((option) => ({ ...option, days: null })) });
+  assert.equal(tariffUniformity(unknown).sameDays, false);
 });

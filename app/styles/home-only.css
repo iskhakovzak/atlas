@@ -119,14 +119,6 @@ html[data-theme="dark"] body .home-main .home-link-field input:not([type="checkb
 .home-main .home-bill-lines dt > span { display: inline-flex; align-items: center; gap: 2px; }
 .home-main .home-bill-lines dt small { color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-regular); }
 .home-main .home-bill-lines dd { margin: 0; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-semibold); font-feature-settings: var(--tnum); white-space: nowrap; }
-.home-main .home-bill-parts > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; color: var(--link); font-size: var(--fs-13); font-weight: var(--fw-semibold); cursor: pointer; list-style: none; }
-.home-main .home-bill-parts > summary::-webkit-details-marker { display: none; }
-.home-main .home-bill-parts > summary::after { content: ""; width: 6px; height: 6px; margin-top: -3px; border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor; transform: rotate(45deg); transition: transform var(--dur-base) var(--ease-out), margin var(--dur-base) var(--ease-out); }
-.home-main .home-bill-parts[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
-.home-main .home-bill-parts ul { display: grid; gap: var(--space-1); margin: var(--space-1) 0 0; padding: var(--space-3); border-radius: var(--r-control); background-color: var(--sunken); list-style: none; color: var(--text-2); font-size: var(--fs-13); }
-.home-main .home-bill-parts li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
-.home-main .home-bill-parts li small { color: var(--text-3); font-size: var(--fs-12); }
-.home-main .home-bill-parts li > span:last-child { font-feature-settings: var(--tnum); white-space: nowrap; }
 .home-main .home-bill-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-1) var(--space-3); margin: 0; padding-top: var(--space-3); border-top: 1px solid var(--line); }
 .home-main .home-bill-total > span { color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-semibold); }
 .home-main .home-bill-total strong { color: var(--text); font-size: var(--fs-30); font-weight: var(--fw-bold); line-height: var(--lh-tight); letter-spacing: -.01em; font-feature-settings: var(--tnum); white-space: nowrap; }
@@ -198,7 +190,7 @@ html[data-theme="dark"] .home-main .home-trust-icon { color: var(--link); }
 @media (max-width: 760px) {
   /* The products follow the link field closely: the 44px tap row under the field already adds air (owner, 2 November 2026). */
   .home-main .home-top { gap: var(--space-4); }
-  .home-main :is(.home-link-batch, .home-rail-all, .home-step-link, .home-bill-parts > summary) { min-height: 44px; }
+  .home-main :is(.home-link-batch, .home-rail-all, .home-step-link) { min-height: 44px; }
   .home-main :is(.home-step, .home-trust-cards li) { grid-template-columns: auto minmax(0, 1fr); column-gap: var(--space-3); padding: var(--space-4); }
   .home-main :is(.home-step, .home-trust-cards li) > :not(.home-step-number, .home-trust-icon, h3) { grid-column: 1 / -1; }
   .home-main :is(.home-step, .home-trust-cards li) h3 { align-self: center; margin: 0; }
@@ -251,6 +243,6 @@ html[data-theme="dark"] .home-main .home-trust-icon { color: var(--link); }
   /* A laptop: the rail still starts on the first screen. */
   .home-main .home-top { padding-block: var(--space-4) var(--space-6); row-gap: var(--space-6); }
   .home-main .home-bill { gap: var(--space-2); padding: var(--space-4); }
-  .home-main :is(.home-bill-note, .home-bill-parts) { display: none; }
+  .home-main .home-bill-note { display: none; }
   .home-main .home-bill-total strong { font-size: var(--fs-24); }
 }

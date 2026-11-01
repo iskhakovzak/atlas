@@ -12,7 +12,10 @@ function ruPlural(count: number, [one, few, many]: [string, string, string]) {
 
 const ru = {
   title: 'Доставка в Ташкент',
-  lead: 'Из каждой страны — своя цена за килограмм и свой срок. Скорость выбираете при оформлении: экспресс или обычная.',
+  /** The opening line, true to the tariff: one price for every country until one is priced apart (owner, 2 November 2026). */
+  lead: (samePrice: boolean, sameDays: boolean) => (samePrice
+    ? sameDays ? 'Цена за килограмм и срок одинаковы для всех стран.' : 'Цена за килограмм одна для всех стран, срок у каждой страны свой.'
+    : sameDays ? 'Своя цена у каждой страны, срок одинаковый.' : 'Своя цена у каждой страны и свой срок.') + ' Скорость выбираете при оформлении: экспресс или обычная.',
   countriesTitle: 'Откуда везём',
   stores: (count: number) => `${count} ${ruPlural(count, ['магазин', 'магазина', 'магазинов'])}`,
   storesLink: 'Магазины страны',
@@ -49,7 +52,9 @@ type DeliveryCopy = typeof ru;
 
 const uz: DeliveryCopy = {
   title: 'Toshkentga yetkazib berish',
-  lead: 'Har bir mamlakatdan — kilogramm uchun o‘z narxi va o‘z muddati. Tezlikni rasmiylashtirishda tanlaysiz: ekspress yoki oddiy.',
+  lead: (samePrice: boolean, sameDays: boolean) => (samePrice
+    ? sameDays ? 'Kilogramm narxi va muddat barcha mamlakatlar uchun bir xil.' : 'Kilogramm narxi barcha mamlakatlar uchun bir xil, muddat esa har bir mamlakatda o‘ziga xos.'
+    : sameDays ? 'Har bir mamlakatning o‘z narxi bor, muddat bir xil.' : 'Har bir mamlakatning o‘z narxi va o‘z muddati bor.') + ' Tezlikni rasmiylashtirishda tanlaysiz: ekspress yoki oddiy.',
   countriesTitle: 'Qayerdan olib kelamiz',
   stores: (count: number) => `${count} ta do‘kon`,
   storesLink: 'Mamlakat do‘konlari',
@@ -83,7 +88,9 @@ const uz: DeliveryCopy = {
 
 const en: DeliveryCopy = {
   title: 'Delivery to Tashkent',
-  lead: 'Each country has its own price per kilogram and its own delivery time. You choose the speed at checkout: express or standard.',
+  lead: (samePrice: boolean, sameDays: boolean) => (samePrice
+    ? sameDays ? 'The price per kilogram and the delivery time are the same for every country.' : 'The price per kilogram is the same for every country; the delivery time depends on the country.'
+    : sameDays ? 'Each country has its own price per kilogram; the delivery time is the same.' : 'Each country has its own price per kilogram and its own delivery time.') + ' You choose the speed at checkout: express or standard.',
   countriesTitle: 'Where we ship from',
   stores: (count: number) => `${count} ${count === 1 ? 'store' : 'stores'}`,
   storesLink: 'Stores in this country',

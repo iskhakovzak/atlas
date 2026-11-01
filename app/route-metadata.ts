@@ -3,6 +3,7 @@ import { routeTitle, type Locale } from '../lib/market/i18n.ts';
 import {withCyrillic} from '../lib/market/uz-cyrl.ts';
 import { alternateOgLocales, defaultImage, ogLocale, pageMetadata } from '../lib/seo/metadata.ts';
 import { pageLanguageSet, type LanguageSet } from '../lib/seo/locales.ts';
+import { storeBrands } from '../lib/market/store-brands.ts';
 
 export type PublicPage = 'home' | 'catalog' | 'stores' | 'delivery' | 'customs' | 'legal' | 'privacy' | 'terms' | 'support' | 'app' | 'delete-account';
 const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', delivery: '/delivery', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
@@ -17,13 +18,25 @@ export const publicPages = Object.keys(paths) as PublicPage[];
 /** Language versions per page: the legal documents exist only in Russian for now (lib/seo/locales.ts). */
 export const pageLanguages = Object.fromEntries(publicPages.map((page) => [page, pageLanguageSet(paths[page])])) as Record<PublicPage, LanguageSet>;
 
+/** «магазин / магазина / магазинов» for a count, as Russian agrees a noun with its number. */
+const ruStores = (count: number) => count % 10 === 1 && count % 100 !== 11 ? 'магазин' : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? 'магазина' : 'магазинов';
+/**
+ * The home page names the best-known stores and the real number of the others in its title and description (owner,
+ * 2 November 2026; the h1 stays as it is). The count is the store directory's (lib/market/store-brands.ts, the same as
+ * «Все N магазинов» on the page), so it follows the list; the title is the template's «… · Atlas», at most 60 characters.
+ */
+export function homeText(storeCount = storeBrands.length): Record<Locale, { title: string; description: string }> {
+  const besides3 = storeCount - 3, besides4 = storeCount - 4;
+  return withCyrillic({
+    uz: { title: `Amazon, Nike, Zara va yana ${besides3} do‘kon — Toshkentga`, description: `Amazon, eBay, Nike, Zara va yana ${besides4} ta xorijiy do‘kondan Toshkentga yetkazish. Havolani qo‘ying — yakuniy narx so‘mda: tovar, Atlas xizmati va yetkazish.` },
+    ru: { title: `Amazon, Nike, Zara и ещё ${besides3} ${ruStores(besides3)} — в Ташкент`, description: `Amazon, eBay, Nike, Zara и ещё ${besides4} ${ruStores(besides4)} с доставкой в Ташкент. Вставьте ссылку на товар и узнайте итог в сумах: товар, сервис Atlas и доставка.` },
+    en: { title: `Shop Amazon, Nike, Zara and ${besides3} more from Tashkent`, description: `Amazon, eBay, Nike, Zara and ${besides4} more stores abroad, delivered to Tashkent. Paste a link to see the total in soum: the item, Atlas service and delivery.` },
+  });
+}
+
 // Titles that already name Atlas are used as is, so the "%s · Atlas" template does not repeat the brand.
 const pageText: Record<PublicPage, Record<Locale, { title: string; description: string }>> = {
-  home: /*@__PURE__*/withCyrillic({
-    uz: { title: 'Atlas — xorijiy do‘konlardan Toshkentga yetkazib berish', description: 'Xorijiy do‘kondagi tovar havolasini qo‘ying va yakuniy narxni so‘mda biling: tovar narxi va xalqaro yetkazish bilan Atlas xizmati, tarkibi hisobda ko‘rinadi.' },
-    ru: { title: 'Atlas — покупки в зарубежных магазинах с доставкой в Ташкент', description: 'Вставьте ссылку на товар из зарубежного магазина и узнайте итог в сумах: цена товара и сервис Atlas с международной доставкой, состав виден в счёте.' },
-    en: { title: 'Atlas — shop international stores with delivery to Tashkent', description: 'Paste a product link from a store abroad and see the total in soum with delivery to Tashkent: the item and the Atlas service, broken down in the bill.' },
-  }),
+  home: /*@__PURE__*/homeText(),
   catalog: /*@__PURE__*/withCyrillic({
     uz: { title: 'Xorijiy tovarlar katalogi Toshkentga yetkazish bilan', description: 'Poyabzal, kiyim, elektronika va go‘zallik — yakuniy narx so‘mda, Toshkentga yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit filtrlari.' },
     ru: { title: 'Каталог зарубежных товаров с доставкой в Ташкент', description: 'Обувь, одежда, электроника и красота с итогом в сумах и доставкой в Ташкент. Фильтры по магазину, цене, размеру и беспошлинному лимиту.' },

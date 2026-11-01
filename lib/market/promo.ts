@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 /**
  * Promo codes (redesign stage 6, 1 November 2026). The operator creates them in the admin («Промокоды»); the customer
- * types one at checkout. A code takes money only off the Сервис Atlas line — the Atlas fee (`service` with `buyout` and
- * `conversion`) — never off the goods, the store delivery, international delivery, the guarantee or the duty, and never
- * below zero. Atlas acts as the buyer's agent, so the discount lowers Atlas's own income (lib/market/finance.ts); the
+ * types one at checkout. A code takes money only off the Atlas commission inside the Сервис Atlas line (`service` with
+ * `buyout` and `conversion`) — never off the goods, the store delivery, international delivery, the guarantee, the fee
+ * for paying customs through Atlas (`customsHelp`, also in Сервис Atlas) or the duty, and never below zero (owner,
+ * 2 November 2026: the base stays the commission). Atlas acts as the buyer's agent, so the discount lowers Atlas's own income (lib/market/finance.ts); the
  * goods stay transit at full price. Pure helpers shared by the server (POST /api/actions checks and counts the use) and
  * the checkout page (shows the same discount before the order); nothing here trusts the browser.
  */
@@ -35,6 +36,9 @@ export const promoInputSchema = z.object({
   /** The order sum (soum) the code starts from; absent = any order. */
   minOrder: z.number().int().min(1).max(10_000_000_000).nullable().optional(),
   active: z.boolean(),
+  /** «Один раз на покупателя» (owner, 2 November 2026): one checkout per account while its use is not returned. Absent:
+   *  on for a new code, unchanged for an existing one (an admin page opened before this option existed). */
+  oncePerCustomer: z.boolean().optional(),
   note: z.string().trim().max(200).optional(),
 }).superRefine((value, context) => {
   if (value.kind === 'percent' && (value.value > 100 || value.value < 1)) context.addIssue({ code: 'custom', path: ['value'], message: 'percent' });
@@ -55,18 +59,25 @@ export type PromoRule = {
   minOrder?: number | null;
   active: boolean;
   uses: number;
+  /** One checkout per account (migration 0018); undefined before that migration (behaves as off). */
+  oncePerCustomer?: boolean;
+  /** Set by the server for the customer checking out: this account already has an unreturned use of the code. */
+  usedByCustomer?: boolean;
   note?: string | null;
   createdAt?: number;
   updatedAt?: number;
-  /** Sum of the discounts given (admin list only). */
+  /** Sum of the discounts given and not returned (admin list only). */
   discountTotal?: number;
+  /** Uses given back because their orders were cancelled before the purchase (admin list only). */
+  returnedUses?: number;
 };
 
 /** The code as it is kept with each order of a checkout (orderSchema.promo). */
 export type AppliedPromo = { id: string; code: string; kind: PromoKind; value: number };
 
-/** Refusal codes (lib/market/i18n.ts): unknown or switched off, outside its dates, used up, order below the minimum, discount changed. */
-export const promoErrors = { unknown: 'err_87', expired: 'err_88', usedUp: 'err_89', minOrder: 'err_90', changed: 'err_91' } as const;
+/** Refusal codes (lib/market/i18n.ts): unknown or switched off, outside its dates, used up, order below the minimum, discount
+ *  changed, already used by this customer (a code that works once per customer). */
+export const promoErrors = { unknown: 'err_87', expired: 'err_88', usedUp: 'err_89', minOrder: 'err_90', changed: 'err_91', alreadyUsed: 'err_96' } as const;
 
 type QuoteLike = { service: number; buyout?: number; conversion?: number; total: number; customsDuty?: number };
 type LineLike = { id: string; quote: QuoteLike };
@@ -81,9 +92,10 @@ export const promoOrderSum = (lines: { quote: QuoteLike }[]) => lines.reduce((su
  * Why the code cannot be used now (an error code), or undefined. `orderSum` is checked against the minimum only when
  * given (the code check on the checkout page leaves it to the page, which knows the cart).
  */
-export function promoProblem(rule: Pick<PromoRule, 'active' | 'startsAt' | 'endsAt' | 'maxUses' | 'uses' | 'minOrder'> | null | undefined, now: number, orderSum?: number): string | undefined {
+export function promoProblem(rule: Pick<PromoRule, 'active' | 'startsAt' | 'endsAt' | 'maxUses' | 'uses' | 'minOrder' | 'oncePerCustomer' | 'usedByCustomer'> | null | undefined, now: number, orderSum?: number): string | undefined {
   if (!rule || !rule.active) return promoErrors.unknown;
   if ((rule.startsAt && now < rule.startsAt) || (rule.endsAt && now >= rule.endsAt)) return promoErrors.expired;
+  if (rule.oncePerCustomer && rule.usedByCustomer) return promoErrors.alreadyUsed;
   if (rule.maxUses && rule.uses >= rule.maxUses) return promoErrors.usedUp;
   if (orderSum !== undefined && rule.minOrder && orderSum < rule.minOrder) return promoErrors.minOrder;
   return undefined;
@@ -116,6 +128,29 @@ export function promoDiscount(rule: Pick<PromoRule, 'kind' | 'value'>, lines: Li
   }
   return { total: total - left, perLine };
 }
+
+/** What an order needs for the return rule below (lib/market/domain.ts Order). */
+type PromoOrder = { batchId?: string; promo?: { id: string } | null; cancelled?: boolean; status: number };
+/** Every order of this checkout that carries the code was cancelled before the store purchase (cancelOrder allows only
+ *  status 0, «Ожидает выкупа»). A checkout with an order already bought, or one still open, keeps its use. */
+const fullyCancelled = (orders: PromoOrder[], batchId: string) => {
+  const own = orders.filter((order) => order.batchId === batchId && order.promo);
+  return own.length > 0 && own.every((order) => order.cancelled && order.status === 0);
+};
+
+/**
+ * The checkouts whose promo use goes back with this save (owner, 2 November 2026): their orders with the code were all
+ * cancelled before the purchase now, and were not all cancelled before. The route then returns each one once
+ * (lib/market/promo-store.ts returnPromoUses; the money returned is already the discounted sum, nothing else changes).
+ */
+export function promoReturns(previous: { orders: PromoOrder[] }, next: { orders: PromoOrder[] }): string[] {
+  const batches = new Set(next.orders.filter((order) => order.promo && order.batchId && order.cancelled).map((order) => order.batchId!));
+  return [...batches].filter((batchId) => fullyCancelled(next.orders, batchId) && !fullyCancelled(previous.orders, batchId));
+}
+
+/** Of these checkouts (unreturned uses of one customer), the ones this account has already cancelled in full: a return
+ *  that failed after the cancel was saved is made good when the customer next uses a code (self-healing). */
+export const promoReturnable = (state: { orders: PromoOrder[] }, batchIds: string[]) => batchIds.filter((batchId) => fullyCancelled(state.orders, batchId));
 
 /** The admin form suggests a code valid for 30 days from today. */
 export const defaultPromoDays = 30;

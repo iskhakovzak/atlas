@@ -131,7 +131,8 @@ test('Uzbek store title and copy: one title shape, «saytidan» after a domain',
 test('store page details: short field on phones, one column without a second card, return to the store after sign-in', () => {
   const css = source('app/styles/catalog-pages.css');
   assert.match(css, /@media \(max-width: 480px\) \{\n  \.store-link \.paste-button > span \{ position: absolute;/);
-  assert.match(css, /\.store-page \.pcard-store \{ display: none; \}/);
+  // Since 2 November 2026 store pages show the store plate on every card too (owner: every product card).
+  assert.doesNotMatch(css, /\.store-page \.pcard-store \{ display: none; \}/);
   assert.match(css, /\.store-about-grid\.is-single \{ grid-template-columns: minmax\(0, 760px\); \}/);
   const about = source('app/store-page.tsx');
   assert.match(about, /const single = !fronts && !note;/);

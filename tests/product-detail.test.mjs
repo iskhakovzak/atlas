@@ -103,7 +103,8 @@ test('review fixes: a browsed catalog card leaves no draft, the dated sum is an 
   assert.match(engine, /\(datedSums \? "≈ " : ""\) \+ formatSum\(heroTotal, lang\)/);
   // The brand line goes through displayBrand, as on the catalog card.
   assert.match(engine, /displayBrand\(brand, storeName,/);
-  assert.match(engine, /<p className="pd-brand">\{brandLine\}<\/p>/);
+  assert.match(engine, /<p className="pd-brand">\{hostBrand && <StoreBadge brand=\{hostBrand\} size=\{28\} official=\{Boolean\(officialMark\)\}/);
+  assert.match(engine, /<span>\{brandLine\}<\/span>/);
   // A guest's heart signs in and saves the card afterwards.
   assert.match(engine, /rememberPendingFavorite\(catalogStorage\(\), guestFavoriteId, Date\.now\(\)\)/);
   assert.match(engine, /loginPath\(catalogItemHref\("\/catalog", guestFavoriteId\)\)/);
@@ -114,4 +115,15 @@ test('review fixes: a browsed catalog card leaves no draft, the dated sum is an 
   const page = source('app/catalog/p/[id]/page.tsx');
   assert.match(page, /const findProduct = cache\(/, 'one catalog read per request');
   assert.match(page, /<Marketplace view="products" crumb=\{product\.name\} crumbPath=\{productPath\(product\.id\)\}>/);
+});
+
+test('owner decision 2 November 2026: the bar button has one look on every width, no arrow on the page or in the sheet', () => {
+  const engine = source('app/global-link-order.tsx');
+  const bar = engine.split('\n').find((line) => line.includes('{awaitingCheck ? <button type="button" className="btn primary" onClick={checkDated}>'));
+  assert.ok(bar, 'the pinned bar');
+  assert.doesNotMatch(bar, /ArrowRight/, 'no arrow in the bar (check price, choose, add)');
+  assert.match(engine, /onClick=\{focusChoice\}>\{nextChoiceText\}<\/button>/, 'the choose button has no arrow in the form either');
+  const css = source('app/styles/link-pages.css');
+  assert.doesNotMatch(css, /\.(lo-sticky|pd-bar-sheet)[^{]*\.btn > svg:last-child \{ display: none; \}/, 'no width hides an arrow any more');
+  assert.match(css, /\.basket-sticky:not\(\.pd-bar\) \.btn > svg \{ display: none; \}/, 'the product bar keeps its spinner on narrow phones');
 });

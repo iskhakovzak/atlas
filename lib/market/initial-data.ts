@@ -1,6 +1,9 @@
 import {database,pricing as currentPricing} from './server.ts';
 import {readCatalog} from './catalog-server.ts';
 import {catalogSeed,storeCatalogSeed,type CatalogSeedValue} from './catalog-seed.ts';
+import {catalogFirstPage} from './catalog-first-page.ts';
+import type {CatalogItem,CatalogQuery} from './catalog-query.ts';
+import type {Locale} from './i18n.ts';
 import {publicCatalog} from './catalog-editor.ts';
 import {catalogCountsBySlug,productStoreSlug,storeProductIds} from './store-pages.ts';
 import type {MerchantFind} from './catalog.ts';
@@ -57,6 +60,21 @@ export async function initialPublicCatalog():Promise<CatalogSeedValue|null>{
  try{
   const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
   return catalogSeed(document,pricing);
+ }catch{return null}
+}
+
+/**
+ * The first page of /catalog for the server HTML (lib/market/catalog-first-page.ts): the catalog read as GET /api/catalog
+ * reads it, ordered as a guest's browser orders it for this address. Null (the page keeps its skeleton and loads the
+ * catalog in the browser as before) when nothing is published, the address asks for a later page, or the database is
+ * unavailable.
+ */
+export async function initialCatalogFirstPage(query:CatalogQuery,locale:Locale):Promise<CatalogItem[]|null>{
+ if(query.page!==1)return null;
+ try{
+  const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
+  const {products,collections}=publicCatalog(document,pricing);
+  return catalogFirstPage(products,collections,pricing,query,locale);
  }catch{return null}
 }
 
