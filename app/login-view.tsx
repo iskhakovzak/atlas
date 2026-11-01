@@ -1,6 +1,6 @@
 'use client';
 import {useCallback,useEffect,useRef,useState,type FormEvent,type ReactNode} from 'react';
-import {ArrowLeft,ArrowRight,Loader2,Mail,MapPin,MessageCircle,Package,Send,ShieldCheck,Smartphone} from 'lucide-react';
+import {ArrowLeft,ArrowRight,ChevronRight,Loader2,Mail,MapPin,MessageCircle,Package,Send,ShieldCheck,Smartphone} from 'lucide-react';
 import {useMarket} from '@/lib/market/store';
 import {safeReturnTo} from '@/lib/auth/return-to';
 import {appleSignInNative,isNative,nativePlatform,openExternal} from '@/lib/native/bridge';
@@ -136,19 +136,21 @@ export function LoginView(){
  const locale=(state.communication.language as Locale)??'ru',w=choiceCopy[locale]??choiceCopy.ru;
  // On a computer the card has a column beside it: what the account is for, each line a feature the account already has.
  return <div className="login-layout"><section className="surface login-card">
-  <span className="eyebrow">{c.eyebrow}</span><h1>{returnTo.startsWith('/cart')?c.cartTitle:c.title}</h1><p className="login-intro">{c.intro}</p>
+  <h1>{returnTo.startsWith('/cart')?c.cartTitle:c.title}</h1><p className="login-intro">{c.intro}</p>
   {error&&<div className="notice error" role="alert">{error}</div>}
   {!methods&&!failed&&<div className="login-skeleton" role="status"><span className="sr-only">{c.loading}</span><i aria-hidden="true"/><b aria-hidden="true"/><i aria-hidden="true"/><i aria-hidden="true"/></div>}
   {(failed||(methods&&!tabs.length))&&<div className="notice" role="status">{c.none}</div>}
-  {/* One method at a time: Telegram on top, the others as a column of buttons; phone and email open their form. */}
+  {/* Every method in view. When Telegram sign-in is on it stays the one blue button on top (the main way to sign in, as
+      before stage 8), then «или»; phone, email, Google and Apple are equal rows under it, none filled (stage 8,
+      1 November 2026). Without Telegram only the equal rows remain. Phone and email open their form, Google and Apple
+      their flow. */}
   {methods&&(tab===null||tab==='telegram'||tab==='google'||tab==='apple')?<div className="login-panel">
    {methods.telegram&&(methods.telegramBot?<TelegramBotLogin locale={locale} onDone={done} onError={showError}/>:<TelegramLogin bot={methods.telegram} hint={c.telegramHint} onDone={done} onError={showError}/>)}
    {methods.telegram&&tabs.length>1&&<div className="login-or" role="separator"><span>{w.or}</span></div>}
    <div className="login-choices">
-    {/* Without Telegram (its button is the main way when it is on) the phone code is the one filled button: one clear first choice. */}
-    {methods.phone&&<button type="button" className={'btn '+(methods.telegram?'secondary':'primary')+' login-choice'} onClick={()=>{setTab('phone');setError(null)}}><Smartphone size={18} aria-hidden="true"/>{w.phone}</button>}
-    {methods.email&&<button type="button" className="btn secondary login-choice" onClick={()=>{setTab('email');setError(null)}}><Mail size={18} aria-hidden="true"/>{w.email}</button>}
-    {methods.google&&<ProviderLink provider="google" returnTo={returnTo} className="btn secondary login-choice"><GoogleMark/>{c.googleButton}</ProviderLink>}
+    {methods.phone&&<button type="button" className="btn secondary login-choice" onClick={()=>{setTab('phone');setError(null)}}><Smartphone size={20} aria-hidden="true"/><span>{w.phone}</span><ChevronRight className="login-choice-go" size={18} aria-hidden="true"/></button>}
+    {methods.email&&<button type="button" className="btn secondary login-choice" onClick={()=>{setTab('email');setError(null)}}><Mail size={20} aria-hidden="true"/><span>{w.email}</span><ChevronRight className="login-choice-go" size={18} aria-hidden="true"/></button>}
+    {methods.google&&<ProviderLink provider="google" returnTo={returnTo} className="btn secondary login-choice"><GoogleMark/><span>{c.googleButton}</span><ChevronRight className="login-choice-go" size={18} aria-hidden="true"/></ProviderLink>}
     {appleOffered(methods)&&<AppleButton methods={methods} returnTo={returnTo} label={c.appleButton} className="btn login-choice apple" onDone={done} onError={showError}/>}
    </div>
   </div>:methods&&(tab==='phone'||tab==='email')&&<div className="login-panel">
@@ -285,7 +287,7 @@ export function TelegramBotLogin({locale,onDone,onError,link=false}:{locale:Loca
  const href=start?(phone?start.links.web:start.links.app):undefined;
  return <div className="login-telegram">
   <a className={'btn tg-login'+(start?'':' is-busy')} href={href} aria-disabled={!start} onClick={event=>{if(!start){event.preventDefault();return}onError();setWaiting(true)}}>
-   {start?<Send size={19} aria-hidden="true"/>:<Loader2 className="spin" size={19} aria-hidden="true"/>}{start?(link?t.linkButton:t.button):t.preparing}
+   {start?<Send size={18} aria-hidden="true"/>:<Loader2 className="spin" size={18} aria-hidden="true"/>}{start?(link?t.linkButton:t.button):t.preparing}
   </a>
   {!waiting&&<small className="tg-login-hint">{t.hint}</small>}
   {waiting&&<div className="tg-login-wait" role="status"><Loader2 className="spin" size={16} aria-hidden="true"/><span>{t.waiting}</span></div>}

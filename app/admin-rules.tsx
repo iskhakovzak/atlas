@@ -27,7 +27,7 @@ export function AdminRules({policy,audit,onSaved}:{policy:Policy;audit:AuditEven
    <div className={`field${errors.restrictedTerms?' invalid':''}`}><label htmlFor="restricted-terms">Слова для ручной проверки (через запятую)</label><input id="restricted-terms" value={termsText} aria-invalid={!!errors.restrictedTerms} onChange={event=>{setTermsText(event.target.value);setDraft({...draft,restrictedTerms:splitList(event.target.value)})}}/>{errors.restrictedTerms&&<small className="admin-field-error">{errors.restrictedTerms}</small>}</div>
   </div>
   <div className="admin-system-actions"><button type="button" className="btn primary" disabled={busy||invalid||!dirty} onClick={()=>void save()}>{busy?'Сохраняем…':'Сохранить правила'}</button>{dirty&&!invalid&&<span className="micro">Есть несохранённые изменения.</span>}{invalid&&<span className="micro admin-field-error">Исправьте отмеченные поля.</span>}</div>
-  <h3 className="admin-subhead"><History size={17} aria-hidden="true"/> История изменений</h3>
+  <h3 className="admin-subhead"><History size={18} aria-hidden="true"/> История изменений</h3>
   {history.length?<ul className="admin-plain-list admin-history">{history.map(item=><li key={item.id}><b>{dateTime(item.at)}</b><span>{item.actor}{item.fields.length?' · '+item.fields.map(([key,value])=>`${key}: ${value}`).join(', '):''}</span></li>)}</ul>:<p className="micro">Изменений правил в последних записях журнала нет. Полный архив — во вкладке «Журнал» с фильтром «Тарифы и правила».</p>}
  </section>;
 }

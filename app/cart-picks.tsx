@@ -37,7 +37,7 @@ export function CartPicks({ title, link, products, limit = 8, onSelect }: { titl
     try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }
   }
   return <TooltipProvider delayDuration={300}><section className="cart-picks" aria-labelledby={titleId}>
-    <header><h2 id={titleId}>{title ?? cc.teaserTitle}</h2><Link className="btn secondary" href={go.href}>{go.label}<ArrowRight size={17} aria-hidden="true" /></Link></header>
+    <header><h2 id={titleId}>{title ?? cc.teaserTitle}</h2><Link className="btn secondary" href={go.href}>{go.label}<ArrowRight size={18} aria-hidden="true" /></Link></header>
     <div className="finds-grid finds-grid-compact" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>{shown.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={onSelect} variant="compact" speed={speed} saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)} />)}</div>
   </section></TooltipProvider>;
 }

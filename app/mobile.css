@@ -5,7 +5,7 @@
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { -webkit-tap-highlight-color: transparent; }
 /* Pressed state instead of the tap flash. */
-:is(.btn, .store-tile, .stores-popular button, .catalog-categories > button, .mobile-nav a):active { transform: scale(.98); }
+:is(.btn, .store-tile, .stores-popular :is(button, a), .catalog-categories > button, .mobile-nav a):active { transform: scale(.98); }
 
 /* Touch screens keep :hover after a tap; lifted cards would stay lifted. */
 

@@ -15,8 +15,8 @@ html:not([data-theme="dark"]) .site-header { border-bottom-color: var(--day-line
 html:not([data-theme="dark"]) ::selection { background: rgba(31, 77, 59, .16); }
 /* The old breadcrumb grey (#65738b) falls just below 4.5:1 on the warm canvas. */
 html:not([data-theme="dark"]) .breadcrumb { color: var(--day-muted); }
-html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf button, .basket-parcel, .basket-summary, .cabinet-card, .order-x, .surface) { box-shadow: var(--shadow-2); }
-html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf button, .surface, .cabinet-card, .order-x) { border-color: var(--day-line); }
+html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf :is(button, a), .basket-parcel, .basket-summary, .cabinet-card, .surface) { box-shadow: var(--shadow-2); }
+html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf :is(button, a), .surface, .cabinet-card) { border-color: var(--day-line); }
 html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: var(--day-accent-hover); }
 
 /* ---------- Catalog cards: long soum totals never leave the card ---------- */
@@ -30,7 +30,6 @@ html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: va
 /* ---------- 320–359 px phones: the header fits without sideways scrolling ---------- */
 @media (max-width: 359px) {
   .site-header { gap: 6px; }
-  .site-header .header-actions { gap: 2px !important; }
   .site-header .wordmark { font-size: 24px !important; }
   .site-header .wordmark svg { width: 20px !important; height: 20px !important; }
   .site-header .icon-btn { min-width: 36px !important; }
@@ -55,8 +54,7 @@ html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: va
 
   /* Page titles 25px, section titles 20–21px, leads 15px; weights one step lighter. */
   .site-main h1 { font-size: 24px; line-height: 1.15; font-weight: 760; letter-spacing: -.02em; }
-  .site-main .home-example-copy h2 { font-size: 20px; line-height: 1.2; font-weight: 740; letter-spacing: -.02em; }
-  .site-main :is(.catalog-end, .catalog-empty, .surface, .communication-heading, .cabinet-next-body) h2 { font-size: 18px; line-height: 1.25; }
+  .site-main :is(.catalog-end, .catalog-empty, .surface, .communication-heading) h2 { font-size: 18px; line-height: 1.25; }
   .page-heading p, .stores-intro { font-size: var(--fs-16); line-height: 1.5; }
 
   /* Catalog head: title, one line of counters, short banners. */

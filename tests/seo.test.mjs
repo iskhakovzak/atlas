@@ -105,7 +105,7 @@ test('/customs: the dated WebPage repeats the date the page shows in every langu
 test('sitemap: one URL per language version, lastmod only where known, no changefreq or priority', () => {
   const xml = buildSitemap(publicPageEntries({ '/customs': customsPageCheckedOn }));
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-  assert.equal(locs.length, 7 * 5 + 3, 'seven pages in five forms, three Russian-only documents once');
+  assert.equal(locs.length, 8 * 5 + 3, 'eight pages in five forms (with /delivery), three Russian-only documents once');
   assert.equal(new Set(locs).size, locs.length);
   assert.ok(locs.includes('https://atlasmarket.uz/legal?lang=ru'));
   assert.ok(!locs.includes('https://atlasmarket.uz/legal'));

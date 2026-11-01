@@ -1,7 +1,8 @@
 import {database,pricing as currentPricing} from './server.ts';
 import {readCatalog} from './catalog-server.ts';
-import {catalogSeed,type CatalogSeedValue} from './catalog-seed.ts';
+import {catalogSeed,storeCatalogSeed,type CatalogSeedValue} from './catalog-seed.ts';
 import {publicCatalog} from './catalog-editor.ts';
+import {catalogCountsBySlug,productStoreSlug,storeProductIds} from './store-pages.ts';
 import type {MerchantFind} from './catalog.ts';
 import type {Pricing} from './domain.ts';
 import {parseStoredPricing} from './pricing-equal.ts';
@@ -68,4 +69,19 @@ export async function publicCatalogProduct(id:string):Promise<{product:MerchantF
  const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
  const product=publicCatalog(document,pricing).products.find(item=>item.id===id);
  return product?{product,pricing:withoutAuthor(pricing)}:null;
+}
+
+/**
+ * A store page (/stores/[slug]) reads the catalog once: that store's part of it to render its products with
+ * (catalog-seed.ts storeCatalogSeed: null only when that part alone is too large to inline, the browser then asks
+ * /api/catalog), the ids of its products for the CollectionPage (from the whole catalog, whatever fits into the HTML)
+ * and every store's product count, which decides the empty state, the description and whether the page is indexed.
+ * `pricing` is the tariff it was priced with. Seed, counts and pricing are null and the ids empty when the database is unavailable.
+ */
+export async function storeCatalog(slug:string):Promise<{seed:CatalogSeedValue|null;counts:Map<string,number>|null;productIds:string[];pricing:Pricing|null}>{
+ try{
+  const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
+  const catalog=publicCatalog(document,pricing);
+  return {seed:storeCatalogSeed(catalog,pricing,slug,productStoreSlug),counts:catalogCountsBySlug(catalog.products),productIds:storeProductIds(catalog.products,slug),pricing:withoutAuthor(pricing)};
+ }catch{return {seed:null,counts:null,productIds:[],pricing:null}}
 }

@@ -89,8 +89,8 @@ export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,no
   <div className="speed-switch-options" role="radiogroup" aria-labelledby={id+'-title'}>
    {options.map(option=>{const selected=value===option.speed;return <button key={option.speed} type="button" role="radio" aria-checked={selected} className={'speed-option'+(selected?' selected':'')} disabled={busy} onClick={()=>{if(!selected)onChange(option.speed)}}>
     {/* A radio mark in the corner (owner, 14.10.2026: the chosen card read only by its tint); express wears a star. */}
-    <i className="speed-option-mark" aria-hidden="true">{selected&&<Check size={11} strokeWidth={3}/>}</i>
-    <b>{option.name}{option.speed==='express'&&<Star size={13} className="speed-option-star" aria-hidden="true"/>}</b><span>{option.days}</span><small>{option.rate}</small>
+    <i className="speed-option-mark" aria-hidden="true">{selected&&<Check size={12} strokeWidth={3}/>}</i>
+    <b>{option.name}{option.speed==='express'&&<Star size={14} className="speed-option-star" aria-hidden="true"/>}</b><span>{option.days}</span><small>{option.rate}</small>
    </button>;})}
   </div>
   {note&&<p className="speed-switch-note speed-faster"><Zap size={14} aria-hidden="true"/>{note}</p>}
@@ -103,7 +103,7 @@ export function HoldNote({amount,locale}:{amount:number;locale:Locale;/** Kept f
  const c=calcCopy[locale];
  if(amount<=0)return null;
  return <div className="calc-hold" role="note">
-  <Wallet size={17} aria-hidden="true"/>
+  <Wallet size={18} aria-hidden="true"/>
   <div><span>{c.hold}</span><small>{c.holdNote}</small></div>
   <b>{formatSum(amount,locale)}</b>
  </div>;
@@ -170,7 +170,7 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
  const pick=(help:boolean)=>{if(!busy)onChoices?.({...choices,help,remember})};
  return <section className={'calc-customs'+(compact?' compact':'')} aria-labelledby={id+'-title'}>
   {/* No duty: one line says so (the allowance left is in it). Over the allowance: the allowance, then the excess and the duty. */}
-  {over?<><header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
+  {over?<><header><Scale size={18} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
    <p className="calc-customs-over">{(!onChoices?c.overPreview:choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(duty,locale))}</p></>
    // No duty (owner, 14.10.2026): a short title with a shield, then how much of the month's allowance this order leaves,
    // as a bar like the home page's example (app/home-sections.tsx). The bar repeats the caption, so it is hidden from readers.
@@ -179,7 +179,7 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
      <p>{c.choice.noDuty(usd(allowanceAfterCartUsd(estimate)),usd(estimate.allowanceUsd))}</p></div></>}
   {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
   {over&&onChoices&&helpAmount!==undefined&&(remembered&&!open
-   ?<p className="customs-remembered">{choices.help?<HandCoins size={15} aria-hidden="true"/>:null}<span>{choices.help?c.choice.rememberedAtlas:c.choice.rememberedSelf}{choices.help&&<small>{helpFee}</small>}</span><button type="button" onClick={()=>setOpen(true)}>{c.choice.change}</button></p>
+   ?<p className="customs-remembered">{choices.help?<HandCoins size={16} aria-hidden="true"/>:null}<span>{choices.help?c.choice.rememberedAtlas:c.choice.rememberedSelf}{choices.help&&<small>{helpFee}</small>}</span><button type="button" onClick={()=>setOpen(true)}>{c.choice.change}</button></p>
    :<fieldset className="customs-choice" aria-busy={busy||undefined}>
     <legend>{c.choice.title}</legend>
     <label className={'customs-option atlas'+(choices.help?' selected':'')}>

@@ -37,7 +37,7 @@ export function LoadingCards({label,rows=3,shape='list'}:{label:string;rows?:num
  </div>;
  return <div className="atlas-skeleton" role="status" aria-live="polite"><span className="sr-only">{label}</span>{items.map(index=><div key={index} className="atlas-skeleton-card" aria-hidden="true"><i/><span><b/><b/><b/></span></div>)}</div>}
 export function Expiry({expiresAt,locale='ru'}:{expiresAt:number;locale?:Locale}){const [now,setNow]=useState(0);useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(t)},[]);const c=locale==='ru'?{checking:'Проверяем срок расчёта…',active:'Расчёт действует',expired:'Расчёт истёк'}:isUzbek(locale)?uzText(locale, {checking:'Hisob muddati tekshirilmoqda…',active:'Hisob amal qiladi',expired:'Hisob muddati tugadi'}):{checking:'Checking estimate validity…',active:'Estimate valid for',expired:'Estimate expired'};if(!now)return <span className="expiry">{c.checking}</span>;const seconds=Math.max(0,Math.floor((expiresAt-now)/1000));return <span className={seconds?'expiry':'expiry expired'}>{seconds?c.active+' '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'):c.expired}</span>}
-export function SectionLink({href,children}:{href:string;children:ReactNode}){return <Link className="text-link" href={href}>{children}<ChevronRight size={17}/></Link>}
+export function SectionLink({href,children}:{href:string;children:ReactNode}){return <Link className="text-link" href={href}>{children}<ChevronRight size={18}/></Link>}
 
 /** The store's price before its discount, crossed out, then the percentage off: "125 $ −41%". Display only. */
 export function WasPrice({was,percent,format}:{was:number;percent:number;format:(value:number)=>string}){

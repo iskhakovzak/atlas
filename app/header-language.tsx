@@ -45,7 +45,7 @@ export function HeaderLanguage({locale,label,themeLabel,onChange}:{locale:Locale
   // Only a known focus destination outside closes here; outside taps are handled by pointerdown above.
   return <div className="lang-menu" ref={wrap} onBlur={event=>{if(open&&event.relatedTarget&&!wrap.current?.contains(event.relatedTarget as Node))setOpen(false)}}>
     <button type="button" ref={trigger} className="lang-trigger" aria-expanded={open} aria-controls={listId} aria-label={`${label}: ${current.name}${current.script?' — '+current.script:''}`} title={label} onClick={()=>setOpen(value=>!value)} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();setOpen(true)}}}>
-      <Globe size={17} aria-hidden="true"/><span lang={current.lang}>{current.short}</span><ChevronDown size={14} aria-hidden="true" className="lang-chevron"/>
+      <Globe size={18} aria-hidden="true"/><span lang={current.lang}>{current.short}</span><ChevronDown size={14} aria-hidden="true" className="lang-chevron"/>
     </button>
     <div className="lang-menu-list" id={listId} role="group" aria-label={label} hidden={!open} onKeyDown={move}>
       {/* Links to this page's ?lang= versions, so crawlers reach every language from every page (SEO audit, 1.11.2026);

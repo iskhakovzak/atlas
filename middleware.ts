@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { pageLocaleHeader, supportedLocale } from "@/lib/market/i18n";
 import { isPublicPath } from "@/lib/seo/locales";
 import { SESSION_COOKIE } from "@/lib/auth/core";
+import { storePageRedirect } from "@/lib/market/store-pages";
 
 /** Old document pages → their section of /account/documents (query kept, e.g. ?recipient=). */
 export const movedDocumentPages: Record<string, string> = { "/identity": "#passports", "/declaration": "#declarations" };
@@ -15,6 +16,12 @@ export function middleware(request: NextRequest) {
   // Passports and declarations live on one page since 1 November 2026; old links and bookmarks keep working.
   const moved = movedDocumentPages[request.nextUrl.pathname];
   if (moved) return NextResponse.redirect(new URL("/account/documents" + request.nextUrl.search + moved, request.nextUrl.origin), 308);
+  // A store page has one address: an old `/stores?brand=nike` link and `/stores/NIKE` are sent to `/stores/nike` by the
+  // server, before any page renders (review of stage 8, 1 November 2026: the browser redirect loaded the directory first).
+  if (request.nextUrl.pathname.startsWith("/stores")) {
+    const store = storePageRedirect(request.nextUrl.pathname, request.nextUrl.searchParams);
+    if (store) return NextResponse.redirect(new URL(store, request.nextUrl.origin), 308);
+  }
   const lang = request.nextUrl.searchParams.get("lang");
   // `?lang=RU` is the same version spelled differently: one redirect to the lowercase address keeps a single canonical
   // (it used to render in Uzbek with the x-default canonical; SEO verification, 1 November 2026).

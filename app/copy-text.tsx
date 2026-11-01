@@ -51,7 +51,7 @@ export function CopyText({ text, locale, what = "order" }: { text: string; local
   const label = result === "copied" ? labels.copied : result === "failed" ? labels.failed : labels.copy;
   return (
     <button className="copy-text-btn" type="button" onClick={() => void copy()} aria-label={label} title={label}>
-      {result === "copied" ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
+      {result === "copied" ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
       <span className="sr-only" aria-live="polite">{result === "idle" ? "" : label}</span>
     </button>
   );

@@ -30,7 +30,7 @@ export function ParcelStageBar({ stage, awaitingPayment = false, locale, size = 
   </div>;
   return <ol className="pf-stages" aria-label={t.bar}>
     {names.map((name, index) => <li key={name} data-state={state(index)} aria-current={index === stage && !done ? "step" : undefined}>
-      <span className="pf-stage-dot" aria-hidden="true">{state(index) === "done" ? <Check size={13} strokeWidth={2.6} /> : index + 1}</span>
+      <span className="pf-stage-dot" aria-hidden="true">{state(index) === "done" ? <Check size={14} strokeWidth={2.6} /> : index + 1}</span>
       <span className="pf-stage-name">{label(index)}</span>
     </li>)}
   </ol>;

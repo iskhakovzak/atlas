@@ -130,7 +130,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <span className="pcard-photo"><ProductImage product={product} decorative locale={locale} /></span>
       {(showDiscount || item.topDeal) && <span className="pcard-badges">
         {showDiscount && <em className="pcard-off" title={copy.compareHint}>−{discount}&#x202F;%</em>}
-        {item.topDeal && <span className="pcard-top"><Flame size={13} aria-hidden="true" />{copy.topDeal}</span>}
+        {item.topDeal && <span className="pcard-top"><Flame size={14} aria-hidden="true" />{copy.topDeal}</span>}
       </span>}
       {brandForHost(item.store) && <span className="pcard-store" title={storeText}><StoreMark host={item.store} /><span className="sr-only">{cc.storeOf(storeText)}</span></span>}
       {save}
@@ -157,8 +157,8 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       {parcel && <p className="pcard-note" title={parcel.hint}>{parcel.text}{parcel.hint && <span className="sr-only">. {parcel.hint}</span>}</p>}
       <div className="pcard-buy">
         {inCart
-          ? <a className="btn secondary" href="/cart"><Check size={17} aria-hidden="true" />{cc.inCart}</a>
-          : <a className="btn primary" href={productHref} onClick={openFromLink}><ShoppingBag size={17} aria-hidden="true" />{cc.addToCart}</a>}
+          ? <a className="btn secondary" href="/cart"><Check size={18} aria-hidden="true" />{cc.inCart}</a>
+          : <a className="btn primary" href={productHref} onClick={openFromLink}><ShoppingBag size={18} aria-hidden="true" />{cc.addToCart}</a>}
       </div>
     </div>
   </article>;

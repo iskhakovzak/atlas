@@ -190,16 +190,18 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
  * Wraps a page rendered with the public catalog (app/stores/page.tsx; null keeps the old way).
  * Until the provider has taken the seed over (an effect right after hydration), useMarket() under it answers with the
  * seed and catalogReady, so the server HTML and the first client render already show the final grid: no skeleton, no
- * fallback photos, no layout shift, no /api/catalog request.
+ * fallback photos, no layout shift, no /api/catalog request. A store's part of the catalog (`scope`) is shown for as long as
+ * the page under it is open and is never taken over (the provider's catalog stays the whole one, loaded when needed).
  */
 export function CatalogSeed({value,children}:{value:CatalogSeedValue|null;children:ReactNode}){
  const adopt=useContext(Context)?.adoptCatalog;
- useEffect(()=>{if(value&&adopt)adopt(value)},[value,adopt]);
+ // One store's part (`scope`, /stores/[slug]) is never taken over as the whole catalog: /catalog opened next loads every product.
+ useEffect(()=>{if(value&&!value.scope&&adopt)adopt(value)},[value,adopt]);
  return <CatalogSeedContext.Provider value={value}>{children}</CatalogSeedContext.Provider>;
 }
 export function useMarket(){
  const c=useContext(Context),seed=useContext(CatalogSeedContext);
- const shown=useMemo(()=>c&&seed&&c.catalogSeed!==seed?{...c,catalogProducts:seed.products,collections:seed.collections,catalogReady:true,catalogError:'',loadCatalog:seededLoad}:c,[c,seed]);
+ const shown=useMemo(()=>c&&seed&&(seed.scope||c.catalogSeed!==seed)?{...c,catalogProducts:seed.products,collections:seed.collections,catalogReady:true,catalogError:'',loadCatalog:seededLoad}:c,[c,seed]);
  if(!shown)throw Error('MarketProvider missing');
  return shown;
 }

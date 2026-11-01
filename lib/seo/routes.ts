@@ -6,9 +6,9 @@ export const seoRoutes: { productPages: boolean; storePages: boolean; deliveryPa
   /** app/catalog/p/[id]/page.tsx (redesign stage 5). */
   productPages: true,
   /** app/stores/[slug]/page.tsx (redesign stage 8). */
-  storePages: false,
+  storePages: true,
   /** app/delivery/page.tsx (redesign stage 8). */
-  deliveryPage: false,
+  deliveryPage: true,
 };
 
 /** The page file each flag stands for, relative to the repository root. */

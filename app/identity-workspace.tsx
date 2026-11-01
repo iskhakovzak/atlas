@@ -119,7 +119,7 @@ export function IdentityView({embedded=false}:{embedded?:boolean}={}){
           <button type="button" className="btn primary basket-cta" disabled={busy||!consent||!complete} aria-describedby={saveHint?"passport-save-hint":undefined} onClick={()=>void confirm()}>{busy?<LoaderCircle className="spin" aria-hidden="true"/>:<ShieldCheck aria-hidden="true"/>}{c.confirm}</button>
           {saveHint&&<p id="passport-save-hint" className="cabinet-note">{saveHint}</p>}
           </>}
-          {current&&<button type="button" className="cabinet-text-btn" disabled={busy} onClick={()=>void remove(current.documentId,d.deleteDataConfirm)}><Trash2 size={15} aria-hidden="true"/>{c.deleteData}</button>}
+          {current&&<button type="button" className="cabinet-text-btn" disabled={busy} onClick={()=>void remove(current.documentId,d.deleteDataConfirm)}><Trash2 size={16} aria-hidden="true"/>{c.deleteData}</button>}
         </div>}
       </li>
     </ol>
@@ -182,8 +182,8 @@ export function DeclarationView({embedded=false}:{embedded?:boolean}={}){
         <span className="docs-check" aria-hidden="true">{item.ok?<Check size={14}/>:null}</span>
         <span className="docs-check-copy"><b>{item.label}</b>{item.detail&&<small>{item.detail}</small>}</span>
         {!item.ok&&('onAction' in item
-          ?<button type="button" className="cabinet-text-btn" onClick={item.onAction}><Plus size={15} aria-hidden="true"/>{item.action}</button>
-          :<Link className="cabinet-text-btn" href={item.href}>{item.action}<ArrowRight size={15} aria-hidden="true"/></Link>)}
+          ?<button type="button" className="cabinet-text-btn" onClick={item.onAction}><Plus size={16} aria-hidden="true"/>{item.action}</button>
+          :<Link className="cabinet-text-btn" href={item.href}>{item.action}<ArrowRight size={16} aria-hidden="true"/></Link>)}
       </li>)}</ul>
     </section>
     {readyToDeclare&&<div className="docs-declare">

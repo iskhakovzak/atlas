@@ -46,5 +46,5 @@ export function InfoTip({ children, locale, label }: { children: ReactNode; loca
   }, [pressed]);
   if (pressed) return <pressed.InfoTipPopover name={name} defaultOpen>{children}</pressed.InfoTipPopover>;
   return <button ref={button} type="button" className="info-tip" aria-label={name} aria-haspopup="dialog" aria-expanded="false" data-state="closed" data-slot="popover-trigger"
-    onPointerDown={warmInfoTipPopover} onFocus={warmInfoTipPopover} onClick={() => { void loadInfoTipPopover().then(setPressed, () => {}); }}><CircleHelp size={17} aria-hidden="true" /></button>;
+    onPointerDown={warmInfoTipPopover} onFocus={warmInfoTipPopover} onClick={() => { void loadInfoTipPopover().then(setPressed, () => {}); }}><CircleHelp size={18} aria-hidden="true" /></button>;
 }

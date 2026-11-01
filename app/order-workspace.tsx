@@ -397,12 +397,12 @@ function OperatorOrderTools({
     }
   };
   if (order.cancelled) return <details className="ops-tools order-refund-tools">
-    <summary><MessageSquareText size={17} /> Комментарий и разбор возврата</summary>
+    <summary><MessageSquareText size={18} /> Комментарий и разбор возврата</summary>
     <OrderIssueCasePanel order={order} notifications={notifications} run={run} locale={locale} />
   </details>;
   return (
     <details className="ops-tools">
-      <summary><UserCheck size={17} /> Команда, трекинг и заметки</summary>
+      <summary><UserCheck size={18} /> Команда, трекинг и заметки</summary>
       <OrderIssueCasePanel order={order} notifications={notifications} run={run} locale={locale} />
       {(order.warehouseServiceRequests ?? []).some((request) => ["requested", "approved"].includes(request.status)) && <section className="warehouse-service-ops">
         <h3>Услуги склада</h3>
@@ -594,7 +594,7 @@ function OperatorOrderCommunication({
   };
   return (
     <details className="ops-tools operator-order-communication">
-      <summary><MessageSquareText size={17} /> {words.panel}</summary>
+      <summary><MessageSquareText size={18} /> {words.panel}</summary>
       <div className="ops-tools-grid">
         <form onSubmit={(event) => void saveNote(event)}>
           <h3>{words.internalTitle}</h3>
@@ -833,7 +833,7 @@ function LineActions({ order: o, siblings, label, locale, busy, run, confirm }: 
       <div>
         <h3>{request.title}</h3><p>{request.reason}</p>
         {request.warehouseServiceRequestId && <p className="micro">{lineCopy[locale].serviceOnly}</p>}
-        {(request.previousValue || request.proposedValue) && <p className="change-values"><span>{request.previousValue || "—"}</span><ArrowRight size={15} aria-hidden="true" /><b>{request.proposedValue || "—"}</b></p>}
+        {(request.previousValue || request.proposedValue) && <p className="change-values"><span>{request.previousValue || "—"}</span><ArrowRight size={16} aria-hidden="true" /><b>{request.proposedValue || "—"}</b></p>}
         {request.amountDelta !== 0 && <strong className="order-x-delta">{request.amountDelta > 0 ? "+" : "−"}{formatSum(Math.abs(request.amountDelta), locale)}</strong>}
         {request.insuranceDelta ? <p className="micro">{insuranceShare[locale](formatSum(Math.abs(request.insuranceDelta), locale))}</p> : null}
       </div>
@@ -1116,7 +1116,7 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
         {group.orders.length === 1 && <span className="og-head-id"><span className="sr-only">{c.orderNumber}: </span><span className="order-x-id">{group.orders[0].id}</span><CopyText text={group.orders[0].id} locale={locale} /></span>}
         {(!track || group.attention > 0 || (group.cancelled > 0 && group.stage !== "cancelled")) && <span className="order-group-badges">
           {!track && <span className={"order-x-status " + stage.tone}>{stage.label}</span>}
-          {group.attention > 0 && <span className="order-x-status warn"><AlertCircle size={13} aria-hidden="true" />{gc.action(group.attention)}</span>}
+          {group.attention > 0 && <span className="order-x-status warn"><AlertCircle size={14} aria-hidden="true" />{gc.action(group.attention)}</span>}
           {group.cancelled > 0 && group.stage !== "cancelled" && <span className="order-x-status muted">{gc.cancelledLines(group.cancelled)}</span>}
         </span>}
         {/* The checkout's stage as a track (since 11 October 2026): six steps named on a wide screen, what comes next beside it. */}
@@ -1128,8 +1128,8 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
           <ol className="og-track-steps" aria-label={c.progress}>{statuses.map((name, index) => <li key={name} data-state={index < trackAt || group.parcelStage === deliveredStage ? "done" : index === trackAt ? "current" : "next"} aria-current={index === trackAt ? "step" : undefined}><span>{group.payment && index === 0 ? gc.awaitingPayment : name}</span></li>)}</ol>
         </div>}
         {finished && <span className="og-head-actions">
-          {links.length === 1 && <Link className="btn secondary" href={reorderHref(links[0])}><RotateCcw size={15} aria-hidden="true" />{gc.reorder}</Link>}
-          <Link className="cabinet-text-btn" href="/order-by-link">{gc.byLink}<ArrowRight size={15} aria-hidden="true" /></Link>
+          {links.length === 1 && <Link className="btn secondary" href={reorderHref(links[0])}><RotateCcw size={16} aria-hidden="true" />{gc.reorder}</Link>}
+          <Link className="cabinet-text-btn" href="/order-by-link">{gc.byLink}<ArrowRight size={16} aria-hidden="true" /></Link>
         </span>}
       </div>
       {/* Beside the heading, not under it: the total, who receives the parcel and the passport customs still needs. */}
@@ -1168,7 +1168,7 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
       const panelId = `parcel-${lines[0].id}`;
       return <div className="order-group-store" key={store.key}>
         <div className="og-store-head">
-          <p className="order-group-store-title"><Package size={15} aria-hidden="true" />{gc.from(storeGroupName(store, locale), store.country && !storeGroupName(store, locale).includes(store.country) ? countryLabel(store.country, locale) : "")}</p>
+          <p className="order-group-store-title"><Package size={16} aria-hidden="true" />{gc.from(storeGroupName(store, locale), store.country && !storeGroupName(store, locale).includes(store.country) ? countryLabel(store.country, locale) : "")}</p>
           {group.stores.length > 1 && <small>{itemCount(store.items, locale)} · <Money value={store.payable} locale={locale} /></small>}
         </div>
         <article className="og-model" data-parcel={many || undefined}>
@@ -1183,7 +1183,7 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
                   {meta && <small>{meta}</small>}
                 </span>
                 {model.product.sourceUrl && <a className="order-x-link og-store-link" href={model.product.sourceUrl} target="_blank" rel="noopener noreferrer">{gc.openIn(storeShortName(store))}<ArrowUpRight size={14} aria-hidden="true" /></a>}
-                {finished && links.length > 1 && model.product.sourceUrl && <Link className="cabinet-text-btn og-model-reorder" href={reorderHref(model.product.sourceUrl)}><RotateCcw size={15} aria-hidden="true" />{gc.reorder}</Link>}
+                {finished && links.length > 1 && model.product.sourceUrl && <Link className="cabinet-text-btn og-model-reorder" href={reorderHref(model.product.sourceUrl)}><RotateCcw size={16} aria-hidden="true" />{gc.reorder}</Link>}
               </div>
               <div className="og-lines">{many
                 ? model.orders.map((order) => <OrderLineRow key={order.id} order={order} showThumb={showThumb} headerStage={stage.label} panelId={panelId} locale={locale} />)
@@ -1205,13 +1205,13 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
       </div>
       {customs && <div className="og-customs-side">
         {customs.dutiableUsd > 0 && <strong className="og-customs-sum"><small>{pc.estimate}</small>≈ {usdText(customs.estimateUsd, locale)}</strong>}
-        {customs.helpRequested && <span className="order-x-status ok"><Check size={13} strokeWidth={3} aria-hidden="true" />{pc.customsBadge}</span>}
+        {customs.helpRequested && <span className="order-x-status ok"><Check size={14} strokeWidth={3} aria-hidden="true" />{pc.customsBadge}</span>}
       </div>}
       {customs && allowance && <p className="og-customs-allowance">{allowance}</p>}
     </div>}
     {/* No "cancel order" button for customers (owner's decision, 6 October 2026): cancellation goes through support or an operator. */}
     <div className="order-x-actions og-group-foot">
-      <Link className="cabinet-text-btn" href={`/account?order=${encodeURIComponent(group.orders[0].id)}#support`}><MessageCircle size={15} aria-hidden="true" />{c.ask}</Link>
+      <Link className="cabinet-text-btn" href={`/account?order=${encodeURIComponent(group.orders[0].id)}#support`}><MessageCircle size={16} aria-hidden="true" />{c.ask}</Link>
     </div>
   </section>;
 }
@@ -1965,7 +1965,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               </div>
             )}
             {!operations && <CustomerWarehouseServices order={o} pricing={pricing} locale={locale} busy={busy} run={runOrderAction} />}
-             {!!o.changeRequests?.length && <section className="change-request-list" aria-label={ow.agreements}>{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? ow.pending : request.status === "approved" ? ow.approved : ow.declined}</span><h3>{request.title}</h3><p>{request.reason}</p>{request.warehouseServiceRequestId&&<p className="micro">{locale==='ru'?'Подтверждение относится только к этой услуге. Платёжный провайдер не подключён, а выполнение ещё не подтверждено.':isUzbek(locale)?uzText(locale, 'Tasdiq faqat shu xizmatga tegishli. To‘lov provayderi ulanmagan, xizmat bajarilgani hali tasdiqlanmagan.'):'Approval applies only to this service. No payment provider is connected, and fulfilment has not been confirmed.'}</p>}{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{request.insuranceDelta ? <small className="micro">{insuranceShare[locale](money(Math.abs(request.insuranceDelta)))}</small> : null}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>{ow.reject}</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>{ow.confirm}</button></div>}</div></article>)}</section>}
+             {!!o.changeRequests?.length && <section className="change-request-list" aria-label={ow.agreements}>{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? ow.pending : request.status === "approved" ? ow.approved : ow.declined}</span><h3>{request.title}</h3><p>{request.reason}</p>{request.warehouseServiceRequestId&&<p className="micro">{locale==='ru'?'Подтверждение относится только к этой услуге. Платёжный провайдер не подключён, а выполнение ещё не подтверждено.':isUzbek(locale)?uzText(locale, 'Tasdiq faqat shu xizmatga tegishli. To‘lov provayderi ulanmagan, xizmat bajarilgani hali tasdiqlanmagan.'):'Approval applies only to this service. No payment provider is connected, and fulfilment has not been confirmed.'}</p>}{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={16}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{request.insuranceDelta ? <small className="micro">{insuranceShare[locale](money(Math.abs(request.insuranceDelta)))}</small> : null}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>{ow.reject}</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>{ow.confirm}</button></div>}</div></article>)}</section>}
             {o.storeShippingSettlement && (
               <div
                 className={
@@ -2791,7 +2791,7 @@ export function PricingManager({
         <p className="micro">{pricingWords.newQuotes}</p>
         <button className="btn primary" disabled={saving||!isDirty}>
           {saving ? pricingWords.saving : pricingWords.save}
-          <Check size={17} />
+          <Check size={18} />
         </button>
       </form>
     </details>
@@ -2838,7 +2838,7 @@ function CommunicationPanel({
          <div className="field"><label htmlFor="notice-phone">{communicationWords.phone}</label><input id="notice-phone" type="tel" autoComplete="tel" required={draft.smsEnabled} placeholder="+998 90 123 45 67" value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} /></div>
          <div className="field"><label htmlFor="notice-language">{communicationWords.language}</label><select id="notice-language" value={draft.language} onChange={(event) => setDraft({ ...draft, language: event.target.value as Locale })}><option value="ru">Русский</option><option value="uz">O‘zbekcha (lotin)</option><option value="oz">Ўзбекча (кирилл)</option><option value="en">English</option></select></div>
       </div>
-       <button className="btn secondary" disabled={saving || (draft.emailEnabled && !draft.email) || (draft.smsEnabled && !draft.phone)} onClick={() => void submit()}>{saving ? "…" : communicationWords.save}<Check size={17} /></button>
+       <button className="btn secondary" disabled={saving || (draft.emailEnabled && !draft.email) || (draft.smsEnabled && !draft.phone)} onClick={() => void submit()}>{saving ? "…" : communicationWords.save}<Check size={18} /></button>
     </section>
   );
 }
@@ -2881,7 +2881,7 @@ export function NotificationsView() {
     <div className="notices-page">
       <header className="orders-head">
         <div><h1>{c.title}</h1>{ready && state.notifications.length > 0 && <p>{unread ? c.unread(unread) : c.allRead}</p>}</div>
-        {ready && unread > 0 && <button type="button" className="btn secondary" onClick={() => void act({ type: "notifications-read" })}><CheckCheck size={17} aria-hidden="true" />{c.readAll}</button>}
+        {ready && unread > 0 && <button type="button" className="btn secondary" onClick={() => void act({ type: "notifications-read" })}><CheckCheck size={18} aria-hidden="true" />{c.readAll}</button>}
       </header>
       {!ready ? (
         error
@@ -2911,7 +2911,7 @@ export function NotificationsView() {
       {ready && user?.operator && (
         <section className="message-log-section">
           <div className="section-heading"><h2>Журнал внешних сообщений</h2><span>{state.messageDeliveries.length} подготовлено</span></div>
-          {!state.messageDeliveries.length ? <div className="surface message-log-empty"><Mail size={23} /><div><h3>{locale==='ru'?'Сообщений пока нет':isUzbek(locale)?uzText(locale, 'Hozircha xabarlar yo‘q'):'No messages yet'}</h3><p>{locale==='ru'?'Настройки email и SMS можно сохранить, но отправка не подключена.':isUzbek(locale)?uzText(locale, 'Email va SMS sozlamalarini saqlash mumkin, lekin yuborish ulanmagan.'):'Email and SMS preferences can be saved, but delivery is not connected.'}</p></div></div> : <div className="surface message-log">{state.messageDeliveries.map((item) => <article key={item.id}><span className="message-channel">{item.channel === "email" ? <Mail size={17} /> : <MessageSquareText size={17} />}{item.channel.toUpperCase()}</span><div><b>{item.title}</b><p>{item.orderId ? `${item.orderId} · ` : ""}{item.destination}</p></div><span className="status-badge">{locale==='ru'?'Не отправлено':isUzbek(locale)?uzText(locale, 'Yuborilmadi'):'Not sent'}</span><time>{formatDateTime(item.at, locale)}</time></article>)}</div>}
+          {!state.messageDeliveries.length ? <div className="surface message-log-empty"><Mail size={24} /><div><h3>{locale==='ru'?'Сообщений пока нет':isUzbek(locale)?uzText(locale, 'Hozircha xabarlar yo‘q'):'No messages yet'}</h3><p>{locale==='ru'?'Настройки email и SMS можно сохранить, но отправка не подключена.':isUzbek(locale)?uzText(locale, 'Email va SMS sozlamalarini saqlash mumkin, lekin yuborish ulanmagan.'):'Email and SMS preferences can be saved, but delivery is not connected.'}</p></div></div> : <div className="surface message-log">{state.messageDeliveries.map((item) => <article key={item.id}><span className="message-channel">{item.channel === "email" ? <Mail size={18} /> : <MessageSquareText size={18} />}{item.channel.toUpperCase()}</span><div><b>{item.title}</b><p>{item.orderId ? `${item.orderId} · ` : ""}{item.destination}</p></div><span className="status-badge">{locale==='ru'?'Не отправлено':isUzbek(locale)?uzText(locale, 'Yuborilmadi'):'Not sent'}</span><time>{formatDateTime(item.at, locale)}</time></article>)}</div>}
         </section>
       )}
     </div>

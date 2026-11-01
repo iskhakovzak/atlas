@@ -47,7 +47,7 @@ export function ProfileMenu({nav,locale,balance,attention,view}:{nav:NavCopy;loc
   ];
   return <div className="shell-profile" ref={wrap} onBlur={event=>{if(open&&event.relatedTarget&&!wrap.current?.contains(event.relatedTarget as Node))setOpen(false)}}>
     <button type="button" ref={trigger} className={'shell-profile-trigger'+(mine?' active':'')} aria-expanded={open} aria-controls={listId} aria-label={nav.profile+(attention?' — '+nav.needsAction:'')} onClick={event=>{fromKeyboard.current=event.detail===0;setOpen(!open)}} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();fromKeyboard.current=true;setOpen(true)}}}>
-      <span className="shell-profile-icon"><UserRound size={19} aria-hidden="true"/>{attention&&<i className="shell-dot" aria-hidden="true"/>}</span><span className="shell-profile-label">{nav.profile}</span><ChevronDown size={14} aria-hidden="true" className="shell-chevron"/>
+      <span className="shell-profile-icon"><UserRound size={18} aria-hidden="true"/>{attention&&<i className="shell-dot" aria-hidden="true"/>}</span><span className="shell-profile-label">{nav.profile}</span><ChevronDown size={14} aria-hidden="true" className="shell-chevron"/>
     </button>
     <div className="shell-menu-list" id={listId} role="group" aria-label={nav.profileMenu} hidden={!open} onKeyDown={move}>
       {items.map(([href,key,Icon,label,extra])=><Link key={key} href={href} className={key===view||(key==='account'&&view==='parcel')?'active':''} aria-current={key===view?'page':undefined} onClick={()=>setOpen(false)}><Icon size={18} aria-hidden="true"/><span>{label}</span>{extra&&<small>{extra}</small>}</Link>)}

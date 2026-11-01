@@ -87,7 +87,7 @@ export function siteGraph(locale: Locale, contacts: Contacts, legal?: Legal) {
 
 /** Shell views of the indexable subpages (app/marketplace.tsx) → their paths; private views have none. */
 export const publicViewPaths: Record<string, string> = {
-  products: '/catalog', stores: '/stores', customs: '/customs', legal: '/legal', privacy: '/privacy',
+  products: '/catalog', stores: '/stores', delivery: '/delivery', customs: '/customs', legal: '/legal', privacy: '/privacy',
   terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account',
 };
 

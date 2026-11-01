@@ -90,7 +90,7 @@ export function AccountView() {
     <header className="cabinet-head">
       <span className="cabinet-avatar" aria-hidden="true">{(user.name || contact || "A").trim().charAt(0).toUpperCase()}</span>
       <div className="cabinet-identity"><h1>{p.hub.title}</h1><p><b>{user.name}</b>{contact && contact !== user.name ? <> · {contact}</> : null}<small>{c.since(since)}</small></p></div>
-      {(user.operator || !!user.permissions?.length) && <Link className="btn secondary cabinet-manage" href="/admin">{c.manage}<ArrowUpRight size={17} aria-hidden="true" /></Link>}
+      {(user.operator || !!user.permissions?.length) && <Link className="btn secondary cabinet-manage" href="/admin">{c.manage}<ArrowUpRight size={18} aria-hidden="true" /></Link>}
     </header>
 
     <div className="cabinet-grid">
@@ -102,7 +102,7 @@ export function AccountView() {
           <ul className="pf-actions">{actions.map(action => <ProfileActionCard key={action.kind + action.orderId + (action.recipientId ?? "")} action={action} locale={lang} stage={actionStage(action)} />)}</ul>
         </section>}
         {activeParcels.length > 0 ? <section className="pf-section" aria-labelledby="pf-parcels-title">
-          <div className="pf-section-head"><h2 id="pf-parcels-title" className="pf-section-title">{p.hub.parcels}<span className="pf-count">{activeParcels.length}</span></h2><Link className="pf-section-link" href="/orders">{p.hub.allParcels}<ArrowRight size={15} aria-hidden="true" /></Link></div>
+          <div className="pf-section-head"><h2 id="pf-parcels-title" className="pf-section-title">{p.hub.parcels}<span className="pf-count">{activeParcels.length}</span></h2><Link className="pf-section-link" href="/orders">{p.hub.allParcels}<ArrowRight size={16} aria-hidden="true" /></Link></div>
           {!actions.length && <p className="pf-calm"><Check size={16} aria-hidden="true" />{p.hub.allSet}. {p.hub.allSetHint}</p>}
           <ul className="pf-parcels">{activeParcels.map(parcel => <ParcelCard key={parcel.id} parcel={parcel} action={parcelAction(parcel, actions)} locale={lang} listed />)}</ul>
           <TelegramNudge locale={lang} />
@@ -139,7 +139,7 @@ export function AccountView() {
                 {passport ? <span className="cabinet-chip ok"><Check size={14} aria-hidden="true" />{c.recipients.passportOk(passport.passportMasked)}</span> : <Link className="cabinet-chip warn" href={documentsPath(profile.id)}><ScanLine size={14} aria-hidden="true" />{c.recipients.addPassport}</Link>}
               </div>
               <div className="cabinet-recipient-actions">
-                <button type="button" className="cabinet-text-btn" onClick={() => setEditor(profile)}><Pencil size={15} aria-hidden="true" />{c.recipients.edit}</button>
+                <button type="button" className="cabinet-text-btn" onClick={() => setEditor(profile)}><Pencil size={16} aria-hidden="true" />{c.recipients.edit}</button>
                 {!profile.primary && <button type="button" className="cabinet-text-btn" onClick={() => void act({ type: "delivery-profile-save", id: profile.id, value: profile, label: profile.label, primary: true })}>{c.recipients.makePrimary}</button>}
                 <SafeDeleteButton label={c.recipients.remove} itemName={profile.label} locale={lang} onConfirm={() => act({ type: "delivery-profile-remove", id: profile.id })} />
               </div>
