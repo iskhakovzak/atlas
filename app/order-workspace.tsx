@@ -77,13 +77,17 @@ import {
   type WarehouseServiceRequest,
   customsHelpShare,
   legacyDeliverySpeed,
+  parcelStageOf,
+  deliveredStage,
+  transitParcelOrders,
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
+import { noticeTarget, parcelPath } from "@/lib/market/notice-panel";
 import { countries } from "@/lib/market/world";
-import { localizedStatuses, navCopy, type Locale } from "@/lib/market/i18n";
+import { localizedParcelStages, navCopy, type Locale } from "@/lib/market/i18n";
 import {requestImport} from "@/lib/market/import-client";
 import { homeCopy } from "@/lib/market/home-copy";
-import { formatKg, formatPercent, formatSum } from "@/lib/market/format";
+import { formatKg, formatPercent, formatSum, ruPlural } from "@/lib/market/format";
 import { localizeLegacyStoredCopy, renderHistory, renderNoticeRow, renderNotification } from "@/lib/market/history-copy";
 import { deliveryDaysFor, deliveryRegions, siteContent, type DeliveryRegion } from "@/lib/market/site-content";
 import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderCustomerTotal, orderGroupCopy, parcelServicesFor, shipAddressText, storeGroupName, storeShortName, type OrderGroup, type ParcelServiceRequest } from "@/lib/market/order-groups";
@@ -124,6 +128,16 @@ const customsWords = /*@__PURE__*/withCyrillic({
   uz: { over: "Boj oldindan to‘lovdan ko‘p", confirm: "Bojni tasdiqlash", title: "Bojxona hisoblagan boj", description: "Haqiqiy bojni USD da kiriting. Oldindan to‘lovdan kam bo‘lsa, qoldiq darhol xaridor balansiga qaytadi; ko‘p bo‘lsa — farqni xaridor tasdiqlaydi.", actual: "Hisoblangan boj, USD", prepaid: "Bojning oldindan to‘lovi", settled: (actual: string) => `Bojxona ${actual} hisobladi.`, refund: (amount: string) => `Qoldiq ${amount} balansga qaytarildi.`, extra: (amount: string) => `Qo‘shimcha to‘lov ${amount}`, saved: "Boj tasdiqlandi", helpTitle: "Bojxonani Atlas rasmiylashtiradi", helpDuty: (estimate: string) => `Topshiriq qabul qilindi. Boj oldindan to‘lovi ≈ ${estimate}: chiqarilgandan keyin bojxona bilan solishtiramiz — qoldiq balansga qaytadi, qo‘shimcha to‘lov faqat roziligingiz bilan.`, helpNoDuty: "Topshiriq qabul qilindi. Jo‘natma limit doirasida — boj kutilmaydi, deklaratsiyani Atlas tayyorlaydi." },
   en: { over: "Duty above the prepayment", confirm: "Confirm duty", title: "Duty charged by customs", description: "Enter the actual duty in USD. If it is below the prepayment, the rest returns to the customer’s balance at once; if above, the customer approves the difference.", actual: "Duty charged, USD", prepaid: "Duty prepaid", settled: (actual: string) => `Customs charged ${actual}.`, refund: (amount: string) => `${amount} returned to the balance.`, extra: (amount: string) => `Extra ${amount}`, saved: "Duty confirmed", helpTitle: "Atlas handles customs", helpDuty: (estimate: string) => `Request accepted. Duty prepaid ≈ ${estimate}: after release we settle it with customs — the rest returns to your balance, any extra only with your consent.`, helpNoDuty: "Request accepted. The parcel is within the allowance — no duty expected; Atlas prepares the declaration." },
 });
+// The operator's button on a parcel already on its way (1 November 2026): two stages set by hand, then delivery.
+// The whole parcel moves at once, so the button says how many orders it moves (review, 1 November 2026).
+const transitWords = /*@__PURE__*/withCyrillic({
+  ru: { toCustoms: "Отметить: Таможня", toTashkent: "Отметить: В Ташкенте", orders: (n: number) => ` · ${n} ${ruPlural(n, ["заказ", "заказа", "заказов"])}`, customsFirst: "Сначала подтвердите пошлину, начисленную таможней: после неё станет доступно «Подтвердить доставку»." },
+  uz: { toCustoms: "Belgilash: Bojxonada", toTashkent: "Belgilash: Toshkentda", orders: (n: number) => ` · ${n} ta buyurtma`, customsFirst: "Avval bojxona hisoblagan bojni tasdiqlang: shundan keyin «Yetkazib berishni tasdiqlash» ochiladi." },
+  en: { toCustoms: "Mark: Customs", toTashkent: "Mark: In Tashkent", orders: (n: number) => ` · ${n} orders`, customsFirst: "Confirm the duty customs charged first: then “Confirm delivery” becomes available." },
+});
+/** At "В Ташкенте", an order whose customs Atlas handles waits for the duty before "Доставлен" (domain.ts advanceOrder). */
+const dutyBeforeDelivery = (o: Order) =>
+  !o.cancelled && o.status === 4 && o.transitStage === "tashkent" && Boolean(o.quote.customsHelp) && (!o.customsSettlement || Boolean(o.customsSettlement.extra && !o.customsExtraApproved));
 const pendingChange = (o: Order) => (o.changeRequests ?? []).some((request) => request.status === "pending");
 const usd = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -139,9 +153,9 @@ const weighWords: Record<Locale, { parcel: (ids: string) => string; together: (i
 });
 // The queue row's "whose move" line (operatorNextStep) and the facts the operator needs to buy the item at the store.
 const opsStepCopy = /*@__PURE__*/withCyrillic({
-  ru: { steps: { problem: "Ваш шаг: разобрать проблему", storeShipping: "Ваш шаг: доставка магазина", buyout: "Ваш шаг: выкуп", receive: "Ваш шаг: приёмка на склад", inspect: "Ваш шаг: осмотр на складе", service: "Ваш шаг: услуга склада", weigh: "Ваш шаг: взвесить", tracking: "Ваш шаг: трек-номер", ship: "Ваш шаг: отправить в Ташкент", customs: "Ваш шаг: подтвердить пошлину", deliver: "Ваш шаг: подтвердить доставку", decision: "Ждёт ответа клиента", payment: "Ждёт оплаты клиента" } as Record<OperatorStepKey, string>, together: (id: string) => `Взвешивается вместе с ${id}`, days: (n: number) => `${n} дн.`, idle: (n: number) => `Последнее событие по заказу — ${n} дн. назад`, buyoutTitle: "Для выкупа", store: "Магазин", variant: "Вариант", price: "Цена в магазине при оформлении", each: "за 1 шт.", sku: "Артикул" },
-  uz: { steps: { problem: "Sizning qadamingiz: muammoni hal qilish", storeShipping: "Sizning qadamingiz: do‘kon yetkazishi", buyout: "Sizning qadamingiz: xarid", receive: "Sizning qadamingiz: omborga qabul", inspect: "Sizning qadamingiz: omborda ko‘rik", service: "Sizning qadamingiz: ombor xizmati", weigh: "Sizning qadamingiz: tortish", tracking: "Sizning qadamingiz: trek-raqam", ship: "Sizning qadamingiz: Toshkentga jo‘natish", customs: "Sizning qadamingiz: bojni tasdiqlash", deliver: "Sizning qadamingiz: yetkazishni tasdiqlash", decision: "Mijoz javobini kutmoqda", payment: "Mijoz to‘lovini kutmoqda" } as Record<OperatorStepKey, string>, together: (id: string) => `${id} bilan birga tortiladi`, days: (n: number) => `${n} kun`, idle: (n: number) => `Buyurtmadagi oxirgi voqea — ${n} kun oldin`, buyoutTitle: "Xarid uchun", store: "Do‘kon", variant: "Variant", price: "Rasmiylashtirishdagi do‘kon narxi", each: "1 dona uchun", sku: "Artikul" },
-  en: { steps: { problem: "Your step: resolve the issue", storeShipping: "Your step: store shipping", buyout: "Your step: buyout", receive: "Your step: receive at warehouse", inspect: "Your step: warehouse check", service: "Your step: warehouse service", weigh: "Your step: weigh", tracking: "Your step: tracking number", ship: "Your step: ship to Tashkent", customs: "Your step: confirm duty", deliver: "Your step: confirm delivery", decision: "Waiting for customer reply", payment: "Waiting for customer payment" } as Record<OperatorStepKey, string>, together: (id: string) => `Weighed with ${id}`, days: (n: number) => `${n} d`, idle: (n: number) => `Last order event ${n} d ago`, buyoutTitle: "For buyout", store: "Store", variant: "Variant", price: "Store price at checkout", each: "per item", sku: "SKU" },
+  ru: { steps: { problem: "Ваш шаг: разобрать проблему", storeShipping: "Ваш шаг: доставка магазина", buyout: "Ваш шаг: выкуп", receive: "Ваш шаг: приёмка на склад", inspect: "Ваш шаг: осмотр на складе", service: "Ваш шаг: услуга склада", weigh: "Ваш шаг: взвесить", tracking: "Ваш шаг: трек-номер", ship: "Ваш шаг: отправить в Ташкент", toCustoms: "Ваш шаг: отметить «Таможня»", toTashkent: "Ваш шаг: отметить «В Ташкенте»", customs: "Ваш шаг: подтвердить пошлину", deliver: "Ваш шаг: подтвердить доставку", decision: "Ждёт ответа клиента", payment: "Ждёт оплаты клиента" } as Record<OperatorStepKey, string>, together: (id: string) => `Взвешивается вместе с ${id}`, days: (n: number) => `${n} дн.`, idle: (n: number) => `Последнее событие по заказу — ${n} дн. назад`, buyoutTitle: "Для выкупа", store: "Магазин", variant: "Вариант", price: "Цена в магазине при оформлении", each: "за 1 шт.", sku: "Артикул" },
+  uz: { steps: { problem: "Sizning qadamingiz: muammoni hal qilish", storeShipping: "Sizning qadamingiz: do‘kon yetkazishi", buyout: "Sizning qadamingiz: xarid", receive: "Sizning qadamingiz: omborga qabul", inspect: "Sizning qadamingiz: omborda ko‘rik", service: "Sizning qadamingiz: ombor xizmati", weigh: "Sizning qadamingiz: tortish", tracking: "Sizning qadamingiz: trek-raqam", ship: "Sizning qadamingiz: Toshkentga jo‘natish", toCustoms: "Sizning qadamingiz: «Bojxonada» deb belgilash", toTashkent: "Sizning qadamingiz: «Toshkentda» deb belgilash", customs: "Sizning qadamingiz: bojni tasdiqlash", deliver: "Sizning qadamingiz: yetkazishni tasdiqlash", decision: "Mijoz javobini kutmoqda", payment: "Mijoz to‘lovini kutmoqda" } as Record<OperatorStepKey, string>, together: (id: string) => `${id} bilan birga tortiladi`, days: (n: number) => `${n} kun`, idle: (n: number) => `Buyurtmadagi oxirgi voqea — ${n} kun oldin`, buyoutTitle: "Xarid uchun", store: "Do‘kon", variant: "Variant", price: "Rasmiylashtirishdagi do‘kon narxi", each: "1 dona uchun", sku: "Artikul" },
+  en: { steps: { problem: "Your step: resolve the issue", storeShipping: "Your step: store shipping", buyout: "Your step: buyout", receive: "Your step: receive at warehouse", inspect: "Your step: warehouse check", service: "Your step: warehouse service", weigh: "Your step: weigh", tracking: "Your step: tracking number", ship: "Your step: ship to Tashkent", toCustoms: "Your step: mark “Customs”", toTashkent: "Your step: mark “In Tashkent”", customs: "Your step: confirm duty", deliver: "Your step: confirm delivery", decision: "Waiting for customer reply", payment: "Waiting for customer payment" } as Record<OperatorStepKey, string>, together: (id: string) => `Weighed with ${id}`, days: (n: number) => `${n} d`, idle: (n: number) => `Last order event ${n} d ago`, buyoutTitle: "For buyout", store: "Store", variant: "Variant", price: "Store price at checkout", each: "per item", sku: "SKU" },
 });
 /** The store's own price in its currency (lib/market/store-price.ts). */
 const storePriceText = formatStorePrice;
@@ -722,10 +736,10 @@ const parcelCopy = /*@__PURE__*/withCyrillic({
 function lineState(o: Order, locale: Locale) {
   const ow = { ...customerOrderCopy[locale], ...customerOrderDisclosureCopy[locale] };
   const gc = orderGroupCopy[locale];
-  const statuses = localizedStatuses(locale);
+  const statuses = localizedParcelStages(locale);
   // The payment is the whole checkout's: it waits on the order card above, not on each line.
   const needsAction = !o.cancelled && (isExtra(o) || pendingChange(o) || (o.extraCharges ?? []).some(charge => charge.status === "pending"));
-  const stage = o.cancelled ? ow.cancelled : o.payment?.status === "refunded" ? refundMarkerCopy[locale] : o.payment?.status === "pending" ? gc.awaitingPayment : statuses[o.status];
+  const stage = o.cancelled ? ow.cancelled : o.payment?.status === "refunded" ? refundMarkerCopy[locale] : o.payment?.status === "pending" ? gc.awaitingPayment : statuses[parcelStageOf(o)];
   const tone = o.cancelled || o.payment?.status === "refunded" ? "muted" : o.status === 5 ? "ok" : "info";
   return { needsAction, stage, tone };
 }
@@ -923,13 +937,14 @@ function CustomerOrderLine({ lines, panelId, progress = true, siblings, showThum
   const c = ordersCopy[locale];
   const gc = orderGroupCopy[locale];
   const pc = parcelCopy[locale];
-  const statuses = localizedStatuses(locale);
+  const statuses = localizedParcelStages(locale);
   const o = lines[0];
   const many = lines.length > 1;
   const label = (line: Order) => many ? readableVariant(line.variant, line.product.sourceOptions) || gc.noVariant : undefined;
   const live = lines.filter((line) => !line.cancelled);
   // One stage track for the parcel: its least advanced live line (rows say their own stage when it differs).
-  const lead = live.reduce<Order | undefined>((first, line) => !first || line.status < first.status ? line : first, undefined) ?? o;
+  const lead = live.reduce<Order | undefined>((first, line) => !first || parcelStageOf(line) < parcelStageOf(first) ? line : first, undefined) ?? o;
+  const leadStage = parcelStageOf(lead);
   const waitsPayment = live.some((line) => line.payment?.status === "pending");
   const acting = lines.filter((line) => lineState(line, locale).needsAction);
   const needsAction = acting.length > 0;
@@ -978,9 +993,9 @@ function CustomerOrderLine({ lines, panelId, progress = true, siblings, showThum
 
       {!live.length ? <p className="order-x-note muted">{ow.cancelled}</p> : progress && <section className="og-progress" aria-label={c.progress}>
         {/* Nothing is bought before the payment: "Ожидает оплаты", then the buyout — not "Ожидает выкупа". */}
-        <p className="og-progress-text">{waitsPayment ? <><b>{c.stage(1, statuses.length)} · {gc.awaitingPayment}</b><small>{gc.nextBuyout}</small></> : <><b>{c.stage(lead.status + 1, statuses.length)} · {statuses[lead.status]}</b>{lead.status < statuses.length - 1 && <small>{gc.next(statuses[lead.status + 1])}</small>}</>}</p>
-        <span className="og-progress-bar" aria-hidden="true">{statuses.map((name, index) => <span key={name} data-state={index < lead.status ? "done" : index === lead.status ? "current" : "next"} />)}</span>
-        <ol className="order-x-steps og-steps">{statuses.map((name, index) => <li key={name} data-state={index < lead.status ? "done" : index === lead.status ? "current" : "next"} aria-current={index === lead.status ? "step" : undefined}><span aria-hidden="true">{index < lead.status ? <Check size={12} /> : index + 1}</span>{waitsPayment && index === 0 ? gc.awaitingPayment : name}</li>)}</ol>
+        <p className="og-progress-text">{waitsPayment ? <><b>{c.stage(1, statuses.length)} · {gc.awaitingPayment}</b><small>{gc.nextBuyout}</small></> : <><b>{c.stage(leadStage + 1, statuses.length)} · {statuses[leadStage]}</b>{leadStage < statuses.length - 1 && <small>{gc.next(statuses[leadStage + 1])}</small>}</>}</p>
+        <span className="og-progress-bar" aria-hidden="true">{statuses.map((name, index) => <span key={name} data-state={index < leadStage ? "done" : index === leadStage ? "current" : "next"} />)}</span>
+        <ol className="order-x-steps og-steps">{statuses.map((name, index) => <li key={name} data-state={index < leadStage ? "done" : index === leadStage ? "current" : "next"} aria-current={index === leadStage ? "step" : undefined}><span aria-hidden="true">{index < leadStage ? <Check size={12} /> : index + 1}</span>{waitsPayment && index === 0 ? gc.awaitingPayment : name}</li>)}</ol>
       </section>}
 
       <dl className="order-x-details og-facts">
@@ -1074,11 +1089,12 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
   // "Итого" only when it adds something: several lines, and not the very amount the payment card asks for.
   const showTotal = group.stage !== "cancelled" && live > 1 && group.payment?.amount !== group.payable;
   // One line under the heading: what happens next (or that the customer decides first).
-  const next = group.stage === "cancelled" || group.status === undefined || group.status >= 5 ? "" : group.payment ? gc.nextBuyout : group.attention > 0 ? gc.nextDecision : gc.nextStep[group.status] ?? "";
+  const next = group.stage === "cancelled" || group.parcelStage === undefined || group.parcelStage >= deliveredStage ? "" : group.payment ? gc.nextBuyout : group.attention > 0 ? gc.nextDecision : gc.nextStep[group.parcelStage] ?? "";
   // The stage track replaces the stage badge while the checkout lives; "Дальше: склад примет посылку" → a label and the step.
-  const statuses = localizedStatuses(locale);
-  const track = group.stage !== "cancelled" && group.status !== undefined;
-  const trackAt = group.payment ? 0 : Math.min(group.status ?? 0, statuses.length - 1);
+  // Eight parcel stages since 1 November 2026 (domain.ts parcelStageOf).
+  const statuses = localizedParcelStages(locale);
+  const track = group.stage !== "cancelled" && group.parcelStage !== undefined;
+  const trackAt = group.payment ? 0 : Math.min(group.parcelStage ?? 0, statuses.length - 1);
   const nextSplit = next.indexOf(": ");
   const nextLabel = nextSplit > 0 ? next.slice(0, nextSplit) : "";
   const nextText = nextSplit > 0 ? next.slice(nextSplit + 2) : next;
@@ -1109,7 +1125,7 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
             <b>{c.stage(trackAt + 1, statuses.length)}<span className="og-track-name"> · {stage.label}</span></b>
             {stage.summary ? <span className="og-track-next">{stage.summary}</span> : nextText && <span className="og-track-next">{nextLabel && <small>{nextLabel}</small>}{nextText}</span>}
           </p>
-          <ol className="og-track-steps" aria-label={c.progress}>{statuses.map((name, index) => <li key={name} data-state={index < trackAt || group.status === 5 ? "done" : index === trackAt ? "current" : "next"} aria-current={index === trackAt ? "step" : undefined}><span>{group.payment && index === 0 ? gc.awaitingPayment : name}</span></li>)}</ol>
+          <ol className="og-track-steps" aria-label={c.progress}>{statuses.map((name, index) => <li key={name} data-state={index < trackAt || group.parcelStage === deliveredStage ? "done" : index === trackAt ? "current" : "next"} aria-current={index === trackAt ? "step" : undefined}><span>{group.payment && index === 0 ? gc.awaitingPayment : name}</span></li>)}</ol>
         </div>}
         {finished && <span className="og-head-actions">
           {links.length === 1 && <Link className="btn secondary" href={reorderHref(links[0])}><RotateCcw size={15} aria-hidden="true" />{gc.reorder}</Link>}
@@ -1131,7 +1147,7 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
         {passports.map((passport) => <div className="orders-passport og-passport" key={passport.id} role="note">
           <IdCard size={16} aria-hidden="true" />
           <p>{ship && passport.name.trim() === ship.profile.recipient.trim() ? gc.passportHere : gc.passport(passport.name)}</p>
-          <Link className="order-x-link" href={`/identity?recipient=${encodeURIComponent(passport.id)}`}>{gc.passportAction}<ArrowRight size={14} aria-hidden="true" /></Link>
+          <Link className="order-x-link" href={`/account/documents?recipient=${encodeURIComponent(passport.id)}`}>{gc.passportAction}<ArrowRight size={14} aria-hidden="true" /></Link>
         </div>)}
       </div>}
     </header>
@@ -1350,7 +1366,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
   // Soum sums in the screen language ("сум" / "so‘m" / "UZS"), as on the customer pages.
   const money = (amount: number) => formatSum(amount, locale);
   const ow = {...customerOrderCopy[locale],...customerOrderDisclosureCopy[locale],emptyDescription:customerOrderEmptyCopy[locale]};
-  const displayStatuses = localizedStatuses(locale);
+  const displayStatuses = localizedParcelStages(locale);
   const wc=pickLocale({ru:{customerOver:"ВАШИ ПОКУПКИ В ПУТИ",customerTitle:"От магазина до вашей двери.",customerIntro:"Статусы, расчёты и история каждого заказа.",operatorOver:"РАБОЧЕЕ МЕСТО ОПЕРАТОРА",operatorTitle:"Всё готово к следующему шагу.",operatorIntro:"Выкупайте, принимайте на склад и согласовывайте исключения.",customerView:"Вид покупателя",operatorView:"Открыть обработку",active:"В работе",attention:"Нужно решение",done:"Завершённые",searchCustomer:"Номер или товар",searchOperator:"Номер, товар или покупатель"},uz:{customerOver:"BUYURTMALARINGIZ YO‘LDA",customerTitle:"Do‘kondan eshigingizgacha.",customerIntro:"Har bir buyurtmaning holati, hisobi va tarixi.",operatorOver:"OPERATOR ISH JOYI",operatorTitle:"Keyingi qadam uchun hammasi tayyor.",operatorIntro:"Xaridni, ombor qabulini va istisnolarni boshqaring.",customerView:"Mijoz ko‘rinishi",operatorView:"Qayta ishlashni ochish",active:"Jarayonda",attention:"Qaror kerak",done:"Yakunlangan",searchCustomer:"Raqam yoki tovar",searchOperator:"Raqam, tovar yoki mijoz"},en:{customerOver:"YOUR PURCHASES IN TRANSIT",customerTitle:"From the store to your door.",customerIntro:"Status, calculation and history for every order.",operatorOver:"OPERATOR WORKSPACE",operatorTitle:"Everything is ready for the next step.",operatorIntro:"Manage purchase, warehouse intake and exceptions.",customerView:"Customer view",operatorView:"Open processing",active:"In progress",attention:"Decision needed",done:"Completed",searchCustomer:"Order number or item",searchOperator:"Order number, item or customer"}}, state.communication.language);
   const refundTabLabel=pickLocale({ru:"Возвраты и отмены",uz:"Qaytarishlar va bekor qilinganlar",en:"Refunds and cancellations"}, locale);
   // The tab itself says it short (it fits the phone row in every language); the full name is its title and the screen-reader filter line.
@@ -1372,6 +1388,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
   const allowanceFor = (order: Order) => !order.cancelled && countsTowardAllowance(order) && allowanceMonth(order) === currentMonth ? monthlyUsedFor(state, orderPerson(state, order), pricing.fx) : undefined;
   // Recipients of placed orders whose passport is not linked yet: the declaration needs it.
   const identityList = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  // "Отметить: Таможня · 2 заказа": the orders of the buyer's parcel the mark moves together (domain.ts transitParcelOrders).
+  const transitCount = (o: Order) => { const n = transitParcelOrders({ orders: orderAccount.get(o.id)?.state.orders ?? orders }, o).length; return n > 1 ? transitWords[locale].orders(n) : ""; };
   const passportMissing = operations ? [] : [...new Map(orders
     .filter(order => !order.cancelled && order.status < 5 && !order.identity && order.deliveryProfileId && !identityList.some(profile => profile.recipientProfileId === order.deliveryProfileId))
     .map(order => [order.deliveryProfileId!, state.deliveryProfiles.find(profile => profile.id === order.deliveryProfileId)] as const)).entries()]
@@ -1712,7 +1730,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                  const age = idle >= 1 ? sc.days(idle) : "";
                  return <span className={"ops-next is-" + step.kind} title={age ? sc.idle(idle) : undefined}>{step.kind === "yours" ? <ArrowRight size={14} aria-hidden="true" /> : <Clock3 size={14} aria-hidden="true" />}<span>{[text, age].filter(Boolean).join(" · ")}</span></span>;
                })()}{operations && tab === "refunds" && <small>{atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0 ? `${locale === "ru" ? "Зачислено во внутренний баланс Atlas" : isUzbek(locale) ? uzText(locale, "Atlas ichki balansiga yozildi") : "Credited to Atlas internal balance"}: ${money(atlasCreditForOrder(orderAccount.get(o.id), o.id))}` : locale === "ru" ? "Зачислений во внутренний баланс Atlas по заказу нет" : isUzbek(locale) ? uzText(locale, "Buyurtma bo‘yicha Atlas ichki balansiga yozuv yo‘q") : "No Atlas internal-balance credit recorded for this order"}</small>}</span>
-               <span className={'status-badge '+(operations?(opsStep(o)?.kind==='waiting'?'is-waiting':''):isExtra(o)||pendingChange(o)||o.payment?.status==='pending'?'needs-action':'')}>{o.cancelled ? ow.cancelled : o.payment?.status==='refunded' ? refundStatusLabel : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
+               <span className={'status-badge '+(operations?(opsStep(o)?.kind==='waiting'?'is-waiting':''):isExtra(o)||pendingChange(o)||o.payment?.status==='pending'?'needs-action':'')}>{o.cancelled ? ow.cancelled : o.payment?.status==='refunded' ? refundStatusLabel : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[parcelStageOf(o)]}</span>
               <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
             </summary>
             {expanded.includes(o.id)&&<div className="compact-order-body">
@@ -1738,7 +1756,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                      ? ow.needDecision
                   : isExtra(o)
                      ? ow.extra
-                    : displayStatuses[o.status]}
+                    : displayStatuses[parcelStageOf(o)]}
               </span>
             </div>
             {/* The next move first: the operator's action with its blocking reasons, right under the order head. */}
@@ -1794,7 +1812,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 ) && (
                 <button
                   className="btn primary"
-                  disabled={isExtra(o) || pendingChange(o) || (o.status === 2 && !o.warehouseInspection) || (o.status === 0 && o.payment?.status === "pending") || (o.status === 3 && !o.parcel)}
+                  disabled={isExtra(o) || pendingChange(o) || (o.status === 2 && !o.warehouseInspection) || (o.status === 0 && o.payment?.status === "pending") || (o.status === 3 && !o.parcel) || dutyBeforeDelivery(o)}
                   onClick={async () => {
                     if (o.status === 2) {
                       setWarehouse(o.id);
@@ -1816,7 +1834,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                       await runOrderAction({
                         type: "advance",
                         id: o.id,
-                        expected: o.status,
+                        // The stage on screen (eight stages): "Таможня" and "В Ташкенте" are marks on status 4.
+                        expected: parcelStageOf(o),
                       })
                     )
                        toast.success(ow.statusUpdated);
@@ -1830,7 +1849,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
                          ? ow.weigh
                         : o.status === 3
                            ? ow.sendUzbekistan
-                           : ow.confirmDelivery}
+                           : !o.transitStage
+                             ? transitWords[locale].toCustoms + transitCount(o)
+                             : o.transitStage === "customs"
+                               ? transitWords[locale].toTashkent + transitCount(o)
+                               : ow.confirmDelivery}
                   <ArrowRight size={16} />
                 </button>
               )}
@@ -1846,6 +1869,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               {operations && o.status === 3 && !o.parcel && (
                 <p className="micro">{ow.trackingFirst}</p>
               )}
+              {operations && dutyBeforeDelivery(o) && <p className="micro">{transitWords[locale].customsFirst}</p>}
             </div>}
             {operations&&<OperatorOrderContacts order={o} account={orderAccount.get(o.id)} locale={locale}/>}
             <div className="order-product">
@@ -1890,14 +1914,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
                   <li
                     key={name}
                     className={
-                      i < o.status
+                      i < parcelStageOf(o)
                         ? "complete"
-                        : i === o.status
+                        : i === parcelStageOf(o)
                           ? "current"
                           : ""
                     }
                   >
-                    <b>{i < o.status ? <Check size={14} /> : i + 1}</b>
+                    <b>{i < parcelStageOf(o) ? <Check size={14} /> : i + 1}</b>
                     <span>{name}</span>
                   </li>
                 ))}
@@ -2874,7 +2898,9 @@ export function NotificationsView() {
               <div className="notice-x-body">
                 <div className="notice-x-head"><h2>{renderNoticeRow(item, locale, item.orderId ? state.orders.find(order => order.id === item.orderId)?.product.name : undefined).title}</h2>{!item.read && <span className="notice-x-new">{c.newBadge}</span>}</div>
                 <p>{renderNoticeRow(item, locale, item.orderId ? state.orders.find(order => order.id === item.orderId)?.product.name : undefined).message}</p>
-                <div className="notice-x-foot"><time dateTime={new Date(item.at).toISOString()}>{formatDateTime(item.at, locale)}</time>{item.orderId && <Link className="order-x-link" href={"/orders#" + item.orderId}>{c.openOrder} {item.orderId}<ArrowRight size={14} aria-hidden="true" /></Link>}</div>
+                <div className="notice-x-foot"><time dateTime={new Date(item.at).toISOString()}>{formatDateTime(item.at, locale)}</time>{item.orderId && (noticeTarget(item)?.kind === "parcel"
+                  ? <Link className="order-x-link" href={parcelPath(item.orderId)}>{c.openParcel}<ArrowRight size={14} aria-hidden="true" /></Link>
+                  : <Link className="order-x-link" href={"/orders#" + item.orderId}>{c.openOrder} {item.orderId}<ArrowRight size={14} aria-hidden="true" /></Link>)}</div>
                 {history.length > 0 && <details className="notice-x-history"><summary>{c.more(history.length)}</summary><ol>{history.map(previous => <li key={previous.id} id={"notice-" + previous.id} tabIndex={-1} className={linked === previous.id ? "linked" : undefined}><b>{renderNotification(previous, locale).title}</b><p>{renderNotification(previous, locale).message}</p><time dateTime={new Date(previous.at).toISOString()}>{formatDateTime(previous.at, locale)}</time></li>)}</ol></details>}
               </div>
             </li>)}

@@ -632,6 +632,34 @@ export const statuses = [
   "Доставлен",
 ];
 /**
+ * The buyer follows the parcel through eight stages (owner, 1 November 2026; GLOSSARY.md «Этап посылки»). The stored
+ * `status` keeps its six numeric values: they live in every saved account, in the D1 projection and the operator
+ * queue's SQL, and `status >= 5` means "delivered" all over the code, so nothing is renumbered. The two new stages
+ * after "В пути" are a mark on an order still at status 4 — `transitStage` — which the operator sets by hand (no
+ * carrier API yet). parcelStageOf maps the pair onto the eight stages; an order saved before has no mark and keeps its
+ * meaning: status 4 is "В пути", status 5 is "Доставлен".
+ */
+export const parcelStages = [
+  "Ожидает выкупа",
+  "Выкуплен",
+  "На зарубежном складе",
+  "Готов к отправке",
+  "В пути",
+  "Таможня",
+  "В Ташкенте",
+  "Доставлен",
+];
+export const transitStages = ["customs", "tashkent"] as const;
+export type TransitStage = (typeof transitStages)[number];
+/** The last of the eight stages: delivered to the recipient's address in Tashkent. */
+export const deliveredStage = parcelStages.length - 1;
+/** Where the order is on the buyer's eight-stage scale (0…7). */
+export function parcelStageOf(order: { status: number; transitStage?: TransitStage }): number {
+  if (order.status >= 5) return deliveredStage;
+  if (order.status === 4) return order.transitStage === "tashkent" ? 6 : order.transitStage === "customs" ? 5 : 4;
+  return Math.max(0, order.status);
+}
+/**
  * `text` stays the Russian line (operators, exports, older clients). Since 6 October 2026 customer-visible events also
  * carry `code` and `params` (soum amounts as numbers), and lib/market/history-copy.ts renders them in ru/uz/en.
  */
@@ -880,6 +908,8 @@ const orderSchema = z.object({
   variant: z.string(),
   quote: quoteSchema,
   status: z.number().int().min(0).max(5),
+  /** At status 4 only: the parcel reached customs in Uzbekistan, then Tashkent (parcelStageOf). Set by the operator. */
+  transitStage: z.enum(transitStages).optional(),
   createdAt: amount,
   history: z.array(historySchema),
   settlement: settlementSchema.optional(),
@@ -2028,7 +2058,8 @@ export function checkoutCart(
   });
   // The lines left for later become the next checkout: selected again, so the cart is not left with nothing chosen.
   const later = state.cart.filter((item) => !inCheckout(item)).map((item) => ({ ...item, selected: undefined }));
-  return {
+  // Paid in full from the balance: the passport is asked for at once, as after a recorded payment.
+  return withPassportRequests({
     ...state,
     // The lines left for later stay, already priced as their own parcels.
     cart: later,
@@ -2039,7 +2070,35 @@ export function checkoutCart(
     entries,
     checkoutKeys: [...state.checkoutKeys, key],
     deliveryProfile: checkedDelivery,
-  };
+  }, orders.map((order) => order.id), now);
+}
+/**
+ * "Нужен паспорт получателя" (owner, 1 November 2026): a separate notice — and so a separate Telegram and push
+ * message — when a paid order's recipient has no passport in the account yet; customs needs it before dispatch.
+ * Once per recipient: a recipient already asked about is not asked again. The notice names no one (Telegram rule);
+ * `recipient` is the saved recipient's id, for the link to the documents page.
+ */
+/**
+ * The one rule for "this order still needs its recipient's passport" (1 November 2026): a live, paid order on its way
+ * whose saved recipient has no passport linked to it. The notice (withPassportRequests), «Требует действия» and the
+ * header line (profile-strip.ts missingPassports) all read it, so they never disagree.
+ */
+export function needsPassport(order: Pick<Order, "cancelled" | "identity" | "status" | "deliveryProfileId" | "payment">): boolean {
+  return !order.cancelled && !order.identity && order.status < 5 && Boolean(order.deliveryProfileId) && order.payment?.status === "paid";
+}
+export function withPassportRequests(state: State, orderIds: readonly string[], now = Date.now()): State {
+  const identities = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  const asked = new Set(state.notifications.filter((item) => item.code === "passport-needed").map((item) => String(item.params?.recipient ?? "")));
+  let next = state;
+  for (const id of orderIds) {
+    const order = state.orders.find((item) => item.id === id);
+    const recipient = order?.deliveryProfileId;
+    if (!order || !recipient || !needsPassport(order)) continue;
+    if (asked.has(recipient) || identities.some((profile) => profile.recipientProfileId === recipient)) continue;
+    asked.add(recipient);
+    next = withNotification(next, "Нужен паспорт получателя", "Добавьте паспорт получателя: он нужен для таможенной декларации до отправки посылки.", order.id, now, { code: "passport-needed", params: { recipient } });
+  }
+  return next;
 }
 const getOrder = (state: State, id: string) => {
   const o = state.orders.find((o) => o.id === id);
@@ -2079,14 +2138,14 @@ export function confirmDemoPayment(
       description: "Статус оплаты записан в Atlas; провайдер не подключён",
     },
   ];
-  return withNotification(
+  return withPassportRequests(withNotification(
     next,
     "Статус оплаты обновлён в Atlas",
     "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
     id,
     now,
     { code: "payment-recorded" },
-  );
+  ), [id], now);
 }
 
 /** Lines of one checkout still waiting for their payment mark: they are paid together, as one order. */
@@ -2136,14 +2195,14 @@ export function confirmDemoBatchPayment(
       },
     ];
   }
-  return withNotification(
+  return withPassportRequests(withNotification(
     next,
     "Статус оплаты обновлён в Atlas",
     "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
     lines[0].id,
     now,
     { code: "payment-recorded" },
-  );
+  ), lines.map((order) => order.id), now);
 }
 
 export function assignOrder(
@@ -2776,8 +2835,13 @@ export function advanceOrder(
   now = Date.now(),
 ): State {
   const o = getOrder(state, id);
-  if (o.status !== expected)
-    throw Error("Статус уже изменился. Проверьте заказ.");
+  // `expected` is the stage the operator saw (parcelStageOf: equal to the status up to "В пути"), so a second click
+  // or a colleague's move is caught for the two new stages as well.
+  if (parcelStageOf(o) !== expected)
+    throw codedError("err_86", "Этап уже изменился — обновите очередь.");
+  // "В пути" → "Таможня" → "В Ташкенте": the whole parcel moves on, the order stays at status 4.
+  if (!o.cancelled && o.status === 4 && o.transitStage !== "tashkent")
+    return advanceTransit(state, o, o.transitStage === "customs" ? "tashkent" : "customs", now);
   if (
     o.cancelled ||
     o.status >= 5 ||
@@ -2814,12 +2878,69 @@ export function advanceOrder(
             : o.parcel.events,
       }
     : undefined;
-  return withNotification(replace(state, {
+  const moved = replace(state, {
     ...o,
     status: nextStatus,
+    // Delivered: the transit mark has done its job (parcelStageOf reads status 5 as "Доставлен" either way).
+    transitStage: undefined,
     parcel,
     history: [...o.history, { at: now, text: statuses[nextStatus], code: "status", params: { status: nextStatus } }],
-  }), "Статус заказа изменён", statuses[nextStatus], id, now, { code: "status", params: { status: nextStatus } });
+  });
+  // "В пути" and "Доставлен" are the parcel's stages: the buyer hears of them once per parcel, not once per order of
+  // the box (review, 1 November 2026). The orders before it keep their own purchase stages and their own notices.
+  if (nextStatus >= 4 && buyerParcelOrders(state, o).some((other) => other.id !== o.id && other.status === nextStatus)) return moved;
+  return withNotification(moved, "Статус заказа изменён", statuses[nextStatus], id, now, { code: "status", params: { status: nextStatus } });
+}
+const transitEvents: Record<TransitStage, { stage: number; event: string; location: (o: Order) => string | undefined }> = {
+  customs: { stage: 5, event: "Таможенное оформление в Узбекистане", location: () => undefined },
+  tashkent: { stage: 6, event: "Посылка прибыла в Ташкент", location: (o) => o.delivery?.city || "Ташкент" },
+};
+/**
+ * The operator marks "Таможня" or "В Ташкенте" (1 November 2026). The orders of one store parcel travel in one box, so
+ * every live order of it at the same stage moves together; the buyer gets one notice for the parcel. Physical stages:
+ * an open доплата or question does not hold them back (it still holds back "Доставлен").
+ */
+function advanceTransit(state: State, o: Order, next: TransitStage, now: number): State {
+  const from = parcelStageOf(o), { stage, event, location } = transitEvents[next];
+  const moving = transitParcelOrders(state, o).filter((item) => parcelStageOf(item) === from);
+  let result = state;
+  for (const item of moving.length ? moving : [o]) {
+    const current = getOrder(result, item.id);
+    result = replace(result, {
+      ...current,
+      transitStage: next,
+      parcel: current.parcel ? { ...current.parcel, events: [...current.parcel.events, { at: now, status: event, location: location(current) }] } : current.parcel,
+      history: [...current.history, { at: now, text: parcelStages[stage], code: "parcel-stage", params: { stage } }],
+    });
+  }
+  return withNotification(result, "Новый этап посылки", parcelStages[stage], o.id, now, { code: "parcel-stage", params: { stage, orders: Math.max(1, moving.length) } });
+}
+/**
+ * The parcel as the buyer sees it (lib/market/parcels.ts, order-groups.ts): the lines of one checkout from one store and
+ * dispatch country; a catalogue item without a store link travels with the lines of its brand and country. One key for
+ * the buyer's parcel page and for the operator's "Таможня" / "В Ташкенте", so both always move the same orders.
+ */
+export function buyerParcelKey(order: Pick<Order, "id" | "product">) {
+  let host = "";
+  try {
+    host = order.product.sourceUrl ? new URL(order.product.sourceUrl).hostname.toLowerCase().replace(/^www\./, "") : "";
+  } catch {
+    host = "";
+  }
+  if (host) return `store:${host}:${order.product.country ?? ""}`;
+  return order.product.brand ? `brand:${order.product.brand}:${order.product.country ?? ""}` : `item:${order.id}`;
+}
+/** The live orders of the buyer's parcel this order belongs to (itself included; alone without a checkout id). */
+export function buyerParcelOrders(state: Pick<State, "orders">, order: Order): Order[] {
+  if (!order.batchId) return order.cancelled ? [] : [order];
+  const key = buyerParcelKey(order);
+  return state.orders.filter((item) => !item.cancelled && item.batchId === order.batchId && buyerParcelKey(item) === key);
+}
+/** What "Отметить: Таможня / В Ташкенте" moves: the parcel's orders on their way at the same stage as this one. */
+export function transitParcelOrders(state: Pick<State, "orders">, order: Order): Order[] {
+  const from = parcelStageOf(order);
+  const moving = buyerParcelOrders(state, order).filter((item) => item.status === 4 && parcelStageOf(item) === from);
+  return moving.length ? moving : [order];
 }
 /**
  * The orders weighed together with this one: lines of one checkout from the same store host and dispatch country,

@@ -4,38 +4,39 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "@/components/site-link";
 import { InfoTip } from "@/components/info-tip";
-import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Heart, Info, LifeBuoy, Link2, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Shield, ShoppingBag, Trash2, UserCog, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Heart, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Settings2, Shield, ShoppingBag, Trash2, UserCog, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { isServedRegion } from "@/lib/market/addresses";
-import { balanceOf, totalOf, type SavedDeliveryProfile, type State } from "@/lib/market/domain";
-import { groupOrders, orderGroupCopy } from "@/lib/market/order-groups";
-import { pendingApprovalOf, pendingPaymentOf } from "@/lib/market/next-step";
+import { balanceOf, type SavedDeliveryProfile, type State } from "@/lib/market/domain";
+import { buyerParcels, documentsPath, parcelAction, parcelActive, profileActions } from "@/lib/market/parcels";
+import { profileCopy } from "@/lib/market/profile-copy";
 import type { Action } from "@/lib/market/actions";
 import { monthlyAllowance, recipientKey, type RecipientAllowance } from "@/lib/market/allowance";
-import { isUzbek, localizedStatuses, serverError, type Locale } from "@/lib/market/i18n";
+import { isUzbek, serverError, type Locale } from "@/lib/market/i18n";
 import { uzText } from "@/lib/market/uz-cyrl";
 import { uzMonths } from "@/lib/market/notices-copy";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { formatSum } from "@/lib/market/format";
-import { accountCopy, formatLongDate, formatShortDate, itemCount, ordersCopy, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
+import { accountCopy, formatLongDate, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
 import { consentDocuments, consentVersion, deletionBlockers, deletionSummary, missingConsents } from "@/lib/market/account-delete";
 import { appInfo, isNative, nativePlatform, type AppInfo } from "@/lib/native/bridge";
 import { toast } from "@/lib/market/toast";
-import { ProductImage } from "./market-ui";
 import { Modal } from "./modal";
-import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { ThemeToggle } from "./theme-control";
 import { RecipientForm } from "./recipient-form";
 import { SignInMethods } from "./sign-in-methods";
 import { TelegramNoticesSetting, TelegramNudge } from "./telegram-notices";
+import { PushSettingsRow } from "./push-toggle";
+import { ProfileActionCard, ParcelCard } from "./profile-parcels";
 import { AllowanceMeter, allowanceMoney } from "./allowance-meter";
 
-// Account home, mobile-first: one "what needs you now" card, four quick tiles, then
-// recipients, customs allowance, documents, support and settings — each shown once.
+// The profile, mobile-first and parcel-first (1 November 2026): «Требует действия», the active parcels with their stage
+// bar and one button, six tiles (orders, balance, documents, notifications, saved, settings), then recipients and
+// support; the customs allowance beside them. Settings live on /account/settings, documents on /account/documents.
 export function AccountView() {
-  const { user, state, ready, act, pricing, refresh, siteContent } = useMarket();
+  const { user, state, ready, act, pricing, siteContent } = useMarket();
   const lang = state.communication.language;
   const c = accountCopy[lang];
   const [editor, setEditor] = useState<SavedDeliveryProfile | "new" | null>(null);
@@ -62,22 +63,16 @@ export function AccountView() {
     return () => window.clearTimeout(timer);
   }, [wantsSupport, signedIn]);
   const identityProfiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
-  const activeOrders = state.orders.filter(order => !order.cancelled && order.status < 5);
-  // Purchases are checkouts, as on "My orders": one card, one payment, one count (order-groups.ts).
-  const groups = groupOrders(state.orders);
-  const activeGroups = groups.filter(group => group.status !== undefined && group.status < 5);
-  const gc = orderGroupCopy[lang];
-  // The same rule as the orders page, the notifications panel and the home "continue" strip (lib/market/next-step.ts):
-  // a доплата or a change waits for the customer, over all lines; then the checkout's one payment (its amount, not one line's share).
-  const pendingApproval = pendingApprovalOf(state.orders);
-  const duePayment = pendingPaymentOf(groups);
-  const dueGroup = duePayment?.group;
-  const pendingPayment = duePayment?.order;
-  const currentOrder = pendingApproval ?? pendingPayment ?? activeOrders[0];
+  // The profile is built around the parcel (lib/market/parcels.ts): what waits for the buyer, then the parcels on their way.
+  const parcels = buyerParcels(state.orders);
+  const activeParcels = parcels.filter(parcelActive);
+  const actions = profileActions(state);
+  // A passport card speaks of the furthest parcel of its recipient: "for customs" once one of them is on its way.
+  const actionStage = (action: (typeof actions)[number]) => action.kind === "passport"
+    ? Math.max(-1, ...activeParcels.filter(parcel => parcel.deliveryProfileId === action.recipientId || parcel.id === action.parcelId).map(parcel => parcel.stage ?? -1))
+    : undefined;
   const unread = state.notifications.filter(item => !item.read).length;
-  const cartCount = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   const balance = balanceOf(state);
-  const statuses = localizedStatuses(lang);
   const allowance = monthlyAllowance(state, pricing.fx);
   const primaryRecipient = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
   const cartUsd = Math.round(state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0));
@@ -87,84 +82,45 @@ export function AccountView() {
 
   const contact = user.email || user.contact;
   const since = formatLongDate(user.createdAt, lang);
-  const next = pendingApproval ? { title: gc.attention, hint: pendingApproval.product.name, href: `/orders#${pendingApproval.id}`, icon: <AlertCircle aria-hidden="true" />, order: pendingApproval, tone: "warn" }
-    : pendingPayment && dueGroup ? { title: c.next.payment, hint: dueGroup.orders.length > 1 ? itemCount(dueGroup.items, lang) : pendingPayment.product.name, href: `/orders#${pendingPayment.id}`, icon: <Wallet aria-hidden="true" />, order: pendingPayment, tone: "warn" }
-    : currentOrder ? { title: c.next.inProgress, hint: currentOrder.product.name, href: `/orders#${currentOrder.id}`, icon: <Package aria-hidden="true" />, order: currentOrder, tone: "info" }
-    : state.cart.length ? { title: c.next.cart, hint: c.next.cartHint(itemCount(cartCount, lang)), href: "/cart", icon: <ShoppingBag aria-hidden="true" />, tone: "info", items: state.cart.slice(0, 3), cart: true }
-    // A new customer: the first order by link is the one thing to do; "Add recipient" stays in its card just below.
-    : !state.orders.length ? { title: c.next.firstOrder, hint: c.next.firstOrderHint, href: "/order-by-link", icon: <Link2 aria-hidden="true" />, tone: "info", first: true }
-    : !state.deliveryProfiles.length ? { title: c.next.recipient, hint: c.next.recipientHint, icon: <MapPin aria-hidden="true" />, tone: "info" }
-    : null;
-  const due = !pendingApproval && dueGroup?.payment ? dueGroup : undefined;
-  // "All set": the last delivered order with its store link can be ordered again through the usual import and price check.
-  const lastDelivered = next ? undefined : [...state.orders].filter(order => order.status === 5 && !order.cancelled && order.product.sourceUrl).sort((a, b) => b.createdAt - a.createdAt)[0];
+  const p = profileCopy[lang];
+  const tileWords = p.hub.tiles;
+  const passportsSaved = identityProfiles.length;
 
-  async function signOut() {
-    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
-    window.location.assign("/");
-  }
-
-  return <div className="cabinet">
+  return <div className="cabinet pf-hub">
     <header className="cabinet-head">
       <span className="cabinet-avatar" aria-hidden="true">{(user.name || contact || "A").trim().charAt(0).toUpperCase()}</span>
-      <div className="cabinet-identity"><h1>{c.title}</h1><p><b>{user.name}</b>{contact && contact !== user.name ? <> · {contact}</> : null}<small>{c.since(since)}</small></p></div>
+      <div className="cabinet-identity"><h1>{p.hub.title}</h1><p><b>{user.name}</b>{contact && contact !== user.name ? <> · {contact}</> : null}<small>{c.since(since)}</small></p></div>
       {(user.operator || !!user.permissions?.length) && <Link className="btn secondary cabinet-manage" href="/admin">{c.manage}<ArrowUpRight size={17} aria-hidden="true" /></Link>}
     </header>
 
     <div className="cabinet-grid">
       <div className="cabinet-main">
-        {/* A checkout waiting for payment is shown as its bill: the checkout's one amount. The provider note is said in the pay dialog only. */}
-        <section className={"cabinet-next" + (next ? ` ${next.tone}` : " done") + (due ? " folio" : "")} aria-labelledby="cabinet-next-title">
-          {due ? <p className="folio-cap"><b>{c.next.label}</b><span>{gc.title(formatShortDate(due.createdAt, lang))}</span></p> : <p className="cabinet-eyebrow">{c.next.label}</p>}
-          <div className={due ? "folio-sheet" : "cabinet-next-inner"}>
-            <div className="cabinet-next-body">
-              <span className="cabinet-next-icon">{next ? next.icon : <Check aria-hidden="true" />}</span>
-              <div><h2 id="cabinet-next-title">{next ? next.title : c.next.allSet}</h2><p>{next ? next.hint : c.next.allSetHint}</p></div>
-            </div>
-            {due?.payment && <p className="bill-total"><span>{c.next.due}</span><strong><Money value={due.payment.amount} locale={lang} /></strong></p>}
-            {next?.order && <div className="cabinet-progress">
-              {/* One segment per stage: the stages behind are filled, the current one is drawn in progress (owner, 12 October 2026). */}
-              <div className="cabinet-steps" role="progressbar" aria-label={statuses[next.order.status]} aria-valuemin={1} aria-valuemax={statuses.length} aria-valuenow={next.order.status + 1}>
-                {statuses.map((stage, index) => <span key={stage} className={index < next.order!.status ? "done" : index === next.order!.status ? "now" : undefined} />)}
-              </div>
-              <small>{c.next.stage(next.order.status + 1, statuses.length)}: {next.order.payment?.status === "pending" ? gc.awaitingPayment : statuses[next.order.status]}</small>
-            </div>}
-            {/* The cart's first items and its sum, as on the "Cart" tile (an estimate: the cart recounts the total). */}
-            {next?.items && <div className="cabinet-next-cart">
-              <span className="cabinet-next-thumbs" aria-hidden="true">
-                {next.items.map(item => <span key={item.id} className="cabinet-next-thumb"><ProductImage product={item.product} decorative locale={lang} size={96} /></span>)}
-                {state.cart.length > next.items.length && <span className="cabinet-next-thumb cabinet-next-more">+{state.cart.length - next.items.length}</span>}
-              </span>
-              <p className="cabinet-next-sum"><strong>{formatSum(totalOf(state.cart), lang)}</strong><small>{c.next.cartEstimate}</small></p>
-            </div>}
-            {next ? (next.first ? <Link className="btn primary" href="/order-by-link">{c.next.newOrder}<ArrowRight size={18} aria-hidden="true" /></Link>
-              : next.cart ? <Link className="btn primary" href="/cart">{c.next.checkout}<ArrowRight size={18} aria-hidden="true" /></Link>
-              : next.order && next.href ? <Link className="btn primary" href={next.href}>{c.next.openOrder}<ArrowRight size={18} aria-hidden="true" /></Link>
-              : next.href ? <Link className="btn primary" href={next.href}>{c.next.open}</Link>
-              : <button type="button" className="btn primary" onClick={() => setEditor("new")}>{c.next.add}<Plus size={17} aria-hidden="true" /></button>)
-              : <Link className="btn primary" href="/order-by-link">{c.next.newOrder}</Link>}
-            {/* "All set" and a delivered order with its store link: order it again — a fresh import and price check, not the old price. */}
-            {lastDelivered?.product.sourceUrl && <div className="cabinet-repeat">
-              <span className="cabinet-next-thumb" aria-hidden="true"><ProductImage product={lastDelivered.product} decorative locale={lang} size={96} /></span>
-              <span className="cabinet-repeat-text"><b>{lastDelivered.product.name}</b><small>{c.next.repeatNote}</small></span>
-              <Link className="btn secondary" href={`/order-by-link?url=${encodeURIComponent(lastDelivered.product.sourceUrl)}`}>{ordersCopy[lang].repeat}</Link>
-            </div>}
-            {/* Telegram order notices, softly: only with a paid order on its way and the notices off (app/telegram-notices.tsx). */}
-            <TelegramNudge locale={lang} />
-          </div>
-        </section>
+        {/* Parcel first (owner, 1 November 2026): what waits for the buyer, then the parcels on their way, each with its
+            eight-stage bar and one button. A new account sees one invitation instead of empty blocks. */}
+        {actions.length > 0 && <section className="pf-section" aria-labelledby="pf-actions-title">
+          <h2 id="pf-actions-title" className="pf-section-title">{p.hub.actions}<span className="pf-count">{actions.length}</span></h2>
+          <ul className="pf-actions">{actions.map(action => <ProfileActionCard key={action.kind + action.orderId + (action.recipientId ?? "")} action={action} locale={lang} stage={actionStage(action)} />)}</ul>
+        </section>}
+        {activeParcels.length > 0 ? <section className="pf-section" aria-labelledby="pf-parcels-title">
+          <div className="pf-section-head"><h2 id="pf-parcels-title" className="pf-section-title">{p.hub.parcels}<span className="pf-count">{activeParcels.length}</span></h2><Link className="pf-section-link" href="/orders">{p.hub.allParcels}<ArrowRight size={15} aria-hidden="true" /></Link></div>
+          {!actions.length && <p className="pf-calm"><Check size={16} aria-hidden="true" />{p.hub.allSet}. {p.hub.allSetHint}</p>}
+          <ul className="pf-parcels">{activeParcels.map(parcel => <ParcelCard key={parcel.id} parcel={parcel} action={parcelAction(parcel, actions)} locale={lang} listed />)}</ul>
+          <TelegramNudge locale={lang} />
+        </section> : !actions.length && <section className="pf-empty cabinet-card" aria-labelledby="pf-empty-title">
+          <span className="pf-empty-icon" aria-hidden="true"><Package size={22} /></span>
+          <div><h2 id="pf-empty-title">{state.orders.length ? p.hub.parcelsEmpty : c.next.firstOrder}</h2><p>{state.orders.length ? p.hub.parcelsEmptyHint : c.next.firstOrderHint}</p></div>
+          {state.cart.length ? <Link className="btn primary" href="/cart">{c.next.checkout}<ArrowRight size={18} aria-hidden="true" /></Link> : <Link className="btn primary" href="/order-by-link">{p.hub.newOrder}<ArrowRight size={18} aria-hidden="true" /></Link>}
+        </section>}
 
-        {/* A brand-new account would see four zeros under "Place your first order": the tiles wait for the first
-            order, cart line, balance or notice (the header and the bottom bar lead to the same pages). */}
-        {(groups.length > 0 || cartCount > 0 || balance !== 0 || state.notifications.length > 0) && <nav className="cabinet-tiles" aria-label={c.tiles.label}>
-          <Link href="/orders"><Package aria-hidden="true" /><span>{c.tiles.orders}</span><strong>{groups.length}</strong><small>{activeGroups.length ? c.tiles.ordersActive(activeGroups.length) : groups.length ? c.tiles.ordersTotal(groups.length) : c.tiles.none}</small></Link>
-          <Link href="/cart"><ShoppingBag aria-hidden="true" /><span>{c.tiles.cart}</span><strong>{cartCount}</strong><small>{cartCount ? formatSum(totalOf(state.cart), lang) : c.tiles.cartEmpty}</small></Link>
-          <Link href="/balance"><Wallet aria-hidden="true" /><span>{c.tiles.balance}</span><strong className="cabinet-money">{formatSum(balance, lang)}</strong><small>{c.tiles.balanceSub}</small></Link>
-          <Link href="/notifications"><Bell aria-hidden="true" /><span>{c.tiles.notifications}</span><strong>{state.notifications.length}</strong><small>{unread ? c.tiles.unread(unread) : c.tiles.noUnread}</small></Link>
-        </nav>}
-        {/* The header heart is desktop-only and the phone's bottom bar has no favourites: the way there from the account.
-            No count — saved ids may point at items no longer in the catalogue, and /favorites would show fewer. */}
-        {state.favorites.length > 0 && <Link className="cabinet-link cabinet-favorites" href="/favorites"><Heart size={16} aria-hidden="true" />{c.tiles.favorites}<ArrowRight size={16} aria-hidden="true" /></Link>}
+        {/* Six sections of the profile, each one tap away (plan §2: Заказы/Посылки, Баланс, Документы, Уведомления, Избранное, Настройки). */}
+        <nav className="pf-tiles" aria-label={tileWords.label}>
+          <Link href="/orders"><Package aria-hidden="true" /><span>{tileWords.orders}</span><small>{tileWords.ordersSub(activeParcels.length, parcels.length)}</small></Link>
+          <Link href="/balance"><Wallet aria-hidden="true" /><span>{tileWords.balance}</span><small className="cabinet-money">{balance !== 0 ? formatSum(balance, lang) : tileWords.balanceSub}</small></Link>
+          <Link href="/account/documents"><FileCheck2 aria-hidden="true" /><span>{tileWords.documents}</span><small>{tileWords.documentsSub(passportsSaved, state.declarations.length)}</small></Link>
+          <Link href="/notifications"><Bell aria-hidden="true" /><span>{tileWords.notifications}</span><small>{tileWords.notificationsSub(unread)}</small>{unread > 0 && <i className="pf-tile-dot" aria-hidden="true" />}</Link>
+          <Link href="/favorites"><Heart aria-hidden="true" /><span>{tileWords.favorites}</span><small>{tileWords.favoritesSub(state.favorites.length)}</small></Link>
+          <Link href="/account/settings"><Settings2 aria-hidden="true" /><span>{tileWords.settings}</span><small>{tileWords.settingsSub}</small></Link>
+        </nav>
 
         <section className="cabinet-card" aria-labelledby="cabinet-recipients-title">
           <h2 id="cabinet-recipients-title">{c.recipients.title}<InfoTip locale={lang}>{c.recipients.lead}</InfoTip></h2>
@@ -180,7 +136,7 @@ export function AccountView() {
               <div className="cabinet-recipient-foot">
                 {/* Tashkent only for now (10.10.2026): orders to this recipient wait for an address in Tashkent. */}
                 {!isServedRegion(profile.region) && <span className="cabinet-chip warn"><MapPin size={14} aria-hidden="true" />{recipientCopy[lang].servedOnly}</span>}
-                {passport ? <span className="cabinet-chip ok"><Check size={14} aria-hidden="true" />{c.recipients.passportOk(passport.passportMasked)}</span> : <Link className="cabinet-chip warn" href={`/identity?recipient=${encodeURIComponent(profile.id)}`}><ScanLine size={14} aria-hidden="true" />{c.recipients.addPassport}</Link>}
+                {passport ? <span className="cabinet-chip ok"><Check size={14} aria-hidden="true" />{c.recipients.passportOk(passport.passportMasked)}</span> : <Link className="cabinet-chip warn" href={documentsPath(profile.id)}><ScanLine size={14} aria-hidden="true" />{c.recipients.addPassport}</Link>}
               </div>
               <div className="cabinet-recipient-actions">
                 <button type="button" className="cabinet-text-btn" onClick={() => setEditor(profile)}><Pencil size={15} aria-hidden="true" />{c.recipients.edit}</button>
@@ -190,16 +146,6 @@ export function AccountView() {
             </li>;
           })}</ul> : <p className="cabinet-empty">{c.recipients.empty}</p>}
           <button type="button" className="cabinet-add" onClick={() => setEditor("new")}><Plus size={18} aria-hidden="true" />{c.recipients.add}</button>
-        </section>
-
-        {/* Next to the recipients: a passport belongs to a recipient. In the main column the two columns end closer on a computer. */}
-        <section className="cabinet-card" aria-labelledby="cabinet-documents-title">
-          <h2 id="cabinet-documents-title">{c.documents.title}<InfoTip locale={lang}>{c.documents.note}</InfoTip></h2>
-          <ul className="cabinet-rows">
-            <li><Link href="/identity"><ScanLine aria-hidden="true" /><span>{c.documents.passport}<small>{identityProfiles.length ? c.documents.passportCount(identityProfiles.length) : c.documents.missing}</small></span><ArrowRight size={18} aria-hidden="true" /></Link></li>
-            <li><Link href="/declaration"><FileCheck2 aria-hidden="true" /><span>{c.documents.declarations}<small>{c.documents.declarationsCount(state.declarations.length)}</small></span><ArrowRight size={18} aria-hidden="true" /></Link></li>
-          </ul>
-          <p className="cabinet-note tip-text">{c.documents.note}</p>
         </section>
 
         <section className="cabinet-card" id="support" aria-labelledby="cabinet-support-title">
@@ -223,13 +169,8 @@ export function AccountView() {
       <div className="cabinet-side">
         <CustomsAllowance groups={allowance} primaryName={primaryRecipient?.recipient} cartUsd={cartUsd} c={c} locale={lang} />
 
-        <SignInMethods locale={lang} />
-
-        <SettingsCard c={c} locale={lang} state={state} ready={ready} act={act} refresh={refresh} onSignOut={signOut} onSupport={() => {
-          setTicket(current => ({ ...current, subject: current.subject || c.deletion.supportSubject }));
-          setTicketOpen(true);
-          window.setTimeout(() => document.getElementById("support")?.scrollIntoView({ block: "start" }), 50);
-        }} />
+        {/* Language, theme, Telegram, sign-in methods and the account itself moved to /account/settings (1 November 2026). */}
+        <Link className="cabinet-link pf-settings-link" href="/account/settings"><Settings2 size={16} aria-hidden="true" />{tileWords.settings}<ArrowRight size={16} aria-hidden="true" /></Link>
       </div>
     </div>
 
@@ -318,10 +259,7 @@ function SettingsCard({ c, locale, state, ready, act, refresh, onSignOut, onSupp
   const platform = info?.platform ?? nativePlatform();
   return <>
     <section className="cabinet-card" aria-labelledby="cabinet-settings-title">
-      <h2 id="cabinet-settings-title">{c.settings.title}</h2>
-      {/* First: order notices in Telegram, the customer's own consent (hidden while the bot is not set up). */}
-      <TelegramNoticesSetting locale={locale} />
-      <div className="cabinet-setting"><span>{c.settings.theme}</span><ThemeToggle locale={locale} /></div>
+      <h2 id="cabinet-settings-title">{profileCopy[locale].settings.help}</h2>
       <Link className="cabinet-setting cabinet-setting-link" href="/support"><span className="cabinet-setting-label"><LifeBuoy size={18} aria-hidden="true" />{c.settings.support}</span><ArrowRight size={18} aria-hidden="true" /></Link>
       <Link className="cabinet-setting cabinet-setting-link" href="/privacy"><span className="cabinet-setting-label"><Shield size={18} aria-hidden="true" />{c.settings.privacy}</span><ArrowRight size={18} aria-hidden="true" /></Link>
       <Link className="cabinet-setting cabinet-setting-link" href="/terms"><span className="cabinet-setting-label"><FileCheck2 size={18} aria-hidden="true" />{c.settings.terms}</span><ArrowRight size={18} aria-hidden="true" /></Link>
@@ -399,4 +337,64 @@ function DeleteAccountDialog({ open, onClose, c, locale, state, onSupport }: { o
       </div>
     </div>
   </Modal>;
+}
+
+const settingsLanguages: { code: Locale; lang: string; name: string }[] = [
+  { code: "ru", lang: "ru", name: "Русский" },
+  { code: "uz", lang: "uz-Latn", name: "O‘zbekcha" },
+  { code: "oz", lang: "uz-Cyrl", name: "Ўзбекча" },
+  { code: "en", lang: "en", name: "English" },
+];
+
+/**
+ * /account/settings (1 November 2026): language, theme, parcel notices in Telegram and the browser, sign-in methods,
+ * help and legal documents, consents, account deletion and sign-out — moved out of the profile hub, nothing removed.
+ */
+export function SettingsView() {
+  const { user, state, ready, act, refresh, setLocale } = useMarket();
+  const lang = state.communication.language;
+  const c = accountCopy[lang], p = profileCopy[lang];
+  if (!user) return <section className="cabinet-card cabinet-signin"><h1>{c.signin.title}</h1><p>{c.signin.text}</p><a className="btn primary" href="/login?return_to=%2Faccount%2Fsettings">{c.signin.action}<ArrowRight size={18} aria-hidden="true" /></a></section>;
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
+    window.location.assign("/");
+  }
+  return <div className="cabinet pf-page pf-settings">
+    <header className="pf-page-head">
+      <Link className="pf-back" href="/account"><ArrowLeft size={16} aria-hidden="true" />{p.parcel.back}</Link>
+      <h1>{p.settings.title}</h1>
+      <p>{p.settings.lead}</p>
+    </header>
+    <div className="pf-settings-grid">
+      <div className="pf-settings-col">
+        <section className="cabinet-card" aria-labelledby="pf-language-title">
+          <h2 id="pf-language-title">{p.settings.language}</h2>
+          <div className="pf-segmented" role="radiogroup" aria-labelledby="pf-language-title">
+            {/* A radio group: one tab stop (the chosen language), arrows move and choose (WAI-ARIA radio group). */}
+            {settingsLanguages.map((item, index) => <button key={item.code} type="button" role="radio" lang={item.lang} aria-checked={item.code === lang} tabIndex={item.code === lang ? 0 : -1} className={item.code === lang ? "selected" : undefined} onClick={() => { if (item.code !== lang) setLocale(item.code); }} onKeyDown={event => {
+              const step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : event.key === "Home" ? -index : event.key === "End" ? settingsLanguages.length - 1 - index : 0;
+              if (!step) return;
+              event.preventDefault();
+              const target = (index + step + settingsLanguages.length) % settingsLanguages.length;
+              (event.currentTarget.parentElement?.children[target] as HTMLElement | undefined)?.focus();
+              setLocale(settingsLanguages[target].code);
+            }}>{item.name}</button>)}
+          </div>
+          <div className="cabinet-setting pf-theme-row"><span>{p.settings.theme}</span><ThemeToggle locale={lang} /></div>
+        </section>
+        {/* Telegram first: a message on every new stage of a parcel and a separate one when an action is needed. */}
+        <section className="cabinet-card" id="notices" aria-labelledby="pf-notices-title">
+          <h2 id="pf-notices-title">{p.settings.notices}</h2>
+          <TelegramNoticesSetting locale={lang} />
+          <PushSettingsRow locale={lang} />
+          <p className="cabinet-lead pf-notices-lead">{p.settings.noticesLead}</p>
+          <Link className="cabinet-link" href="/notifications">{p.hub.tiles.notifications}<ArrowRight size={16} aria-hidden="true" /></Link>
+        </section>
+      </div>
+      <div className="pf-settings-col">
+        <SignInMethods locale={lang} />
+        <SettingsCard c={c} locale={lang} state={state} ready={ready} act={act} refresh={refresh} onSignOut={signOut} onSupport={() => window.location.assign("/account?support=new#support")} />
+      </div>
+    </div>
+  </div>;
 }

@@ -45,8 +45,10 @@ const PAGES = {
   'app/account/page.tsx': CUSTOMER_ROUTE,
   'app/balance/page.tsx': CUSTOMER_ROUTE,
   'app/cart/page.tsx': CUSTOMER_ROUTE,
-  'app/declaration/page.tsx': CUSTOMER_ROUTE,
-  'app/identity/page.tsx': CUSTOMER_ROUTE,
+  // The parcel-first profile (1 November 2026); /identity and /declaration redirect to /account/documents.
+  'app/account/documents/page.tsx': CUSTOMER_ROUTE,
+  'app/account/settings/page.tsx': CUSTOMER_ROUTE,
+  'app/account/parcels/[id]/page.tsx': CUSTOMER_ROUTE,
   'app/notifications/page.tsx': CUSTOMER_ROUTE,
   'app/operations/page.tsx': MEMBER_ROUTE,
   'app/orders/page.tsx': CUSTOMER_ROUTE,

@@ -10,7 +10,7 @@ import './telegram-notices-link.css';
 
 // Light links to the Telegram setting in the account, for the bell sheet and /notifications (no sign-in code here).
 
-const settingsHref='/account#telegram-notices';
+const settingsHref='/account/settings#telegram-notices';
 
 /**
  * What the account's notices really are: "on" only while the Telegram they were turned on for is still the one

@@ -23,7 +23,7 @@ import {pageLanguageSet} from '@/lib/seo/locales';
 import {JsonLd} from './json-ld';
 import {CartAnnouncer} from './cart-announcer';
 import {ProfileMenu} from './profile-menu';
-import {orderAttention} from '@/lib/market/notice-panel';
+import {firstProfileAction,stripCopy} from '@/lib/market/profile-strip';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
 import {focusSearchKey,headerSearchLink,headerSearchTarget} from '@/lib/market/shell-search';
 
@@ -60,7 +60,9 @@ const loadLinkSheet=()=>import('./link-sheet');
 const LinkSheet=lazy(()=>loadChunk(loadLinkSheet).then(module=>({default:module.LinkSheet})));
 const preloadLinkSheet=()=>{loadLinkSheet().catch(()=>undefined)};
 /** Views reached through the profile: its tab and its menu button stay lit on them. */
-const profileViews=new Set(['account','orders','balance','notifications','favorites','identity','declaration']);
+const profileViews=new Set(['account','orders','balance','notifications','favorites','identity','declaration','documents','settings','parcel']);
+/** Pages where the «ждёт действия» strip would repeat what the page itself shows (or would get in the way of it). */
+const stripHidden=new Set(['account','parcel','orders','cart','login','operations','admin','analytics','documents','batch']);
 
 /** Wide screens: one field for the catalog search and for a pasted store link (a pasted link opens its calculation). */
 function HeaderSearch({nav}:{nav:NavCopy}){
@@ -112,8 +114,11 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
   const member=ready||(status==='loading'&&(!!snapshot||sessionHint)),known=ready||!!snapshot;
   const shownBalance=ready?balance:snapshot?.balance??0,shownCount=ready?count:snapshot?.count??0;
   const walletAmount=known?(locale==='ru'?money(shownBalance):new Intl.NumberFormat(isUzbek(locale)?uzText(locale, 'uz-UZ'):'en-US').format(shownBalance)+(isUzbek(locale)?uzText(locale, ' so‘m'):' UZS')):'';
-  // An order waits for the customer (an extra payment, a change to answer, a payment to finish): a dot on the profile.
-  const attention=ready&&state.orders.some(order=>orderAttention(order)!==null);
+  // An order waits for the customer (an extra payment, a change to answer, a payment to finish, a recipient's passport):
+  // a dot on the profile, and under the header one mint line that leads straight to it (1 November 2026).
+  const firstAction=ready?firstProfileAction(state):undefined;
+  const attention=Boolean(firstAction);
+  const strip=firstAction&&!stripHidden.has(view)?firstAction:undefined;
   // The count is in the cart's name (a polite status line says each change, app/cart-announcer.tsx).
   const cartLabel=known?modalWords.cart+shownCount:words.cart;
   // A guest's cart and saved items need an account for now: their links sign in first and come back there.
@@ -169,6 +174,7 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
      :view==='login'?null:<a className="shell-signin shell-wide" href={signInPath('/account')} onClick={event=>{event.currentTarget.href=signInPath(returnPath())}}>{nav.signin}</a>}
    </div>
   </header>
+  {strip&&<Link className="shell-attention" href={strip.href}><span className="shell-attention-dot" aria-hidden="true"/><span className="shell-attention-text">{stripCopy[locale][strip.kind](strip.orderId)}</span><ArrowRight size={16} aria-hidden="true"/></Link>}
   <CartAnnouncer count={count} ready={ready} locale={locale}/>
   {/* Phones hide the breadcrumb (app/shell.css); its JSON-LD stays for search engines. */}
   <main className={view==='catalog'?'site-main home-main':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view),pageLang,pageLanguageSet(publicViewPaths[view]))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span>{crumb&&publicViewPaths[view]?<><Link href={publicViewPaths[view]}>{routeTitle(state.communication.language,view)}</Link><span aria-hidden="true">/</span><span className="breadcrumb-leaf" aria-current="page">{crumb}</span></>:<span aria-current="page">{routeTitle(state.communication.language,view)}</span>}</nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}

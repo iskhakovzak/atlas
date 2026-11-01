@@ -138,7 +138,9 @@ test('the group stage is honest: one status by name, different statuses as "at d
   s = checkout(s, 'mixed-stages', 2000);
   const [a, b, c] = s.orders;
   const mixed = groupOrders([{ ...a, status: 5 }, { ...b, status: 4 }, { ...c, status: 4 }])[0];
-  assert.deepEqual(mixed.progress, [{ status: 4, count: 2 }, { status: 5, count: 1 }]);
+  // Counted on the eight-stage scale (1 November 2026): "В пути" is stage 4, "Доставлен" stage 7.
+  assert.deepEqual(mixed.progress, [{ stage: 4, count: 2 }, { stage: 7, count: 1 }]);
+  assert.equal(mixed.parcelStage, 4);
   const text = groupStageText(mixed, 'ru');
   assert.equal(text.label, 'На разных этапах');
   assert.equal(text.summary, 'В пути: 2 · Доставлен: 1');
@@ -146,6 +148,9 @@ test('the group stage is honest: one status by name, different statuses as "at d
   assert.equal(groupStageText(mixed, 'uz').label, orderGroupCopy.uz.mixed);
   const transit = groupOrders([{ ...a, status: 4 }, { ...b, status: 4 }])[0];
   assert.deepEqual(groupStageText(transit, 'ru'), { label: 'В пути', tone: 'info' });
+  const customs = groupOrders([{ ...a, status: 4, transitStage: 'customs' }, { ...b, status: 4, transitStage: 'customs' }])[0];
+  assert.deepEqual(groupStageText(customs, 'ru'), { label: 'Таможня', tone: 'info' });
+  assert.equal(groupStageText(groupOrders([{ ...a, status: 4, transitStage: 'tashkent' }])[0], 'uz').label, 'Toshkentda');
   const delivered = groupOrders([{ ...a, status: 5 }, { ...b, status: 5 }, { ...c, status: 5 }])[0];
   assert.deepEqual(groupStageText(delivered, 'en'), { label: 'Delivered', tone: 'ok' });
   // A cancelled line leaves the stage: the rest is delivered, so the checkout is done.

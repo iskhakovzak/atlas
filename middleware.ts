@@ -3,12 +3,18 @@ import { pageLocaleHeader, supportedLocale } from "@/lib/market/i18n";
 import { isPublicPath } from "@/lib/seo/locales";
 import { SESSION_COOKIE } from "@/lib/auth/core";
 
+/** Old document pages → their section of /account/documents (query kept, e.g. ?recipient=). */
+export const movedDocumentPages: Record<string, string> = { "/identity": "#passports", "/declaration": "#declarations" };
+
 // `?lang=uz|oz|ru|en` is the hreflang version of a page: the server renders it in that language,
 // so crawlers that do not run scripts see the same text as the title. The browser then saves the
 // choice (lib/market/store.tsx). A client-sent header is always replaced, never trusted.
 export function middleware(request: NextRequest) {
   // The session cookie belongs to one host: www is sent to the main address so a customer is not signed out by it.
   if (request.nextUrl.hostname === "www.atlasmarket.uz") return NextResponse.redirect(new URL(request.nextUrl.pathname + request.nextUrl.search, "https://atlasmarket.uz"), 308);
+  // Passports and declarations live on one page since 1 November 2026; old links and bookmarks keep working.
+  const moved = movedDocumentPages[request.nextUrl.pathname];
+  if (moved) return NextResponse.redirect(new URL("/account/documents" + request.nextUrl.search + moved, request.nextUrl.origin), 308);
   const lang = request.nextUrl.searchParams.get("lang");
   // `?lang=RU` is the same version spelled differently: one redirect to the lowercase address keeps a single canonical
   // (it used to render in Uzbek with the x-default canonical; SEO verification, 1 November 2026).

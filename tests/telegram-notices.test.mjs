@@ -314,7 +314,7 @@ test('wiring: delivery goes to the account persist saved, after the consent chec
   const deliver = body('deliverTelegramNotices');
   for (const forbidden of ['currentUser', 'signedInUser', 'identity(', 'headers(', 'request']) assert.ok(!deliver.includes(forbidden), forbidden);
   const order = (text, steps) => { let at = -1; for (const step of steps) { const next = text.indexOf(step, at + 1); assert.ok(next > at, step); at = next; } };
-  order(deliver, ['shouldNotifyTelegram(', 'telegramConsentSubject(userId, since)', 'rateLimit(', 'formatTelegramNotices(', 'sendTelegram(', '"blocked"', 'disableTelegramNotices(userId, "blocked", { since })']);
+  order(deliver, ['shouldNotifyTelegram(', 'telegramConsentSubject(userId, since)', 'rateLimit(', 'telegramMessagesFor(', 'sendTelegram(', '"blocked"', 'disableTelegramNotices(userId, "blocked", { since })']);
   order(body('toggleTelegramNotices'), ['rateLimit(', 'telegramConfigured()', 'telegramNoticesLive(request)', 'telegramBotConnected()', 'telegramConsentSubject(userId)', '"sendChatAction"', 'kind: "pending"', 'err_82', 'err_83', 'kind: "on"', 'persist(', 'recordConsent(', 'deferBackground(welcome(']);
   // Telegram's answers: 5-second timeouts; a moved webhook keeps the updates waiting (a /stop must arrive).
   const auth = read('lib/auth/server.ts');
@@ -343,7 +343,8 @@ test('wiring: delivery goes to the account persist saved, after the consent chec
 
 test('the account shows the setting first in "Настройки"; the policy says what Telegram receives', () => {
   const views = read('app/account-views.tsx');
-  assert.match(views, /<TelegramNoticesSetting locale=\{locale\} \/>/);
+  // On /account/settings since 1 November 2026, first under "Уведомления о посылках".
+  assert.match(views, /<h2 id="pf-notices-title">\{p\.settings\.notices\}<\/h2>\n\s*<TelegramNoticesSetting locale=\{lang\} \/>/);
   assert.match(read('app/telegram-notices.tsx'), /id="telegram-notices"/);
   const privacy = read('app/legal-documents.tsx');
   const section = privacy.slice(privacy.indexOf('id="privacy-signin"'), privacy.indexOf('</section>', privacy.indexOf('id="privacy-signin"')));

@@ -106,10 +106,17 @@ const orderStatuses = /*@__PURE__*/withCyrillic({
   en: ["Awaiting purchase", "Purchased", "At overseas warehouse", "Ready to ship", "In transit", "Delivered"],
 });
 export function localizedStatuses(locale:Locale){return orderStatuses[locale]}
+/** The buyer's eight parcel stages (domain.ts parcelStages, GLOSSARY.md «Этап посылки»), 1 November 2026. */
+const parcelStageNames = /*@__PURE__*/withCyrillic({
+  ru: ["Ожидает выкупа", "Выкуплен", "На зарубежном складе", "Готов к отправке", "В пути", "Таможня", "В Ташкенте", "Доставлен"],
+  uz: ["Xarid kutilmoqda", "Xarid qilindi", "Xorijdagi omborda", "Jo‘natishga tayyor", "Yo‘lda", "Bojxonada", "Toshkentda", "Yetkazildi"],
+  en: ["Awaiting purchase", "Purchased", "At overseas warehouse", "Ready to ship", "In transit", "Customs", "In Tashkent", "Delivered"],
+});
+export function localizedParcelStages(locale:Locale){return parcelStageNames[locale]}
 const routeTitles:Record<Locale,Record<string,string>>=/*@__PURE__*/withCyrillic({
-  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена',privacy:'Политика конфиденциальности',terms:'Условия использования',support:'Поддержка',app:'Приложение','delete-account':'Удаление аккаунта'},
-  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi',privacy:'Maxfiylik siyosati',terms:'Foydalanish shartlari',support:'Yordam',app:'Ilova','delete-account':'Akkauntni o‘chirish'},
-  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found',privacy:'Privacy policy',terms:'Terms of use',support:'Support',app:'App','delete-account':'Delete account'},
+  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Профиль',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',documents:'Документы',settings:'Настройки',parcel:'Посылка',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена',privacy:'Политика конфиденциальности',terms:'Условия использования',support:'Поддержка',app:'Приложение','delete-account':'Удаление аккаунта'},
+  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Profil',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',documents:'Hujjatlar',settings:'Sozlamalar',parcel:'Posilka',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi',privacy:'Maxfiylik siyosati',terms:'Foydalanish shartlari',support:'Yordam',app:'Ilova','delete-account':'Akkauntni o‘chirish'},
+  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Profile',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',documents:'Documents',settings:'Settings',parcel:'Parcel',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found',privacy:'Privacy policy',terms:'Terms of use',support:'Support',app:'App','delete-account':'Delete account'},
 });
 export function routeTitle(locale:Locale,view:string){return routeTitles[locale][view]??view}
 
@@ -189,6 +196,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_83': 'Telegram сейчас не отвечает. Повторите через минуту.',
     'err_84': 'Уведомления в Telegram пока недоступны.',
     'err_85': 'Вернуть товар уже нельзя. Добавьте его снова со страницы товара.',
+    'err_86': 'Этап уже изменился — обновите очередь.',
     'err_55': 'Нельзя отключить собственный доступ.',
     'err_56': 'Основного администратора из настроек хостинга отключить нельзя.',
     'err_57': 'Заметки о клиентах пока недоступны: примените миграцию базы 0011.',
@@ -268,6 +276,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_83': 'Telegram hozir javob bermayapti. Bir daqiqadan so‘ng qayta urining.',
     'err_84': 'Telegramdagi bildirishnomalar hozircha mavjud emas.',
     'err_85': 'Tovarni endi qaytarib bo‘lmaydi. Uni tovar sahifasidan qayta qo‘shing.',
+    'err_86': 'Bosqich allaqachon o‘zgargan — navbatni yangilang.',
     'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
     'err_56': 'Hosting sozlamalaridagi asosiy administratorni o‘chirib bo‘lmaydi.',
     'err_57': 'Mijozlar haqidagi eslatmalar hozircha mavjud emas: 0011 migratsiyasini qo‘llang.',
@@ -347,6 +356,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_83': 'Telegram isn’t responding right now. Try again in a minute.',
     'err_84': 'Telegram notifications aren’t available yet.',
     'err_85': 'The item can no longer be restored. Add it again from its page.',
+    'err_86': 'The stage has already changed — refresh the queue.',
     'err_55': 'You cannot disable your own access.',
     'err_56': 'The primary administrator from the hosting settings cannot be disabled.',
     'err_57': 'Customer notes are not available yet: apply database migration 0011.',
@@ -374,18 +384,18 @@ export function serverError(locale:Locale, key:string, params?:Record<string,str
  *  kept for the footer and tests; the bottom bar's centre button says `link`. */
 export type NavCopy = { catalog: string; byLink: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string; help: string;
   link: string; buyByLink: string; delivery: string; profile: string; profileMenu: string; search: string; searchPlaceholder: string; searchShort: string;
-  balance: string; notifications: string; favorites: string; documents: string; theme: string; signOut: string; needsAction: string };
+  balance: string; notifications: string; favorites: string; documents: string; settings: string; theme: string; signOut: string; needsAction: string };
 /** Header navigation words, kept here (loaded on every page) rather than in the home page copy, which uses them as `nav`. */
 export const navCopy: Record<Locale, NavCopy> = /*@__PURE__*/withCyrillic({
   ru: { catalog: 'Каталог', byLink: 'По ссылке', stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта', help: 'Помощь',
     link: 'Ссылка', buyByLink: 'Купить по ссылке', delivery: 'Доставка', profile: 'Профиль', profileMenu: 'Меню профиля', search: 'Поиск', searchPlaceholder: 'Товар или ссылка', searchShort: 'Найти',
-    balance: 'Баланс', notifications: 'Уведомления', favorites: 'Избранное', documents: 'Документы', theme: 'Тема', signOut: 'Выйти', needsAction: 'заказ ждёт вашего действия' },
+    balance: 'Баланс', notifications: 'Уведомления', favorites: 'Избранное', documents: 'Документы', settings: 'Настройки', theme: 'Тема', signOut: 'Выйти', needsAction: 'заказ ждёт вашего действия' },
   uz: { catalog: 'Katalog', byLink: 'Havola', stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili', help: 'Yordam',
     link: 'Havola', buyByLink: 'Havola orqali xarid', delivery: 'Yetkazib berish', profile: 'Profil', profileMenu: 'Profil menyusi', search: 'Qidiruv', searchPlaceholder: 'Tovar yoki havola', searchShort: 'Topish',
-    balance: 'Balans', notifications: 'Bildirishnomalar', favorites: 'Saqlanganlar', documents: 'Hujjatlar', theme: 'Mavzu', signOut: 'Chiqish', needsAction: 'buyurtma harakatingizni kutmoqda' },
+    balance: 'Balans', notifications: 'Bildirishnomalar', favorites: 'Saqlanganlar', documents: 'Hujjatlar', settings: 'Sozlamalar', theme: 'Mavzu', signOut: 'Chiqish', needsAction: 'buyurtma harakatingizni kutmoqda' },
   en: { catalog: 'Catalog', byLink: 'By link', stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language', help: 'Help',
     link: 'Link', buyByLink: 'Buy by link', delivery: 'Delivery', profile: 'Profile', profileMenu: 'Profile menu', search: 'Search', searchPlaceholder: 'Item or link', searchShort: 'Find',
-    balance: 'Balance', notifications: 'Notifications', favorites: 'Saved', documents: 'Documents', theme: 'Theme', signOut: 'Sign out', needsAction: 'an order needs your action' },
+    balance: 'Balance', notifications: 'Notifications', favorites: 'Saved', documents: 'Documents', settings: 'Settings', theme: 'Theme', signOut: 'Sign out', needsAction: 'an order needs your action' },
 });
 
 export type FooterCopy = { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; email: string; hours: string; pickup: string; theme: string; inn: string };

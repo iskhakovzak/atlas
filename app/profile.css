@@ -1,0 +1,181 @@
+/* The parcel-first profile (1 November 2026): the hub (/account), the parcel page (/account/parcels/[id]), documents
+   and settings. Direction A: white cards with a shadow and no border, one filled #1f4d3b primary per block, dark sums.
+   Only tokens from app/tokens.css; both themes come from the roles. Shared split files (member-pages.css) are linked
+   after this file, so rules that meet theirs on the same element start with `:root` (tests/css-split.test.mjs). */
+
+/* ---------- Sections and counts ---------- */
+.pf-section { display: grid; gap: var(--space-3); min-width: 0; }
+.pf-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+:root .pf-section-title { display: flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--text); font-size: var(--fs-20); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: var(--tracking-title); }
+.pf-count { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: var(--r-pill); background: var(--sunken); color: var(--text-2); font-size: var(--fs-13); font-weight: var(--fw-semibold); font-feature-settings: var(--tnum); }
+.pf-section-link { display: inline-flex; align-items: center; gap: 4px; color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-medium); white-space: nowrap; }
+.pf-section-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+:root .pf-calm { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0; color: var(--text-2); font-size: var(--fs-14); line-height: var(--lh-body); }
+.pf-calm svg { flex: none; margin-top: 3px; color: var(--ok); }
+.pf-calm.muted svg { color: var(--text-3); }
+
+/* ---------- «Требует действия» ---------- */
+.pf-actions { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.pf-action { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: var(--space-3); align-items: start; padding: var(--space-4); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
+.pf-action-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--r-control); background: var(--warn-bg); color: var(--warn); }
+.pf-action[data-kind="passport"] .pf-action-icon { background: var(--selected); color: var(--link); }
+.pf-action-copy { display: grid; gap: 2px; min-width: 0; }
+:root .pf-action-copy b { color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
+:root .pf-action-copy p { margin: 0; color: var(--text-2); font-size: var(--fs-14); line-height: var(--lh-body); overflow-wrap: anywhere; }
+:root .pf-action-copy small { color: var(--text-3); font-size: var(--fs-12); font-feature-settings: var(--tnum); }
+:root .pf-action-button { grid-column: 1 / -1; width: 100%; min-height: var(--h-md); }
+@media (min-width: 640px) {
+  .pf-action { grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; }
+  :root .pf-action-button { grid-column: auto; width: auto; }
+}
+/* Inside the parcel's stage card the action sits flat on the card. */
+.pf-actions-inline { margin-top: var(--space-4); }
+.pf-actions-inline .pf-action { box-shadow: none; background: var(--sunken); }
+
+/* ---------- Stage bar ---------- */
+.pf-stage-mini { display: grid; gap: var(--space-2); }
+.pf-stage-track { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; }
+.pf-stage-track span { height: 6px; border-radius: var(--r-pill); background: var(--line); }
+.pf-stage-track span[data-state="done"] { background: var(--brand); }
+.pf-stage-track span[data-state="now"] { background: linear-gradient(90deg, var(--brand) 0 50%, var(--selected-line) 50% 100%); }
+:root .pf-stage-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 0; font-size: var(--fs-13); line-height: var(--lh-snug); }
+.pf-stage-line span { color: var(--text-3); font-feature-settings: var(--tnum); }
+.pf-stage-line b { color: var(--text); font-weight: var(--fw-semibold); }
+
+/* Full: a column on a phone, a row of eight from 720px. */
+.pf-stages { display: grid; gap: 0; margin: var(--space-4) 0 0; padding: 0; list-style: none; counter-reset: none; }
+.pf-stages li { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: var(--space-3); min-height: 40px; color: var(--text-3); font-size: var(--fs-14); }
+.pf-stages li::before { content: ""; position: absolute; left: 13px; top: -12px; height: 24px; width: 2px; background: var(--line); }
+.pf-stages li:first-child::before { display: none; }
+.pf-stages li[data-state="done"]::before, .pf-stages li[data-state="now"]::before { background: var(--brand); }
+.pf-stage-dot { position: relative; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px; border: 2px solid var(--line); border-radius: var(--r-pill); background: var(--surface); color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-semibold); font-feature-settings: var(--tnum); }
+.pf-stages li[data-state="done"] .pf-stage-dot { border-color: var(--brand); background: var(--brand); color: var(--on-brand); }
+.pf-stages li[data-state="now"] .pf-stage-dot { border-color: var(--brand); color: var(--link); box-shadow: 0 0 0 4px var(--selected); }
+.pf-stages li[data-state="done"] { color: var(--text-2); }
+.pf-stages li[data-state="now"] { color: var(--text); font-weight: var(--fw-semibold); }
+.pf-stage-name { line-height: var(--lh-snug); }
+@media (min-width: 720px) {
+  .pf-stages { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0; }
+  .pf-stages li { grid-template-columns: none; grid-template-rows: 28px auto; justify-items: center; align-items: start; gap: var(--space-2); min-height: 0; padding: 0 2px; text-align: center; font-size: var(--fs-12); }
+  .pf-stages li::before { left: calc(-50% + 14px); right: calc(50% + 14px); top: 13px; width: auto; height: 2px; }
+}
+
+/* ---------- Parcel cards on the hub ---------- */
+.pf-parcels { display: grid; gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+@media (min-width: 1100px) { .pf-parcels { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pf-parcel { display: grid; align-content: start; gap: var(--space-4); padding: var(--space-4); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); min-width: 0; }
+.pf-parcel-top { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.pf-parcel-photos { display: flex; flex: none; }
+.pf-parcel-photo { display: block; width: 48px; height: 48px; overflow: hidden; border: 2px solid var(--surface); border-radius: var(--r-sm); background: var(--sunken); }
+.pf-parcel-photo + .pf-parcel-photo { margin-left: -14px; }
+.pf-parcel-photo img { width: 100%; height: 100%; object-fit: cover; }
+.pf-parcel-more { display: grid; place-items: center; color: var(--text-2); font-size: var(--fs-13); font-weight: var(--fw-semibold); }
+.pf-parcel-head { display: grid; gap: 2px; min-width: 0; }
+:root .pf-parcel-head h3 { margin: 0; font-size: var(--fs-16); font-weight: var(--fw-semibold); line-height: var(--lh-snug); overflow-wrap: anywhere; }
+.pf-parcel-head h3 a { color: var(--text); }
+.pf-parcel-head h3 a:hover { color: var(--link); }
+:root .pf-parcel-head small { color: var(--text-3); font-size: var(--fs-13); }
+:root .pf-parcel-button { width: 100%; min-height: var(--h-md); }
+
+/* ---------- Six tiles ---------- */
+.pf-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+@media (min-width: 900px) { .pf-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.pf-tiles a { position: relative; display: grid; align-content: start; gap: 2px; min-height: 104px; padding: var(--space-4); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); color: var(--text); text-decoration: none; transition: box-shadow var(--dur-fast, .15s) ease, transform var(--dur-fast, .15s) ease; }
+.pf-tiles a:hover { box-shadow: var(--shadow-3); transform: translateY(-1px); }
+.pf-tiles a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pf-tiles svg { width: 20px; height: 20px; margin-bottom: var(--space-2); color: var(--link); }
+.pf-tiles span { color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
+:root .pf-tiles small { color: var(--text-3); font-size: var(--fs-13); line-height: var(--lh-snug); overflow-wrap: anywhere; font-feature-settings: var(--tnum); }
+.pf-tile-dot { position: absolute; top: 14px; right: 14px; width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--brand); }
+@media (prefers-reduced-motion: reduce) { .pf-tiles a, .pf-tiles a:hover { transition: none; transform: none; } }
+
+/* ---------- Empty and not found ---------- */
+:root .pf-empty, :root .pf-missing { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: var(--space-3) var(--space-4); align-items: start; }
+.pf-empty-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-control); background: var(--selected); color: var(--link); }
+:root .pf-empty h2, :root .pf-missing h1 { margin: 0 0 4px; font-size: var(--fs-18); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
+:root .pf-empty p, :root .pf-missing p { margin: 0; color: var(--text-2); font-size: var(--fs-14); }
+:root .pf-empty .btn, .pf-missing-actions { grid-column: 1 / -1; }
+.pf-missing-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+:root .pf-missing { max-width: 640px; margin: var(--space-6) 0; }
+.pf-settings-link { justify-self: start; }
+
+/* ---------- Page heads (parcel, documents, settings) ---------- */
+.pf-page { display: grid; gap: var(--space-5); padding-top: var(--space-2); min-width: 0; }
+.pf-page-head { display: grid; gap: var(--space-2); }
+.pf-back { display: inline-flex; align-items: center; gap: 6px; justify-self: start; min-height: 36px; color: var(--text-2); font-size: var(--fs-14); font-weight: var(--fw-medium); }
+.pf-back:hover { color: var(--text); }
+:root .pf-page-head h1 { margin: 0; color: var(--text); font-size: var(--fs-30); font-weight: var(--fw-bold); line-height: var(--lh-tight); letter-spacing: var(--tracking-title); overflow-wrap: anywhere; }
+:root .pf-page-head > p { margin: 0; max-width: 720px; color: var(--text-2); font-size: var(--fs-16); }
+:root .pf-page-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; color: var(--text-2); font-size: var(--fs-14); font-feature-settings: var(--tnum); }
+.pf-page-meta .money { color: var(--text); font-weight: var(--fw-semibold); }
+.pf-anchors { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+.pf-anchors a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--space-4); border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--shadow-1); color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-medium); }
+.pf-anchors a:hover { background: var(--selected); }
+@media (max-width: 600px) { :root .pf-page-head h1 { font-size: var(--fs-24); } }
+
+/* ---------- Parcel page ---------- */
+.pf-parcel-grid { display: grid; gap: var(--space-4); align-items: start; }
+.pf-parcel-main, .pf-parcel-side { display: grid; gap: var(--space-4); min-width: 0; }
+@media (min-width: 1024px) { .pf-parcel-grid { grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr); gap: var(--space-5); } }
+:root .pf-stage-card { padding: var(--space-5); }
+:root .pf-eyebrow { margin: 0; color: var(--text-3); font-size: var(--fs-13); font-weight: var(--fw-medium); font-feature-settings: var(--tnum); }
+:root .pf-stage-title { margin: 2px 0 0; color: var(--text); font-size: var(--fs-24); font-weight: var(--fw-bold); line-height: var(--lh-tight); letter-spacing: var(--tracking-title); }
+:root .pf-stage-next { margin: 4px 0 0; color: var(--text-2); font-size: var(--fs-14); }
+.pf-stage-card > .pf-calm { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--line); }
+
+:root .pf-orders h2, :root .pf-side-card h2 { display: flex; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-3); color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); line-height: var(--lh-snug); }
+.pf-side-card h2 svg { color: var(--link); }
+.pf-order-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.pf-order { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: var(--space-2) var(--space-3); padding: var(--space-4) 0; border-top: 1px solid var(--line); }
+.pf-order:first-child { border-top: 0; padding-top: var(--space-1); }
+.pf-order[data-cancelled] { opacity: .6; }
+.pf-order-photo { width: 64px; height: 80px; overflow: hidden; border-radius: var(--r-sm); background: var(--sunken); }
+.pf-order-photo img { width: 100%; height: 100%; object-fit: cover; }
+.pf-order-body { display: grid; align-content: start; gap: 4px; min-width: 0; }
+.pf-order-name { display: -webkit-box; overflow: hidden; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-semibold); line-height: var(--lh-snug); -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+:root .pf-order-body small { color: var(--text-3); font-size: var(--fs-13); overflow-wrap: anywhere; }
+.pf-order-stage { justify-self: start; display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: var(--r-pill); background: var(--sunken); color: var(--text-2); font-size: var(--fs-12); font-weight: var(--fw-semibold); }
+.pf-order-stage[data-state="ok"] { background: var(--ok-bg); color: var(--ok); }
+.pf-order-side { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.pf-order-side strong { color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-bold); font-feature-settings: var(--tnum); }
+.pf-order-claim { grid-column: 1 / -1; }
+.pf-order-claim:empty { display: none; }
+@media (min-width: 640px) {
+  .pf-order { grid-template-columns: 64px minmax(0, 1fr) auto; }
+  .pf-order-side { grid-column: 3; flex-direction: column; align-items: flex-end; justify-content: flex-start; }
+}
+
+.pf-side-card p { margin: 0 0 var(--space-2); font-size: var(--fs-14); color: var(--text); }
+.pf-facts { display: grid; gap: var(--space-2); margin: 0; }
+.pf-facts div { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.pf-facts dt { color: var(--text-3); font-size: var(--fs-13); }
+.pf-facts dd { display: flex; align-items: center; gap: 4px; margin: 0; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-medium); }
+.pf-mono { font-feature-settings: var(--tnum); overflow-wrap: anywhere; }
+.pf-events { display: grid; gap: var(--space-2); margin: var(--space-3) 0 0; padding: var(--space-3) 0 0; border-top: 1px solid var(--line); list-style: none; }
+.pf-events li { display: grid; gap: 0; font-size: var(--fs-13); }
+.pf-events time { color: var(--text-3); font-feature-settings: var(--tnum); }
+.pf-events span { color: var(--text); }
+.pf-doc-list { display: grid; gap: var(--space-2); margin: 0 0 var(--space-3); padding: 0; list-style: none; }
+.pf-doc-list li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: var(--fs-14); color: var(--text); }
+.pf-doc-list li > svg { flex: none; color: var(--ok); }
+.pf-doc-list li.todo > svg { color: var(--warn); }
+.pf-doc-list li > span { flex: 1 1 160px; min-width: 0; }
+.pf-support-link { justify-self: start; }
+
+/* ---------- Documents ---------- */
+.pf-documents .docs-page { scroll-margin-top: 96px; }
+:root .pf-documents .docs-page .orders-head h2 { margin: 0; color: var(--text); font-size: var(--fs-24); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-title); }
+.pf-documents .docs-page + .docs-page { padding-top: var(--space-5); border-top: 1px solid var(--line); }
+
+/* ---------- Settings ---------- */
+.pf-settings-grid { display: grid; gap: var(--space-4); align-items: start; }
+.pf-settings-col { display: grid; gap: var(--space-4); min-width: 0; }
+@media (min-width: 1024px) { .pf-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); } }
+:root .pf-settings .cabinet-card > h2 { margin: 0 0 var(--space-3); color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-semibold); }
+.pf-segmented { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: var(--r-control); background: var(--sunken); }
+@media (min-width: 480px) { .pf-segmented { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.pf-segmented button { min-height: var(--h-sm); padding: 0 var(--space-2); border: 0; border-radius: 9px; background: transparent; color: var(--text-2); font-size: var(--fs-14); font-weight: var(--fw-medium); }
+.pf-segmented button:hover { color: var(--text); }
+.pf-segmented button.selected { background: var(--surface); box-shadow: var(--shadow-1); color: var(--text); font-weight: var(--fw-semibold); }
+:root .pf-theme-row { margin-top: var(--space-3); border-bottom: 0; padding-bottom: 0; }
+:root .pf-notices-lead { margin: var(--space-3) 0 var(--space-2); }

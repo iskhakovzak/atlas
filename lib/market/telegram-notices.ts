@@ -30,6 +30,8 @@ export const telegramCopy = /*@__PURE__*/withCyrillic({
     openReply: 'Открыть ответ',
     openDocument: 'Открыть документ',
     open: 'Открыть в Atlas',
+    openParcel: 'Открыть посылку',
+    addPassport: 'Добавить паспорт',
     stopCommand: 'Выключить уведомления о заказах',
   },
   uz: {
@@ -50,6 +52,8 @@ export const telegramCopy = /*@__PURE__*/withCyrillic({
     openReply: 'Javobni ochish',
     openDocument: 'Hujjatni ochish',
     open: 'Atlasda ochish',
+    openParcel: 'Posilkani ochish',
+    addPassport: 'Pasport qo‘shish',
     stopCommand: 'Buyurtma bildirishnomalarini o‘chirish',
   },
   en: {
@@ -70,12 +74,14 @@ export const telegramCopy = /*@__PURE__*/withCyrillic({
     openReply: 'Open the reply',
     openDocument: 'Open document',
     open: 'Open in Atlas',
+    openParcel: 'Open the parcel',
+    addPassport: 'Add passport',
     stopCommand: 'Turn off order notifications',
   },
 });
 
 /** Where the settings card lives and where "Contact support" opens the empty form. */
-export const telegramSettingsPath = '/account#telegram-notices';
+export const telegramSettingsPath = '/account/settings#telegram-notices';
 export const telegramSupportPath = '/account?support=new#support';
 
 type Button = { text: string; url: string };
@@ -91,7 +97,10 @@ const escapeHtml = (value: string) => value.replace(/[]/g, '').replace(/&/
 const clip = (value: string, max: number) => (value.length > max ? value.slice(0, max - 1).trimEnd() + '…' : value);
 /** Telegram counts its 4096 characters after reading the HTML: tags do not count, an entity is one character. */
 export const visibleLength = (html: string) => html.replace(/<\/?[bi]>/g, '').replace(/&(?:amp|lt|gt);/g, '_').length;
-const actionCodes = new Set(Object.values(reasonCodes).flat());
+// The passport is asked for in a notice of its own (1 November 2026): it is an action, not news.
+const actionCodes = new Set([...Object.values(reasonCodes).flat(), 'passport-needed']);
+/** A notice that asks the buyer to do something (a passport, a доплата, a decision): it travels as a message of its own. */
+export const isActionNotice = (notice: Pick<Notification, 'code'>) => !!notice.code && actionCodes.has(notice.code);
 /** Buttons only lead to the site itself over https: Telegram refuses anything else, and nothing else is ours. */
 const button = (text: string, origin: string, path: string): Button[][] | undefined =>
   /^https:\/\/[^/]+$/.test(origin) ? [[{ text, url: origin + path }]] : undefined;
@@ -107,7 +116,7 @@ function noticeBlock(notice: Notification, orders: readonly Pick<Order, 'id' | '
   const order = notice.orderId ? orders.find((item) => item.id === notice.orderId) : undefined;
   const about = notice.orderId ? (order ? `${clip(order.product.name, 60)} · ${notice.orderId}` : notice.orderId) : '';
   return [
-    notice.code && actionCodes.has(notice.code) ? `<i>${escapeHtml(t.action)}</i>` : '',
+    isActionNotice(notice) ? `<i>${escapeHtml(t.action)}</i>` : '',
     `<b>${escapeHtml(clip(title, 120))}</b>`,
     escapeHtml(clip(message, 600)),
     about ? escapeHtml(about) : '',
@@ -124,7 +133,7 @@ export function formatTelegramNotices(notices: readonly Notification[], orders: 
   const t = telegramCopy[locale], silent = telegramSilent(notices, now);
   if (notices.length === 1) {
     const [notice] = notices, target = noticeTarget(notice);
-    const label = target?.kind === 'order' ? noticesCopy[locale].openOrder : target?.kind === 'support' ? t.openReply : target?.kind === 'document' ? t.openDocument : t.open;
+    const label = notice.code === 'passport-needed' ? t.addPassport : target?.kind === 'parcel' ? t.openParcel : target?.kind === 'order' ? noticesCopy[locale].openOrder : target?.kind === 'support' ? t.openReply : target?.kind === 'document' ? t.openDocument : t.open;
     const path = target?.href ?? '/notifications?id=' + encodeURIComponent(notice.id);
     return plainMessage(noticeBlock(notice, orders, locale), origin, { text: label, path }, silent);
   }
@@ -142,6 +151,17 @@ export function formatTelegramNotices(notices: readonly Notification[], orders: 
     shown -= 1;
   }
   return plainMessage(text, origin, { text: t.all, path: '/notifications' }, silent);
+}
+
+/**
+ * Every message one write sends (owner, 1 November 2026): the news together in one message, then each notice that asks
+ * for an action — the passport, a доплата, a decision — in a message of its own, with its own button and "Your action
+ * is needed". So "Добавить паспорт" is never folded into "Order updates: 2" behind "All notifications".
+ */
+export function telegramMessagesFor(notices: readonly Notification[], orders: readonly Pick<Order, 'id' | 'product'>[], locale: Locale, origin: string, now = Date.now()): TelegramMessage[] {
+  const news = formatTelegramNotices(notices.filter((notice) => !isActionNotice(notice)), orders, locale, origin, now);
+  const actions = notices.filter(isActionNotice).map((notice) => formatTelegramNotices([notice], orders, locale, origin, now));
+  return [news, ...actions].filter((message): message is TelegramMessage => message !== null);
 }
 
 /** The first message after "Turn on": what will come, what Atlas never asks for, how to stop. */
