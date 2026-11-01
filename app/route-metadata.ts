@@ -87,35 +87,23 @@ export function publicMetadata(page: PublicPage, lang: string | undefined, fallb
   return pageMetadata({ path: paths[page], lang, fallback, text: (locale) => pageText[page][locale], languages: pageLanguages[page] });
 }
 
-// Set on public pages only: a root-level `index, follow` would be repeated next to the
-// framework's `noindex` on the 404 page.
-const publicRobots: Metadata['robots'] = { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } };
-
 const productText: Record<Locale, (title: string, sum?: string) => string> = /*@__PURE__*/withCyrillic({
   uz: (title, sum) => `${title} — ${sum ? `Toshkentgacha ${sum}, ` : ''}narx so‘mda: tovar, Atlas xizmati va tarif bo‘yicha yetkazish. Narxni xariddan oldin do‘kon bilan tekshiramiz.`,
   ru: (title, sum) => `${title} — ${sum ? `${sum} до Ташкента, ` : ''}сумма в сумах: товар, сервис Atlas и доставка по тарифу. Цену сверяем с магазином перед выкупом.`,
   en: (title, sum) => `${title} — ${sum ? `${sum} to Tashkent, ` : ''}the sum in soum: the item, the Atlas service and delivery by tariff. We check the price with the store before buying.`,
 });
 
-/** A catalog product page (/catalog/p/[id]): its own title, description and photo, with the language versions of the other public pages. */
+/** A catalog product page (/catalog/p/[id]): its own title, description and photo, with the shared canonical/hreflang rules. */
 export function productMetadata(product: { id: string; name: string; brand?: string; image?: string }, sum: string | undefined, lang: string | undefined, fallback: Locale = 'uz'): Metadata {
-  const requested = supportedLocale(lang);
-  const locale = requested ?? fallback;
-  const path = '/catalog/p/' + encodeURIComponent(product.id);
-  const version = (code: Locale) => `${path}?lang=${code}`;
-  const url = requested ? version(requested) : path;
   const brand = product.brand?.trim();
   const title = brand && !product.name.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${product.name}` : product.name;
-  const description = productText[locale](title, sum);
-  const photo = product.image?.startsWith('https://') ? [{ url: product.image, alt: title }] : images(locale);
-  return {
-    title,
-    description,
-    robots: publicRobots,
-    alternates: { canonical: url, languages: { uz: version('uz'), 'uz-Cyrl': version('oz'), ru: version('ru'), en: version('en'), 'x-default': path } },
-    openGraph: { type: 'website', url, title: `${title} · Atlas`, description, locale: ogLocale[locale], images: photo },
-    twitter: { card: 'summary_large_image', title: `${title} · Atlas`, description, images: photo.map(item => item.url) },
-  };
+  return pageMetadata({
+    path: '/catalog/p/' + encodeURIComponent(product.id),
+    lang,
+    fallback,
+    text: (locale) => ({ title, description: productText[locale](title, sum) }),
+    image: product.image?.startsWith('https://') ? { url: product.image, alt: title } : undefined,
+  });
 }
 
 export function homeMetadata(lang?: string, fallback: Locale = 'uz'): Metadata {
