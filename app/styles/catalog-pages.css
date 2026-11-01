@@ -57,20 +57,8 @@ html[data-theme="dark"] .catalog-import-hint {
 .catalog-saved b { color: var(--cat-muted); font-size: 12px; }
 
 /* One line: icon, the short fact, the action; the sentence and the "how it works" link open on tap (≤ 56px on phones). */
-.catalog-page .catalog-banner { display: block; margin: 0 0 10px; padding: 0 12px; border: 1px solid var(--cat-ok-line); border-radius: var(--r-control); background: var(--cat-ok-bg); color: var(--cat-ink); }
-.catalog-page .catalog-banner-row { display: flex; align-items: center; gap: 8px; min-height: 48px; }
-.catalog-page .catalog-banner-toggle { display: inline-flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; min-height: 44px; padding: 0; border: 0; background: none; color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; text-align: left; cursor: pointer; }
-.catalog-page .catalog-banner-toggle > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.catalog-page .catalog-banner-toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
-.catalog-page .catalog-banner-detail { display: flex; flex-wrap: wrap; gap: 0 18px; padding: 0 0 10px 26px; }
-.catalog-page .catalog-banner-detail[hidden] { display: none; }
-.catalog-page .catalog-banner-detail p { flex-basis: 100%; margin: 0 0 2px; font-size: 14px; line-height: 1.5; }
-.catalog-page .catalog-banner.catalog-banner-warn { border-color: var(--cat-warn-line); background: var(--cat-warn-bg); }
-.catalog-page .catalog-banner-warn .catalog-banner-row > svg { color: var(--cat-warn); }
 /* The parcel banner is a neutral fact beside the mint allowance banner: a white card with a mint icon. */
-.catalog-page .catalog-banner.catalog-banner-parcel { border-color: var(--cat-line); background: var(--cat-surface); }
 /* Specific enough to keep the 44px tap target over refine.css's 36px phone rule for banner actions. */
-.catalog-page .catalog-banner :is(.catalog-banner-row, .catalog-banner-detail) > :is(.text-button, .text-link) { display: inline-flex; flex: none; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--cat-accent); font: inherit; font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; cursor: pointer; }
 
 /* ---------- Chips (categories, prices, sizes, active filters) ---------- */
 .catalog-categories > button[data-empty]:not([aria-pressed="true"]) { border-style: dashed; color: var(--cat-muted); }
@@ -254,7 +242,6 @@ html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
 html[data-theme="dark"] .catalog-set-cover { border-color: transparent; }
 html[data-theme="dark"] .catalog-page .catalog-sets > .catalog-set { box-shadow: none; }
 html[data-theme="dark"] .catalog-page .catalog-sets > .catalog-set[aria-pressed="true"] { border-color: var(--night-jade); box-shadow: inset 0 0 0 1px var(--night-jade); }
-html[data-theme="dark"] .catalog-page .catalog-banner.catalog-banner-parcel { border-color: var(--night-line-strong); background: var(--night-raised); }
 
 /* ── app/mobile.css ── */
 /* Fingers: small text buttons keep their look but take taps from a little around them (an invisible frame). */
@@ -289,11 +276,6 @@ html[data-theme="dark"] .catalog-page .catalog-banner.catalog-banner-parcel { bo
   }
   .catalog-stats svg { display: none; }
   .catalog-head h1 + p { font-size: 14px; }
-  .catalog-banner { gap: 2px 10px; margin-bottom: 10px; padding: 10px 12px; border-radius: var(--r-control); font-size: 14px; }
-  .catalog-banner > svg { width: 18px; height: 18px; }
-  .catalog-banner p { line-height: var(--lh-body); }
-  .catalog-banner > div { gap: 0 16px; }
-  .catalog-page .catalog-banner :is(.text-button, .text-link) { min-height: 36px; font-size: 14px; }
   .catalog-search { min-height: 48px; }
   .catalog-search input { min-height: 44px; }
   .catalog-facets-button, .catalog-sort select { min-height: 44px; }

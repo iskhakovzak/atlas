@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowDownUp, ArrowRight, ChevronDown, Heart, Link2, Search, ShieldCheck, SlidersHorizontal, Store, X, type LucideIcon } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ArrowDownUp, ArrowRight, Heart, Link2, Search, SlidersHorizontal, Store, X } from 'lucide-react';
 import Link from '@/components/site-link';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -10,7 +10,7 @@ import { catalogDeliverySpeed, catalogQuoteSpeed } from '@/lib/market/deals';
 import { useMarket } from '@/lib/market/store';
 import { useRowAtStart } from '@/lib/market/row-start';
 import { dealCopy } from '@/lib/market/deal-copy';
-import { catalogCopy, allowanceMonth } from '@/lib/market/catalog-copy';
+import { catalogCopy } from '@/lib/market/catalog-copy';
 import { catalogAllowance } from '@/lib/market/allowance';
 import { courierAllowanceUsd } from '@/lib/market/customs';
 import { storeBrands } from '@/lib/market/store-brands';
@@ -263,11 +263,8 @@ export function CatalogView({ mode, initial, lang, store, firstPage }: { mode: '
       {mode === 'catalog' && <div className="catalog-head-side">{catalogReady && items.length > 0 && <><p className="catalog-stats"><Store size={16} aria-hidden="true" />{cc.stats(items.length, storesInCatalog)}</p>{ready && <Link className="catalog-saved" href="/favorites"><Heart size={16} aria-hidden="true" /><span className="catalog-saved-label">{copy.saved}</span><b>{state.favorites.filter((id) => items.some((item) => item.product.id === id)).length}</b></Link>}</>}</div>}
     </header>}
     {catalogError && <div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? (locale === 'ru' ? 'Обновляем…' : isUzbek(locale) ? uzText(locale, 'Yangilanmoqda…') : 'Refreshing…') : (locale === 'ru' ? 'Повторить' : isUzbek(locale) ? uzText(locale, 'Qayta urinish') : 'Retry')}</button></div>}
-    {mode === 'catalog' && allowance && allowance.usedUsd > 0 && <CompactBanner tone={allowance.remainingUsd > 0 ? 'ok' : 'warn'} icon={ShieldCheck} cc={cc}
-      short={allowance.remainingUsd > 0 ? cc.bannerLimit(allowance.remainingUsd, limitUsd) : cc.bannerLimitSpent}
-      detail={allowance.remainingUsd > 0 ? cc.allowanceLeft(allowance.remainingUsd, allowance.name, allowanceMonth(locale), limitUsd) : cc.allowanceSpent(allowance.name, allowanceMonth(locale))}
-      action={allowance.remainingUsd > 0 && !query.duty ? <button type="button" className="text-button" onClick={() => setQuery({ ...query, duty: true })}>{cc.allowanceShow}</button> : null}
-      more={<Link className="text-link" href="/customs">{cc.allowanceHow}</Link>} />}
+    {/* The duty-free allowance is not repeated over the catalog (owner, 2 November 2026): it lives in the profile (/account);
+       the «Без пошлины» filter and the duty line of every bill stay. */}
     {showControls && <span ref={stuckProbe} className="catalog-sticky-probe" aria-hidden="true" />}
     {/* One row: search, "Фильтры (N)" (a sheet below 1024 px) and the sort. Sticky on phones (app/styles/catalog-pages.css):
        a sibling of the page's blocks, not inside the toolbar section, so it stays stuck over the whole grid. */}
@@ -335,20 +332,6 @@ export function CatalogView({ mode, initial, lang, store, firstPage }: { mode: '
     </Sheet>
     <LazyProductSheet product={selected} onClose={closeSelected} />
   </div></TooltipProvider>;
-}
-
-/** One line (icon, short text, action); the full sentence and the "how it works" link open on tap. */
-function CompactBanner({ tone, icon: Icon, short, detail, action, more, cc }: { tone: 'ok' | 'warn' | 'parcel'; icon: LucideIcon; short: string; detail: string; action?: ReactNode; more?: ReactNode; cc: Copy }) {
-  const [open, setOpen] = useState(false);
-  const id = useId();
-  return <div className={'catalog-banner' + (tone === 'warn' ? ' catalog-banner-warn' : tone === 'parcel' ? ' catalog-banner-parcel' : '')}>
-    <div className="catalog-banner-row">
-      <Icon size={18} aria-hidden="true" />
-      <button type="button" className="catalog-banner-toggle" aria-expanded={open} aria-controls={id} onClick={() => setOpen((value) => !value)}><span>{short}</span><ChevronDown size={16} aria-hidden="true" /><span className="sr-only">{open ? cc.collapse : cc.details}</span></button>
-      {action}
-    </div>
-    <div id={id} className="catalog-banner-detail" hidden={!open}><p>{detail}</p>{more}</div>
-  </div>;
 }
 
 function EmptyResult({ mode, empty, query, setQuery, cc, copy, options, collections, locale }: { mode: 'catalog' | 'favorites'; empty: boolean; query: CatalogQuery; setQuery: (query: CatalogQuery) => void; cc: Copy; copy: ReturnType<typeof dealCopy>; options: ReturnType<typeof relaxations>; collections: Collection[]; locale: Locale }) {
