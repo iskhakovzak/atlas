@@ -28,6 +28,7 @@ const LAYOUT_CSS = [
   './native.css', './store-marks.css', './ambient.css', './checkbox.css', './press.css', './header-panel.css', './motion.css',
   './link-inputs.css',
   './shell.css',
+  './favorite-heart.css',
 ];
 
 const OPERATOR = 'operator.css', CATALOG = 'catalog-pages.css', STORES = 'stores-pages.css', LINK = 'link-pages.css',

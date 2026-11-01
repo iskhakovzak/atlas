@@ -5,6 +5,7 @@ import { AlertCircle, ArrowRight, BadgeCheck, Check, CircleHelp, ClipboardPaste,
 import Link from "@/components/site-link";
 import { toast } from "@/lib/market/toast";
 import { showCartAdded } from "./cart-toast";
+import { popHeart } from "@/lib/market/heart-pop";
 import { useMarket } from "@/lib/market/store";
 import { signInPath } from "@/lib/market/access";
 import { catalogOrderVariants, type MerchantFind } from "@/lib/market/catalog";
@@ -1780,7 +1781,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
               <div className="pd-name-row">
                 <TitleTag id="lo-product-name" className="pd-title">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</TitleTag>
                 {guestFavoriteId && <a className="find-save lo-save" href={loginPath(catalogItemHref("/catalog", guestFavoriteId))} aria-label={dc.signinToSave} title={dc.signinToSave} onClick={() => rememberPendingFavorite(catalogStorage(), guestFavoriteId, Date.now())}><Heart size={20} aria-hidden="true" /></a>}
-                {favoriteId && <button type="button" className={"find-save lo-save" + (favoriteSaved ? " saved" : "")} aria-pressed={favoriteSaved} aria-label={favoriteSaved ? dc.remove : dc.save} title={favoriteSaved ? dc.remove : dc.save} disabled={favoriteBusy} onClick={() => void toggleFavorite()}><Heart size={20} aria-hidden="true" /></button>}
+                {favoriteId && <button type="button" className={"find-save lo-save" + (favoriteSaved ? " saved" : "")} aria-pressed={favoriteSaved} aria-label={favoriteSaved ? dc.remove : dc.save} title={favoriteSaved ? dc.remove : dc.save} disabled={favoriteBusy} onClick={event => { popHeart(event.currentTarget, !favoriteSaved); void toggleFavorite(); }}><Heart size={20} strokeWidth={2} aria-hidden="true" /></button>}
               </div>
               {checking && <LoadStage url={requestedUrl || url} locale={lang} />}
               {checking && name && <p className="lo-note">{tx("Название и фото предварительные. Сверяем данные с магазином.", "Nom va surat dastlabki. Ma’lumotlarni do‘kon bilan tekshiryapmiz.", "The name and photo are preliminary. Checking details with the store.")}</p>}
