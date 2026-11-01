@@ -8,11 +8,19 @@ export function middleware(request: NextRequest) {
   // The session cookie belongs to one host: www is sent to the main address so a customer is not signed out by it.
   if (request.nextUrl.hostname === "www.atlasmarket.uz") return NextResponse.redirect(new URL(request.nextUrl.pathname + request.nextUrl.search, "https://atlasmarket.uz"), 308);
   const requested = supportedLocale(request.nextUrl.searchParams.get("lang"));
-  if (!requested && !request.headers.has(pageLocaleHeader)) return NextResponse.next();
+  if (!requested && !request.headers.has(pageLocaleHeader)) return xDefault(NextResponse.next());
   const headers = new Headers(request.headers);
   headers.delete(pageLocaleHeader);
-  if (requested) headers.set(pageLocaleHeader, requested);
+  if (!requested) return xDefault(NextResponse.next({ request: { headers } }));
+  headers.set(pageLocaleHeader, requested);
   return NextResponse.next({ request: { headers } });
+}
+
+// Without `?lang` a page follows the saved choice (cookie) and the browser language: caches and crawlers are told the
+// response depends on both, so one visitor's language is never served to another (SEO audit, 1 November 2026).
+function xDefault(response: NextResponse) {
+  response.headers.append("Vary", "Accept-Language, Cookie");
+  return response;
 }
 
 // Pages only: API routes, build assets and public files (anything with an extension) skip it.

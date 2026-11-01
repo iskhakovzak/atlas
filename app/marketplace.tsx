@@ -1,7 +1,7 @@
 'use client';
 import {Suspense,lazy,useEffect,useLayoutEffect,useMemo,useState,useSyncExternalStore,type MouseEvent,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
-import Link,{useWarmLinks} from '@/components/site-link';
+import Link,{usePageLang,useWarmLinks} from '@/components/site-link';
 import {ArrowUpRight,ArrowRight,ShoppingBag,Heart,LayoutGrid,Settings2,House,UserRound,MessageCircle,Plus,Search} from 'lucide-react';
 import {ToasterSlot} from './toaster-slot';
 import {money,balanceOf} from '@/lib/market/domain';
@@ -19,6 +19,7 @@ import {signInReturn} from '@/lib/auth/return-to';
 import {pickLocale,uzText,withCyrillic} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
 import {breadcrumbs,publicViewPaths} from '@/lib/seo/structured-data';
+import {pageLanguageSet} from '@/lib/seo/locales';
 import {JsonLd} from './json-ld';
 import {CartAnnouncer} from './cart-announcer';
 import {ProfileMenu} from './profile-menu';
@@ -89,7 +90,7 @@ export default function Marketplace({view,children}:{view:string;children?:React
   const {state,ready,status,error,user,refresh,setLocale,sessionHint,siteContent}=useMarket();
   const supportBot=siteContent.contacts.telegramSupport;
   const {theme}=useTheme();
-  const locale=state.communication.language as Locale,words=ui(locale);
+  const locale=state.communication.language as Locale,words=ui(locale),pageLang=usePageLang();
   const modalWords=marketplaceWords(locale);
   const count=state.cart.reduce((s,i)=>s+i.quantity,0),balance=balanceOf(state);
   const nav=navCopy[locale];
@@ -169,7 +170,7 @@ export default function Marketplace({view,children}:{view:string;children?:React
   </header>
   <CartAnnouncer count={count} ready={ready} locale={locale}/>
   {/* Phones hide the breadcrumb (app/shell.css); its JSON-LD stays for search engines. */}
-  <main className={view==='catalog'?'site-main home-main':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span><span aria-current="page">{routeTitle(state.communication.language,view)}</span></nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
+  <main className={view==='catalog'?'site-main home-main':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view),pageLang,pageLanguageSet(publicViewPaths[view]))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span><span aria-current="page">{routeTitle(state.communication.language,view)}</span></nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
   <AccessView view={view}>{children}</AccessView>
    <SiteFooter/></main>
   {/* Phones: one bottom bar for everyone, in the server HTML too: Главная · Каталог · Ссылка · Корзина · Профиль.

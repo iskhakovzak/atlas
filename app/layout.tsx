@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import { pageLocale } from "./page-locale";
+import { pageLocale, requestedPageLocale } from "./page-locale";
+import { PageLang } from "./page-lang";
 import { SESSION_COOKIE } from "@/lib/auth/core";
 import { rootMetadata } from "./route-metadata";
 import { htmlLang } from "@/lib/market/uz-cyrl";
@@ -85,7 +86,7 @@ export default async function RootLayout({
   // the browser language, then Uzbek.
   // The tariff from D1 goes into the first render too, so the sums on the home page do not change after /api/account answers.
   // The site content (contacts, legal entity, reviews…) comes from D1 as well, so the footer does not flicker after hydration.
-  const [locale, { pricing, siteContent }] = await Promise.all([pageLocale(), initialSettings()]);
+  const [locale, requested, { pricing, siteContent }] = await Promise.all([pageLocale(), requestedPageLocale(), initialSettings()]);
   // A session cookie (not verified here) lets the header and private pages render their signed-in shape at once
   // instead of the guest header and a "checking your session" card; /api/account still decides who is signed in.
   const sessionHint = (await cookies()).has(SESSION_COOKIE);
@@ -101,7 +102,7 @@ export default async function RootLayout({
       <body className="antialiased">
         <AmbientBackdrop />
         <AtlasThemeProvider>
-          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}>{children}<ShellExtras /><StaleBuildReload /><NativeShell /><PressFeedback /></MarketProvider>
+          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}><PageLang requested={requested}>{children}</PageLang><ShellExtras /><StaleBuildReload /><NativeShell /><PressFeedback /></MarketProvider>
         </AtlasThemeProvider>
         <JsonLd data={siteGraph(locale, siteContent.contacts, siteContent.legal)} />
       </body>

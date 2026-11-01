@@ -84,7 +84,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const saveClass = variant === 'compact' ? 'find-save' : 'pcard-save';
   const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={saveClass + ' ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
     // The address is read on the tap, not while rendering (the card renders on the server too): back to these filters.
-    : guestSave ? <Tooltip><TooltipTrigger asChild><a className={saveClass} href={loginPath('/catalog')} aria-label={copy.signinToSave + ': ' + name} onClick={(event) => { rememberPendingFavorite(browserStorage(), product.id, Date.now()); event.currentTarget.href = loginPath(window.location.pathname + window.location.search); }}><Heart size={20} aria-hidden="true" /></a></TooltipTrigger><TooltipContent>{copy.signinToSave}</TooltipContent></Tooltip>
+    : guestSave ? <Tooltip><TooltipTrigger asChild><a className={saveClass} href={loginPath('/catalog')} rel="nofollow" aria-label={copy.signinToSave + ': ' + name} onClick={(event) => { rememberPendingFavorite(browserStorage(), product.id, Date.now()); event.currentTarget.href = loginPath(window.location.pathname + window.location.search); }}><Heart size={20} aria-hidden="true" /></a></TooltipTrigger><TooltipContent>{copy.signinToSave}</TooltipContent></Tooltip>
     : null;
   // The store discount shows on a dated price too, when that price is the recorded USD one (owner, 12 October 2026).
   const showDiscount = discount > 0 && (!needsPrice || (hasRecordedPrice && product.sourceCurrency === 'USD'));
@@ -131,7 +131,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       {/* Phones: no button row; the round "+" does what "В корзину" does on a computer (the variant choice). */}
       {inCart
         ? <a className="pcard-plus" data-in-cart="" href="/cart" aria-label={cc.inCart + ': ' + name}><Check size={18} strokeWidth={2.5} aria-hidden="true" /></a>
-        : <a className="pcard-plus" href={orderUrl} aria-label={cc.choose(name)}><Plus size={20} strokeWidth={2.5} aria-hidden="true" /></a>}
+        : <a className="pcard-plus" href={orderUrl} rel="nofollow" aria-label={cc.choose(name)}><Plus size={20} strokeWidth={2.5} aria-hidden="true" /></a>}
     </div>
     <div className="pcard-body">
       <p className="pcard-brand">{brandName}</p>
@@ -152,7 +152,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <div className="pcard-buy">
         {inCart
           ? <a className="btn secondary" href="/cart"><Check size={17} aria-hidden="true" />{cc.inCart}</a>
-          : <a className="btn primary" href={orderUrl}><ShoppingBag size={17} aria-hidden="true" />{cc.addToCart}</a>}
+          : <a className="btn primary" href={orderUrl} rel="nofollow"><ShoppingBag size={17} aria-hidden="true" />{cc.addToCart}</a>}
       </div>
     </div>
   </article>;

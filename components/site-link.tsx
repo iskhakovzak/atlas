@@ -1,7 +1,23 @@
 'use client';
-import { useEffect, type AnchorHTMLAttributes, type MouseEvent, type PointerEvent } from "react";
+import { createContext, useContext, useEffect, type AnchorHTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { startNavigationFeedback } from "@/lib/market/navigation-feedback";
+import type { Locale } from "@/lib/market/i18n";
+import { withLang } from "@/lib/seo/locales";
+
+/**
+ * The language of a page opened as a `?lang=` version (then the language on screen, which the menu may change), or
+ * null on an x-default address. Links to public pages carry it (lib/seo/locales.ts withLang), so a crawler on the
+ * Russian version follows Russian links instead of landing on the Uzbek x-default (SEO audit, 1 November 2026).
+ */
+const PageLangContext = createContext<Locale | null>(null);
+export function PageLangProvider({ value, children }: { value: Locale | null; children: ReactNode }) {
+  return <PageLangContext.Provider value={value}>{children}</PageLangContext.Provider>;
+}
+/** The `?lang=` version the page was opened as, in the language now on screen; null on an x-default address. */
+export function usePageLang(): Locale | null {
+  return useContext(PageLangContext);
+}
 
 type SiteLinkProps = Omit<
   AnchorHTMLAttributes<HTMLAnchorElement>,
@@ -64,8 +80,9 @@ export function useWarmLinks(hrefs: string[]) {
 // under minified export names, so every click threw; useRouter is imported statically and works (10.10.2026).
 // Still full page loads: the same page with another ?query (those pages read the address once, on load), other
 // sites, new tabs and downloads. A link to the page already open scrolls it back to the top, as a tab bar does.
-export default function SiteLink({ href, onClick, onPointerDown, onPointerEnter, onFocus, ...props }: SiteLinkProps) {
+export default function SiteLink({ href: given, onClick, onPointerDown, onPointerEnter, onFocus, ...props }: SiteLinkProps) {
   const router = useRouter();
+  const href = withLang(given, usePageLang());
   const inSite = href.startsWith("/") && !href.startsWith("//") && !props.target && props.download === undefined;
   const target = () => {
     if (!inSite) return null;

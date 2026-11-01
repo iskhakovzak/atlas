@@ -6,7 +6,7 @@
 .lang-menu { position: relative; display: inline-flex; flex: none; }
 .lang-trigger { display: inline-flex; align-items: center; gap: 5px; min-width: 44px; min-height: 44px; padding: 0 9px; border: 1px solid var(--day-line, var(--c-line)); border-radius: var(--day-r-control, 10px); background: transparent; color: var(--day-ink, var(--c-ink)); font: inherit; font-size: 13px; font-weight: 650; letter-spacing: .03em; cursor: pointer; }
 .lang-trigger:hover, .lang-trigger[aria-expanded="true"] { background: var(--day-soft, var(--c-sunken)); }
-.lang-trigger:focus-visible, .lang-menu-list button:focus-visible { outline: 2px solid var(--day-accent, var(--c-brand)); outline-offset: 2px; }
+.lang-trigger:focus-visible, .lang-menu-list button:focus-visible, .lang-menu-list .lang-option:focus-visible { outline: 2px solid var(--day-accent, var(--c-brand)); outline-offset: 2px; }
 .lang-trigger svg { flex: none; color: var(--day-muted, var(--c-ink-2)); }
 .lang-trigger .lang-chevron { transition: transform .15s; }
 .lang-trigger[aria-expanded="true"] .lang-chevron { transform: rotate(180deg); }
@@ -14,10 +14,10 @@
 .lang-menu-list[hidden] { display: none; }
 /* The header is static and blurred (its own stacking layer): while the list is open it is lifted above the page. */
 .site-header:has(.lang-menu-list:not([hidden])) { position: relative; z-index: 45; }
-.lang-menu-list button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 6px 12px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--day-ink, var(--c-ink)); font: inherit; text-align: left; cursor: pointer; }
-.lang-menu-list button:hover { background: var(--day-soft, var(--c-sunken)); }
-.lang-menu-list button[aria-current="true"] { background: var(--day-tint, var(--c-selected)); color: var(--day-ok, var(--c-ok)); }
-.lang-menu-list button > span { display: grid; line-height: 1.25; }
+.lang-menu-list button, .lang-menu-list .lang-option { text-decoration: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 6px 12px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--day-ink, var(--c-ink)); font: inherit; text-align: left; cursor: pointer; }
+.lang-menu-list button:hover, .lang-menu-list .lang-option:hover { background: var(--day-soft, var(--c-sunken)); }
+.lang-menu-list button[aria-current="true"], .lang-menu-list .lang-option[aria-current="true"] { background: var(--day-tint, var(--c-selected)); color: var(--day-ok, var(--c-ok)); }
+.lang-menu-list button > span, .lang-menu-list .lang-option > span { display: grid; line-height: 1.25; }
 .lang-menu-list b { font-size: 14px; font-weight: 600; }
 .lang-menu-list svg { flex: none; }
 /* The theme row under the languages: a label and the half-disc switch, as in the profile menu (app/shell.css). */
@@ -28,7 +28,7 @@ html[data-theme="dark"] .lang-trigger svg { color: var(--night-muted, var(--nigh
 html[data-theme="dark"] :is(.lang-trigger:hover, .lang-trigger[aria-expanded="true"], .lang-menu-list button:hover) { background: rgba(255, 255, 255, .06); }
 html[data-theme="dark"] .lang-menu-list { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: var(--night-surface, var(--night-surface)); box-shadow: var(--shadow-3); }
 html[data-theme="dark"] .lang-menu-list button { color: var(--night-ink, var(--night-ink)); }
-html[data-theme="dark"] .lang-menu-list button[aria-current="true"] { background: rgba(235, 228, 210, .1); color: var(--night-ivory, var(--night-ivory)); }
+html[data-theme="dark"] .lang-menu-list button[aria-current="true"], .lang-menu-list .lang-option[aria-current="true"] { background: rgba(235, 228, 210, .1); color: var(--night-ivory, var(--night-ivory)); }
 html[data-theme="dark"] :is(.lang-trigger, .lang-menu-list button):focus-visible { outline-color: var(--night-ivory, var(--night-ivory)); }
 
 /* The theme switch stays in the header at every width (it used to move to the footer). */

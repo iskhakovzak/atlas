@@ -242,7 +242,7 @@ export function StoresDirectory() {
           // le8/le9/le10: everything fits in the collapsed rows of that breakpoint, so no "show all" there.
           const fits = [8, 9, 10].filter((limit) => items.length <= limit).map((limit) => ' le' + limit).join('');
           return items.length ? <section className={'stores-group' + (isOpen ? ' open' : '') + fits} key={key} aria-labelledby={'stores-' + key}>
-            <h3 id={'stores-' + key}>{storeFocusNames[key][locale]}<span>{items.length}</span></h3>
+            <div className="stores-group-head"><h3 id={'stores-' + key}>{storeFocusNames[key][locale]}</h3><span>{items.length}</span></div>
             <StoreGrid items={items} {...gridProps} drawnUpTo={isOpen ? undefined : collapsedMax} />
             {items.length > collapsedCount && <button type="button" className="stores-more" aria-expanded={isOpen} aria-controls={'stores-grid-' + key} onClick={() => setExpanded(isOpen ? expanded.filter((value) => value !== key) : [...expanded, key])}>
               {isOpen ? c.showLess : c.showAll(items.length)}<ChevronDown size={18} aria-hidden="true" />

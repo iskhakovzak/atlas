@@ -3,13 +3,20 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { siteContent } from '../lib/market/site-content.ts';
 import { routeTitle } from '../lib/market/i18n.ts';
+import { buildSitemap, publicPageEntries } from '../lib/seo/sitemap.ts';
 
 // The pages the app stores require: privacy policy, terms, support, app landing and deletion instructions.
 const pages = ['/privacy', '/terms', '/support', '/app', '/delete-account'];
 
-test('sitemap lists every store-required page with its ?lang versions (uz, uz-Cyrl, ru, en) and an x-default', async () => {
-  const xml = await readFile(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
+test('sitemap lists every store-required page with its ?lang versions (uz, uz-Cyrl, ru, en) and an x-default', () => {
+  const xml = buildSitemap(publicPageEntries());
   for (const path of pages) {
+    if (path === '/privacy' || path === '/terms') {
+      // Russian-only documents: one address, canonical everywhere (lib/seo/locales.ts russianOnlyPaths).
+      assert.match(xml, new RegExp(`<loc>https://atlasmarket.uz${path}\\?lang=ru</loc>`), path);
+      assert.doesNotMatch(xml, new RegExp(`<loc>https://atlasmarket.uz${path}(\\?lang=(uz|oz|en))?</loc>`), path);
+      continue;
+    }
     assert.match(xml, new RegExp(`<loc>https://atlasmarket.uz${path}</loc>`), path);
     for (const [lang, hreflang] of [['uz', 'uz'], ['oz', 'uz-Cyrl'], ['ru', 'ru'], ['en', 'en']]) {
       assert.match(xml, new RegExp(`<loc>https://atlasmarket.uz${path}\\?lang=${lang}</loc>`), `${path} ${lang}`);

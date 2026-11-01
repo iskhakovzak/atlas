@@ -7,6 +7,8 @@ Allow: /terms
 Allow: /support
 Allow: /app
 Allow: /delete-account
+# The public catalog feed only: until the catalog grid is rendered on the server, Google renders /catalog with it.
+Allow: /api/catalog$
 Disallow: /api/
 Disallow: /auth/
 Disallow: /account
@@ -21,7 +23,8 @@ Disallow: /identity
 Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
-Disallow: /order-by-link
+# The bare page stays crawlable so its noindex is seen; the ?url= variants are not crawled.
+Disallow: /order-by-link?
 Disallow: /share
 Disallow: /login
 
@@ -36,6 +39,8 @@ Allow: /terms
 Allow: /support
 Allow: /app
 Allow: /delete-account
+# The public catalog feed only: until the catalog grid is rendered on the server, Google renders /catalog with it.
+Allow: /api/catalog$
 Disallow: /api/
 Disallow: /auth/
 Disallow: /account
@@ -50,7 +55,8 @@ Disallow: /identity
 Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
-Disallow: /order-by-link
+# The bare page stays crawlable so its noindex is seen; the ?url= variants are not crawled.
+Disallow: /order-by-link?
 Disallow: /share
 Disallow: /login
 
@@ -63,6 +69,8 @@ Allow: /terms
 Allow: /support
 Allow: /app
 Allow: /delete-account
+# The public catalog feed only: until the catalog grid is rendered on the server, Google renders /catalog with it.
+Allow: /api/catalog$
 Disallow: /api/
 Disallow: /auth/
 Disallow: /account
@@ -77,7 +85,8 @@ Disallow: /identity
 Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
-Disallow: /order-by-link
+# The bare page stays crawlable so its noindex is seen; the ?url= variants are not crawled.
+Disallow: /order-by-link?
 Disallow: /share
 Disallow: /login
 

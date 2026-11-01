@@ -57,7 +57,7 @@ test('the client build keeps the bundler\'s own chunk split (no forced icons chu
 test('the consent sheet, the speed beacon and Impact come right after hydration; Impact is still mounted', () => {
   const layout = source('app/layout.tsx');
   for (const name of ['StorageNotice', 'PerformanceProbe', 'ImpactTracking']) assert.doesNotMatch(layout, new RegExp(`import \\{ ${name} \\}`), name + ' is not in the layout chunk');
-  assert.match(layout, /\{children\}<ShellExtras \/><StaleBuildReload \/><NativeShell \/><PressFeedback \/><\/MarketProvider>/);
+  assert.match(layout, /\{children\}<\/PageLang><ShellExtras \/><StaleBuildReload \/><NativeShell \/><PressFeedback \/><\/MarketProvider>/);
   const extras = source('app/shell-extras.tsx');
   // Requested once the store is subscribed, i.e. after hydration; the server and the hydration render draw nothing.
   assert.match(extras, /useSyncExternalStore\(subscribe,\(\)=>parts,\(\)=>null\)/);

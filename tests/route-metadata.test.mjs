@@ -1,24 +1,49 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { homeMetadata, privateMetadata, privateRouteMetadata, publicMetadata, rootMetadata } from '../app/route-metadata.ts';
+import { homeMetadata, privateMetadata, privateRouteMetadata, publicMetadata, publicPages, rootMetadata } from '../app/route-metadata.ts';
 import { renderLocale } from '../lib/market/i18n.ts';
 
-const paths = { home: '/', stores: '/stores', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
+const russianOnly = ['legal', 'privacy', 'terms'];
+const paths = { home: '/', catalog: '/catalog', stores: '/stores', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
 
 test('every public page has self-canonical ?lang versions and an x-default', () => {
   for (const [page, path] of Object.entries(paths)) {
+    if (russianOnly.includes(page)) continue;
     const languages = { uz: `${path}?lang=uz`, 'uz-Cyrl': `${path}?lang=oz`, ru: `${path}?lang=ru`, en: `${path}?lang=en`, 'x-default': path };
     for (const [lang, ogLocale] of [['uz', 'uz_UZ'], ['oz', 'uz_UZ'], ['ru', 'ru_RU'], ['en', 'en_US']]) {
       const metadata = publicMetadata(page, lang, 'ru');
       assert.equal(metadata.alternates.canonical, `${path}?lang=${lang}`, `${page} ${lang}`);
       assert.equal(metadata.openGraph.url, `${path}?lang=${lang}`);
       assert.equal(metadata.openGraph.locale, ogLocale, 'the explicit version wins over the visitor language');
+      assert.ok(!metadata.openGraph.alternateLocale.includes(ogLocale), 'og:locale:alternate lists the other languages');
+      assert.equal(metadata.openGraph.alternateLocale.length, 2);
       assert.deepEqual(metadata.alternates.languages, languages);
       assert.equal(metadata.twitter.card, 'summary_large_image');
       assert.equal(metadata.openGraph.images[0].width, 1200);
       assert.equal(metadata.openGraph.images[0].height, 630);
     }
     for (const lang of [undefined, '', 'xx', 'RU']) assert.equal(publicMetadata(page, lang, 'uz').alternates.canonical, path);
+  }
+});
+
+test('the Russian-only legal documents canonicalize every address to ?lang=ru and declare only that version', () => {
+  for (const page of russianOnly) {
+    const path = paths[page];
+    for (const lang of [undefined, 'uz', 'oz', 'ru', 'en']) {
+      const metadata = publicMetadata(page, lang, 'uz');
+      assert.equal(metadata.alternates.canonical, `${path}?lang=ru`, `${page} ${lang}`);
+      assert.deepEqual(metadata.alternates.languages, { ru: `${path}?lang=ru`, 'x-default': `${path}?lang=ru` });
+    }
+    assert.equal(publicMetadata(page, 'en').openGraph.locale, 'en_US', 'the frame is still titled in the page language');
+  }
+});
+
+test('titles fit 60 characters with the brand and descriptions 70–160 in every language', () => {
+  for (const page of publicPages) for (const lang of ['uz', 'oz', 'ru', 'en']) {
+    const { title, description } = publicMetadata(page, lang);
+    const shown = typeof title === 'string' ? `${title} · Atlas` : title.absolute;
+    assert.ok(shown.length <= 60, `${page} ${lang}: ${shown.length} ${shown}`);
+    assert.ok(description.length >= 70 && description.length <= 160, `${page} ${lang}: ${description.length}`);
   }
 });
 
