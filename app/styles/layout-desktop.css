@@ -2,40 +2,10 @@
    they had there (layout files in import order, then the home page's files), and every rule a later layout rule of the same
    weight overrides stayed in the layout. Edit them here. */
 
-/* ── app/home-polish.css ── */
-@media (min-width:1280px) {
-  .catalog-home .finds-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
-}
-@media (min-width:851px) and (max-width:1279px) {
-  .catalog-home .finds-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
-}
-
 /* ── app/home.css ── */
 /* The header's edges line up with the page content (site-main: max 1500px, padding clamp(20px, 4.7vw, 72px)). */
 @media (min-width: 761px) {
   html .site-header { padding-inline: max(clamp(20px, 4.7vw, 72px), calc((100% - 1500px) / 2 + 72px)); }
-}
-
-/* Hero. */
-@media (min-width: 640px) {
-  .home-link-form { flex-direction: row; align-items: center; }
-  .home-link-form .home-cta { padding-inline: 28px; }
-}
-/* The closing screen's copy of the form (desktop): as wide as the hero's, under the line of text. */
-@media (min-width: 640px) {
-  .home-stores ul { flex-wrap: wrap; overflow: visible; }
-}
-/* Crypto (legal status to be confirmed by the owner) last and quieter than the card and local methods. */
-@media (min-width: 640px) {
-  .home-steps { grid-template-columns: repeat(2, 1fr); }
-}
-@media (min-width: 1024px) {
-  .home-steps { grid-template-columns: repeat(4, 1fr); }
-}
-
-/* Trust. */
-@media (min-width: 900px) {
-  .home-trust-grid { grid-template-columns: 1fr 1fr; }
 }
 /* Wide screens: the title on top, the questions in two columns as wide as the other sections (their container sets it). */
 @media (min-width: 1024px) {
@@ -61,13 +31,6 @@
   .lo-link { flex-direction: row; align-items: center; }
 }
 
-/* ── app/theme-night.css ── */
-/* The total is the darkest figure in Day; in Night it inherited the muted grey of the account card. */
-@media (min-width: 600px) {
-  html[data-theme="dark"] .home-folio .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; }
-  html[data-theme="dark"] .home-folio .bill-total strong { justify-self: end; }
-}
-
 /* ── app/catalog.css ── */
 /* ---------- Breakpoints ---------- */
 /* Phones: two compact cards per row, so a shelf shows more than one product per screen. */
@@ -86,35 +49,6 @@
 /* Store names wrap to a second line instead of losing their ending ("Bloomingd…"). */
 @media (min-width: 600px) {
   .stores-link { grid-template-columns: minmax(0, 1fr) auto; }
-}
-
-/* ── app/day-folio.css ── */
-/* Total: a ruled line, then the amount large in ink. */
-@media (min-width: 600px) {
-  html:not([data-theme="dark"]) .home-folio .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; }
-  html:not([data-theme="dark"]) .home-folio .bill-total strong { justify-self: end; }
-}
-/* How it works: a real sequence. Phones draw it as stations on a rail; wide screens as four white cards. */
-@media (min-width: 1024px) {
-  html:not([data-theme="dark"]) .home-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-  html:not([data-theme="dark"]) .home-steps::before { display: none; }
-  html:not([data-theme="dark"]) .home-step { position: relative; padding: 22px 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--shadow-2); }
-  html:not([data-theme="dark"]) .home-step-station { position: static; width: 36px; height: 36px; margin-bottom: 18px; font-size: 14px; box-shadow: none; }
-}
-/* Tracking demo: a white card with a horizontal route on wide screens. */
-@media (min-width: 900px) {
-  html:not([data-theme="dark"]) .home-tracking ol { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
-  html:not([data-theme="dark"]) .home-tracking li { flex-direction: column; align-items: flex-start; gap: 12px; font-size: 14px; }
-  html:not([data-theme="dark"]) .home-tracking ol::before { content: ""; position: absolute; left: 11px; right: calc(100% / 6 - 11px); top: 10px; height: 2px; background: linear-gradient(90deg, var(--day-accent) 0 80%, var(--day-line-strong-2) 80% 100%); }
-}
-
-/* ── app/store-marks.css ── */
-/* Wide screens: the sheet is a whole screen tall, so the sky gets the room above and below the cards. */
-@media (min-width: 960px) {
-  .store-marquee-row.single { display: none; }
-  .store-marquee-row.double { display: block; }
-  html body .home-stores.home-stores-marquee .store-marquee a { min-height: 50px; padding: 0 20px; font-size: 16px; }
-  .home-stores.home-stores-marquee .store-marquee .store-mark { zoom: 1.1; }
 }
 
 /* ── app/motion.css ── */

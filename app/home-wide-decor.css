@@ -1,7 +1,0 @@
-/* Home page on wide screens: the decor behind the sheets (app/home-decor.tsx, loaded lazily by app/home-wide.tsx).
-   Mint pools, medallions in the right field and the dot map with the delivery routes on the closing sheet.
-   Off by default; everything else sits inside the homeWideMedia.wide query (lib/market/home-wide.ts), so phones,
-   tablets, laptops and short windows see no change. The root .hw-decor is the last child of main.catalog-home,
-   absolutely placed under the sheets (z-index -1, in the root stacking context): no sheet may get a background,
-   transform, opacity or contain on wide screens, or the decor disappears behind it.
-   JS sets the root's left/width (the whole window) and each layer's top/height (its sheet); sizes are window pixels. */

@@ -30,7 +30,6 @@ html[data-theme="dark"] .tg-login-hint{color:var(--night-muted)}
 .finds-pagination { display:flex; flex-direction:column; align-items:center; gap:12px; margin:24px 0 12px; }
 .finds-pagination>span { font-size:13px; color:var(--atlas-copy-muted); font-variant-numeric:tabular-nums; }
 .finds-pagination .btn { min-width:210px; justify-content:center; }
-.catalog-home .finds-price-note { max-width:90ch; font-size:13px; line-height:1.65; margin:20px 0; }
 
 /* ── app/dark-theme.css (merged into app/theme-night.css) ── */
 /* Keep catalog accents readable when legacy light-theme rules hard-code navy. */

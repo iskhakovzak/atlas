@@ -5,10 +5,10 @@
 @property --press-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
 
 /* mobile.css snaps these to scale(.98) with no motion; the animated press below takes its place. */
-:is(.btn, .store-tile, .stores-popular button, .catalog-categories > button, .home-stores a, .mobile-nav a):active { transform: none; }
+:is(.btn, .store-tile, .stores-popular button, .catalog-categories > button, .mobile-nav a):active { transform: none; }
 
 /* How deep each kind sinks: big tiles barely, small round icons the most. */
-:is(.store-tile, .home-stores a) { --press-scale: .98; }
+.store-tile { --press-scale: .98; }
 :is(.icon-btn, .find-save, .lo-stepper button) { --press-scale: .94; }
 
 [data-press="down"] { animation: press-down .11s cubic-bezier(.3, .7, .4, 1) forwards; }

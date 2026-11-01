@@ -5,7 +5,7 @@ import { haptic, isNative } from '@/lib/native/bridge';
 import { startNavigationFeedback, stopNavigationFeedback } from '@/lib/market/navigation-feedback';
 
 // Buttons and button-like links that sink under the finger and spring back (styles: press.css).
-const PRESSABLE = '.btn, .cart-link, .icon-btn, .variant-options button, .lo-stepper button, .find-save, .mobile-nav a, .store-tile, .stores-popular button, .catalog-categories > button, .home-stores a';
+const PRESSABLE = '.btn, .cart-link, .icon-btn, .variant-options button, .lo-stepper button, .find-save, .mobile-nav a, .store-tile, .stores-popular button, .catalog-categories > button';
 // Main actions also get a light tick on phones: in the apps through the native haptics, on Android in the browser through vibration.
 const MAIN_ACTION = '.btn.primary, .cart-link';
 
@@ -77,7 +77,7 @@ export function PressFeedback() {
       if (!element || element.matches(':disabled, [aria-disabled="true"]')) return;
       release();
       const box = element.getBoundingClientRect();
-      // The box and the pointer are window pixels; under CSS zoom (the 27"+ home sheets, app/home-wide-rail.css)
+      // The box and the pointer are window pixels; under CSS zoom
       // the light's own pixels are smaller, so divide by the element's zoom (1 everywhere else and in older browsers).
       const zoom = (element as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom || 1;
       element.style.setProperty('--press-x', `${Math.round((event.clientX - box.left) / zoom)}px`);

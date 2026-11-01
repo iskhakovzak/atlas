@@ -192,37 +192,6 @@
 /* Atlas forest is the interface/action accent; retain clear blue for off-site merchant links. */
 .find-total>strong{color:var(--atlas-ink)}
 
-/* ── app/home-polish.css ── */
-.catalog-home .finds-page { scroll-margin-top:100px; padding-top:24px; }
-.catalog-home .finds-grid { gap:20px; }
-.catalog-home .find-card { border-radius:var(--r-card); }
-.catalog-home .finds-grid .find-photo { aspect-ratio:1.18; }
-.catalog-home .find-content { padding:16px; }
-.catalog-home .find-title { font-size:18px; line-height:1.35; margin:10px 0 16px; min-height:2.7em; }
-.catalog-home .find-store-price { padding-bottom:12px; }
-.catalog-home .find-store-price b { font-size:20px; }
-.catalog-home .find-total { padding-block:12px; }
-.catalog-home .find-total>span { font-size:12px; line-height:1.45; }
-.catalog-home .find-total>strong { font-size:20px; line-height:1.25; margin-top:5px; font-style:normal; font-variant-numeric:tabular-nums; }
-.catalog-home .find-purchase .btn { width:100%; justify-content:center; min-height:44px; padding:10px; white-space:normal; }
-@media (max-width:850px) {
-  .catalog-home .finds-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
-}
-@media (max-width:600px) {
-  .catalog-home .finds-grid { gap:12px; }
-  .catalog-home .find-content { padding:12px; }
-  .catalog-home .find-meta { font-size:12px; gap:5px; flex-wrap:wrap; }
-  .catalog-home .find-title { font-size:14px; margin:8px 0 12px; }
-  .catalog-home .find-store-price>span { font-size:12px; }
-  .catalog-home .find-store-price b { font-size:16px; }
-  .catalog-home .find-total { padding-right:0; }
-  .catalog-home .find-total>strong { font-size:18px; letter-spacing:-.02em; }
-  .catalog-home .find-purchase .btn { font-size:12px; gap:5px; }
-}
-@media (max-width:359px) {
-  .catalog-home .finds-grid { grid-template-columns:1fr; }
-}
-
 /* ── app/dark-theme.css (merged into app/theme-night.css) ── */
 html[data-theme="dark"] .sheet-total, html[data-theme="dark"] .order-card-head, html[data-theme="dark"] .order-bottom, html[data-theme="dark"] .order-amount, html[data-theme="dark"] .history-list li {
   border-color: var(--atlas-line);
@@ -355,8 +324,6 @@ html[data-theme="dark"] .customs-estimate-popover {
 /* The informational notice returns when the dialog closes; it cannot cover a trapped form. */
 @media (max-width:600px) {
   /* Let copy reflow instead of creating hidden page overflow. */
-  .catalog-home .find-total{padding-right:40px}
-  .catalog-home .find-purchase .btn{font-size:14px;line-height:1.35;white-space:normal}
   .product-sheet{width:100%;max-width:100vw;padding-bottom:env(safe-area-inset-bottom);max-height:100dvh;overflow-y:auto;overscroll-behavior-y:contain}
   .product-sheet .sheet-body{padding:20px}
   .product-sheet .sheet-total{align-items:stretch;flex-direction:column;gap:12px}
@@ -374,7 +341,6 @@ html[data-theme="dark"] .customs-estimate-popover {
 
 /* ── app/home.css ── */
 /* Product selection on the home page. */
-.catalog-home .finds-page { padding-top: 40px; border-top: 1px solid var(--home-line); scroll-margin-top: 88px; }
 .finds-page .find-store-price b { color: var(--home-muted); font-size: 14px; font-weight: 600; }
 .finds-page .find-total > strong { color: var(--home-ink); font-size: clamp(20px, 2.4vw, 24px); overflow-wrap: normal; word-break: normal; }
 @media (max-width: 480px) {
@@ -493,11 +459,6 @@ html[data-theme="dark"] .product-gallery-thumbnails button[aria-pressed="true"] 
   .catalog-skeleton-card :is(.find-visual, .find-content > span) { animation: catalog-pulse 1.4s ease-in-out infinite; }
 }
 
-/* ---------- Home teaser ---------- */
-.catalog-teaser > header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; margin-bottom: 20px; }
-.catalog-teaser > header h2 { margin: 0 0 8px; color: var(--cat-ink); font-size: clamp(30px, 3vw, 40px); line-height: 1.14; letter-spacing: -.02em; }
-.catalog-teaser > header .btn { min-height: 48px; }
-
 /* ---------- Product sheet: a bottom sheet on phones, a side panel elsewhere ---------- */
 .product-sheet .sheet-handle { display: block; flex: none; width: 40px; height: 4px; margin: 8px auto 0; border-radius: var(--r-pill); background: var(--cat-line); }
 .product-sheet.product-sheet-bottom { width: 100% !important; max-width: 100% !important; height: 92dvh; max-height: 92dvh; padding-bottom: 0; border-radius: var(--r-sheet) var(--r-sheet) 0 0; }
@@ -535,9 +496,9 @@ html[data-theme="dark"] .product-gallery-thumbnails button[aria-pressed="true"] 
 @media (max-width: 600px) {
   /* 375px: the first card within ~500px of the top (owner, 6 October 2026) — a short breadcrumb, a tighter head,
      strip and bar; the intro stays. Scoped to .catalog-page so it wins over refine.css's phone scale (loaded later). */
-  :is(.catalog-page, .catalog-home .catalog-teaser) .finds-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  :is(.catalog-page, .catalog-teaser) .find-card { border-radius: var(--r-card); }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-photo { aspect-ratio: 1; }
+  .catalog-page .finds-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .catalog-page .find-card { border-radius: var(--r-card); }
+  .catalog-page .find-card .find-photo { aspect-ratio: 1; }
   .site-main .find-card .find-content { padding: 10px 10px 12px; }
   .site-main .find-card .find-meta { font-size: 12px; }
   .site-main .find-card .find-meta > span:last-child { display: none; }
@@ -575,7 +536,7 @@ html[data-theme="dark"] .product-gallery-thumbnails button[aria-pressed="true"] 
   /* «Buyurtma berish» took two lines with the arrow; ru and en keep it. */
   html:lang(uz) .site-main .find-card .find-purchase .btn.primary { gap: 6px; }
   html:lang(uz) .site-main .find-card .find-purchase .btn.primary > svg { display: none; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-save { width: 44px; height: 44px; top: 6px; right: 6px; }
+  .catalog-page .find-card .find-save { width: 44px; height: 44px; top: 6px; right: 6px; }
   .site-main .find-card.find-card-compact .find-content { padding: 8px 10px 10px; }
   .site-main .find-card.find-card-compact .find-compact-title { font-size: 13px; }
   .site-main .find-card.find-card-compact .find-compact-price { font-size: 12px; }
@@ -583,7 +544,6 @@ html[data-theme="dark"] .product-gallery-thumbnails button[aria-pressed="true"] 
 }
 @media (max-width: 760px) {
   .catalog-end > div:last-child, .catalog-end .btn { width: 100%; justify-content: center; }
-  .catalog-teaser > header .btn { width: 100%; justify-content: center; }
   /* Keep the product name visible above the sticky total without cropping merchant photos. */
   .product-sheet.product-sheet-bottom .detail-image:has(.product-gallery) { padding: 12px 16px; }
   .product-sheet.product-sheet-bottom .product-gallery-stage { aspect-ratio: auto; height: clamp(160px, 32dvh, 280px); }
@@ -636,17 +596,14 @@ html:not([data-theme="dark"]) .find-card .find-photo .product-img { mix-blend-mo
 .find-card .find-store-price > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 @media (max-width: 600px) {
   /* The "i" sits on the label row, so the total gets the full card width. */
-  :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-total { padding: 8px 0; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-total > span { display: block; padding-right: 26px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-total > strong { font-size: clamp(14px, 4.2vw, 16px); letter-spacing: -.02em; }
+  .catalog-page .find-card .find-content .find-total { padding: 8px 0; }
+  .catalog-page .find-card .find-total > span { display: block; padding-right: 26px; }
+  .catalog-page .find-card .find-total > strong { font-size: clamp(14px, 4.2vw, 16px); letter-spacing: -.02em; }
   /* 44px to tap; the painted circle stays 36px (padding outside the background). */
-  :is(.catalog-page, .catalog-teaser) .find-card .find-info { top: 0; right: -10px; bottom: auto; width: 44px; height: 44px; padding: 4px; background-clip: content-box; }
+  .catalog-page .find-card .find-info { top: 0; right: -10px; bottom: auto; width: 44px; height: 44px; padding: 4px; background-clip: content-box; }
 }
 
 /* ── app/day-folio.css ── */
-/* ---------- Page titles and the home teaser ---------- */
-html:not([data-theme="dark"]) .catalog-teaser { padding-block: calc(var(--day-section) / 2); border-top: 0; }
-html:not([data-theme="dark"]) .catalog-teaser > header p { color: var(--day-muted); }
 
 /* ---------- Catalog card 2.0: white card (finds.css + catalog.css) in the Day colours ----------
    Meta, a two-line title, one store-price line with the mint pill, the total with its in-flow "i",
@@ -813,8 +770,7 @@ html[data-theme="dark"] .find-card .find-official { color: var(--night-accent, #
 @media (max-width: 600px) {
   html:not([data-theme="dark"]) .site-main .find-card .find-content .find-title,
   html[data-theme="dark"] .site-main .find-card .find-content .find-title { font-size: 13px; font-weight: 600; line-height: 1.3; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-total,
-  html[data-theme="dark"] .site-main .find-card .find-content .find-total { padding-bottom: 0; }
+  .catalog-page .find-card .find-content .find-total, html[data-theme="dark"] .site-main .find-card .find-content .find-total { padding-bottom: 0; }
   .site-main .find-card .find-facts { margin-top: 2px; }
   .site-main .find-card .find-purchase { padding-top: 12px; }
 }

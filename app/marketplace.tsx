@@ -13,8 +13,6 @@ import {useTheme} from 'next-themes';
 import {HeaderLanguage} from './header-language';
 import {NotificationsPanel} from './notifications-panel';
 import {SiteFooter} from './site-footer';
-import {HomeDecorSlot,HomeRailSlot} from './home-wide';
-import {HomeMagnet} from './home-magnet';
 import {marketplaceWords} from './marketplace-words';
 import {signInPath} from '@/lib/market/access';
 import {signInReturn} from '@/lib/auth/return-to';
@@ -55,9 +53,6 @@ function ViewMark({view}:{view:string}){
 
 /** The header's last balance and cart count of this tab; read only on the client (the server renders without it). */
 const subscribeNever=()=>()=>{};
-// The closing card is home-only: a separate chunk, so other pages do not load the home sections and their copy.
-// On the home page the chunk is already loaded by the page itself (app/home-catalog.tsx).
-const HomeClosing=lazy(()=>loadChunk(()=>import('./home-sections')).then(module=>({default:module.HomeClosing})));
 function readSavedHeader(){try{return sessionStorage.getItem('atlas-header')}catch{return null}}
 // The bottom bar's "Ссылка" sheet (app/link-sheet.tsx): its own chunk, asked for when a finger lands on the button.
 const loadLinkSheet=()=>import('./link-sheet');
@@ -173,16 +168,11 @@ export default function Marketplace({view,children,crumb}:{view:string;children?
      :view==='login'?null:<a className="shell-signin shell-wide" href={signInPath('/account')} onClick={event=>{event.currentTarget.href=signInPath(returnPath())}}>{nav.signin}</a>}
    </div>
   </header>
-  {/* Wide screens: the chapter rail after the header (Tab: header → rail → main; the skip link passes it), lazily loaded. */}
-  {view==='catalog'&&<HomeRailSlot/>}{view==='catalog'&&<HomeMagnet/>}
   <CartAnnouncer count={count} ready={ready} locale={locale}/>
   {/* Phones hide the breadcrumb (app/shell.css); its JSON-LD stays for search engines. */}
-  <main className={view==='catalog'?'site-main catalog-home':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span>{crumb&&publicViewPaths[view]?<><Link href={publicViewPaths[view]}>{routeTitle(state.communication.language,view)}</Link><span aria-hidden="true">/</span><span className="breadcrumb-leaf" aria-current="page">{crumb}</span></>:<span aria-current="page">{routeTitle(state.communication.language,view)}</span>}</nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
+  <main className={view==='catalog'?'site-main home-main':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span>{crumb&&publicViewPaths[view]?<><Link href={publicViewPaths[view]}>{routeTitle(state.communication.language,view)}</Link><span aria-hidden="true">/</span><span className="breadcrumb-leaf" aria-current="page">{crumb}</span></>:<span aria-current="page">{routeTitle(state.communication.language,view)}</span>}</nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
   <AccessView view={view}>{children}</AccessView>
-   {/* Home: the closing call and the footer share the last sheet (app/home-chapters.css). */}
-   {view==='catalog'?<div className="home-end" data-chapter="end"><Suspense fallback={null}><HomeClosing/></Suspense><SiteFooter/></div>:<SiteFooter/>}
-   {/* Wide screens: the decor behind the sheets (app/home-decor.tsx), the last child of main. */}
-   {view==='catalog'&&<HomeDecorSlot/>}</main>
+   <SiteFooter/></main>
   {/* Phones: one bottom bar for everyone, in the server HTML too: Главная · Каталог · Ссылка · Корзина · Профиль.
       A guest's profile tab signs in and comes back to this page; a session cookie gives the member's tab while the account loads. */}
   <nav className={'mobile-nav '+(member?'member':'guest')} aria-label={modalWords.navigation}>{tabs.map(({href,key,Icon,label,active})=>{

@@ -159,7 +159,7 @@ window.__e2e = (() => {
       if (width <= 760) {
         const shown = (el) => visible(el) && parseFloat(getComputedStyle(el).opacity) > 0.01 && !el.closest('[aria-hidden="true"]');
         const meets = (a, b) => { const x = a.getBoundingClientRect(), y = b.getBoundingClientRect(); return x.left < y.right - 1 && y.left < x.right - 1 && x.top < y.bottom - 1 && y.top < x.bottom - 1; };
-        const nav = document.querySelector('.mobile-nav'), bars = [...document.querySelectorAll('.basket-sticky:not(.is-hidden), .home-sticky')].filter(shown);
+        const nav = document.querySelector('.mobile-nav'), bars = [...document.querySelectorAll('.basket-sticky:not(.is-hidden)')].filter(shown);
         if (nav && shown(nav)) {
           for (const bar of bars) if (meets(bar, nav)) issues.push('sticky bar overlaps the bottom navigation ' + label(bar));
           for (const link of nav.querySelectorAll('a')) {
@@ -168,7 +168,7 @@ window.__e2e = (() => {
           }
         }
         const notice = document.querySelector('.storage-notice');
-        if (notice && shown(notice)) for (const cta of document.querySelectorAll('.basket-sticky:not(.is-hidden) .btn, .home-sticky .home-cta')) if (shown(cta) && meets(notice, cta)) issues.push('storage notice covers ' + label(cta));
+        if (notice && shown(notice)) for (const cta of document.querySelectorAll('.basket-sticky:not(.is-hidden) .btn')) if (shown(cta) && meets(notice, cta)) issues.push('storage notice covers ' + label(cta));
       }
       return issues;
     },
@@ -292,19 +292,6 @@ try {
       const key = `${group}-${path === "/" ? "home" : path.slice(1).replace(/[^a-z0-9]+/gi, "-").slice(0, 48)}-${theme}-${width}`;
       const where = `${group} ${path} ${theme} ${width}px`;
       for (const issue of await evaluate("window.__e2e.audit()")) fail(where, issue);
-      // Phones, home: the sticky "paste a link" dock only appears once the hero form scrolls away,
-      // so the bottom-bar and storage-notice checks run once more below the form, then the page returns to the top.
-      if (width <= 760 && (path === "/" || path.startsWith("/?"))) {
-        await evaluate("window.scrollTo({ top: Math.max(window.innerHeight * 1.5, (document.getElementById('home-link-form')?.getBoundingClientRect().bottom ?? 0) + window.scrollY + window.innerHeight), behavior: 'instant' }), true");
-        try {
-          await eventually("!!document.querySelector('.home-sticky')", "home sticky dock after scrolling", 50);
-          await sleep(200);
-          for (const issue of await evaluate("window.__e2e.audit()")) if (/sticky bar|storage notice|bottom navigation/.test(issue)) fail(where + " (scrolled)", issue);
-        } catch (error) { fail(where, error.message); }
-        await evaluate("window.scrollTo({ top: 0, behavior: 'instant' }), true");
-        await eventually("!document.querySelector('.home-sticky')", "home sticky dock hidden at the top", 50).catch(() => {});
-        await sleep(200);
-      }
       for (const error of pageErrors) fail(where, error);
       fingerprints[key] = await evaluate("window.__e2e.fingerprint()");
       const { contentSize } = await send("Page.getLayoutMetrics");

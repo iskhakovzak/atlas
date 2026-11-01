@@ -10,17 +10,15 @@ html body button.paste-button:hover { background: color-mix(in srgb, currentColo
 html body button.paste-button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 html body button.paste-button:disabled { opacity: .5; cursor: default; }
 html body button.paste-button > svg { flex: none; width: 16px; height: 16px; }
-.home-link-field, .lo-link-field, .stores-link-field { min-width: 0; }
+.lo-link-field, .stores-link-field { min-width: 0; }
 /* One focus frame around the whole composite field, rather than a second square around the input. */
-html body :is(.home-link-field, .lo-link-field, .stores-link-field, .hw-demo-input) > input,
-html body :is(.home-link-field, .lo-link-field, .stores-link-field, .hw-demo-input) > input:is(:focus, :focus-visible) {
+html body :is(.lo-link-field, .stores-link-field) > input, html body :is(.lo-link-field, .stores-link-field) > input:is(:focus, :focus-visible) {
   border: 0; outline: none; box-shadow: none; background: transparent;
 }
-html body :is(.home-link-form, .lo-link):focus-within { border-color: var(--home-accent, var(--c-brand)); box-shadow: 0 0 0 2px var(--home-accent, var(--c-brand)); }
+html body .lo-link:focus-within { border-color: var(--home-accent, var(--c-brand)); box-shadow: 0 0 0 2px var(--home-accent, var(--c-brand)); }
 /* A focused link field already supplies the action; the floating duplicate must not cover the keyboard/form. */
 @media (max-width: 760px) {
-  body:has(#finds-product-url:focus, #how-product-url:focus) .home-sticky { visibility: hidden; pointer-events: none; }
-  body:has(#home-link-form:focus-within, .hw-demo-field:focus-within, .lo-link:focus-within, .stores-link:focus-within, .store-dialog-link:focus-within, .batch-import:focus-within, .catalog-importer:focus-within) .storage-notice { visibility: hidden; pointer-events: none; }
+  body:has(#home-link-form:focus-within, .lo-link:focus-within, .stores-link:focus-within, .store-dialog-link:focus-within, .batch-import:focus-within, .catalog-importer:focus-within) .storage-notice { visibility: hidden; pointer-events: none; }
 }
 
 /* A store link is already in the clipboard (app/use-clipboard-link.ts): "Вставить" turns into the field's filled action

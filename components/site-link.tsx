@@ -10,7 +10,7 @@ type SiteLinkProps = Omit<
   href: string;
 };
 
-const PRESSABLE = '.btn, .cart-link, .icon-btn, .mobile-nav a, .store-tile, .home-stores a';
+const PRESSABLE = '.btn, .cart-link, .icon-btn, .mobile-nav a, .store-tile';
 // Pages asked for under the finger in the last half minute (the router keeps a prefetched page about that long).
 const prefetched = new Map<string, number>();
 type Router = ReturnType<typeof useRouter>;
