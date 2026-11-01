@@ -103,7 +103,7 @@ test('review fixes: a browsed catalog card leaves no draft, the dated sum is an 
   assert.match(engine, /\(datedSums \? "≈ " : ""\) \+ formatSum\(heroTotal, lang\)/);
   // The brand line goes through displayBrand, as on the catalog card.
   assert.match(engine, /displayBrand\(brand, storeName,/);
-  assert.match(engine, /<p className="pd-brand">\{hostBrand && <StoreBadge brand=\{hostBrand\} size=\{28\} official=\{Boolean\(officialMark\)\}/);
+  assert.match(engine, /<p className="pd-brand">\{plateBrand && <StoreBadge brand=\{plateBrand\} size=\{28\} official=\{Boolean\(officialMark\)\}/);
   assert.match(engine, /<span>\{brandLine\}<\/span>/);
   // A guest's heart signs in and saves the card afterwards.
   assert.match(engine, /rememberPendingFavorite\(catalogStorage\(\), guestFavoriteId, Date\.now\(\)\)/);

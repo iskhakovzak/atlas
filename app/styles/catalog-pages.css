@@ -380,7 +380,7 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pr
 /* The body is the size container of the big sum: it shrinks with the card (16–20 px), so "≈ 4 305 479 сум" fits a 320 px phone. */
 .pcard-body { display: flex; flex: 1; flex-direction: column; min-width: 0; padding: 10px 12px 12px; container-type: inline-size; }
 /* `.site-main` too: its `text-wrap: pretty` on every p (globals.css) would turn the wrap back on ("Go‘zallik va / parvarish"). */
-.pcard-brand, .site-main .pcard-brand { margin: 0; overflow: hidden; color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-medium); line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.pcard-brand, .site-main .pcard-brand { display: flex; align-items: center; gap: 6px; min-width: 0; margin: 0; overflow: hidden; color: var(--text-3); font-size: var(--fs-12); font-weight: var(--fw-medium); line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
 .site-main .pcard-title { min-height: 40px; margin: 2px 0 0; color: var(--text); font-size: var(--fs-14); font-weight: var(--fw-medium); letter-spacing: 0; line-height: 20px; }
 .pcard-title > a { display: -webkit-box; width: 100%; padding: 0; overflow: hidden; border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: none; overflow-wrap: anywhere; cursor: pointer; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 /* The title link covers the whole card: a tap anywhere opens the product. */
@@ -627,3 +627,11 @@ html[data-theme="dark"] .store-link .store-link-field > input:not([type="checkbo
 .catalog-bar-placeholder.is-store { height: 46px; }
 @media (min-width: 761px) { .catalog-bar-placeholder { height: 212px; } .catalog-bar-placeholder.is-store { height: 40px; } }
 @media (min-width: 1024px) { .catalog-bar-placeholder { height: 164px; } }
+
+/* Small chips in the card's text (owner, 2 November 2026: on the photo they covered the product): «Топ-цена» on the
+   brand line, the store discount after the crossed-out price. Same on the catalog card and the compact cards. */
+.pcard-brand > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.card-chip { display: inline-flex; flex: none; align-items: center; gap: 3px; height: 18px; padding: 0 6px; border-radius: var(--r-pill); font-size: 11px; font-style: normal; font-weight: var(--fw-bold); line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.card-chip-off { background-color: var(--c-ok-bg); color: var(--c-ok); }
+.card-chip-top { background-color: var(--c-gold-bg); color: var(--c-gold); }
+.pcard-usd > .card-chip { align-self: center; }

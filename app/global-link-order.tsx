@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, PencilLine, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, PackageCheck, Plus, RotateCcw, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
+import { AlertCircle, ArrowRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, ExternalLink, PencilLine, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, PackageCheck, Plus, RotateCcw, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
 import Link from "@/components/site-link";
 import { toast } from "@/lib/market/toast";
 import { useMarket } from "@/lib/market/store";
@@ -60,7 +60,7 @@ import { loginPath } from "@/lib/auth/return-to";
 import { dealCopy } from "@/lib/market/deal-copy";
 import { StoreBadge, StoreLogo } from "./store-logo";
 import { formCountries, formCountryOption, hasCountryTariff } from "@/lib/market/site-content";
-import { officialBadgeLabel, officialListing } from "@/lib/market/official-stores";
+import { officialBadgeLabel, officialListing, officialStoreText } from "@/lib/market/official-stores";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
 import {isOrderableVariant, isStockUnconfirmed} from '@/lib/importer/variant-normalization';
 import { optionStock } from "@/lib/market/link-order-stock";
@@ -1127,6 +1127,10 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   const brandLine = [brandShown && brandShown !== storeName ? brandShown : "", storeName].filter(Boolean).join(" · ");
   // The store plate before the brand line, as on the catalog card; the verified mark only for the brand's own store.
   const officialMark = sourceHost ? officialListing({ store: sourceHost, brand, sourceUrl: source || undefined, sourceVariants: variants.map((variant) => ({ ...variant, sellerId: variant.sellerId })) as Product["sourceVariants"] }, hostBrand) : undefined;
+  // The brand's official store on a marketplace (adidas_official on eBay): the brand's plate with the check, and the
+  // plain sentence "official adidas store on eBay" under it (owner, 2 November 2026: the card shows only the plate).
+  const officialOnMarketplace = officialMark && hostBrand?.focus === "marketplace" ? officialMark : undefined;
+  const plateBrand = (officialOnMarketplace ? brandForHost(officialOnMarketplace) : undefined) ?? hostBrand;
   const previewProduct: Product = {
     id: "preview",
     name: name || "Фото товара",
@@ -1719,7 +1723,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
           <div className="pd-info">
             <div className="pd-head">
               {brandLine || !checking
-                ? <p className="pd-brand">{hostBrand && <StoreBadge brand={hostBrand} size={28} official={Boolean(officialMark)} officialLabel={officialBadgeLabel(lang)} />}<span>{brandLine}</span>{officialMark && <span className="sr-only">. {officialBadgeLabel(lang)}</span>}</p>
+                ? <><p className="pd-brand">{plateBrand && <StoreBadge brand={plateBrand} size={28} official={Boolean(officialMark)} officialLabel={officialBadgeLabel(lang)} />}<span>{brandLine}</span>{officialMark && !officialOnMarketplace && <span className="sr-only">. {officialBadgeLabel(lang)}</span>}</p>{officialOnMarketplace && <p className="pd-official"><BadgeCheck size={15} aria-hidden="true" />{officialStoreText(officialOnMarketplace, lang).full}</p>}</>
                 : <span className="lo-skel lo-skel-brand" aria-hidden="true" />}
               <div className="pd-name-row">
                 <TitleTag id="lo-product-name" className="pd-title">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</TitleTag>

@@ -1391,3 +1391,7 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 /* A passport's status under the recipient's name, on the name's line (not under the radio button). */
 .docs-recipient { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; }
 .docs-recipient > .cabinet-chip { grid-column: 2; justify-self: start; }
+
+/* The brand's official store on a marketplace, said in words under the brand line (app/global-link-order.tsx). */
+.pd-official { display: flex; align-items: center; gap: 6px; margin: 4px 0 0; color: var(--brand); font-size: var(--fs-13); font-weight: var(--fw-semibold); line-height: 18px; }
+.pd-official > svg { flex: none; }
