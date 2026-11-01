@@ -29,7 +29,7 @@ export function SafeDeleteButton({ onConfirm, label, itemName, locale, confirmLa
   }, [confirming, pending]);
   const text = confirmLabel ?? pickLocale({ ru: "Подтвердить удаление", uz: "O‘chirishni tasdiqlash", en: "Confirm removal" }, locale);
   return <button type="button" className={`remove-item${confirming ? " confirming" : ""}`} disabled={pending}
-    aria-label={`${confirming ? text : label}: ${itemName}`}
+    aria-label={`${confirming ? text : label}: ${itemName}`} title={confirming ? text : label}
     onClick={async () => {
       if (!confirming && !instant) { setConfirming(true); onArm?.(true); return; }
       setPending(true);
