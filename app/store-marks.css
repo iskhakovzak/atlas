@@ -4,4 +4,5 @@
 
 /* A plate with a vector mark: the page's surface and ink, so it sits right on light and dark pages alike. */
 .store-logo.store-logo-vector { border-color: var(--home-line); background: var(--home-surface); color: var(--home-ink); }
-html[data-theme="dark"] .store-logo.store-logo-vector { border-color: var(--home-line); background: var(--home-surface); }
+/* Night: the same white plate as the picture logos (stores.css), so a row of stores never mixes dark and white discs. */
+html[data-theme="dark"] .store-logo.store-logo-vector { border-color: transparent; background: #fff; color: var(--c-ink); }

@@ -60,7 +60,8 @@ export function parcelTitle(parcel: BuyerParcel, locale: Locale) {
   // A catalogue item without a store link is named by its brand, which may already name the country — in the stored
   // (Russian) words as well as in this language's.
   const name = country && !store.includes(country) && !store.includes(parcel.store.country) ? `${store} (${country})` : store;
-  return name ? profileCopy[locale].parcel.title(name) : profileCopy[locale].parcel.fallbackTitle;
+  // «Аудио · Европа»: the dot is glued to both words, so a wrapped title never ends on «·» or starts with it.
+  return name ? profileCopy[locale].parcel.title(name.replace(/ · /g, "\u00a0·\u00a0")) : profileCopy[locale].parcel.fallbackTitle;
 }
 
 /**

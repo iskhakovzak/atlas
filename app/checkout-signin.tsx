@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Mail, RotateCw, Smartphone } from "lucide-react";
+import { ArrowLeft, ChevronRight, Mail, RotateCw, Smartphone } from "lucide-react";
 import { appleOffered, AppleButton, GoogleMark, loginCopy, OtpLogin, ProviderLink, TelegramBotLogin, TelegramLogin, type Methods } from "./login-view";
 import type { Locale } from "@/lib/market/i18n";
 import { withCyrillic } from "@/lib/market/uz-cyrl";
@@ -53,9 +53,9 @@ export function CheckoutSignIn({ locale, onDone }: { locale: Locale; onDone: () 
       {methods.telegram && (methods.telegramBot ? <TelegramBotLogin locale={locale} onDone={onDone} onError={showError} /> : <TelegramLogin bot={methods.telegram} hint={c.telegramHint} onDone={onDone} onError={showError} />)}
       {methods.telegram && (methods.phone || methods.email || methods.google) && <div className="login-or" role="separator"><span>{w.or}</span></div>}
       <div className="login-choices co-signin-choices">
-        {methods.phone && <button type="button" id="co-signin-phone" className={"btn " + (methods.telegram ? "secondary" : "primary") + " login-choice"} onClick={() => { setTab("phone"); setError(null); }}><Smartphone size={18} aria-hidden="true" />{w.phone}</button>}
-        {methods.email && <button type="button" id="co-signin-email" className="btn secondary login-choice" onClick={() => { setTab("email"); setError(null); }}><Mail size={18} aria-hidden="true" />{w.email}</button>}
-        {methods.google && <ProviderLink provider="google" returnTo={returnTo} className="btn secondary login-choice"><GoogleMark />{c.googleButton}</ProviderLink>}
+        {methods.phone && <button type="button" id="co-signin-phone" className={"btn " + (methods.telegram ? "secondary" : "primary") + " login-choice"} onClick={() => { setTab("phone"); setError(null); }}><Smartphone size={20} aria-hidden="true" /><span>{w.phone}</span><ChevronRight className="login-choice-go" size={18} aria-hidden="true" /></button>}
+        {methods.email && <button type="button" id="co-signin-email" className="btn secondary login-choice" onClick={() => { setTab("email"); setError(null); }}><Mail size={20} aria-hidden="true" /><span>{w.email}</span><ChevronRight className="login-choice-go" size={18} aria-hidden="true" /></button>}
+        {methods.google && <ProviderLink provider="google" returnTo={returnTo} className="btn secondary login-choice"><GoogleMark /><span>{c.googleButton}</span><ChevronRight className="login-choice-go" size={18} aria-hidden="true" /></ProviderLink>}
         {appleOffered(methods) && <AppleButton methods={methods} returnTo={returnTo} label={c.appleButton} className="btn login-choice apple" onDone={onDone} onError={showError} />}
       </div>
     </div>}

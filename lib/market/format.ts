@@ -45,9 +45,10 @@ export function formatDayMonth(time: number, locale: Locale) {
   return isUzbek(locale) ? uzText(locale, `${day}-${month}`) : `${day} ${month}`;
 }
 
-/** A share as people write it: 0.0998 → "9,98%" (ru/uz) or "9.98%" (en); never rounded to "10%". */
+/** A share as people write it: 0.0998 → "9,98 %" (ru/uz: a narrow no-break space, as on the «−N %» pill) or "9.98%"
+ *  (en); never rounded to "10%". */
 export function formatPercent(share: number, locale: Locale) {
-  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'ru-RU', { maximumFractionDigits: 2 }).format(share * 100) + '%';
+  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'ru-RU', { maximumFractionDigits: 2 }).format(share * 100) + (locale === 'en' ? '%' : ' %');
 }
 
 /** Weights in kilograms with a decimal comma outside English: 1.3 → "1,3". */

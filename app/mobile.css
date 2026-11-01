@@ -24,7 +24,7 @@ body { -webkit-tap-highlight-color: transparent; }
   .mobile-nav a.active .mobile-nav-icon { background: var(--selected); }
   .mobile-nav a:focus-visible { outline: 2px solid var(--link); outline-offset: -4px; border-radius: var(--r-control); }
   /* The cart count: a small filled pill on the icon's corner, ringed with the bar's colour. */
-  .mobile-nav a > b { position: absolute; top: 4px; left: calc(50% + 4px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-pill); background: var(--brand); color: var(--on-brand); box-shadow: 0 0 0 2px var(--surface); font-size: 11px; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 18px; text-align: center; }
+  .mobile-nav a > b { position: absolute; top: 4px; left: calc(50% + 4px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-pill); background: var(--brand); color: var(--on-brand); box-shadow: 0 0 0 2px var(--surface); font-size: var(--fs-12); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 18px; text-align: center; }
   /* The centre "Ссылка": a 48 px round filled button over the bar's top edge, its label under it like the others. */
   .mobile-nav a.mobile-nav-link { color: var(--text); }
   .mobile-nav a.mobile-nav-link .mobile-nav-icon { width: 48px; height: 48px; margin-top: -16px; border-radius: 50%; background: var(--brand); color: var(--on-brand); box-shadow: 0 0 0 4px var(--surface), 0 6px 16px rgba(31, 77, 59, .3); transition: background-color .18s ease, transform .12s ease; }
@@ -40,6 +40,10 @@ body { -webkit-tap-highlight-color: transparent; }
   html[data-theme="dark"] body:has(.basket-sticky:not(.is-hidden)) .mobile-nav a.mobile-nav-link .mobile-nav-icon { box-shadow: 0 0 0 3px var(--bg), 0 4px 12px rgba(0, 0, 0, .4); }
   /* The page ends above the bar. */
   body:has(.mobile-nav) .site-main { padding-bottom: calc(var(--atlas-mobile-nav-clearance) + 12px); }
+  /* Typing: a focused field is scrolled clear of the bar, and the bar steps aside while the keyboard is up (the app
+     resizes the WebView, so the bar would stand right on the keyboard and cover the field) — as in the checkout. */
+  html:has(body .mobile-nav) { scroll-padding-bottom: calc(var(--atlas-mobile-nav-clearance) + 16px); }
+  body:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select):focus) .mobile-nav { display: none; }
   /* +22 px: the centre "Ссылка" circle rises 16 px over the bar, the notice clears it. */
   body:has(.mobile-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 22px); }
 
@@ -59,8 +63,16 @@ body { -webkit-tap-highlight-color: transparent; }
 
 /* Fingers: small text buttons keep their look but take taps from a little around them (an invisible frame). */
 @media (pointer: coarse) {
-  :is(.breadcrumb a, .basket-note-add, .customs-how-trigger, .customs-remembered button) { position: relative; }
-  :is(.breadcrumb a, .basket-note-add, .customs-how-trigger, .customs-remembered button)::after { content: ""; position: absolute; inset: -8px -6px; }
+  :is(.breadcrumb a, .basket-note-add, .customs-how-trigger, .customs-remembered button, .pd-trust a, .basket-assurance a, .delivery-country-stores, .pf-section-link, .store-link-open, .store-about-card .text-link, .store-about-similar > .text-link, .delivery-limit > .text-link, .finds-signin a, .pf-parcel-head h3 a, .allowance-part, .order-x-link, .pf-back) { position: relative; }
+  :is(.basket-note-add, .customs-how-trigger, .customs-remembered button)::after { content: ""; position: absolute; inset: -10px 0; }
+  /* Frames grow up and down only: wider, they would poke out of the line they sit in. */
+  .breadcrumb a::after { content: ""; position: absolute; inset: -10px 0; }
+  .home-footer-brand .wordmark, .home-footer .theme-toggle { position: relative; }
+  .home-footer-brand .wordmark::after { content: ""; position: absolute; inset: -8px 0; }
+  :is(.home-footer, .pf-theme-row) .theme-toggle { min-width: 44px; min-height: 44px; }
+  :is(.service-options label, .customs-remember) { min-height: 44px; }
+  :is(.pd-trust a, .basket-assurance a, .delivery-country-stores, .pf-section-link, .store-link-open, .store-about-card .text-link, .store-about-similar > .text-link, .delivery-limit > .text-link, .finds-signin a, .pf-parcel-head h3 a)::after { content: ""; position: absolute; inset: -14px 0; }
+  :is(.allowance-part, .order-x-link, .pf-back)::after { content: ""; position: absolute; inset: -10px 0; }
   /* 40 px cart controls take taps from a 44 px frame without growing (ui-ux-pro-max touch-target-size, 13.10.2026). */
   :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-controls .remove-item, .basket-variant .basket-qty button, .lo-stepper button, .customs-how-close) { position: relative; }
   :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-controls .remove-item, .basket-variant .basket-qty button, .lo-stepper button)::after { content: ""; position: absolute; inset: -2px; }
@@ -68,8 +80,8 @@ body { -webkit-tap-highlight-color: transparent; }
   .site-header :is(.lang-trigger, .icon-btn) { position: relative; }
   .site-header :is(.lang-trigger, .icon-btn)::after { content: ""; position: absolute; inset: -2px; }
   /* Catalog chips (40 px) and "Saved" (36 px) keep their look and take taps from 44 px; the strips' padding holds the frame. */
-  :is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button) { position: relative; }
-  :is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button)::after { content: ""; position: absolute; inset: -2px 0; }
+  :is(.catalog-categories, .catalog-chips, .catalog-active, .stores-chips, .rf-chips) > button:not(.text-button), .catalog-active > .text-button, .pf-anchors a { position: relative; }
+  :is(.catalog-categories, .catalog-chips, .catalog-active, .stores-chips, .rf-chips) > button:not(.text-button)::after, .catalog-active > .text-button::after, .pf-anchors a::after { content: ""; position: absolute; inset: -2px 0; }
 }
 
 /* Secondary text behind a "?" (components/info-tip.tsx). The text stays in the page as .tip-text and the "?" holds the

@@ -300,13 +300,15 @@ export function CheckoutView() {
 
   const busyNow = paying !== "" || check === "running" || merging || waitingGuest && signedIn;
   const canPay = signedIn && lines.length > 0 && !busyNow && !blocked && !customsBusy;
-  const payLabel = paying === "order" ? t.checkout.pay.busy : paying === "pay" ? t.checkout.pay.paying : merging || (waitingGuest && signedIn) ? t.merge.moving : check === "running" ? t.checkout.check.running : t.checkout.pay.button(formatSum(signedIn ? payable : shownSums.total, locale));
+  const payLabel = (short = false) => paying === "order" ? t.checkout.pay.busy : paying === "pay" ? t.checkout.pay.paying : short ? t.checkout.pay.short : merging || (waitingGuest && signedIn) ? t.merge.moving : check === "running" ? t.checkout.check.running : t.checkout.pay.button(formatSum(signedIn ? payable : shownSums.total, locale));
 
-  const payButton = signedIn
-    ? <button type="button" className="btn primary co-pay" disabled={!canPay} aria-busy={busyNow || undefined} onClick={() => void pay()}>{busyNow ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}<span>{payLabel}</span></button>
+  const payButton = (short = false) => signedIn
+    ? <button type="button" className="btn primary co-pay" disabled={!canPay} aria-busy={busyNow || undefined} onClick={() => void pay()}>{busyNow ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}<span>{payLabel(short)}</span></button>
     : <a className="btn primary co-pay" href="#co-signin-title" onClick={(event) => { event.preventDefault(); const title = document.getElementById("co-signin-title"); title?.scrollIntoView({ block: "start", behavior: "smooth" }); title?.focus({ preventScroll: true }); }}><UserRound size={16} aria-hidden="true" /><span>{t.checkout.pay.signinFirst}</span></a>;
 
-  return <div className="co-page">
+  // Until the account answers, the blocks keep their room unseen: a member's page no longer shows the guest's layout first
+  // and then jumps (layout shift 0.27 on computers, 0.68 on phones before, polish 1.11.2026).
+  return <div className={"co-page" + (loadingAccount ? " is-loading" : "")} aria-busy={loadingAccount || undefined}>
     <header className="co-head">
       <Link className="co-back" href="/cart"><ArrowLeft size={16} aria-hidden="true" />{t.checkout.back}</Link>
       <h1>{t.checkout.title}</h1>
@@ -439,7 +441,7 @@ export function CheckoutView() {
         </div>}
         {signedIn && dutyDue <= 0 && <p className="co-hint">{cc.checkout.consentImplied.before}<Link href="/customs" target="_blank">{cc.checkout.consentImplied.link}</Link>{cc.checkout.consentImplied.after}</p>}
         {/* On a wide screen the button stands under the sum it pays (the aside stays in view); on a phone it is in the pinned bar. */}
-        <div className="co-summary-pay">{payButton}</div>
+        <div className="co-summary-pay">{payButton()}</div>
         <p className="co-demo">{t.checkout.pay.demo}</p>
       </aside>
     </div>
@@ -448,7 +450,7 @@ export function CheckoutView() {
     <div className="co-paybar" role="region" aria-label={t.checkout.sum.total}>
       <div className="co-paybar-inner">
         <div className="co-paybar-sum"><span>{signedIn ? t.checkout.sum.total : t.checkout.sum.items(shownLines.reduce((sum, item) => sum + item.quantity, 0))}</span><strong>{!signedIn && "≈ "}<Money value={signedIn ? payable : shownSums.total} locale={locale} /></strong></div>
-        {payButton}
+        {payButton(true)}
       </div>
     </div>
   </div>;

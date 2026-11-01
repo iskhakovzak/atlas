@@ -2,7 +2,7 @@
    calculator. Direction A: white cards with shadow on the canvas, dark figures, one filled primary button. Tokens only
    (app/tokens.css); the dark theme comes from the roles, no overrides here. */
 
-.delivery-page { display: grid; gap: var(--space-8); padding: var(--space-6) 0 var(--space-12); color: var(--text); }
+.delivery-page { display: grid; gap: var(--space-8); padding: 0 0 var(--space-12); color: var(--text); }
 .delivery-head { display: grid; gap: var(--space-2); max-width: 760px; }
 .delivery-head h1 { margin: 0; font-size: var(--fs-40); font-weight: var(--fw-bold); letter-spacing: var(--tracking-title); line-height: var(--lh-tight); }
 .delivery-head p { margin: 0; color: var(--text-2); font-size: var(--fs-16); line-height: var(--lh-body); }
@@ -52,7 +52,10 @@
 .delivery-speed { position: relative; display: grid; place-items: center; min-height: var(--h-sm); border-radius: calc(var(--r-control) - 4px); color: var(--text-2); font-size: var(--fs-14); font-weight: var(--fw-semibold); cursor: pointer; }
 .delivery-speed input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
 .delivery-speed:has(input:checked) { background: var(--surface); box-shadow: var(--shadow-1); color: var(--text); }
-.delivery-speed:has(input:focus-visible) { box-shadow: var(--focus-ring); }
+@media (hover: hover) {
+  .delivery-speed:not(:has(input:checked)):hover { background: var(--hover); }
+}
+.delivery-speed:has(input:focus-visible) { outline: 2px solid var(--link); outline-offset: 2px; box-shadow: var(--focus-ring); }
 .delivery-calc-result { display: grid; gap: var(--space-1); width: 100%; padding: var(--space-4); border-radius: var(--r-control); background: var(--sunken); }
 .delivery-calc-label { color: var(--text-2); font-size: var(--fs-14); }
 .delivery-calc-usd { font-size: var(--fs-30); font-weight: var(--fw-bold); line-height: var(--lh-tight); font-feature-settings: var(--tnum); }
@@ -61,7 +64,7 @@
 .delivery-calc-empty { color: var(--danger); }
 .delivery-calc-cta { width: 100%; min-height: var(--h-md); justify-content: center; }
 
-.delivery-note { display: flex; gap: var(--space-2); max-width: 860px; margin: 0; color: var(--text-2); font-size: var(--fs-13); line-height: var(--lh-body); }
+.delivery-note { display: flex; gap: var(--space-2); max-width: 72ch; margin: 0; color: var(--text-2); font-size: var(--fs-13); line-height: var(--lh-body); }
 .delivery-note svg { flex: none; margin-top: 2px; }
 
 @media (max-width: 1100px) {
@@ -69,7 +72,7 @@
   .delivery-split { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
-  .delivery-page { gap: var(--space-6); padding-top: var(--space-4); }
+  .delivery-page { gap: var(--space-6); }
   .delivery-head h1 { font-size: var(--fs-30); }
   .delivery-section > h2 { font-size: var(--fs-20); }
   /* Phones (review of stage 8): the countries are compact rows of one card — flag and name, then both speeds side by

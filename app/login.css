@@ -1,13 +1,13 @@
 .login-card h1{font-size:clamp(24px,4vw,40px);line-height:1.15;letter-spacing:-.02em}
-.login-form .field small{color:#60756a;font-size:13px}
+.login-form .field small{color:var(--text-2);font-size:13px}
 /* Kept in the layout: .btn.login-choice below and the phone .atlas-modal .btn height must win these ties. */
 .login-form .btn,.login-google .btn{min-height:46px}
 /* Telegram bot sign-in: one wide Telegram-blue button (kept in the layout for the phone button heights). */
-.btn.tg-login{width:100%;min-height:52px;border-radius:var(--r-control);background:#1679bf;border-color:#1679bf;color:#fff;font-size:16px;font-weight:600;gap:10px}
+.btn.tg-login{width:100%;min-height:52px;border-radius:var(--r-control);background:#1679bf;border-color:#1679bf;color:#fff;font-size:16px;font-weight:var(--fw-semibold);gap:10px}
 /* Sign-in methods: Telegram first, then "or" and one full-width button per method, spaced, never in one cramped row. */
-.btn.login-choice{width:100%;min-height:52px;border-radius:var(--r-control);justify-content:center;gap:10px;font-size:var(--fs-16);font-weight:600}
+.btn.login-choice{width:100%;min-height:52px;border-radius:var(--r-control);justify-content:center;gap:10px;font-size:var(--fs-16);font-weight:var(--fw-semibold)}
 .btn.login-choice svg{flex-shrink:0}
-.btn.apple{background:#000;border-color:#000;color:#fff;font-weight:600;gap:10px}
+.btn.apple{background:#000;border-color:#000;color:#fff;font-weight:var(--fw-semibold);gap:10px}
 .btn.apple:hover{background:#1a1a1a}
 .btn.apple svg{width:18px;height:18px;flex-shrink:0;fill:currentColor}
 /* The expired-link card: the lowercase "atlas↗" mark as in the header. */

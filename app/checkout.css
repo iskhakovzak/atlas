@@ -6,25 +6,29 @@
  */
 
 /* ---------- Page and layout ---------- */
-.co-page { width: min(1120px, 100%); margin: 0 auto; padding: var(--space-4) 0 var(--space-10); color: var(--text); }
+.co-page { padding: 0 0 var(--space-10); color: var(--text); }
+/* While the account loads (app/checkout-view.tsx): the blocks hold their place unseen, so nothing jumps when it answers. */
+.co-page.is-loading :is(.co-layout, .co-paybar) { visibility: hidden; }
+.site-main:has(.co-page.is-loading) > .home-footer { visibility: hidden; }
 /* The pinned pay bar never covers the end of the page or the footer. */
 main.site-main[data-view="checkout"]:has(.co-paybar) { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
-.co-head { display: grid; gap: var(--space-2); margin-bottom: var(--space-5); }
+.co-head { display: grid; gap: var(--space-2); margin-bottom: var(--space-6); }
 .co-head h1 { margin: 0; font-size: var(--fs-30); font-weight: var(--fw-bold); line-height: var(--lh-tight); letter-spacing: var(--tracking-title); }
 .co-back { display: inline-flex; align-items: center; gap: 6px; justify-self: start; min-height: 44px; color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-medium); text-decoration: none; }
 .co-back:hover { text-decoration: underline; text-underline-offset: 3px; }
-.co-layout { display: grid; grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr); gap: var(--space-6); align-items: start; }
+/* The cart's grid (.basket-layout): the page's own left edge, a 380 px summary column. */
+.co-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--space-6); align-items: start; }
 .co-main { display: grid; gap: var(--space-4); min-width: 0; }
 
 /* ---------- Numbered blocks ---------- */
 .co-block { display: grid; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
 .co-block-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); min-height: 32px; }
-.co-block-head h2 { flex: 1; margin: 0; font-size: var(--fs-20); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: var(--tracking-title); }
+.co-block-head h2 { flex: 1; margin: 0; font-size: var(--fs-card-title); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: var(--tracking-title); }
 .co-step { display: inline-grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: var(--r-pill); background: var(--brand); color: var(--on-brand); font-size: var(--fs-14); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
 .co-block.is-done .co-step { background: var(--ok-bg); color: var(--ok); }
 .co-block.is-locked { padding-block: var(--space-4); box-shadow: none; background: var(--sunken); }
 .co-block.is-locked .co-step { background: var(--line-strong); color: var(--text-2); }
-.co-block.is-locked h2 { color: var(--text-2); font-size: var(--fs-18); }
+.co-block.is-locked h2 { color: var(--text-2); }
 .co-locked { margin: calc(-1 * var(--space-2)) 0 0 40px; color: var(--text-2); font-size: var(--fs-14); }
 /* Headings take the focus only to be read out after a step (tabIndex -1); they are not controls, so no ring. */
 .co-block-head h2:focus, .co-placed h1:focus { outline: none; }
@@ -37,7 +41,7 @@ html .co-block-head .text-button.co-aside { margin-left: auto; min-height: 44px;
 /* Sign-in inside the page: the /login flows, a little tighter. */
 .co-signin { display: grid; gap: var(--space-4); }
 .co-signin .login-panel { gap: var(--space-3); }
-.co-signin .login-choice, .co-signin .tg-login { min-height: var(--h-md); }
+.co-signin .tg-login { min-height: var(--h-lg); }
 .co-signin .tg-login-hint { margin: 0; color: var(--text-2); font-size: var(--fs-13); line-height: var(--lh-body); text-align: center; }
 .co-signin-choices { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .co-signed { display: flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--text-2); font-size: var(--fs-14); overflow-wrap: anywhere; }
@@ -45,6 +49,10 @@ html .co-block-head .text-button.co-aside { margin-left: auto; min-height: 44px;
 
 /* Сверка цены: the check running, a failure, and what changed at the store. */
 .co-checking { display: flex; align-items: center; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--r-control); background: var(--sunken); color: var(--text-2); font-size: var(--fs-14); }
+/* A check that answers within half a second takes no room at all (it used to push the blocks down and back up);
+   a longer one shows its line. Not motion: the line appears at once, so it stays under reduced motion too. */
+.co-checking { animation: co-checking-late 1ms linear 500ms both; }
+@keyframes co-checking-late { from { position: absolute; visibility: hidden; } to { position: static; visibility: visible; } }
 .co-notice { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--r-control); font-size: var(--fs-14); }
 .co-notice.warn { background: var(--warn-bg); color: var(--warn); }
 .co-notice .text-button { min-height: 44px; margin-left: auto; }
@@ -88,14 +96,16 @@ html .co-block-head .text-button.co-aside { margin-left: auto; min-height: 44px;
 .co-check { display: flex; gap: var(--space-3); align-items: flex-start; min-height: 44px; padding-top: 2px; font-size: var(--fs-14); }
 .co-check label { display: grid; gap: 2px; cursor: pointer; line-height: var(--lh-snug); }
 .co-check label small { color: var(--text-2); font-size: var(--fs-13); }
-.co-check [role="checkbox"] { flex: none; margin-top: 1px; }
+/* The square's centre on the first line's centre: the 44 px (32 px with a mouse) tap frame of app/checkbox.css hangs
+   around it, so its negative margin stays, 2 px higher for the row's 2 px top padding. */
+.co-check [role="checkbox"] { flex: none; margin-top: calc((var(--check-size) - var(--check-hit)) / 2 - 2px); }
 .co-consent.invalid label { color: var(--danger); }
 /* The consent sentence with its link reads as one line of text, not three grid rows. */
 .co-consent label { display: block; }
 
 /* ---------- Из чего сумма (the aside) ---------- */
 .co-summary { position: sticky; top: calc(var(--shell-header-h, 64px) + var(--space-4)); display: grid; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
-.co-summary h2 { margin: 0; font-size: var(--fs-20); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-title); }
+.co-summary h2 { margin: 0; font-size: var(--fs-card-title); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-title); }
 .co-items { display: grid; gap: var(--space-3); margin: 0; padding: 0 0 var(--space-4); border-bottom: 1px solid var(--line); list-style: none; }
 .co-items li { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; }
 .co-item-photo { width: 48px; height: 48px; overflow: hidden; border-radius: var(--r-sm); background: var(--sunken); }
@@ -138,6 +148,9 @@ html .co-block-head .text-button.co-aside { margin-left: auto; min-height: 44px;
 
 /* ---------- The pay bar: pinned on every screen, above the home indicator ---------- */
 .co-paybar { position: fixed; z-index: 46; right: 0; bottom: 0; left: 0; padding: var(--space-3) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow-up); }
+/* Its edges follow the page: the cut-out of a phone held sideways, and the page gutter on a tablet. */
+.co-paybar { padding-left: max(var(--space-4), env(safe-area-inset-left)); padding-right: max(var(--space-4), env(safe-area-inset-right)); }
+@media (min-width: 761px) { .co-paybar { padding-left: max(var(--gutter), env(safe-area-inset-left)); padding-right: max(var(--gutter), env(safe-area-inset-right)); } }
 .co-paybar-inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); width: min(1120px, 100%); margin: 0 auto; }
 .co-paybar-sum { display: grid; min-width: 0; }
 .co-paybar-sum > span { color: var(--text-2); font-size: var(--fs-13); }
@@ -206,6 +219,17 @@ body:has(.co-paybar) .storage-notice { bottom: 112px; }
   body:has(.co-paybar) .storage-notice { bottom: var(--space-4); }
   /* A tall summary scrolls inside itself, so its button never drops below the window. */
   .co-summary { max-height: calc(100dvh - var(--shell-header-h, 64px) - 2 * var(--space-4)); overflow-y: auto; overscroll-behavior: contain; }
+  /* …and when it does scroll (a laptop 768 px tall, a promo code applied), «Оплатить» stays pinned to its bottom. */
+  .co-summary-pay { position: sticky; z-index: 1; bottom: calc(-1 * var(--space-5)); margin-block: calc(-1 * var(--space-3)) calc(-1 * var(--space-5)); padding-block: var(--space-3) var(--space-5); background: var(--surface); }
+}
+
+/* A phone held sideways (761–900 px wide, under 560 px tall) already gets the pinned pay bar below; wider and short,
+   the summary scrolls with the page and the bar is pinned too, so "Оплатить" is never inside an inner scroll. */
+@media (min-width: 901px) and (max-height: 560px) {
+  .co-summary { position: static; max-height: none; overflow: visible; }
+  .co-summary-pay { position: static; margin-block: 0; padding-block: 0; }
+  .co-paybar { display: block; }
+  main.site-main[data-view="checkout"]:has(.co-paybar) { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 }
 
 /* ---------- Phones ---------- */
@@ -215,7 +239,7 @@ body:has(.co-paybar) .storage-notice { bottom: 112px; }
   .co-summary-pay { display: none; }
 }
 @media (max-width: 760px) {
-  .co-page { padding: var(--space-2) 0 var(--space-6); }
+  .co-page { padding: 0 0 var(--space-6); }
   /* The checkout is a focused step: the bottom navigation steps aside, so the pinned bar alone sits above the home indicator. */
   html:has(main[data-view="checkout"] .co-paybar) { --atlas-mobile-nav-clearance: 0px; }
   html:has(main[data-view="checkout"] .co-paybar) .mobile-nav { display: none !important; }
@@ -226,7 +250,7 @@ body:has(.co-paybar) .storage-notice { bottom: 112px; }
   .co-two { grid-template-columns: minmax(0, 1fr); }
   .co-signin-choices { grid-template-columns: minmax(0, 1fr); }
   /* Above the bottom navigation, which already keeps the home indicator clear. */
-  .co-paybar { bottom: 0; padding: var(--space-2) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom)); }
+  .co-paybar { bottom: 0; padding: var(--space-2) max(var(--space-4), env(safe-area-inset-right)) calc(var(--space-2) + env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left)); }
   .co-paybar-sum strong { font-size: var(--fs-18); }
   /* The sum keeps its room: a long label («Войдите, чтобы оплатить», a large sum) wraps inside the button instead. */
   .co-paybar-sum { flex: 1 0 auto; }

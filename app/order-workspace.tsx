@@ -95,7 +95,7 @@ import { balanceCopy, countryLabel, formatDateTime, formatShortDate, itemCount, 
 import { allowanceMonth, countsTowardAllowance, monthOf, monthlyUsedFor, orderPerson } from "@/lib/market/allowance";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { calcCopy } from "@/lib/market/calc-copy";
-import { usdText } from "./calc-summary";
+import { customsDutyAmount, usdText } from "./calc-summary";
 import { Money } from "./money";
 import { CustomerExtraCharge, ExtraChargeHistory, OperatorExtraCharges, insuranceShare } from "./order-extra-charges";
 import { OperatorTelegramHint, TelegramSettingsRow } from "./telegram-notices-link";
@@ -1066,9 +1066,11 @@ function CustomerOrderLine({ lines, panelId, progress = true, siblings, showThum
  * One checkout as one card, a single line included: the heading answers when, how much, how many, at which stage and
  * whether the customer must act; then a section per store parcel, a block per model, and a row per variant.
  */
-function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, onPay }: {
+function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports, parcel, onPay }: {
   group: OrderGroup;
   locale: Locale;
+  /** The rate that turns the customs estimate into soums: one big sum in soums, the dollars small. */
+  pricing: Pricing;
   busy: boolean;
   /** The recipient's monthly allowance used, once per checkout (every live line shares the recipient). */
   allowanceUsd?: number;
@@ -1105,7 +1107,10 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
   // The customs estimate is the checkout's (one cart estimate on every line): said once, not per line.
   const customs = group.status !== undefined && group.status < 5 ? liveOrders.find((order) => order.customs && !order.customsSettlement && (order.customs.helpRequested || order.customs.dutiableUsd > 0))?.customs : undefined;
   const ship = group.stage !== "cancelled" ? group.delivery : undefined;
-  const allowance = allowanceUsd !== undefined && <span className={allowanceUsd > courierAllowanceUsd ? "order-x-over" : undefined}>{c.allowance}: {c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</span>;
+  const allowanceOver = allowanceUsd !== undefined && allowanceUsd > courierAllowanceUsd ? "order-x-over" : undefined;
+  const allowance = allowanceUsd !== undefined && <span className={allowanceOver}>{c.allowance}: {c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</span>;
+  // Under its own heading «Лимит получателя» the line says only the figures, not the heading again.
+  const allowanceFigures = allowanceUsd !== undefined && <span className={allowanceOver}>{c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</span>;
   return <section className="order-group" data-stage={group.stage} aria-label={title}>
     <header className="order-group-head">
       <div className="order-group-main">
@@ -1138,7 +1143,9 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
           <MapPin size={16} aria-hidden="true" />
           <p>
             <span className="og-ship-who"><span className="sr-only">{gc.recipient}: </span><b>{ship.profile.recipient}</b>{ship.profile.phone && <a className="order-x-link" href={`tel:${ship.profile.phone.replace(/[^\d+]/g, "")}`}>{ship.profile.phone}</a>}</span>
-            <small>{[ship.profile.city || ship.profile.region, ship.profile.address].filter(Boolean).join(", ")} · {gc.speed[ship.speed]}</small>
+            {/* The address and the delivery speed on lines of their own: a wrapped line never ends on «кв. 5 ·». */}
+            <small>{[ship.profile.city || ship.profile.region, ship.profile.address].filter(Boolean).join(", ")}</small>
+            <small>{gc.speed[ship.speed]}</small>
           </p>
           {/* For a message to a courier or a relative: name, phone, address and postal code in one line. */}
           <CopyText what="address" locale={locale} text={shipAddressText(ship.profile)} />
@@ -1201,10 +1208,10 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
         <b>{customs ? customs.helpRequested ? customsWords[locale].helpTitle : calcCopy[locale].customs.title : c.allowance}</b>
         {customs
           ? <small>{[customs.dutiableUsd > 0 ? pc.customsOver(usdText(customs.dutiableUsd, locale)) : "", customs.helpRequested ? customs.dutiableUsd > 0 ? pc.customsAtlasSettle : pc.customsWithin : pc.customsSelf].filter(Boolean).join(" · ")}</small>
-          : allowance && <small>{allowance}</small>}
+          : allowanceFigures && <small>{allowanceFigures}</small>}
       </div>
       {customs && <div className="og-customs-side">
-        {customs.dutiableUsd > 0 && <strong className="og-customs-sum"><small>{pc.estimate}</small>≈ {usdText(customs.estimateUsd, locale)}</strong>}
+        {customs.dutiableUsd > 0 && <strong className="og-customs-sum"><small>{pc.estimate}</small>≈ {formatSum(customsDutyAmount(customs, pricing), locale)}<small>{usdText(customs.estimateUsd, locale)}</small></strong>}
         {customs.helpRequested && <span className="order-x-status ok"><Check size={14} strokeWidth={3} aria-hidden="true" />{pc.customsBadge}</span>}
       </div>}
       {customs && allowance && <p className="og-customs-allowance">{allowance}</p>}
@@ -1717,7 +1724,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             if (waiting && paid.payment) setConfirmation({ id: waiting.id, cancel: false, amount: paid.payment.amount, payment: true, batchId: paid.batchId });
           };
           const firstLive = group.orders.find(order => !order.cancelled);
-          return <OrderGroupCard key={group.key} group={group} locale={locale} busy={busy} allowanceUsd={firstLive ? allowanceFor(firstLive) : undefined} passports={passportNotes.get(group.key) ?? []} parcel={parcel} onPay={pay} />;
+          return <OrderGroupCard key={group.key} group={group} locale={locale} pricing={pricing} busy={busy} allowanceUsd={firstLive ? allowanceFor(firstLive) : undefined} passports={passportNotes.get(group.key) ?? []} parcel={parcel} onPay={pay} />;
         }) : filtered.map((o) => (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;if(open&&operations)revealActionOf.current=o.id;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">

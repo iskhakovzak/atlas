@@ -68,7 +68,7 @@ export function NotificationsSheet({open,onOpenChange,bell}:{open:boolean;onOpen
           <SheetDescription>{!ready?c.loading:panel.unread?c.unread(panel.unread):panel.total?c.allRead:p.none}</SheetDescription>
           {ready&&panel.unread>0&&<button type="button" className="notice-panel-read" onClick={()=>void act({type:'notifications-read'})}><CheckCheck size={16} aria-hidden="true"/>{p.read}</button>}
         </div>
-        <SheetClose asChild><button type="button" className="notice-panel-close" aria-label={p.close}><X size={18} aria-hidden="true"/></button></SheetClose>
+        <SheetClose asChild><button type="button" className="notice-panel-close" aria-label={p.close}><X size={20} aria-hidden="true"/></button></SheetClose>
       </header>
       <div className="notice-panel-scroll">
         {/* One item per checkout (notice-panel.ts), the same count as the "Нужно действие" tab of "My orders". */}

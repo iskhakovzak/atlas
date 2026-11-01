@@ -1,7 +1,7 @@
 /* Links to the Telegram setting (app/telegram-notices-link.tsx): the bell's footer and the first row of
    the settings on /notifications. Quiet: a text link, never a second green button. */
 
-:root body .notice-panel-tg { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; margin-top: 6px; border-radius: var(--day-r-control, 10px); color: var(--day-accent, var(--c-brand)); font-size: 14px; font-weight: 600; text-decoration: none; }
+:root body .notice-panel-tg { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; margin-top: 6px; border-radius: var(--day-r-control, 10px); color: var(--day-accent, var(--c-brand)); font-size: 14px; font-weight: var(--fw-semibold); text-decoration: none; }
 :root body .notice-panel-tg:hover { background: var(--day-soft, var(--c-sunken)); }
 :root body .notice-panel-tg:focus-visible { outline: 2px solid var(--day-accent, var(--c-brand)); outline-offset: 2px; }
 html[data-theme="dark"] .notice-panel-tg { color: var(--night-jade, var(--night-jade)); }
@@ -10,18 +10,18 @@ html[data-theme="dark"] .notice-panel-tg:hover { background: rgba(255, 255, 255,
 /* Operator forms: one quiet line; "on" gets the plane icon so it is noticed before sending. */
 :root body .operator-tg-hint { display: flex; align-items: flex-start; gap: 6px; }
 :root body .operator-tg-hint svg { flex: none; margin-top: 3px; }
-:root body .operator-tg-hint.on { color: var(--home-ink, var(--c-ink)); font-weight: 600; }
+:root body .operator-tg-hint.on { color: var(--home-ink, var(--c-ink)); font-weight: var(--fw-semibold); }
 html[data-theme="dark"] .operator-tg-hint.on { color: var(--home-ink, #eceef2); }
 
 :root body .notice-tg-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; margin-bottom: 12px; padding: 4px 4px 4px 14px; border: 1px solid var(--home-line, var(--c-line)); border-radius: var(--r-control); }
-:root body .notice-tg-row-label { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; }
+:root body .notice-tg-row-label { display: inline-flex; align-items: center; gap: 10px; font-weight: var(--fw-semibold); }
 :root body .notice-tg-row-label svg { flex: none; color: var(--home-muted, var(--c-ink-2)); }
-:root body .notice-tg-row-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: var(--r-control); color: var(--home-accent, var(--c-brand)); font-weight: 600; text-decoration: none; }
+:root body .notice-tg-row-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: var(--r-control); color: var(--home-accent, var(--c-brand)); font-weight: var(--fw-semibold); text-decoration: none; }
 :root body .notice-tg-row-link:hover { background: var(--home-soft, var(--c-sunken)); }
 html[data-theme="dark"] .notice-tg-row { border-color: var(--home-line, #3d424a); }
 html[data-theme="dark"] .notice-tg-row-link { color: var(--night-jade, var(--night-jade)); }
 /* The browser-notifications line under the Telegram one is a button, not a link (app/push-toggle.tsx). */
-:root body button.notice-panel-push { width: 100%; border: 0; background: transparent; font: inherit; font-weight: 600; cursor: pointer; }
+:root body button.notice-panel-push { width: 100%; border: 0; background: transparent; font: inherit; font-weight: var(--fw-semibold); cursor: pointer; }
 :root body button.notice-panel-push:disabled { opacity: .6; cursor: progress; }
 :root body p.notice-panel-push-ios { margin-bottom: 0; padding: 8px 6px; font-size: 13px; font-weight: 500; line-height: 1.4; text-align: center; }
 :root body p.notice-panel-push-ios > svg { flex: none; }

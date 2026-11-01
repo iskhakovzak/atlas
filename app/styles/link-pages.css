@@ -15,7 +15,7 @@
 /* ── app/checkout-clarity.css ── */
 /* Order-by-link: keep the quote short, with its full weight/shipping context on demand. */
 .single-variant-selection{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;min-height:44px;padding:10px 12px;border:1px solid #dce5e2;border-radius:var(--r-control);background:#f8faf8}
-.single-variant-selection>span{font-weight:600}
+.single-variant-selection>span{font-weight:var(--fw-semibold)}
 .single-variant-selection>small{color:#64756e}
 .single-colorway-note{margin:0;color:#64756e;font-size:12px;line-height:1.5}
 .single-colorway-source{font-size:12px;color:#64756e}
@@ -29,15 +29,15 @@
 .nike-selected-size strong{color:var(--atlas-ink,var(--c-ink))}
 .nike-selected-size>span{color:var(--muted-foreground,#64756e)}
 .nike-size-chart{min-width:0;border-top:1px solid var(--atlas-line,#dce5e2);padding-top:5px}
-.nike-size-chart>summary{min-height:34px;cursor:pointer;color:var(--atlas-green,#315f50);font-size:12px;font-weight:600;line-height:1.4;align-content:center}
-.nike-size-chart>p{margin:0 0 8px;font-size:12px;line-height:1.45}
+.nike-size-chart>summary{min-height:34px;cursor:pointer;color:var(--atlas-green,#315f50);font-size:12px;font-weight:var(--fw-semibold);line-height:1.4;align-content:center}
+.nike-size-chart>p{margin:0 0 8px;font-size:12px;line-height:var(--lh-body)}
 .nike-size-chart-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;border:1px solid var(--atlas-line,#dce5e2);border-radius:var(--r-sm)}
 .nike-size-chart table{width:100%;border-collapse:collapse;font-size:12px;line-height:1.35}
 .nike-size-chart th,.nike-size-chart td{padding:6px 8px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--atlas-line,#dce5e2)}
-.nike-size-chart thead th{background:var(--atlas-soft,#f8faf8);color:var(--muted-foreground,#64756e);font-size:12px;font-weight:600}
-.nike-size-chart tbody th{font-weight:600}
+.nike-size-chart thead th{background:var(--atlas-soft,#f8faf8);color:var(--muted-foreground,#64756e);font-size:12px;font-weight:var(--fw-semibold)}
+.nike-size-chart tbody th{font-weight:var(--fw-semibold)}
 .nike-size-chart tbody tr:last-child th,.nike-size-chart tbody tr:last-child td{border-bottom:0}
-.nike-size-source{display:inline-flex;align-items:center;gap:5px;margin-top:8px;color:var(--atlas-green,#315f50);font-size:12px;font-weight:600}
+.nike-size-source{display:inline-flex;align-items:center;gap:5px;margin-top:8px;color:var(--atlas-green,#315f50);font-size:12px;font-weight:var(--fw-semibold)}
 @media (max-width:700px) {
   .nike-size-chart th,.nike-size-chart td{padding:6px 5px;font-size:12px}
 }
@@ -55,7 +55,7 @@
 .speed-option.selected{border-color:var(--c-brand);box-shadow:inset 0 0 0 1px var(--c-brand);background:var(--day-tint,#eef6f1)}
 .speed-option:focus-visible{outline:2px solid var(--c-brand);outline-offset:2px}
 .speed-option:disabled{cursor:progress;opacity:.7}
-.speed-switch-note{margin:0;color:var(--day-muted,#64756e);font-size:12px;line-height:1.45}
+.speed-switch-note{margin:0;color:var(--day-muted,#64756e);font-size:12px;line-height:var(--lh-body)}
 .speed-switch.compact .speed-option{min-height:56px;padding:8px 10px}
 .speed-switch.compact .speed-switch-title{font-size:13px}
 @media (max-width:400px) {
@@ -71,7 +71,7 @@
 .speed-option-mark{position:absolute;top:10px;right:10px;display:grid;place-items:center;width:18px;height:18px;box-sizing:border-box;border:1.5px solid var(--day-line-strong,var(--c-line-strong));border-radius:50%;background:var(--day-surface,#fff);color:#fff;font-style:normal}
 .speed-option.selected .speed-option-mark{border-color:var(--c-brand);background:var(--c-brand)}
 .speed-option-star{display:inline-block;margin:0 0 0 5px;color:#b7791f;fill:currentColor;vertical-align:-1px}
-:root body .speed-switch-note.speed-faster{display:flex;align-items:center;gap:6px;margin-top:2px;color:var(--day-ink,var(--c-ink));font-size:13px;font-weight:600;line-height:1.35}
+:root body .speed-switch-note.speed-faster{display:flex;align-items:center;gap:6px;margin-top:2px;color:var(--day-ink,var(--c-ink));font-size:13px;font-weight:var(--fw-semibold);line-height:1.35}
 .speed-faster svg{flex:none;color:var(--day-ok,var(--c-ok))}
 html[data-theme="dark"] .speed-option-mark{border-color:var(--night-line-strong);background:transparent;color:var(--night-on-ivory,#0c120f)}
 html[data-theme="dark"] .speed-option.selected .speed-option-mark{border-color:var(--night-jade);background:var(--night-jade)}
@@ -148,15 +148,15 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .basket-parcel-title { display: flex; align-items: center; gap: 8px; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--home-line); background: var(--home-soft); color: var(--home-ink); font-size: 14px; font-weight: 700; }
 .basket-parcel-title svg { flex-shrink: 0; color: var(--home-accent); }
 .basket-parcel-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.basket-parcel-title small { margin-left: auto; color: var(--home-muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.basket-parcel-title small { margin-left: auto; color: var(--home-muted); font-size: 13px; font-weight: var(--fw-semibold); white-space: nowrap; }
 /* Store-delivery reserve of this store order: how to drop it, or that it is not taken. */
-.basket-brand { margin: 0; color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
+.basket-brand { margin: 0; color: var(--home-muted); font-size: 12px; font-weight: var(--fw-bold); letter-spacing: 0; }
 /* What the last check with the store found, between the price and the quantity. */
-.basket-summary { display: grid; gap: 14px; padding: 20px; border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); box-shadow: var(--shadow-2); }
+.basket-summary { display: grid; gap: 14px; padding: var(--pad-card-lg); border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); box-shadow: var(--shadow-2); }
 @media (min-width: 960px) {
   .basket-summary { position: sticky; top: var(--sticky-top, 88px); }
 }
-.basket-summary h2 { margin: 0; color: var(--home-ink); font-size: 20px; font-weight: 800; }
+.basket-summary h2 { margin: 0; color: var(--home-ink); font-size: 20px; font-weight: var(--fw-bold); }
 .basket-lines { display: grid; }
 .basket-line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; min-height: 44px; padding: 6px 0; border-bottom: 1px dashed var(--home-line); }
 .basket-line-label { flex: 1 1 0; min-width: 0; color: var(--home-ink); font-size: var(--fs-16); line-height: 1.4; }
@@ -178,10 +178,10 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .basket-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
 .basket-total span { color: var(--home-ink); font-size: 16px; font-weight: 700; }
 .basket-total strong { color: var(--home-ink); font-size: clamp(24px, 6.4vw, 30px); letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.basket-cta { width: 100%; min-height: 54px; justify-content: center; border-radius: var(--r-control); font-size: 16px; }
+.basket-cta { width: 100%; min-height: var(--h-lg); justify-content: center; border-radius: var(--r-control); font-size: var(--fs-16); }
 /* Also on the link order and the identity forms, so it stays here rather than in cart-select.css (cart page only). */
 .basket-cta[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
-.basket-assurance li { display: flex; align-items: flex-start; gap: 8px; color: var(--home-muted); font-size: 13px; line-height: 1.45; }
+.basket-assurance li { display: flex; align-items: flex-start; gap: 8px; color: var(--home-muted); font-size: 13px; line-height: var(--lh-body); }
 .basket-assurance svg { flex-shrink: 0; margin-top: 1px; color: var(--home-accent); }
 .basket-assurance a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
 .basket-assurance a:hover { color: var(--home-ink); text-decoration-color: currentColor; }
@@ -198,9 +198,10 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
   .basket-summary .basket-service-breakdown > summary { min-height: 44px; }
 }
 
-/* Sticky total on phones, above the member bottom navigation. */
+/* Sticky total on phones, above the member bottom navigation; on tablets and a phone held sideways (up to 959 px,
+   where the summary is not pinned beside the list) at the screen's edge. */
 .basket-sticky { display: none; }
-@media (max-width: 760px) {
+@media (max-width: 959px) {
   /* Tab never leaves a control under the fixed total and the bottom bar (WCAG 2.4.11). */
   html:has(main[data-view="cart"] .basket-sticky:not(.is-hidden)) { scroll-padding-bottom: calc(var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))) + 84px); }
   .basket-sticky { position: fixed; z-index: 45; right: 0; bottom: var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))); left: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--home-line); background: var(--home-surface); box-shadow: var(--shadow-up); }
@@ -209,6 +210,11 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
   .basket-sticky strong { color: var(--home-ink); font-size: 18px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .basket-sticky .btn { flex-shrink: 0; min-height: 48px; padding-inline: 18px; border-radius: var(--r-control); }
   .basket-sticky { transition: opacity .18s ease, transform .18s ease, visibility .18s; }
+}
+@media (min-width: 761px) and (max-width: 959px) {
+  .basket-sticky { bottom: 0; padding-right: max(var(--gutter), env(safe-area-inset-right)); padding-bottom: max(10px, env(safe-area-inset-bottom)); padding-left: max(var(--gutter), env(safe-area-inset-left)); }
+  main.site-main:is([data-view="cart"]:has(.basket-sticky), [data-view="link"]:has(.lo-sticky)) { padding-bottom: 96px; }
+  html:has(main[data-view="cart"] .basket-sticky:not(.is-hidden)) { scroll-padding-bottom: 96px; }
 }
 /* Narrow phones: the sum always shows in full ("13 668 999 сум"); the button gives way — no arrow, tighter padding,
    and on the narrowest screens its text wraps onto two lines (12 October 2026). */
@@ -222,18 +228,18 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 /* Checkout dialog additions. */
 .basket-review-recipient { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 14px; border-radius: var(--r-control); background: var(--home-soft); }
 .basket-review-recipient h3 { margin: 0 0 4px; color: var(--home-ink); font-size: 16px; }
-.basket-review-recipient p { margin: 0; color: var(--home-muted); font-size: 14px; line-height: 1.45; }
+.basket-review-recipient p { margin: 0; color: var(--home-muted); font-size: 14px; line-height: var(--lh-body); }
 .basket-review-recipient .text-button { min-height: 44px; }
 .basket-consent.invalid { border-color: var(--cx-danger); }
 .basket-consent label { color: var(--home-ink); font-size: 14px; line-height: 1.5; cursor: pointer; }
 .basket-consent a { color: var(--home-accent); font-weight: 700; }
-.basket-consent-error { margin: 6px 0 0; color: var(--cx-danger); font-size: 14px; font-weight: 600; }
+.basket-consent-error { margin: 6px 0 0; color: var(--cx-danger); font-size: 14px; font-weight: var(--fw-semibold); }
 /* Deep links (?support=new, ?order=…, #account-delete) scroll a card to the top while it still rises in (motion.css, 10 px):
    a margin keeps its edge and heading in view instead of under the top of the screen. */
 .cabinet-empty { margin: 0 0 12px; padding: 14px; border-radius: var(--r-control); background: var(--home-soft); color: var(--home-muted); font-size: 14px; }
 
 /* ---------- Orders, balance, notifications ---------- */
-.orders-head p { max-width: 72ch; margin: 4px 0 0; color: var(--home-muted); font-size: var(--fs-16); }
+.orders-head p { max-width: 72ch; margin: var(--space-2) 0 0; color: var(--home-muted); font-size: var(--fs-16); }
 .orders-head .btn { min-height: 44px; border-radius: var(--r-control); }
 
 /* Notifications. */
@@ -250,7 +256,7 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .notice-x h2 { margin: 0; color: var(--home-ink); font-size: 16px; line-height: 1.35; }
 /* Message log on a phone: the channel stands beside the title instead of floating in the middle of a tall row with white
    space above it, the card loses the doubled top padding, and the badge keeps its own width. */
-.notice-x-new { padding: 2px 8px; border-radius: var(--r-pill); background: var(--home-accent); color: var(--home-accent-ink); font-size: 12px; font-weight: 800; }
+.notice-x-new { padding: 2px 8px; border-radius: var(--r-pill); background: var(--home-accent); color: var(--home-accent-ink); font-size: 12px; font-weight: var(--fw-bold); }
 .notice-x-body > p { margin: 4px 0 0; overflow-wrap: anywhere; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 .notice-x-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 0 14px; margin-top: 4px; }
 .notice-x-foot time { color: var(--home-muted); font-size: 13px; }
@@ -270,19 +276,19 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 @media (max-width: 760px) {
   main[data-view="link"] .breadcrumb { display: none; }
 }
-.lo-page { padding-top: 8px; }
+.lo-page { padding-top: 0; }
 /* A loaded item: the page title steps back to one short line so the item starts high (owner, 11 October 2026). */
 @media (min-width: 761px) {
-  html main[data-view="link"] .breadcrumb { padding: 12px 0 0; }
+  html main[data-view="link"] .breadcrumb { padding: 14px 0 var(--space-6); }
   .lo-page-loaded { padding-top: 0; }
-  .lo-page-loaded > .orders-head { margin: 2px 0 12px; }
+  .lo-page-loaded > .orders-head { margin: 0 0 var(--space-4); }
   .lo-page-loaded > .orders-head h1 { font-size: 30px; }
   .lo-page-loaded > .orders-head p { margin: 0; }
 }
-.lo-link-field { display: flex; flex: 1; align-items: center; gap: 10px; min-height: 54px; padding: 0 10px; color: var(--home-muted); }
+.lo-link-field { display: flex; flex: 1; align-items: center; gap: var(--space-2); min-height: var(--h-lg); padding: 0 var(--space-1) 0 var(--space-4); color: var(--home-muted); }
 .lo-link-field input { flex: 1; min-width: 0; min-height: 48px; border: 0; background: transparent; color: var(--home-ink); font-size: 16px; outline: none; }
 .lo-link-field input::placeholder { color: var(--home-muted); opacity: 1; }
-.lo-link-submit { min-height: 54px; justify-content: center; border-radius: var(--r-control); font-size: 16px; }
+.lo-link-submit { min-height: var(--h-lg); justify-content: center; border-radius: var(--r-control); font-size: var(--fs-16); font-weight: var(--fw-semibold); }
 @media (min-width: 640px) {
   .lo-link-submit { padding-inline: 28px; }
 }
@@ -292,7 +298,7 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .lo-hints p { margin: 0; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 /* "Recently checked": the customer's own unfinished items on this device, one row each, back to the choice in one tap. */
 .lo-recent { display: grid; gap: 10px; margin: 0 0 16px; padding: 16px 18px; border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); box-shadow: var(--day-shadow, none); }
-.lo-recent h2 { margin: 0; color: var(--home-ink); font-size: 16px; font-weight: 750; line-height: 1.3; }
+.lo-recent h2 { margin: 0; color: var(--home-ink); font-size: 16px; font-weight: var(--fw-bold); line-height: 1.3; }
 .lo-recent ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 @media (min-width: 960px) {
   .lo-recent ul { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
@@ -301,7 +307,7 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .lo-recent li > img, .lo-recent-photo { width: 48px; height: 48px; border-radius: var(--r-control); background: var(--home-soft); object-fit: cover; }
 .lo-recent-photo { display: grid; place-items: center; color: var(--home-muted); }
 .lo-recent-copy { display: grid; gap: 2px; min-width: 0; }
-.lo-recent-copy b { overflow: hidden; color: var(--home-ink); font-size: 14px; font-weight: 600; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.lo-recent-copy b { overflow: hidden; color: var(--home-ink); font-size: 14px; font-weight: var(--fw-semibold); line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .lo-recent-copy small { overflow: hidden; color: var(--home-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .lo-page .lo-recent-go { position: static; gap: 6px; min-height: 44px; padding: 0 14px; font-size: 14px; white-space: nowrap; }
 /* The whole row opens the item; the button names the action. */
@@ -319,16 +325,18 @@ html[data-theme="dark"] .lo-recent-copy small { color: var(--night-muted); }
 /* Before a link: where to take one (stores that work, the way in three steps). On a phone it comes before the blank
    bill; on wide screens the bill is on the left and this card on the right. */
 .lo-empty { display: grid; gap: 16px; }
-.lo-empty > .bill-blank { margin-top: 0; }
-.lo-where { display: grid; gap: 14px; min-width: 0; padding: 18px; border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); box-shadow: var(--day-shadow, none); }
-.lo-where h2 { margin: 0; color: var(--home-ink); font-size: 18px; font-weight: 750; line-height: 1.25; letter-spacing: -.01em; }
+.lo-empty > .bill-blank { max-width: none; margin-top: 0; }
+/* The two cards side by side (and stacked) share one title size and weight. */
+html:root .lo-empty > .bill-blank > h2 { font-size: var(--fs-card-title); }
+.lo-where { display: grid; gap: 14px; min-width: 0; padding: var(--pad-card-lg); border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); box-shadow: var(--day-shadow, none); }
+.lo-where h2 { margin: 0; color: var(--home-ink); font-size: var(--fs-card-title); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: -.01em; }
 .lo-where-stores { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.lo-where-stores a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); color: var(--home-ink); font-size: 14px; font-weight: 600; text-decoration: none; transition-property: border-color, background-color; transition-duration: .15s; }
+.lo-where-stores a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); color: var(--home-ink); font-size: 14px; font-weight: var(--fw-semibold); text-decoration: none; transition-property: border-color, background-color; transition-duration: .15s; }
 .lo-where-stores a:hover { border-color: var(--home-accent); }
 .lo-where-stores a:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
 .lo-where-stores .lo-where-all { color: var(--home-accent); font-weight: 700; }
 .lo-where-steps { display: grid; gap: 10px; margin: 0; padding: 14px 0 0; border-top: 1px solid var(--home-line); list-style: none; counter-reset: lo-where; }
-.lo-where-steps li { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: start; gap: 10px; color: var(--home-ink); font-size: 14px; line-height: 1.45; overflow-wrap: break-word; counter-increment: lo-where; }
+.lo-where-steps li { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: start; gap: 10px; color: var(--home-ink); font-size: 14px; line-height: var(--lh-body); overflow-wrap: break-word; counter-increment: lo-where; }
 .lo-where-steps li::before { content: counter(lo-where); display: grid; place-items: center; width: 24px; height: 24px; margin-top: -1px; border-radius: 50%; background: var(--home-soft); color: var(--home-accent); font-family: inherit; font-size: 13px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 @media (min-width: 960px) {
   .lo-empty { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "bill where"; align-items: start; gap: 24px; margin-top: 8px; }
@@ -348,15 +356,15 @@ html[data-theme="dark"] .lo-where-steps li::before { background: var(--night-jad
 .lo-source-host svg { flex-shrink: 0; color: var(--home-accent); }
 .lo-source-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0 16px; }
 /* For a guest, one quiet line under the add button: after sign-in the item goes to the cart by itself. */
-.lo-guest { display: flex; align-items: flex-start; gap: 8px; margin: 10px 0 0; padding: 0; border-radius: 0; background: none; color: var(--home-muted); font-size: 13px; line-height: 1.45; }
+.lo-guest { display: flex; align-items: flex-start; gap: 8px; margin: 10px 0 0; padding: 0; border-radius: 0; background: none; color: var(--home-muted); font-size: 13px; line-height: var(--lh-body); }
 .lo-guest svg { flex: none; margin-top: 1px; color: var(--home-accent); }
 .lo-confirm .lo-guest { margin: -4px 0 0; }
 html[data-theme="dark"] .lo-page .lo-guest { background: none; }
 /* The unfinished draft brought back by opening the page, and the guest's add being sent after sign-in. */
-.lo-resumed, .lo-pending { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 0 0 14px; padding: 4px 14px; border-radius: var(--r-control); background: var(--home-soft); color: var(--home-ink); font-size: 14px; line-height: 1.45; }
+.lo-resumed, .lo-pending { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 0 0 14px; padding: 4px 14px; border-radius: var(--r-control); background: var(--home-soft); color: var(--home-ink); font-size: 14px; line-height: var(--lh-body); }
 .lo-resumed > span { flex: 1 1 200px; min-width: 0; padding: 8px 0; overflow-wrap: anywhere; }
 .lo-resumed > svg, .lo-pending > svg { flex: none; color: var(--home-accent); }
-.lo-pending { min-height: 44px; font-weight: 600; }
+.lo-pending { min-height: 44px; font-weight: var(--fw-semibold); }
 
 /* minmax(0, 1fr): one wide child (a long button label, a row of swatches) must not widen the whole phone layout. */
 .lo-layout { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "product" "summary" "data" "confirm"; gap: 14px; }
@@ -371,12 +379,12 @@ html[data-theme="dark"] .lo-page .lo-guest { background: none; }
 /* The delivery the total uses, as a quiet chip with its business days; the other speed is chosen in the cart. */
 .lo-speed { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; color: var(--home-muted); font-size: 13px; line-height: 1.4; }
 .lo-speed-label { color: var(--home-muted); font-size: 13px; }
-.lo-speed-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border: 1px solid var(--home-line); border-radius: var(--r-pill); background: var(--home-surface); color: var(--home-ink); font-size: 13px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lo-speed-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border: 1px solid var(--home-line); border-radius: var(--r-pill); background: var(--home-surface); color: var(--home-ink); font-size: 13px; font-weight: var(--fw-semibold); line-height: 1.3; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .lo-speed-chip .speed-option-star { margin: 0 0 0 4px; }
-.lo-speed small { flex-basis: 100%; color: var(--home-muted); font-size: 12px; line-height: 1.45; }
+.lo-speed small { flex-basis: 100%; color: var(--home-muted); font-size: 12px; line-height: var(--lh-body); }
 html[data-theme="dark"] .lo-speed-chip { border-color: var(--night-line); background: var(--night-surface); color: var(--night-ink); }
 /* "To pay, from": the lowest-priced option until one is chosen; the amount stays whole, "from" lives in the label. */
-.lo-summary .lo-from-note { margin: 0; color: var(--home-muted); font-size: 12px; line-height: 1.45; }
+.lo-summary .lo-from-note { margin: 0; color: var(--home-muted); font-size: 12px; line-height: var(--lh-body); }
 .lo-data { grid-area: data; }
 /* One option or several: the mode switch sits on the line above the chosen list. */
 .lo-pick-mode { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; margin-top: 10px; }
@@ -432,8 +440,8 @@ html[data-theme="dark"] .lo-speed-chip { border-color: var(--night-line); backgr
   .lo-store-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 16px; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--home-line); }
   /* .lo-product raises these above the home quote card rules (.home-quote dl > div, dd) the page also wears. */
   .lo-product .lo-store-facts > div { display: grid; gap: 2px; min-width: 0; padding: 0; border: 0; }
-  .lo-product .lo-store-facts dt { color: var(--home-muted); font-size: 12px; font-weight: 600; }
-  .lo-product .lo-store-facts dd { margin: 0; text-align: left; white-space: normal; color: var(--home-ink); font-size: 14px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+  .lo-product .lo-store-facts dt { color: var(--home-muted); font-size: 12px; font-weight: var(--fw-semibold); }
+  .lo-product .lo-store-facts dd { margin: 0; text-align: left; white-space: normal; color: var(--home-ink); font-size: 14px; font-weight: var(--fw-semibold); line-height: 1.35; overflow-wrap: anywhere; }
   .lo-store-facts .lo-store-facts-link { grid-column: 1 / -1; }
   /* The facts already say the store does not report stock: the same line under the option card would repeat it. */
   .lo-product:has(.lo-store-facts) .lo-stock-hint { display: none; }
@@ -462,12 +470,12 @@ a.lo-source-host:hover span { text-decoration: underline; text-underline-offset:
 .lo-stepper button { display: grid; place-items: center; width: 40px; height: 40px; border: 0; background: none; color: var(--home-ink); cursor: pointer; }
 .lo-stepper button:disabled { color: var(--home-line); cursor: not-allowed; }
 .lo-stepper button:focus-visible { outline: 2px solid var(--home-accent); outline-offset: -2px; border-radius: var(--r-control); }
-.lo-stepper output { min-width: 28px; color: var(--home-ink); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
+.lo-stepper output { min-width: 28px; color: var(--home-ink); font-weight: var(--fw-bold); text-align: center; font-variant-numeric: tabular-nums; }
 .lo-single-option { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; padding: 12px 14px; border: 1px solid var(--home-line); border-radius: var(--r-card); }
 .lo-single-option > span:not(.lo-stepper) { display: grid; gap: 2px; min-width: 0; }
-.lo-single-option small { color: var(--home-muted); font-size: 12px; font-weight: 600; }
+.lo-single-option small { color: var(--home-muted); font-size: 12px; font-weight: var(--fw-semibold); }
 .lo-single-option b { color: var(--home-ink); font-size: 16px; overflow-wrap: anywhere; }
-.lo-stock { color: var(--home-muted); font-size: 12px; font-style: normal; font-weight: 600; }
+.lo-stock { color: var(--home-muted); font-size: 12px; font-style: normal; font-weight: var(--fw-semibold); }
 .lo-page .variant-options button .lo-stock { color: inherit; font-size: 12px; opacity: .85; }
 .lo-page .variant-options button:disabled { opacity: .45; cursor: not-allowed; text-decoration: line-through; }
 .lo-hint-line { margin: 10px 0 0; color: var(--home-muted); font-size: 13px; }
@@ -491,24 +499,24 @@ html[data-theme="dark"] .lo-pick-tick { color: #10241a; }
   .lo-blocks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .lo-block { display: grid; align-content: start; gap: 6px; min-width: 0; margin: 0; padding: 12px 14px; border: 1px solid var(--home-line); border-radius: var(--r-card); }
-.lo-block > legend { float: left; width: 100%; margin: 0 0 4px; padding: 0; color: var(--home-ink); font-size: 14px; font-weight: 800; }
+.lo-block > legend { float: left; width: 100%; margin: 0 0 4px; padding: 0; color: var(--home-ink); font-size: 14px; font-weight: var(--fw-bold); }
 .lo-block .field { margin: 0; }
 .lo-block .field label { margin-bottom: 4px; font-size: 13px; }
 .lo-block-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: end; }
-.lo-block-state { margin: 0 0 12px; color: var(--home-muted); font-size: 13px; font-weight: 600; }
-.lo-weight-basis.estimate { color: var(--cx-warn); font-weight: 600; }
+.lo-block-state { margin: 0 0 12px; color: var(--home-muted); font-size: 13px; font-weight: var(--fw-semibold); }
+.lo-weight-basis.estimate { color: var(--cx-warn); font-weight: var(--fw-semibold); }
 .lo-name-field { margin-bottom: 10px; }
 .lo-comment { display: grid; gap: 8px; }
 .lo-comment label { display: grid; gap: 2px; }
 .lo-comment label b { color: var(--home-ink); font-size: 14px; }
 .lo-comment label small { color: var(--home-muted); font-size: 12px; }
-.lo-comment textarea { width: 100%; min-height: 64px; padding: 10px 12px; border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 16px; line-height: 1.45; resize: vertical; }
+.lo-comment textarea { width: 100%; min-height: 64px; padding: 10px 12px; border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 16px; line-height: var(--lh-body); resize: vertical; }
 .lo-comment textarea::placeholder { color: var(--home-muted); opacity: .75; }
 .lo-comment textarea:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 1px; }
 .lo-added { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; align-items: start; margin: 0 0 14px; padding: 14px 16px; border: 1px solid var(--day-ok-line, #bfdccb); border-radius: var(--r-card); background: var(--day-ok-bg, #e9f3ed); color: var(--home-ink); }
 .lo-added > svg { margin-top: 2px; color: var(--day-ok, var(--c-ok)); }
 .lo-added > div { display: grid; gap: 2px; }
-.lo-added small { color: var(--home-muted); font-size: 13px; line-height: 1.45; }
+.lo-added small { color: var(--home-muted); font-size: 13px; line-height: var(--lh-body); }
 .lo-added-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .lo-added-actions .btn { min-height: 44px; }
 @media (min-width: 760px) {
@@ -541,7 +549,7 @@ html[data-theme="dark"] .lo-added { border-color: rgba(128, 208, 172, .35); back
 .calc-check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--home-accent); }
 .calc-check span { display: inline-flex; align-items: center; gap: 6px; }
 .calc-customs-more > summary { display: flex; align-items: center; min-height: 36px; color: var(--home-accent); font-size: 13px; font-weight: 700; cursor: pointer; }
-.calc-customs-more p { margin: 6px 0 0; color: var(--home-muted); font-size: 12px; line-height: 1.45; }
+.calc-customs-more p { margin: 6px 0 0; color: var(--home-muted); font-size: 12px; line-height: var(--lh-body); }
 .calc-customs-more ul { margin: 6px 0 0; padding-left: 18px; font-size: 12px; }
 .calc-customs-more a { display: inline-flex; align-items: center; gap: 4px; color: var(--home-accent); }
 /* Phones: "Comment on the order" is a 44 px tap target of its own (the wide cart keeps it at 30 px beside the quantity, cart-select.css). */
@@ -559,7 +567,7 @@ html[data-theme="dark"] .lo-added { border-color: rgba(128, 208, 172, .35); back
   .lo-gallery .product-gallery-stage { height: clamp(240px, 84vw, 360px); }
   .lo-gallery .product-gallery-thumbnails { display: none; }
 }
-.lo-product h2 { margin: 2px 0 6px; color: var(--home-ink); font-size: 20px; font-weight: 800; line-height: 1.3; }
+.lo-product h2 { margin: 2px 0 6px; color: var(--home-ink); font-size: 20px; font-weight: var(--fw-bold); line-height: 1.3; }
 .lo-store-price { margin: 0; color: var(--home-muted); font-size: 14px; }
 .lo-store-price b { color: var(--home-ink); }
 /* "· checked at 03:45" wraps as one piece, the dot with its words. */
@@ -567,11 +575,9 @@ html[data-theme="dark"] .lo-added { border-color: rgba(128, 208, 172, .35); back
 /* The item name with the favourites heart beside it (catalog items, signed-in customers). */
 .lo-name-row { display: flex; align-items: flex-start; gap: 10px; }
 .lo-name-row > h2 { flex: 1 1 auto; min-width: 0; }
-.site-main .lo-page .find-save.lo-save.saved { border-color: var(--fav-ink, #1f6a43); background: var(--fav-ink, #1f6a43); color: #fff; }
+.site-main .lo-page .find-save.lo-save.saved { background: var(--brand); color: var(--on-brand); }
 .site-main .lo-page .find-save.lo-save:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
 .site-main .lo-page .find-save.lo-save:disabled { opacity: .6; cursor: progress; }
-html[data-theme="dark"] .site-main .lo-page .find-save.lo-save:not(.saved) { border-color: var(--night-line); background: var(--night-surface); color: var(--night-ink); }
-html[data-theme="dark"] .site-main .lo-page .find-save.lo-save.saved { --fav-ink: #7fd1a1; color: #10241a; }
 /* Phones: every control on the link-order page is at least 44 px to tap; icon sizes stay as they are. */
 @media (max-width: 767px) {
   .lo-page .lo-pick-mode .lo-source-link { min-height: 44px; }
@@ -582,10 +588,10 @@ html[data-theme="dark"] .site-main .lo-page .find-save.lo-save.saved { --fav-ink
 }
 .lo-note { display: flex; align-items: flex-start; gap: 8px; margin: 10px 0 0; padding: 10px 12px; border-radius: var(--r-control); background: var(--home-soft); color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 .lo-note svg { flex-shrink: 0; margin-top: 3px; }
-.lo-note.warn { background: var(--cx-warn-soft); color: var(--cx-warn); font-weight: 600; }
+.lo-note.warn { background: var(--cx-warn-soft); color: var(--cx-warn); font-weight: var(--fw-semibold); }
 
 .lo-page .variant-matrix { margin: 0; padding: 0; border: 0; background: transparent; }
-.lo-page .variant-matrix > label { display: block; margin-bottom: 8px; color: var(--home-ink); font-size: 16px; font-weight: 800; }
+.lo-page .variant-matrix > label { display: block; margin-bottom: 8px; color: var(--home-ink); font-size: 16px; font-weight: var(--fw-bold); }
 .lo-page .variant-step { margin-top: 12px; }
 .lo-page .variant-step > div:first-child span { color: var(--home-muted); }
 .lo-page .variant-options { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -602,7 +608,7 @@ html[data-theme="dark"] .site-main .lo-page .find-save.lo-save.saved { --fav-ink
 .lo-page .lo-option-axes { margin: 4px 0 8px; color: var(--home-muted); font-size: 14px; }
 .lo-page .variant-options.lo-option-chips { display: flex; flex-wrap: wrap; }
 .lo-page .variant-options.lo-option-chips::after { content: ""; flex: 999 1 0; }
-.lo-page .variant-options.lo-option-chips button { flex: 1 0 auto; min-width: 78px; max-width: 100%; display: grid; justify-items: center; align-content: center; gap: 1px; padding: 8px 12px; text-align: center; white-space: nowrap; font-size: 16px; font-weight: 600; line-height: 1.2; }
+.lo-page .variant-options.lo-option-chips button { flex: 1 0 auto; min-width: 78px; max-width: 100%; display: grid; justify-items: center; align-content: center; gap: 1px; padding: 8px 12px; text-align: center; white-space: nowrap; font-size: 16px; font-weight: var(--fw-semibold); line-height: 1.2; }
 .lo-page .variant-options.lo-option-chips button > * { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .lo-page .variant-options.lo-option-chips button small { font-weight: 500; }
 .lo-page .variant-options button:hover { border-color: var(--home-accent); }
@@ -619,7 +625,7 @@ html[data-theme="dark"] .site-main .lo-page .find-save.lo-save.saved { --fav-ink
 .lo-data-toggle { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .lo-data-toggle > span:first-child { display: grid; gap: 2px; min-width: 0; }
 .lo-data-toggle b { color: var(--home-ink); font-size: 16px; }
-.lo-data-toggle small { overflow-wrap: anywhere; color: var(--home-muted); font-size: 13px; line-height: 1.45; }
+.lo-data-toggle small { overflow-wrap: anywhere; color: var(--home-muted); font-size: 13px; line-height: var(--lh-body); }
 .lo-data-sign { flex-shrink: 0; color: var(--home-accent); font-size: 24px; line-height: 1; }
 .lo-data-toggle:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 4px; border-radius: var(--r-sm); }
 .lo-data-fields { display: grid; gap: 2px; margin-top: 10px; }
@@ -627,7 +633,7 @@ html[data-theme="dark"] .site-main .lo-page .find-save.lo-save.saved { --fav-ink
 /* Calculation details Atlas loaded (from the store or its catalog): read-only "label — value" lines with a lock, never
    inputs that look editable; what Atlas could not load stays an ordinary field next to them. */
 .lo-data-title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
-.lo-data-badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 9px 1px 7px; border: 1px solid var(--day-ok-line, #bfdccb); border-radius: var(--r-pill); background: var(--day-ok-bg, #e9f3ed); color: var(--day-ok, var(--c-ok)); font-size: 12px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
+.lo-data-badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 9px 1px 7px; border: 1px solid var(--day-ok-line, #bfdccb); border-radius: var(--r-pill); background: var(--day-ok-bg, #e9f3ed); color: var(--day-ok, var(--c-ok)); font-size: 12px; font-weight: 700; line-height: var(--lh-body); white-space: nowrap; }
 .lo-data-badge svg { flex: none; }
 .lo-data-note { margin: 0 0 10px; }
 .lo-data-note > span { min-width: 0; }
@@ -675,9 +681,9 @@ html:not([data-theme="dark"]) .lo-page .lo-block .select-control:not(:disabled) 
 .docs-recipient input { width: 20px; height: 20px; margin: 0; accent-color: var(--home-accent); }
 
 /* Customs panel, compact (5 October 2026): one status line, one sentence, choices at checkout, a link to the rules. */
-.calc-customs-sum { margin: 0; color: var(--home-muted); font-size: 13px; line-height: 1.45; }
+.calc-customs-sum { margin: 0; color: var(--home-muted); font-size: 13px; line-height: var(--lh-body); }
 /* The cart goes over the allowance: the duty estimate, still outside the amount to pay. */
-.calc-customs-over { margin: 0; color: var(--home-ink); font-size: 13px; font-weight: 600; line-height: 1.45; }
+.calc-customs-over { margin: 0; color: var(--home-ink); font-size: 13px; font-weight: var(--fw-semibold); line-height: var(--lh-body); }
 /* Inside the bill sheet the block sits between the lines and the total. */
 .folio-sheet .calc-customs { margin: 12px 0; }
 .calc-customs .calc-check small { display: block; margin-top: 2px; color: var(--home-muted); font-size: 12px; font-weight: 500; }
@@ -719,7 +725,7 @@ html[data-theme="dark"] .lo-cart-entry b { background: #9fdeb8; color: #10241a; 
 
 /* ---------- Cart, 7.10.2026: options of one product share a note and services; who pays customs; customs calculator ---------- */
 /* Options of one product (sizes, colors) sit together; their note and warehouse services come once, below them. */
-.basket-shared-title { display: flex; align-items: flex-start; gap: 7px; margin: 0; padding-top: 10px; border-top: 1px dashed var(--home-line); color: var(--home-muted); font-size: 13px; font-weight: 600; line-height: 1.4; }
+.basket-shared-title { display: flex; align-items: flex-start; gap: 7px; margin: 0; padding-top: 10px; border-top: 1px dashed var(--home-line); color: var(--home-muted); font-size: 13px; font-weight: var(--fw-semibold); line-height: 1.4; }
 .basket-shared-title svg { flex: none; margin-top: 1px; color: var(--home-accent); }
 
 /* Who pays the duty: two cards instead of one checkbox; "Atlas pays" is set apart as the easier way. */
@@ -737,33 +743,34 @@ html[data-theme="dark"] .lo-cart-entry b { background: #9fdeb8; color: #10241a; 
 .customs-option-head svg { flex: none; color: var(--home-accent); }
 .customs-option-head b { font-weight: 700; }
 /* A quiet outlined tag beside the name (14.10.2026), not a filled badge pinned over the card's edge. */
-.customs-option-head em { padding: 0 7px; border: 1px solid currentColor; border-radius: var(--r-pill); color: var(--home-accent); font-size: 12px; font-style: normal; font-weight: 600; line-height: 1.5; }
+.customs-option-head em { padding: 0 7px; border: 1px solid currentColor; border-radius: var(--r-pill); color: var(--home-accent); font-size: 12px; font-style: normal; font-weight: var(--fw-semibold); line-height: 1.5; }
 .customs-option-head small { color: var(--home-muted); font-size: 12px; font-weight: 500; }
-.customs-option-body > small { color: var(--home-muted); font-size: 12px; line-height: 1.45; }
-.customs-option-body > .customs-option-fee { color: var(--home-ink); font-weight: 600; }
+.customs-option-body > small { color: var(--home-muted); font-size: 12px; line-height: var(--lh-body); }
+.customs-option-body > .customs-option-fee { color: var(--home-ink); font-weight: var(--fw-semibold); }
 .customs-option.self .customs-option-head b { font-weight: 650; }
 html:not([data-theme="dark"]) .customs-option.atlas { border-color: var(--day-tint-2); background: var(--day-tint); }
 html:not([data-theme="dark"]) .customs-option.atlas.selected { border-color: var(--day-accent); box-shadow: inset 0 0 0 1px var(--day-accent), var(--shadow-2); }
 html:not([data-theme="dark"]) .customs-option.self:not(.selected) { background: var(--day-surface); }
 /* No duty: one line instead of the choice. A remembered choice: one line with "Change" (owner, 7.10.2026). */
-.calc-customs-none { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--home-ink); font-size: 13px; font-weight: 600; line-height: 1.45; }
+.calc-customs-none { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--home-ink); font-size: 13px; font-weight: var(--fw-semibold); line-height: var(--lh-body); }
 .calc-customs-none svg { flex: none; color: var(--home-accent); }
 .customs-remembered { display: flex; align-items: center; gap: 8px; margin: 2px 0 0; padding: 10px 0 0; border-top: 1px solid var(--home-line); color: var(--home-ink); font-size: 13px; font-weight: 650; }
 .customs-remembered svg { flex: none; color: var(--home-accent); }
 .customs-remembered > span { display: grid; flex: 1; gap: 2px; min-width: 0; }
 .customs-remembered small { color: var(--home-muted); font-size: 12px; font-weight: 500; }
 .customs-remembered button { flex: none; min-height: 32px; padding: 0 4px; border: 0; background: none; color: var(--home-accent); font: inherit; font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.customs-remember { margin-top: 2px; font-size: 13px; }
+/* The tick row is as wide as its words (not a click target across the card) and 24 px tall for a mouse. */
+.customs-remember { width: fit-content; min-height: 24px; margin-top: 2px; font-size: 13px; }
 
 /* "How customs is calculated": a link-like button that opens a small window with a calculator. */
 .customs-how-trigger { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .customs-how-trigger svg { flex: none; }
 .customs-how-trigger[data-state="open"] { text-decoration-color: transparent; }
-.customs-how { position: relative; z-index: 60; box-sizing: border-box; width: min(340px, calc(100vw - 24px)); padding: 14px 16px 18px; border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); color: var(--home-ink); box-shadow: var(--shadow-3); font-size: 13px; line-height: 1.45; transform-origin: var(--radix-popover-content-transform-origin); animation: customs-how-in .16s ease-out; }
+.customs-how { position: relative; z-index: 60; box-sizing: border-box; width: min(340px, calc(100vw - 24px)); padding: 14px 16px 18px; border: 1px solid var(--home-line); border-radius: var(--r-card); background: var(--home-surface); color: var(--home-ink); box-shadow: var(--shadow-3); font-size: 13px; line-height: var(--lh-body); transform-origin: var(--radix-popover-content-transform-origin); animation: customs-how-in .16s ease-out; }
 /* Only the body scrolls on a short screen: the arrow sits outside the window's edge and must not add a scrollbar. */
 .customs-how-body { display: grid; gap: 10px; max-height: calc(var(--radix-popover-content-available-height, 80vh) - 34px); /* room for focus rings: overflow clips at the padding edge */ padding: 8px 8px 4px 8px; margin: -8px -8px -4px -8px; overflow-y: auto; overscroll-behavior: contain; }
 .customs-how-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.customs-how-head h3 { margin: 0; color: var(--home-ink); font-size: 14px; font-weight: 750; }
+.customs-how-head h3 { margin: 0; color: var(--home-ink); font-size: 14px; font-weight: var(--fw-bold); }
 .customs-how-close { display: grid; place-items: center; flex: none; width: 32px; height: 32px; margin: 0 -2px -4px 0; border: 0; border-radius: 50%; background: none; color: var(--home-muted); cursor: pointer; }
 .customs-how-close:hover { background: var(--home-soft); color: var(--home-ink); }
 .customs-how-rule { margin: 0; color: var(--home-ink); }
@@ -774,7 +781,7 @@ html:not([data-theme="dark"]) .customs-option.self:not(.selected) { background: 
 .customs-how-stepper button { display: grid; place-items: center; height: 38px; border: 1px solid var(--home-line); border-radius: var(--r-control); background: var(--home-surface); color: var(--home-ink); cursor: pointer; }
 .customs-how-stepper button:hover:not(:disabled) { border-color: var(--home-accent); }
 .customs-how-stepper button:disabled { opacity: .4; cursor: default; }
-.customs-how-stepper output { color: var(--home-ink); font-size: 18px; font-weight: 750; text-align: center; font-variant-numeric: tabular-nums; }
+.customs-how-stepper output { color: var(--home-ink); font-size: 18px; font-weight: var(--fw-bold); text-align: center; font-variant-numeric: tabular-nums; }
 .customs-how-result { margin: 0; padding-top: 9px; border-top: 1px solid var(--home-line); color: var(--home-ink); font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .customs-how-final { margin: 0; color: var(--home-muted); font-size: 12px; }
 .customs-how-final a { color: var(--home-accent); font-weight: 700; white-space: nowrap; }
@@ -813,7 +820,6 @@ html[data-theme="dark"] .notice-x.unread { border-color: rgba(128, 208, 172, 0.2
 html[data-theme="dark"] .notice-x-icon { background: var(--night-jade-soft); color: var(--night-jade); }
 html[data-theme="dark"] .lo-note.warn { background: var(--night-warn-bg); }
 /* The total is the darkest figure in Day; in Night it inherited the muted grey of the account card. */
-html[data-theme="dark"] .basket-summary .bill-total .money { font-size: 30px; line-height: 1.1; }
 
 /* Delivery speed switch (cart and link-order preview) in Night. */
 html[data-theme="dark"] .speed-switch-title { color: var(--night-ink); }
@@ -862,25 +868,24 @@ html[data-theme="dark"] .lo-product > :is(.lo-variant, .lo-check) { border: 0; b
 /* ── app/day-folio.css ── */
 /* ---------- Cart and link-order summaries: one compact white card ---------- */
 /* On the cart and the link order the folder would frame a tall column: the card itself is the sheet, the slip sits inside it. */
-html:not([data-theme="dark"]) .basket-summary.folio { gap: 16px; padding: 22px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--shadow-3); }
+html:not([data-theme="dark"]) .basket-summary.folio { gap: 16px; padding: var(--pad-card-lg); border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--shadow-3); }
 @media (min-width: 960px) {
   html:not([data-theme="dark"]) .basket-summary.folio { position: sticky; top: var(--sticky-top, 88px); }
 }
 html:not([data-theme="dark"]) .basket-summary.folio .folio-sheet { gap: 12px; padding: 0; border-radius: 0; box-shadow: none; }
-html:not([data-theme="dark"]) .basket-summary.folio .folio-sheet > h2 { margin: 0; font: 750 var(--day-fs-h2-sheet)/1.2 var(--day-sans); letter-spacing: -.02em; color: var(--day-ink); }
+/* Sizes in both themes (html:root weighs as much as the light-only selector it replaced); colours stay per theme. */
+html:root .basket-summary.folio .folio-sheet > h2 { margin: 0; font-size: var(--day-fs-h2-sheet); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: var(--tracking-title); color: var(--text); }
 html:not([data-theme="dark"]) .folio-sheet .basket-line { border-bottom: 1px solid var(--day-line); }
 html:not([data-theme="dark"]) .folio-sheet .basket-lines > .basket-line:last-child { border-bottom: 0; }
 html:not([data-theme="dark"]) .folio-sheet .basket-line-label { color: var(--day-ink); }
 /* Amount to pay: the label on the left, the amount on the right, in one line when it fits. */
 html:not([data-theme="dark"]) .basket-summary .bill-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
-html:not([data-theme="dark"]) .basket-summary .bill-total > span { font-size: 14px; font-weight: 700; }
-html:not([data-theme="dark"]) .basket-summary .bill-total .money { font-size: var(--day-money-l); line-height: 1.1; }
-html:not([data-theme="dark"]) .basket-summary .basket-cta { min-height: 54px; border-radius: var(--day-r-control); font-size: 16px; }
+html:root .basket-summary .bill-total > span { font-size: 14px; font-weight: var(--fw-bold); }
+html:root .basket-summary .bill-total .money { font-size: var(--day-money-l); line-height: 1.1; }
 /* On the slip, the hold and the customs estimate read as rows, not as boxes inside a box. */
 html:not([data-theme="dark"]) .folio-outside .calc-hold + .calc-customs { padding-top: 10px; border-top: 1px solid var(--day-slip-line); }
 html:not([data-theme="dark"]) .lo-summary .cabinet-empty { margin: 0; color: var(--day-muted); }
 @media (max-width: 600px) {
-  html:not([data-theme="dark"]) .basket-summary.folio { padding: 18px 16px; }
 }
 /* Cart items: the parcel cards line up with the summary and stay compact. */
 html:not([data-theme="dark"]) .basket-parcel-title { background: var(--day-soft); }
@@ -888,22 +893,21 @@ html:not([data-theme="dark"]) .basket-parcel-title { background: var(--day-soft)
 /* Atlas Night: the new wrappers keep the summary own surface and spacing. */
 html[data-theme="dark"] .basket-summary .folio-sheet, html[data-theme="dark"] .basket-summary .folio-outside { display: grid; gap: 14px; }
 /* The link field on /order-by-link matches the home form: a field-grey frame, one soft shadow, focus in green. */
-html:not([data-theme="dark"]) .lo-link-submit { min-height: 52px; border-radius: var(--day-r-control); font-size: 16px; }
 
 /* ---------- The blank bill on /order-by-link before a link is pasted ---------- */
 .bill-blank { display: grid; gap: 14px; max-width: 560px; margin-top: 24px; }
 .bill-blank > * { margin: 0; }
 .bill-blank-outside ul { display: grid; gap: 6px; margin: 6px 0 0; padding-left: 0; list-style: none; }
-html:not([data-theme="dark"]) .bill-blank { padding: 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--shadow-2); }
-html:not([data-theme="dark"]) .bill-blank > h2 { font: 750 var(--day-fs-h2-sheet)/1.2 var(--day-sans); letter-spacing: -.02em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .bill-blank { padding: var(--pad-card-lg); border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--shadow-2); }
+html:root .bill-blank > h2 { font-size: var(--day-fs-h2-sheet); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: var(--tracking-title); color: var(--text); }
 html:not([data-theme="dark"]) .bill-blank-lead { margin-top: -6px; font-size: 14px; color: var(--day-muted); }
 html:not([data-theme="dark"]) .bill-fill { display: block; width: 88px; height: 1em; border-bottom: 1.5px dotted var(--day-field); }
 html:not([data-theme="dark"]) .bill-blank .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: end; }
 html:not([data-theme="dark"]) .bill-blank .bill-total .bill-fill { justify-self: end; width: 160px; height: 1.6em; }
 html:not([data-theme="dark"]) .bill-blank-outside { padding: 14px 16px; border-radius: var(--day-r-sheet); background: var(--day-slip); border: 1px solid var(--day-slip-line); }
 html:not([data-theme="dark"]) .bill-blank-outside h3 { margin: 0; font-size: 14px; color: var(--day-ink); }
-html:not([data-theme="dark"]) .bill-blank-outside li { font-size: 14px; line-height: 1.45; color: var(--day-muted); }
-html[data-theme="dark"] .bill-blank { padding: 22px 24px; border: 1px solid var(--night-line-strong); border-radius: var(--r-card); background: var(--night-sheen), var(--night-raised); }
+html:not([data-theme="dark"]) .bill-blank-outside li { font-size: 14px; line-height: var(--lh-body); color: var(--day-muted); }
+html[data-theme="dark"] .bill-blank { padding: var(--pad-card-lg); border: 1px solid var(--night-line-strong); border-radius: var(--r-card); background: var(--night-sheen), var(--night-raised); }
 html[data-theme="dark"] .bill-blank-lead, html[data-theme="dark"] .bill-blank-outside li { color: var(--night-muted); font-size: 14px; }
 html[data-theme="dark"] .bill-fill { display: block; width: 88px; height: 1em; border-bottom: 1.5px dotted var(--night-line-strong); }
 html[data-theme="dark"] .bill-blank-outside h3 { margin: 0; color: var(--night-ink); font-size: 14px; }
@@ -997,7 +1001,7 @@ button.atlas-check:disabled { opacity: 1; cursor: not-allowed; }
 .lo-check-head { display: flex; align-items: center; gap: 12px; }
 .lo-check-head > span:last-child { display: grid; gap: 2px; min-width: 0; }
 .lo-check-head b { color: var(--home-ink); font-size: 16px; font-weight: 700; line-height: 1.35; }
-.lo-check-head small { color: var(--home-muted); font-size: 13px; line-height: 1.45; }
+.lo-check-head small { color: var(--home-muted); font-size: 13px; line-height: var(--lh-body); }
 .lo-check-orb {
   display: grid; flex-shrink: 0; place-items: center; width: 42px; height: 42px; border-radius: 50%;
   background: color-mix(in srgb, var(--home-accent) 11%, var(--home-surface)); color: var(--home-accent);
@@ -1011,7 +1015,7 @@ button.atlas-check:disabled { opacity: 1; cursor: not-allowed; }
 }
 .lo-check-steps li[data-state="done"] { color: var(--home-ink); }
 .lo-check-steps li[data-state="done"] .lo-check-mark { border-color: var(--home-accent); background: var(--home-accent); animation: lo-check-pop .4s cubic-bezier(.22, 1, .36, 1); }
-.lo-check-steps li[data-state="current"] { color: var(--home-ink); font-weight: 600; }
+.lo-check-steps li[data-state="current"] { color: var(--home-ink); font-weight: var(--fw-semibold); }
 .lo-check-steps li[data-state="current"] .lo-check-mark { border-color: var(--home-accent); border-top-color: transparent; animation: spin .9s linear infinite; }
 .lo-check-steps li[data-state="next"] { opacity: .75; }
 .lo-check-bar { height: 3px; overflow: hidden; border-radius: var(--r-pill); background: color-mix(in srgb, var(--home-accent) 12%, transparent); }
@@ -1086,7 +1090,7 @@ html[data-theme="dark"] .lo-store-facts { border-top-color: var(--night-line); }
 .lo-page .variant-options.sizes::after { content: none; }
 .lo-page .variant-options.sizes button { display: grid; align-content: center; justify-items: center; gap: 2px; min-width: 0; min-height: 56px; padding: 6px 4px; }
 .lo-page .variant-options.sizes button > span { font-size: 14px; font-weight: 700; }
-.lo-page .variant-options.sizes button small.lo-stock { color: #9a5b00; font-size: 12px; font-weight: 600; line-height: 1.2; text-align: center; white-space: normal; overflow: visible; opacity: 1; }
+.lo-page .variant-options.sizes button small.lo-stock { color: #9a5b00; font-size: 12px; font-weight: var(--fw-semibold); line-height: 1.2; text-align: center; white-space: normal; overflow: visible; opacity: 1; }
 .lo-page .variant-options.sizes button[aria-pressed="true"] { border-color: var(--home-accent); background: color-mix(in srgb, var(--home-accent) 7%, var(--home-surface, #fff)); color: var(--home-ink); box-shadow: inset 0 0 0 1px var(--home-accent); }
 
 .lo-page .lo-pick-mode { justify-content: flex-start; margin-top: 12px; }
@@ -1128,10 +1132,10 @@ html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, var(--ni
 @media (max-width: 639px) { .lo-page .variant-options.lo-colour-rail { grid-auto-columns: 88px; } }
 .lo-page :is(.lo-colour-tiles, .lo-colour-rail) button { display: grid; align-content: start; justify-items: stretch; gap: 0; min-width: 0; min-height: 0; padding: 3px 3px 7px; border-radius: var(--r-card); text-align: center; }
 .lo-page :is(.lo-colour-tiles, .lo-colour-rail) button img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; border-radius: var(--r-control); background: #fff; }
-.lo-page :is(.lo-colour-tiles, .lo-colour-rail) button > span { display: -webkit-box; overflow: hidden; margin-top: 6px; padding: 0 4px; font-size: 12px; font-weight: 600; line-height: 1.3; overflow-wrap: break-word; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.lo-page :is(.lo-colour-tiles, .lo-colour-rail) button > span { display: -webkit-box; overflow: hidden; margin-top: 6px; padding: 0 4px; font-size: 12px; font-weight: var(--fw-semibold); line-height: 1.3; overflow-wrap: break-word; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .lo-page :is(.lo-colour-tiles, .lo-colour-rail) button small { padding: 0 4px; font-size: 12px; }
 .lo-page .variant-options.lo-colour-names { display: flex; flex-wrap: wrap; gap: 8px; }
-.lo-page .lo-colour-names button { min-height: 44px; padding: 8px 14px; font-size: 14px; font-weight: 600; }
+.lo-page .lo-colour-names button { min-height: 44px; padding: 8px 14px; font-size: 14px; font-weight: var(--fw-semibold); }
 .lo-page .lo-colour-names button[aria-pressed="true"] { padding-right: 32px; }
 .lo-page .lo-colour-names button[aria-pressed="true"]::after { top: 50%; right: 9px; transform: translateY(-50%); }
 /* A colour photo on its way shimmers in its place and fades in when it lands. */
@@ -1168,7 +1172,7 @@ html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, var(--ni
 .lo-page .variant-options.sizes { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 6px; }
 .lo-page .variant-options.sizes[style*="--cols"] { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
 .lo-page .variant-options.sizes button { min-height: 46px; padding: 4px; border-radius: var(--r-control); }
-.lo-page .variant-options.sizes button > span { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lo-page .variant-options.sizes button > span { font-size: 14px; font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
 @media (max-width: 639px) { .lo-page .variant-options.sizes button > span { font-size: 13px; } .lo-page .variant-options.sizes button { min-height: 44px; } }
 @media (min-width: 640px) {
   .lo-page .variant-step:has(> .lo-size-formats) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 16px; }
@@ -1193,10 +1197,10 @@ html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, var(--ni
    no grid"). The groups inside the data card are sections divided by a hairline, not cards inside a card; their
    headings and labels are lighter; amounts carry their unit inside the field; categories are one tap each. */
 .lo-page .lo-source { flex-wrap: nowrap; gap: 4px; padding: 4px 6px 4px 14px; }
-.lo-page .lo-source-host { flex: 1 1 auto; font-size: 14px; font-weight: 600; }
+.lo-page .lo-source-host { flex: 1 1 auto; font-size: 14px; font-weight: var(--fw-semibold); }
 .lo-page .lo-source-host > span:not(.sr-only) { color: var(--home-ink); }
 .lo-page .lo-source-actions { flex: none; flex-wrap: nowrap; gap: 2px; }
-.lo-page .lo-source-actions .lo-source-link { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 10px; border-radius: var(--r-control); font-size: 14px; font-weight: 600; }
+.lo-page .lo-source-actions .lo-source-link { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 10px; border-radius: var(--r-control); font-size: 14px; font-weight: var(--fw-semibold); }
 .lo-page .lo-source-actions .lo-source-link:hover { background: color-mix(in srgb, var(--home-accent) 8%, transparent); text-decoration: none; }
 @media (max-width: 639px) {
   .lo-page .lo-source-host { font-size: 14px; }
@@ -1220,7 +1224,7 @@ html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, var(--ni
 /* An amount with its unit inside the field: "10 USD", "1 кг". */
 .lo-unit-input { position: relative; display: block; }
 .lo-unit-input > input { width: 100%; padding-right: 54px; }
-.lo-unit-input > span { position: absolute; top: 50%; right: 14px; color: var(--home-muted); font-size: 14px; font-weight: 600; transform: translateY(-50%); pointer-events: none; }
+.lo-unit-input > span { position: absolute; top: 50%; right: 14px; color: var(--home-muted); font-size: 14px; font-weight: var(--fw-semibold); transform: translateY(-50%); pointer-events: none; }
 .lo-unit-short { max-width: 180px; }
 
 /* Categories: one tap each, the chosen one filled. */
@@ -1254,8 +1258,7 @@ html[data-theme="dark"] .lo-cat-chips > button[aria-checked="true"] { background
    parts sit flat, divided by hairlines. */
 .pd-gallery, .pd-info, .pd-section { border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); }
 .pd-gallery { padding: var(--space-3); }
-.pd-info { padding: var(--space-5); }
-@media (min-width: 900px) { .pd-info { padding: var(--space-6); } }
+.pd-info { padding: var(--pad-card-lg); }
 .pd-section { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); }
 .pd-in-sheet .pd-gallery, .pd-in-sheet .pd-info, .pd-in-sheet .pd-section { padding: 0; border-radius: 0; background-color: transparent; box-shadow: none; }
 .pd-in-sheet .pd-section { padding-top: var(--space-4); border-top: 1px solid var(--line); }
@@ -1263,7 +1266,7 @@ html[data-theme="dark"] .lo-cat-chips > button[aria-checked="true"] { background
 /* Photos: square on wide screens, a fixed band on phones so the name and the sum show in the first screen. */
 .lo-page .pd-gallery .product-gallery-stage { aspect-ratio: 1; height: auto; max-height: min(640px, 74vh); border-radius: var(--r-control); background-color: var(--sunken); }
 @media (max-width: 899px) {
-  .lo-page .pd-gallery .product-gallery-stage { aspect-ratio: auto; height: clamp(260px, 86vw, 420px); }
+  .lo-page .pd-gallery .product-gallery-stage { aspect-ratio: auto; height: clamp(220px, min(86vw, 42svh), 420px); }
 }
 .product-sheet.pd-sheet .pd-gallery .product-gallery-stage { aspect-ratio: auto; height: clamp(240px, 38dvh, 340px); }
 /* White store photos melt into the stage instead of standing as a white box on it (light theme only: multiply would
@@ -1361,7 +1364,6 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 .lo-page .pd-section .lo-speed { margin: 0; }
 /* Touch targets on phones: the heart and the store link are 44 px (the sheet's "×" below). */
 @media (max-width: 760px) {
-  .pd-name-row .lo-save { width: 44px; height: 44px; }
   .lo-page .pd-source { min-height: 44px; }
 }
 
@@ -1390,3 +1392,7 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 .pd-sheet-actions .sheet-close { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--r-pill); background-color: var(--surface); color: var(--text); box-shadow: var(--shadow-2); }
 .product-sheet.pd-sheet.product-sheet-bottom .pd-sheet-actions .sheet-close { top: 4px; }
 @media (max-width: 760px) { .pd-sheet-actions .sheet-close { width: 44px; height: 44px; } }
+
+/* A passport's status under the recipient's name, on the name's line (not under the radio button). */
+.docs-recipient { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; }
+.docs-recipient > .cabinet-chip { grid-column: 2; justify-self: start; }

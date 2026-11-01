@@ -2,7 +2,7 @@
    Mobile-first: filters are a sheet on phones and tablets and a sidebar from 1024px.
    Every tap target is at least 44px; colours resolve to the home tokens or the Atlas Night tokens. */
 /* ---------- Heading, banners ---------- */
-.catalog-head h1 { margin: 0 0 6px; color: var(--cat-ink); font-size: clamp(30px, 4vw, 40px); line-height: 1.1; }
+.catalog-head h1 { margin: 0; color: var(--cat-ink); font-size: clamp(30px, 4vw, 40px); line-height: 1.1; }
 
 /* One line: icon, the short fact, the action; the sentence and the "how it works" link open on tap (≤ 56px on phones). */
 .catalog-page .catalog-banner-row > svg { flex: none; color: var(--cat-ok); }
@@ -10,15 +10,16 @@
 
 /* ---------- Chips (categories, prices, sizes, active filters) ---------- */
 :is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button) {
-  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
+  display: inline-flex; align-items: center; gap: 8px; min-height: var(--h-sm); padding: 0 14px;
   border: 1px solid var(--cat-line); border-radius: var(--r-pill); background: var(--cat-surface); color: var(--cat-ink);
   font: inherit; font-size: 14px; font-weight: 650; white-space: nowrap; cursor: pointer;
   transition: background-color .15s, border-color .15s, color .15s;
 }
-:is(.catalog-categories, .catalog-chips) > button > span { color: var(--cat-muted); font-size: 12px; font-weight: 750; font-feature-settings: "tnum" 1; }
+:is(.catalog-categories, .catalog-chips) > button > span { color: var(--cat-muted); font-size: 12px; font-weight: var(--fw-bold); font-feature-settings: "tnum" 1; }
 :is(.catalog-categories, .catalog-chips) > button:hover { border-color: var(--cat-accent); }
-:is(.catalog-categories, .catalog-chips) > button[aria-pressed="true"] { border-color: var(--cat-on); background: var(--cat-on); color: var(--cat-on-ink); }
-:is(.catalog-categories, .catalog-chips) > button[aria-pressed="true"] > span { color: inherit; opacity: .85; }
+/* A chosen chip: the tokens' "selected" (mint fill, mint edge, brand text); the green fill is for action buttons only. */
+:is(.catalog-categories, .catalog-chips) > button[aria-pressed="true"] { border-color: var(--selected-line); background: var(--selected); color: var(--link); }
+:is(.catalog-categories, .catalog-chips) > button[aria-pressed="true"] > span { color: inherit; }
 :is(.catalog-page, .catalog-sheet) :is(button, a, input, select):focus-visible { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
 
 /* ---------- Toolbar ---------- */
@@ -44,7 +45,7 @@
    catalog.css loads before the page's split files (app/styles/catalog-pages.css), so these rules carry the page prefix. */
 :is(.catalog-page, .catalog-sheet) .catalog-facets .catalog-group { border-top: 1px solid var(--cat-line); }
 :is(.catalog-page, .catalog-sheet) .catalog-facets .catalog-group:first-child { border-top: 0; }
-:is(.catalog-page, .catalog-sheet) .catalog-group > summary { display: flex; align-items: center; gap: 8px; min-height: 48px; list-style: none; color: var(--cat-ink); font-size: 14px; font-weight: 750; cursor: pointer; }
+:is(.catalog-page, .catalog-sheet) .catalog-group > summary { display: flex; align-items: center; gap: 8px; min-height: 48px; list-style: none; color: var(--cat-ink); font-size: 14px; font-weight: var(--fw-bold); cursor: pointer; }
 :is(.catalog-page, .catalog-sheet) .catalog-group > summary::-webkit-details-marker { display: none; }
 :is(.catalog-page, .catalog-sheet) .catalog-group > summary > span { flex: 1; min-width: 0; }
 :is(.catalog-page, .catalog-sheet) .catalog-group > summary > b { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: var(--r-pill); background: var(--cat-on); color: var(--cat-on-ink); font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -72,8 +73,8 @@
 :is(.catalog-page, .catalog-sheet) .catalog-size-chips > .text-button { min-height: 44px; }
 /* Price from–to: two fields and a two-thumb slider (two range inputs over one track). */
 :is(.catalog-page, .catalog-sheet) .catalog-price-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 8px; color: var(--cat-muted); }
-:is(.catalog-page, .catalog-sheet) .catalog-price-field { display: flex; align-items: center; gap: 5px; min-width: 0; min-height: 44px; padding: 0 8px; border: 1px solid var(--cat-line); border-radius: var(--r-control); background: var(--cat-surface); color: var(--cat-muted); font-size: 12px; }
-:is(.catalog-page, .catalog-sheet) .catalog-price-field:focus-within { border-color: var(--cat-accent); }
+:is(.catalog-page, .catalog-sheet) .catalog-price-field { display: flex; align-items: center; gap: 5px; min-width: 0; min-height: var(--h-md); padding: 0 8px; border: 1px solid var(--field); border-radius: var(--r-control); background: var(--cat-surface); color: var(--cat-muted); font-size: 12px; }
+:is(.catalog-page, .catalog-sheet) .catalog-price-field:focus-within { border-color: var(--brand); box-shadow: var(--focus-ring); }
 html :is(.catalog-page, .catalog-sheet) .catalog-price-field > input { width: 100%; min-width: 0; min-height: 40px; padding: 0; border: 0; border-radius: 0; outline: 0; box-shadow: none; background: transparent; color: var(--cat-ink); font: inherit; font-size: var(--fs-16); font-weight: 650; font-variant-numeric: tabular-nums; }
 @media (pointer: coarse) { html :is(.catalog-page, .catalog-sheet) .catalog-price-field > input { font-size: 16px; } }
 :is(.catalog-page, .catalog-sheet) .catalog-range { position: relative; height: 40px; margin: 6px 11px 0; --lo: 0%; --hi: 100%; }
@@ -98,11 +99,11 @@ html :is(.catalog-page, .catalog-sheet) .catalog-range > input { position: absol
 /* A snap point of its own: the page snaps to the search bar (app/styles/catalog-pages.css), which would pull a page change back up. */
 .catalog-page .catalog-results { scroll-margin-top: 12px; scroll-snap-align: start; }
 .catalog-page .catalog-pagination { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 28px 0 12px; }
-.catalog-page .catalog-pagination-range { margin: 0; color: var(--cat-muted); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.catalog-page .catalog-pagination-range { margin: 0; color: var(--cat-muted); font-size: 13px; font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
 .catalog-page .catalog-pagination ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .catalog-page .catalog-pager-link { display: inline-grid; place-items: center; min-width: 44px; height: 44px; padding: 0 8px; border: 1px solid transparent; border-radius: var(--r-control); color: var(--cat-ink); font-weight: 700; font-variant-numeric: tabular-nums; text-decoration: none; }
 .catalog-page a.catalog-pager-link:hover { border-color: var(--cat-line); background: var(--cat-surface); }
-.catalog-page .catalog-pager-link[aria-current="page"] { border-color: var(--cat-on); background: var(--cat-on); color: var(--cat-on-ink); }
+.catalog-page .catalog-pager-link[aria-current="page"] { border-color: var(--selected-line); background: var(--selected); color: var(--link); }
 .catalog-page .catalog-pager-link[aria-disabled] { color: var(--cat-muted); opacity: .45; }
 .catalog-page .catalog-pager-gap { display: grid; place-items: center; min-width: 20px; color: var(--cat-muted); }
 .catalog-page .catalog-per { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px; color: var(--cat-muted); font-size: 13px; }
