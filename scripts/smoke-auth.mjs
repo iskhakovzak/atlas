@@ -58,7 +58,9 @@ await apply({ type: "checkout", key: crypto.randomUUID(), signature: cartSignatu
 assert.equal(account.state.orders[0].quote.promoDiscount, promoAmount);
 assert.equal(account.state.orders[0].promo.code, promoCode);
 const usedUp = await fetch(new URL("/api/promo", base), { method: "POST", headers: { ...auth(customerEmail), "Content-Type": "application/json", Origin: base.origin }, body: JSON.stringify({ code: promoCode }) });
-assert.equal(usedUp.status, 409, "a code with one use is used up after the order");
+// The code check answers the same 404 err_86 for unknown, expired and used-up codes (nothing to learn by trying codes).
+assert.equal(usedUp.status, 404, "a code with one use is used up after the order");
+assert.equal((await usedUp.json()).errorCode, "err_86");
 const orderId = account.state.orders[0].id;
 assert.equal(account.state.orders[0].payment.status, "pending");
 await apply({ type: "payment-demo", id: orderId });

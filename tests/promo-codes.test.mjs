@@ -5,11 +5,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { normalizePromoCode, promoBase, promoDiscount, promoInputSchema, promoOrderSum, promoProblem } from '../lib/market/promo.ts';
-import { findPromo, listPromos, recordRedemption, releasePromo, reservePromo, savePromo } from '../lib/market/promo-store.ts';
-import { prepareAction } from '../lib/market/actions-server.ts';
+import { findPromo, listPromos, placeWithPromo, recordRedemption, releasePromo, reservePromo, savePromo } from '../lib/market/promo-store.ts';
+import { codedActionError, prepareAction } from '../lib/market/actions-server.ts';
 import { addToCart, blank, cartSignature, products, tariff } from '../lib/market/domain.ts';
 import { orderFinance, monthSummary } from '../lib/market/finance.ts';
 import { feeLines } from '../lib/market/projection.ts';
+import { invoiceData } from '../lib/market/finance-auto.ts';
 import { summarizeSavedQuotes } from '../lib/market/admin-finance.ts';
 import { defaultPolicy } from '../lib/market/policy.ts';
 import { recentCheckMs } from '../lib/market/cart-check.ts';
@@ -25,17 +26,26 @@ function fakeD1() {
   sqlite.exec('CREATE TABLE market_order_finance (order_id TEXT PRIMARY KEY)');
   const migration = readFileSync(new URL('../drizzle/0017_promo_codes.sql', import.meta.url), 'utf8');
   for (const statement of migration.split('--> statement-breakpoint')) if (statement.trim()) sqlite.exec(statement);
+  // D1's batch: the statements run in order inside one transaction (rolled back as a whole on an error).
+  const runSync = (sql, args) => ({ meta: { changes: Number(sqlite.prepare(sql).run(...args).changes) } });
   return {
     sqlite,
     prepare(sql) {
       return { bind(...values) {
         const args = values.map((value) => value === undefined ? null : typeof value === 'boolean' ? Number(value) : value);
         return {
+          sql, args,
           async first() { return sqlite.prepare(sql).get(...args) ?? null; },
-          async run() { const result = sqlite.prepare(sql).run(...args); return { meta: { changes: Number(result.changes) } }; },
+          async run() { return runSync(sql, args); },
           async all() { return { results: sqlite.prepare(sql).all(...args) }; },
         };
       } };
+    },
+    async batch(statements) {
+      await Promise.resolve();
+      sqlite.exec('BEGIN');
+      try { const results = statements.map((statement) => runSync(statement.sql, statement.args)); sqlite.exec('COMMIT'); return results; }
+      catch (error) { sqlite.exec('ROLLBACK'); throw error; }
     },
   };
 }
@@ -63,7 +73,7 @@ test('a code works only while on, inside its dates, under its cap and above its 
   assert.equal(promoProblem(rule({ minOrder: 1_000_000 }), now, 999_999), 'err_89');
   assert.equal(promoProblem(rule({ minOrder: 1_000_000 }), now, 1_000_000), undefined);
   assert.equal(promoProblem(rule({ minOrder: 1_000_000 }), now), undefined, 'the code check alone leaves the minimum to the page');
-  for (const code of ['err_86', 'err_87', 'err_88', 'err_89', 'err_90', 'err_91', 'err_92', 'err_93']) for (const locale of ['ru', 'uz', 'oz', 'en'])
+  for (const code of ['err_86', 'err_87', 'err_88', 'err_89', 'err_90', 'err_91', 'err_92', 'err_93', 'err_94']) for (const locale of ['ru', 'uz', 'oz', 'en'])
     assert.notEqual(serverError(locale, code), serverError(locale, 'err_unknown'), `${code} ${locale}`);
 });
 
@@ -137,7 +147,10 @@ test('checkout: the code lowers only the Atlas service, the server checks the am
   // The amount the page showed must be the server's.
   await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'atlas10', promoDiscount: expected + 1 }), deps(code)), (error) => error.code === 'err_90');
   await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'NOPE', promoDiscount: expected }), deps(null)), (error) => error.code === 'err_86');
-  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected }), deps({ ...code, endsAt: now - 1 })), (error) => error.code === 'err_87');
+  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected }), deps({ ...code, endsAt: now - 1 })), (error) => error.code === 'err_87' && codedActionError(error).status === 409);
+  // A changed discount, dates, cap and minimum are conflicts (409); an unknown code is a plain refusal (400).
+  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected + 1 }), deps(code)), (error) => codedActionError(error).status === 409);
+  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'NOPE', promoDiscount: expected }), deps(null)), (error) => codedActionError(error).status === 400);
   await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected }), deps({ ...code, uses: 5 })), (error) => error.code === 'err_88');
   await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected }), deps({ ...code, minOrder: 1e12 })), (error) => error.code === 'err_89');
   const result = await prepareAction(state, checkout(state, { promoCode: 'atlas10', promoDiscount: expected }), deps(code));
@@ -160,6 +173,9 @@ test('checkout: the code lowers only the Atlas service, the server checks the am
     assert.equal(books.commission, quote.service + (quote.buyout ?? 0) + (quote.conversion ?? 0) - off);
     assert.equal(books.promoDiscount, off);
     assert.ok(feeLines(order).some(([, kind, , amount]) => kind === 'promo_discount' && amount === -off));
+    // The invoice: the services subtotal is net of the discount, and goods + services + delivery is what the order costs.
+    const invoice = invoiceData(books, feeLines(order).map(([, kind, label, amount]) => ({ kind, label, amount })), { id: 'c' });
+    assert.equal(invoice.services, quote.service + (quote.buyout ?? 0) + (quote.conversion ?? 0) + (quote.optionalServices ?? 0) + (quote.customsHelp ?? 0) - off);
   }
   assert.equal(given, expected);
   const paid = orders.map((order) => ({ ...orderFinance({ ...order, payment: { ...order.payment, status: 'paid', updatedAt: now } }, 'c') }));
@@ -181,4 +197,49 @@ test('checkout: the balance pays what is left after the discount', async () => {
   const result = await prepareAction(state, checkout(state, { useBalance: true, expectedCredit: state.cart[0].quote.total - discount, promoCode: 'ATLAS10', promoDiscount: discount }), deps(code));
   assert.equal(result.next.orders[0].payment.status, 'paid');
   assert.equal(result.next.orders[0].balanceUsed, state.cart[0].quote.total - discount);
+});
+
+// ---- The route's order of steps (app/api/actions/route.ts): count the use with its record → save → give both back ----
+const use = (id, batchId, discount = 40_000) => ({ codeId: id, code: 'ROUTE', userId: 'email:r@atlas.local', batchId, orderIds: ['AT-' + batchId], discount });
+const redemptions = (db, id) => db.sqlite.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(discount),0) AS total FROM market_promo_redemptions WHERE code_id=?').get(id);
+
+test('route: a save refused with 409 gives the use and its record back', async () => {
+  const db = fakeD1();
+  const code = await savePromo(db, promoInputSchema.parse({ code: 'route', kind: 'fixed', value: 50_000, maxUses: 2, active: true }), 'operator@atlas.local', now);
+  const stale = Object.assign(new Error('revision'), { status: 409 });
+  await assert.rejects(placeWithPromo(db, use(code.id, 'k1'), async () => { throw stale; }, now), (error) => error === stale);
+  assert.equal((await findPromo(db, 'ROUTE')).uses, 0);
+  assert.equal(redemptions(db, code.id).n, 0, 'no record of a checkout that was not saved');
+  const saved = await placeWithPromo(db, use(code.id, 'k1'), async () => 'saved', now);
+  assert.deepEqual(saved, { usedUp: false, value: 'saved' });
+  assert.equal((await findPromo(db, 'ROUTE')).uses, 1);
+  assert.equal((await listPromos(db)).find((item) => item.id === code.id).discountTotal, 40_000, 'the admin total is the record written with the use');
+});
+
+test('route: the same checkout key counts one use', async () => {
+  const db = fakeD1();
+  const code = await savePromo(db, promoInputSchema.parse({ code: 'route', kind: 'fixed', value: 50_000, maxUses: 5, active: true }), 'operator@atlas.local', now);
+  let saves = 0;
+  const results = await Promise.all([1, 2, 3].map(() => placeWithPromo(db, use(code.id, 'same-key'), async () => ++saves, now)));
+  assert.ok(results.every((result) => !result.usedUp));
+  assert.equal((await findPromo(db, 'ROUTE')).uses, 1);
+  assert.equal(redemptions(db, code.id).n, 1);
+  assert.equal(redemptions(db, code.id).total, 40_000);
+});
+
+test('route: the last use goes to one checkout, the next one is refused with err_88 and nothing is saved', async () => {
+  const db = fakeD1();
+  const code = await savePromo(db, promoInputSchema.parse({ code: 'route', kind: 'fixed', value: 50_000, maxUses: 1, active: true }), 'operator@atlas.local', now);
+  const saved = [];
+  const results = await Promise.all(['a', 'b'].map((key) => placeWithPromo(db, use(code.id, key), async () => { saved.push(key); return key; }, now)));
+  assert.equal(results.filter((result) => result.usedUp).length, 1);
+  assert.equal(saved.length, 1, 'the refused checkout is not saved');
+  assert.equal((await findPromo(db, 'ROUTE')).uses, 1);
+  assert.equal(redemptions(db, code.id).n, 1, 'the refused checkout leaves no record');
+  assert.equal(promoProblem(await findPromo(db, 'ROUTE'), now), 'err_88');
+  // Switched off: refused, nothing counted.
+  await savePromo(db, promoInputSchema.parse({ id: code.id, code: 'ROUTE', kind: 'fixed', value: 50_000, maxUses: 10, active: false }), 'operator@atlas.local', now);
+  assert.deepEqual(await placeWithPromo(db, use(code.id, 'c'), async () => 'x', now), { usedUp: true });
+  // No code: just the save.
+  assert.deepEqual(await placeWithPromo(db, null, async () => 'plain', now), { usedUp: false, value: 'plain' });
 });

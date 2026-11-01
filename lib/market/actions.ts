@@ -405,10 +405,12 @@ export function applyAction(
       if (a.promoCode) {
         const rule = extras.promo;
         if (!rule || rule.code !== normalizePromoCode(a.promoCode)) throw Object.assign(new Error("Промокод не найден."), { code: promoErrors.unknown });
+        // Dates, cap, minimum and a recalculated discount are conflicts with newer data (409, like a stale revision);
+        // an unknown or switched-off code stays a plain refusal (400).
         const problem = promoProblem(rule, extras.now ?? Date.now(), promoOrderSum(billed));
-        if (problem) throw Object.assign(new Error("Промокод сейчас не действует."), { code: problem });
+        if (problem) throw Object.assign(new Error("Промокод сейчас не действует."), { code: problem, status: problem === promoErrors.unknown ? 400 : 409 });
         const discount = promoDiscount(rule, billed).total;
-        if (!discount || discount !== a.promoDiscount) throw Object.assign(new Error("Скидка по промокоду пересчитана."), { code: promoErrors.changed });
+        if (!discount || discount !== a.promoDiscount) throw Object.assign(new Error("Скидка по промокоду пересчитана."), { code: promoErrors.changed, status: 409 });
         promo = { rule: { id: rule.id, code: rule.code, kind: rule.kind, value: rule.value }, expected: discount };
       }
       if (

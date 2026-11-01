@@ -8,7 +8,7 @@ import {codedActionError,editorialShippingFor,prepareAction,staleRevision,type E
 import {initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from '@/lib/market/catalog-editor';
 import {cleanPassportNumber,cleanPinfl,type Product,type State} from '@/lib/market/domain';
 import {addCustomerLinkDraft,readStoredCatalogDocument} from '@/lib/market/catalog-server';
-import {findPromo,recordRedemption,releasePromo,reservePromo} from '@/lib/market/promo-store';
+import {findPromo,placeWithPromo} from '@/lib/market/promo-store';
 import {promoErrors} from '@/lib/market/promo';
 /**
  * The catalog's delivery record for a product link, read once per request and only when an action needs it.
@@ -91,15 +91,12 @@ export async function POST(request:Request){try{
     throw e;
   }
   // The promo code's use is counted only for a checkout that places its orders now (not a repeated key, not a refusal):
-  // one conditional UPDATE before the save, so the cap holds when several customers pay at once; given back if the save fails.
+  // the use and its record are written together before the save, so the cap holds when several customers pay at once,
+  // and both are given back if the save fails (lib/market/promo-store.ts placeWithPromo).
   const placedBatch=action.type==='checkout'&&!refusal&&promo&&!current.state.checkoutKeys.includes(action.key)?next.orders.filter(order=>order.batchId===action.key&&order.promo):[];
-  if(placedBatch.length&&promo&&!await reservePromo(database(),promo.id,Date.now()))throw new HttpError(409,promoErrors.usedUp);
-  try{await persist(user.userId,next,current.revision,current.state)}
-  catch(error){if(placedBatch.length&&promo)await releasePromo(database(),promo.id).catch(release=>console.error('Promo use release failed',release));throw error}
-  if(placedBatch.length&&promo&&action.type==='checkout'){
-   const discount=placedBatch.reduce((sum,order)=>sum+(order.quote.promoDiscount??0),0);
-   try{await recordRedemption(database(),{codeId:promo.id,code:promo.code,userId:user.userId,batchId:action.key,orderIds:placedBatch.map(order=>order.id),discount})}catch(error){console.error('Promo redemption record failed',error)}
-  }
+  const use=placedBatch.length&&promo&&action.type==='checkout'?{codeId:promo.id,code:promo.code,userId:user.userId,batchId:action.key,orderIds:placedBatch.map(order=>order.id),discount:placedBatch.reduce((sum,order)=>sum+(order.quote.promoDiscount??0),0)}:null;
+  const placed=await placeWithPromo(database(),use,()=>persist(user.userId,next,current.revision,current.state));
+  if(placed.usedUp)throw new HttpError(409,promoErrors.usedUp);
   if(refusal)return json({error:serverError(requestLocale(request),refusal),errorCode:refusal,state:next,revision:current.revision+1},409);
   const addedProduct=parsed.data.type==='cart-add'?parsed.data.product:parsed.data.type==='cart-add-many'?parsed.data.items[0].product:undefined;
   if(addedProduct?.sourceUrl&&verifiedSource){

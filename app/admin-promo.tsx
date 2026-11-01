@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Pencil, Tag } from "lucide-react";
 import { toast } from "@/lib/market/toast";
 import { normalizePromoCode, promoCodePattern, promoDefaultEnd, type PromoKind, type PromoRule } from "@/lib/market/promo";
+import { serverError } from "@/lib/market/i18n";
 import { money } from "./admin-shared";
 
 type Draft = { id?: string; code: string; kind: PromoKind; value: string; startsOn: string; endsOn: string; maxUses: string; minOrder: string; active: boolean; note: string };
@@ -17,8 +18,9 @@ const day = (at?: number | null) => at ? new Date(at).toLocaleDateString("ru-RU"
 
 async function request<T>(method: "GET" | "POST", body?: unknown): Promise<T> {
   const response = await fetch("/api/promo-codes", { method, credentials: "same-origin", headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
-  const data = await response.json().catch(() => ({})) as T & { error?: string };
-  if (!response.ok) throw Error(data.error ?? "Не удалось выполнить запрос.");
+  const data = await response.json().catch(() => ({})) as T & { error?: string; errorCode?: string };
+  // The admin is in Russian whatever the browser's language: a coded refusal is shown with its Russian text.
+  if (!response.ok) throw Error(data.errorCode ? serverError("ru", data.errorCode) : data.error ?? "Не удалось выполнить запрос.");
   return data;
 }
 
@@ -69,7 +71,7 @@ export function AdminPromo() {
   return <section className="surface admin-section admin-promo" aria-labelledby="admin-promo-title">
     <div className="admin-section-head"><div>
       <h2 id="admin-promo-title"><Tag size={20} aria-hidden="true" /> Промокоды</h2>
-      <p>Скидка действует только на сервис Atlas (комиссию за выкуп): цену товара, доставку, гарантию и пошлину промокод не меняет, сервис не уходит ниже нуля. Atlas — агент, поэтому скидка уменьшает доход Atlas и видна в бухгалтерии. Использования считаются в момент оформления заказа.</p>
+      <p>Скидка действует только на сервис Atlas — комиссию Atlas за выкуп, проверку, упаковку и конвертацию (у покупателя — строка «Комиссия Atlas»): цену товара, доставку, гарантию и пошлину промокод не меняет, сервис не уходит ниже нуля. Atlas — агент, поэтому скидка уменьшает доход Atlas и видна в бухгалтерии. Использования считаются в момент оформления заказа.</p>
     </div></div>
     <form className="admin-promo-form" noValidate onSubmit={(event) => void submit(event)}>
       <h3 className="admin-subhead">{draft.id ? `Изменить ${draft.code}` : "Новый промокод"}</h3>

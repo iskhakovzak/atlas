@@ -2,12 +2,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import Link from "@/components/site-link";
-import { ArrowLeft, ArrowRight, BadgeCheck, CircleCheck, IdCard, Info, Loader2, Lock, MapPin, Plus, Tag, TriangleAlert, UserRound, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, CircleCheck, ClipboardPaste, IdCard, Info, Loader2, Lock, MapPin, Plus, ShoppingBag, Tag, TriangleAlert, UserRound, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { toast } from "@/lib/market/toast";
 import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, isPostalCode, totalOf, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed, type Order } from "@/lib/market/domain";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
+import { courierAllowanceUsd } from "@/lib/market/customs";
 import { capitalizeFirst, capitalizeWords } from "@/lib/market/text-case";
 import { isServedRegion, onlyServedCity, regionLabel, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
 import { cartCopy, recipientCopy } from "@/lib/market/customer-copy";
@@ -49,6 +50,8 @@ const storeMoney = (amount: number, currency: string, locale: Locale) => {
   if (currency === "USD") return usdText(amount, locale);
   try { return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount); } catch { return `${amount} ${currency}`; }
 };
+/** A line's quote is past its 15 minutes (read when «Оплатить» is pressed, not during render). */
+const quoteExpired = (lines: CartItem[]) => lines.length > 0 && Date.now() >= Math.min(...lines.map((item) => item.quote.expiresAt));
 const kgText = (kg: number, locale: Locale) => kg ? new Intl.NumberFormat(locale === "en" ? "en-US" : "ru-RU", { maximumFractionDigits: 2 }).format(kg) : "";
 
 /** One numbered block of the page; a locked one (before sign-in) shows only its title. */
@@ -56,7 +59,7 @@ function Block({ index, title, done, locked, lockedText, aside, children, id }: 
   return <section className={"co-block" + (locked ? " is-locked" : "") + (done ? " is-done" : "")} aria-labelledby={id}>
     <header className="co-block-head">
       <span className="co-step" aria-hidden="true">{done ? <CircleCheck size={18} /> : index}</span>
-      <h2 id={id}>{title}</h2>
+      <h2 id={id} tabIndex={-1}>{title}</h2>
       {aside}
     </header>
     {locked ? <p className="co-locked">{lockedText}</p> : children}
@@ -82,7 +85,9 @@ export function CheckoutView() {
     setCheck("running");
     const ok = await act({ type: "cart-check" }, { queue: true });
     // A store that changed the price or the item answers with the repriced cart: the page shows what changed.
-    setCheck(ok || repricedCodes.has(lastActionError()?.code ?? "") ? "done" : "failed");
+    const result = ok || repricedCodes.has(lastActionError()?.code ?? "") ? "done" : "failed";
+    setCheck(result);
+    return result;
   };
   useEffect(() => {
     if (!ready || merging || waitingGuest || placed || checkStarted.current || !lines.length) return;
@@ -123,7 +128,7 @@ export function CheckoutView() {
   const touch = (field: Field, value: string) => { if (value.trim() && !touchedFields[field]) setTouchedFields((fields) => ({ ...fields, [field]: true })); };
   const errorText = (field: Field) => field === "phone" ? rc.phoneError : field === "postal" || field === "savedPostal" ? rc.postalError : field === "recipient" ? cc.checkout.errors.recipient : cc.checkout.errors.address;
   const hint = (field: Field, text?: string) => invalid(field)
-    ? <small id={fieldIds[field] + "-hint"} className="rf-error co-error" role="alert">{errorText(field)}</small>
+    ? <small id={fieldIds[field] + "-hint"} className="rf-error co-error">{errorText(field)}</small>
     : text ? <small id={fieldIds[field] + "-hint"}>{text}</small> : null;
   const describedBy = (field: Field, text?: string) => invalid(field) || text ? fieldIds[field] + "-hint" : undefined;
 
@@ -171,9 +176,9 @@ export function CheckoutView() {
       const response = await fetch("/api/promo", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ code }) });
       const data = await response.json().catch(() => ({})) as { promo?: PromoPreview; error?: string; errorCode?: string };
       if (!response.ok || !data.promo) { setPromo(null); setPromoError(data.errorCode ? serverError(locale, data.errorCode) : data.error ?? serverError(locale, "err_86")); return; }
-      setPromo(data.promo); setPromoText(data.promo.code);
-      // The field gives way to the applied code: focus goes to that line, not back to the top of the page.
-      window.requestAnimationFrame(() => document.getElementById("co-promo-applied")?.focus());
+      // The field gives way to the applied code: focus moves to that line at once (not to the top of the page or the skip link).
+      flushSync(() => { setPromo(data.promo!); setPromoText(data.promo!.code); });
+      document.getElementById("co-promo-applied")?.focus();
     } catch { setPromoError(serverError(locale, "err_86")); }
     finally { setPromoBusy(false); }
   }
@@ -196,6 +201,9 @@ export function CheckoutView() {
     if (first) { document.getElementById(fieldIds[first])?.focus(); document.getElementById(fieldIds[first])?.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
     if (dutyDue > 0 && !consent) { setConsentError(true); document.getElementById("co-consent")?.focus(); return; }
     if (blocked) { document.getElementById("co-changes")?.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
+    // The quote lives 15 minutes (lib/market/domain.ts): an older one is checked with the stores again first, so the
+    // server never answers «Расчёт истёк» to a page that cannot renew it. The customer sees the new total, then pays.
+    if (quoteExpired(lines)) { await recheck(); return; }
     placing.current = true; setPaying("order");
     try {
       const signature = cartSignature(state.cart);
@@ -213,6 +221,8 @@ export function CheckoutView() {
       }, { queue: true });
       if (!ok) {
         const code = lastActionError()?.code ?? "";
+        // The quote ran out or the tariff changed meanwhile: the stores are asked again and the new total is shown.
+        if (code === "err_75" || code === "err_76") { await recheck(); return; }
         if (promoCodes.has(code)) { setPromo(null); setPromoOpen(true); setPromoError(serverError(locale, code)); document.getElementById("co-promo-input")?.focus(); }
         else if (repricedCodes.has(code)) { setCheck("done"); window.scrollTo({ top: 0, behavior: "smooth" }); }
         return;
@@ -224,6 +234,21 @@ export function CheckoutView() {
       window.scrollTo({ top: 0, behavior: "instant" });
     } finally { placing.current = false; setPaying(""); }
   }
+  async function recheck() {
+    if ((await runCheck()) === "done") toast.message(t.checkout.check.rechecked);
+  }
+  // The answer to «Оплатить» was lost (the connection dropped after the server placed the orders): the account read
+  // again carries orders with this checkout key, so the page goes on to «Заказ принят» instead of an empty cart.
+  useEffect(() => {
+    const tried = checkoutKey.current?.key;
+    if (placed || !tried || placing.current || !state.orders.some((order) => order.batchId === tried)) return;
+    checkoutKey.current = null;
+    queueMicrotask(() => {
+      setPlaced(tried);
+      window.history.replaceState(window.history.state, "", "/cart/checkout?placed=" + encodeURIComponent(tried));
+      window.scrollTo({ top: 0, behavior: "instant" });
+    });
+  }, [state.orders, placed, paying]);
   // Placed: the orders still waiting are marked paid at once — the demo stands in for the payment page (one mark per checkout).
   const placedOrders = placed ? state.orders.filter((order) => order.batchId === placed) : [];
   const waitingPay = placedOrders.filter((order) => !order.cancelled && order.payment?.status === "pending");
@@ -235,7 +260,20 @@ export function CheckoutView() {
     queueMicrotask(() => void act({ type: "payment-demo-batch", batchId: placed, amount }, { queue: true }).then((ok) => { if (!ok) toast.error(serverError(locale, "err_10")); }));
   }, [ready, placed, waitingPay, act, locale]);
 
-  if (placed) return <PlacedView orders={placedOrders} loading={!ready} paying={waitingPay.length > 0} locale={locale} />;
+  // Signed in on this page (a code, Telegram): focus moves to the next step, Получатель, instead of falling to the page.
+  const signedInHere = useRef(false);
+  useEffect(() => {
+    if (status === "guest") { signedInHere.current = true; return; }
+    if (!ready || !signedInHere.current) return;
+    signedInHere.current = false;
+    window.requestAnimationFrame(() => document.getElementById("co-recipient-title")?.focus());
+  }, [status, ready]);
+  const openList = () => {
+    flushSync(() => setListOpen(true));
+    (document.querySelector<HTMLInputElement>(".co-recipients input:checked") ?? document.querySelector<HTMLInputElement>(".co-recipients input:not(:disabled)"))?.focus();
+  };
+
+  if (placed) return <PlacedView orders={placedOrders} loading={!ready && status !== "guest"} guest={status === "guest"} paying={waitingPay.length > 0} locale={locale} onSignedIn={() => void refresh()} />;
 
   // ---- Who is here
   const loadingAccount = status === "loading";
@@ -248,15 +286,24 @@ export function CheckoutView() {
   const changes = signedIn ? lines.filter((item) => item.priceChange || item.sourceIssue) : [];
   const later = state.cart.filter((item) => item.selected === false).reduce((sum, item) => sum + item.quantity, 0);
   const who = user ? (user.name && !user.name.includes("@") ? user.name : user.contact || user.email || user.name) : "";
+  const guestGoodsUsd = guestItems.reduce((sum, item) => sum + (item.product.usd ?? 0) * item.quantity, 0);
+  // A guest whose items are above the courier allowance owes a duty for sure: the total is shown as approximate, with a line saying so.
+  const guestDuty = !signedIn && guestGoodsUsd > (pricing.customsAllowanceUsd ?? courierAllowanceUsd);
 
   if (nothing && !loadingAccount) return <div className="co-page">
     <header className="co-head"><h1>{t.checkout.title}</h1></header>
-    <section className="co-empty"><p>{t.checkout.empty}</p><Link className="btn primary" href="/catalog">{t.checkout.emptyAction}<ArrowRight size={18} aria-hidden="true" /></Link></section>
+    <section className="co-empty basket-empty"><span className="basket-empty-icon" aria-hidden="true"><ShoppingBag size={28} /></span><h2>{t.checkout.empty}</h2><p>{cc.empty.text}</p>
+      <div className="basket-empty-actions"><Link className="btn primary" href="/catalog">{t.checkout.emptyAction}<ArrowRight size={18} aria-hidden="true" /></Link><Link className="btn secondary" href="/order-by-link"><ClipboardPaste size={18} aria-hidden="true" />{cc.empty.paste}</Link></div>
+    </section>
   </div>;
 
   const busyNow = paying !== "" || check === "running" || merging || waitingGuest && signedIn;
   const canPay = signedIn && lines.length > 0 && !busyNow && !blocked && !customsBusy;
   const payLabel = paying === "order" ? t.checkout.pay.busy : paying === "pay" ? t.checkout.pay.paying : merging || (waitingGuest && signedIn) ? t.merge.moving : check === "running" ? t.checkout.check.running : t.checkout.pay.button(formatSum(signedIn ? payable : shownSums.total, locale));
+
+  const payButton = signedIn
+    ? <button type="button" className="btn primary co-pay" disabled={!canPay} aria-busy={busyNow || undefined} onClick={() => void pay()}>{busyNow ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}<span>{payLabel}</span></button>
+    : <a className="btn primary co-pay" href="#co-signin-title" onClick={(event) => { event.preventDefault(); const title = document.getElementById("co-signin-title"); title?.scrollIntoView({ block: "start", behavior: "smooth" }); title?.focus({ preventScroll: true }); }}><UserRound size={16} aria-hidden="true" /><span>{t.checkout.pay.signinFirst}</span></a>;
 
   return <div className="co-page">
     <header className="co-head">
@@ -267,12 +314,14 @@ export function CheckoutView() {
       <div className="co-main">
         {/* 1 · Вход */}
         <Block index={1} id="co-signin-title" title={t.checkout.signin.title} done={signedIn}>
-          {signedIn ? <p className="co-signed"><UserRound size={16} aria-hidden="true" /><span>{t.checkout.signin.done(who)}</span></p>
+          {signedIn ? <p className="co-signed" role="status"><UserRound size={16} aria-hidden="true" /><span>{t.checkout.signin.done(who)}</span></p>
             : loadingAccount ? <div className="login-skeleton" role="status"><span className="sr-only">{t.merge.moving}</span><i aria-hidden="true" /><b aria-hidden="true" /></div>
             : <><p className="co-hint">{t.checkout.signin.hint}</p><CheckoutSignIn locale={locale} onDone={() => void refresh()} /></>}
         </Block>
 
-        {/* What changed at the store since the item was added (Сверка цены), and anything blocking the order. */}
+        {/* What changed at the store since the item was added (Сверка цены), and anything blocking the order. The live
+            region is on the page from the start, so a screen reader announces the change when the check brings it. */}
+        <p className="sr-only" aria-live="polite">{signedIn && changes.length > 0 ? (blocked ? cc.item.issues.variant : t.checkout.check.changedTitle) : ""}</p>
         {signedIn && (check === "running" || merging || waitingGuest) && <p className="co-checking" role="status"><Loader2 size={16} className="spin" aria-hidden="true" />{merging || waitingGuest ? t.merge.moving : t.checkout.check.running}</p>}
         {signedIn && check === "failed" && <p className="co-notice warn" role="alert"><TriangleAlert size={16} aria-hidden="true" /><span>{t.checkout.check.failed}</span><button type="button" className="text-button" onClick={() => void runCheck()}>{t.checkout.check.retry}</button></p>}
         {signedIn && changes.length > 0 && <section id="co-changes" className={"co-changes" + (blocked ? " is-blocked" : "")} aria-labelledby="co-changes-title">
@@ -290,7 +339,7 @@ export function CheckoutView() {
 
         {/* 2 · Получатель */}
         <Block index={2} id="co-recipient-title" title={t.checkout.recipient.title} locked={!signedIn} lockedText={t.checkout.signin.locked}
-          aside={signedIn && state.deliveryProfiles.length > 0 && !listOpen ? <button type="button" className="text-button co-aside" onClick={() => setListOpen(true)}>{t.checkout.recipient.other}</button> : undefined}>
+          aside={signedIn && state.deliveryProfiles.length > 0 && !listOpen ? <button type="button" className="text-button co-aside" onClick={openList}>{manual ? t.checkout.recipient.list : t.checkout.recipient.other}</button> : undefined}>
           {signedIn && <>
             {!listOpen && savedProfile && <div className="co-recipient-card">
               <MapPin size={18} aria-hidden="true" />
@@ -300,12 +349,12 @@ export function CheckoutView() {
               {state.deliveryProfiles.map((profile) => {
                 const ok = isServedRegion(profile.region);
                 return <label key={profile.id} className={"co-recipient" + (selected === profile.id ? " selected" : "") + (ok ? "" : " unavailable")}>
-                  <input type="radio" name="co-recipient" value={profile.id} disabled={!ok} checked={selected === profile.id} onChange={() => { setChosen(profile.id); setTouched(false); setTouchedFields({}); setListOpen(false); }} />
+                  <input type="radio" name="co-recipient" value={profile.id} disabled={!ok} checked={selected === profile.id} onChange={() => { flushSync(() => { setChosen(profile.id); setTouched(false); setTouchedFields({}); setListOpen(false); }); document.getElementById("co-recipient-title")?.focus(); }} />
                   <span><b>{profile.recipient}{profile.primary && <em>{cc.checkout.primary}</em>}</b><span className="nowrap">{profile.phone}</span><small>{ok ? deliveryAddressLine(profile) : cc.checkout.outsideServed}</small></span>
                 </label>;
               })}
               <label className={"co-recipient co-recipient-new" + (manual ? " selected" : "")}>
-                <input type="radio" name="co-recipient" value="manual" checked={manual} onChange={() => { setChosen("manual"); setDraft({ ...emptyDelivery }); setTouched(false); setTouchedFields({}); }} />
+                <input type="radio" name="co-recipient" value="manual" checked={manual} onChange={() => { flushSync(() => { setChosen("manual"); setDraft({ ...emptyDelivery }); setTouched(false); setTouchedFields({}); setListOpen(false); }); document.getElementById(fieldIds.recipient)?.focus(); }} />
                 <span><b><Plus size={16} aria-hidden="true" />{t.checkout.recipient.add}</b></span>
               </label>
             </fieldset>}
@@ -351,13 +400,13 @@ export function CheckoutView() {
         <ul className="co-items">{shownLines.map((item) => <li key={item.id}>
           <span className="co-item-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span>
           <span className="co-item-text"><b>{item.product.name}</b><small>{[shownVariant(item.variant, item.product.sourceOptions), item.quantity > 1 ? `× ${item.quantity}` : ""].filter(Boolean).join(" · ")}</small></span>
-          <span className="co-item-sum">{formatSum(item.quote.total, locale)}</span>
+          {shownLines.length > 1 && <span className="co-item-sum">{formatSum(item.quote.merchandise, locale)}</span>}
         </li>)}</ul>
         {later > 0 && <p className="co-hint">{t.checkout.sum.later(later)}</p>}
         <dl className="co-lines">
           <div><dt>{t.checkout.sum.item}</dt><dd><Money value={shownSums.merchandise} locale={locale} /></dd></div>
-          <div><dt>{t.checkout.sum.service}<small>{t.checkout.sum.serviceHelp(formatPercent(pricing.margin + pricing.buyoutFee + pricing.conversionFee, locale))}</small></dt><dd><Money value={shownSums.service + shownSums.buyout + shownSums.conversion + shownSums.customsHelp} locale={locale} /></dd></div>
-          {discount > 0 && promo && <div className="co-line-promo"><dt><Tag size={14} aria-hidden="true" />{t.checkout.sum.promo(promoCodeText(promo.code, locale))}</dt><dd>−<Money value={discount} locale={locale} /></dd></div>}
+          <div><dt>{t.checkout.sum.service}<small>{shownSums.customsHelp > 0 ? t.checkout.sum.serviceHelpCustoms(formatPercent(pricing.margin + pricing.buyoutFee + pricing.conversionFee, locale), formatSum(shownSums.customsHelp, locale)) : t.checkout.sum.serviceHelp(formatPercent(pricing.margin + pricing.buyoutFee + pricing.conversionFee, locale))}</small></dt><dd><Money value={shownSums.service + shownSums.buyout + shownSums.conversion + shownSums.customsHelp} locale={locale} /></dd></div>
+          {discount > 0 && promo && <div className="co-line-promo"><dt><span><Tag size={14} aria-hidden="true" />{t.checkout.sum.promo(promoCodeText(promo.code, locale))}</span><small>{t.checkout.sum.promoBase}</small></dt><dd>−<Money value={discount} locale={locale} /></dd></div>}
           <div><dt>{t.checkout.sum.delivery(kgText(shownWeight, locale), k.speeds[signedIn ? speed : "standard"].toLowerCase())}</dt><dd><Money value={shownSums.shipping + shownSums.deliveryMargin + shownSums.reserve} locale={locale} /></dd></div>
           {shownSums.sourceShipping > 0 && <div><dt>{t.checkout.sum.storeShipping}</dt><dd><Money value={shownSums.sourceShipping} locale={locale} /></dd></div>}
           {shownSums.insurance > 0 && <div><dt>{t.checkout.sum.guarantee}</dt><dd><Money value={shownSums.insurance} locale={locale} /></dd></div>}
@@ -365,9 +414,10 @@ export function CheckoutView() {
           {signedIn && (duty > 0
             ? <div><dt>{t.checkout.sum.duty}</dt><dd><Money value={duty} locale={locale} /></dd></div>
             : dutyDue > 0 ? <div className="co-line-apart"><dt>{t.checkout.sum.duty} ≈</dt><dd>{formatSum(dutyDue, locale)}</dd></div>
-            : <div className="co-line-zero"><dt>{t.checkout.customs.none}</dt><dd>0</dd></div>)}
+            : <div className="co-line-zero"><dt>{t.checkout.customs.none}</dt><dd><Money value={0} locale={locale} /></dd></div>)}
+          {guestDuty && <div className="co-line-apart"><dt>{t.checkout.sum.dutyLater}</dt><dd>—</dd></div>}
           {credit > 0 && <div><dt>{t.checkout.sum.balance}</dt><dd>−<Money value={credit} locale={locale} /></dd></div>}
-          <div className="co-total"><dt>{t.checkout.sum.total}</dt><dd><Money value={signedIn ? payable : shownSums.total} locale={locale} animate /></dd></div>
+          <div className="co-total"><dt>{t.checkout.sum.total}</dt><dd>{!signedIn && "≈ "}<Money value={signedIn ? payable : shownSums.total} locale={locale} animate /></dd></div>
         </dl>
         {shownSums.storeShippingHold > 0 && <p className="co-hint">{t.checkout.sum.hold(formatSum(shownSums.storeShippingHold, locale))}</p>}
         {!signedIn && <p className="co-hint">{t.guest.estimate}</p>}
@@ -387,24 +437,24 @@ export function CheckoutView() {
             : <button type="button" className="text-button co-promo-open" onClick={() => { flushSync(() => setPromoOpen(true)); document.getElementById("co-promo-input")?.focus(); }}><Tag size={15} aria-hidden="true" />{t.checkout.promo.open}</button>}
         </div>}
         {signedIn && dutyDue <= 0 && <p className="co-hint">{cc.checkout.consentImplied.before}<Link href="/customs" target="_blank">{cc.checkout.consentImplied.link}</Link>{cc.checkout.consentImplied.after}</p>}
+        {/* On a wide screen the button stands under the sum it pays (the aside stays in view); on a phone it is in the pinned bar. */}
+        <div className="co-summary-pay">{payButton}</div>
+        <p className="co-demo">{t.checkout.pay.demo}</p>
       </aside>
     </div>
 
     {/* The pay bar: pinned to the bottom on every screen, above the phone's home indicator (safe area). */}
     <div className="co-paybar" role="region" aria-label={t.checkout.sum.total}>
       <div className="co-paybar-inner">
-        <div className="co-paybar-sum"><span>{signedIn ? t.checkout.sum.total : t.checkout.sum.items(shownLines.reduce((sum, item) => sum + item.quantity, 0))}</span><strong><Money value={signedIn ? payable : shownSums.total} locale={locale} /></strong></div>
-        {signedIn
-          ? <button type="button" className="btn primary co-pay" disabled={!canPay} aria-busy={busyNow || undefined} onClick={() => void pay()}>{busyNow ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}<span>{payLabel}</span></button>
-          : <a className="btn primary co-pay" href="#co-signin-title" onClick={(event) => { event.preventDefault(); document.getElementById("co-signin-title")?.scrollIntoView({ block: "start", behavior: "smooth" }); }}><UserRound size={16} aria-hidden="true" /><span>{t.checkout.pay.signinFirst}</span></a>}
+        <div className="co-paybar-sum"><span>{signedIn ? t.checkout.sum.total : t.checkout.sum.items(shownLines.reduce((sum, item) => sum + item.quantity, 0))}</span><strong>{!signedIn && "≈ "}<Money value={signedIn ? payable : shownSums.total} locale={locale} /></strong></div>
+        {payButton}
       </div>
-      <p className="co-demo">{t.checkout.pay.demo}</p>
     </div>
   </div>;
 }
 
 /** «Заказ принят»: the order numbers, the paid mark (demo), and the passport as the next step. */
-function PlacedView({ orders, loading, paying, locale }: { orders: Order[]; loading: boolean; paying: boolean; locale: Locale }) {
+function PlacedView({ orders, loading, guest, paying, locale, onSignedIn }: { orders: Order[]; loading: boolean; guest: boolean; paying: boolean; locale: Locale; onSignedIn: () => void }) {
   const { state } = useMarket();
   const t = checkoutCopy[locale].success;
   const first = orders[0];
@@ -412,11 +462,19 @@ function PlacedView({ orders, loading, paying, locale }: { orders: Order[]; load
   const identities = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
   const passportReady = Boolean(first?.identity || (recipientId && identities.some((identity) => identity.recipientProfileId === recipientId)));
   const paid = orders.length > 0 && orders.every((order) => order.payment?.status === "paid");
+  // The screen says what happened: the heading takes the focus (a screen reader reads it) and the tab is named after it.
+  useEffect(() => {
+    document.getElementById("co-placed-title")?.focus();
+    const before = document.title;
+    document.title = t.title + " · Atlas";
+    return () => { document.title = before; };
+  }, [t.title]);
   return <div className="co-page co-placed-page">
-    <section className="co-placed" role="status" aria-live="polite">
+    <section className="co-placed" aria-labelledby="co-placed-title">
       <svg className="co-placed-mark" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" /><path d="M20 33.5l8 8 16-17" /></svg>
-      <h1>{t.title}</h1>
-      {loading || !first ? <p className="co-hint"><Loader2 size={16} className="spin" aria-hidden="true" /></p> : <>
+      <h1 id="co-placed-title" tabIndex={-1}>{t.title}</h1>
+      {guest ? <div className="co-placed-signin"><p>{t.signin}</p><CheckoutSignIn locale={locale} onDone={onSignedIn} /></div>
+        : loading || !first ? <p className="co-hint"><Loader2 size={16} className="spin" aria-hidden="true" /></p> : <>
         <p>{t.text(orders.length)}</p>
         <dl className="co-placed-facts">
           <div><dt>{t.numbers}</dt><dd>{orders.map((order) => <Link key={order.id} href={"/orders#" + encodeURIComponent(order.id)}>{order.id}</Link>)}</dd></div>
@@ -424,6 +482,8 @@ function PlacedView({ orders, loading, paying, locale }: { orders: Order[]; load
         </dl>
         <p className="co-demo">{t.demo}</p>
       </>}
+      {/* Only the paid mark is announced when it arrives, not the whole screen again. */}
+      <p className="sr-only" aria-live="polite">{paid ? t.paidNow : ""}</p>
     </section>
     {first && <section className="co-passport" aria-labelledby="co-passport-title">
       <IdCard size={22} aria-hidden="true" />
@@ -433,6 +493,6 @@ function PlacedView({ orders, loading, paying, locale }: { orders: Order[]; load
       </div>
       {!passportReady && <Link className="btn primary" href={recipientId ? `/identity?recipient=${encodeURIComponent(recipientId)}` : "/identity"}>{t.addPassport}<ArrowRight size={18} aria-hidden="true" /></Link>}
     </section>}
-    <div className="co-placed-links"><Link className="btn secondary" href={first ? "/orders#" + encodeURIComponent(first.id) : "/orders"}>{t.orders}</Link><Link className="text-button" href="/catalog">{t.catalog}</Link></div>
+    {!guest && <div className="co-placed-links"><Link className="btn secondary" href={first ? "/orders#" + encodeURIComponent(first.id) : "/orders"}>{t.orders}</Link><Link className="text-button" href="/catalog">{t.catalog}</Link></div>}
   </div>;
 }

@@ -18,7 +18,7 @@ main.site-main[data-view="checkout"]:has(.co-paybar) { padding-bottom: calc(120p
 
 /* ---------- Numbered blocks ---------- */
 .co-block { display: grid; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
-.co-block-head { display: flex; align-items: center; gap: var(--space-3); min-height: 32px; }
+.co-block-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); min-height: 32px; }
 .co-block-head h2 { flex: 1; margin: 0; font-size: var(--fs-20); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: var(--tracking-title); }
 .co-step { display: inline-grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: var(--r-pill); background: var(--brand); color: var(--on-brand); font-size: var(--fs-14); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
 .co-block.is-done .co-step { background: var(--ok-bg); color: var(--ok); }
@@ -26,7 +26,9 @@ main.site-main[data-view="checkout"]:has(.co-paybar) { padding-bottom: calc(120p
 .co-block.is-locked .co-step { background: var(--line-strong); color: var(--text-2); }
 .co-block.is-locked h2 { color: var(--text-2); font-size: var(--fs-18); }
 .co-locked { margin: calc(-1 * var(--space-2)) 0 0 40px; color: var(--text-2); font-size: var(--fs-14); }
-html .co-block-head .text-button.co-aside { min-height: 44px; padding-inline: var(--space-2); color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-medium); }
+/* Headings take the focus only to be read out after a step (tabIndex -1); they are not controls, so no ring. */
+.co-block-head h2:focus, .co-placed h1:focus { outline: none; }
+html .co-block-head .text-button.co-aside { margin-left: auto; min-height: 44px; padding-inline: var(--space-2); color: var(--link); font-size: var(--fs-14); font-weight: var(--fw-medium); }
 .co-hint { margin: 0; color: var(--text-2); font-size: var(--fs-14); line-height: var(--lh-body); }
 .co-hint a { color: var(--link); }
 .co-note { display: flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--text-2); font-size: var(--fs-13); }
@@ -73,6 +75,11 @@ html .co-block-head .text-button.co-aside { min-height: 44px; padding-inline: va
 .co-form { display: grid; gap: var(--space-4); }
 .co-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
 .co-form .field input, .co-block .field input { width: 100%; min-height: var(--h-md); font-size: var(--fs-16); }
+/* The phone field looks like the others (same line and surface), and a field with an error gets the red line too. */
+/* `:root` outranks the dark theme's own .rf-phone colours (theme-night.css), so both themes use the tokens. */
+:root .co-block .rf-phone { border-color: var(--field); background: var(--surface); }
+:root .co-block .field.invalid :is(input, .rf-phone) { border-color: var(--danger); }
+:root .co-block .field.invalid .rf-phone input { border-color: transparent; }
 .co-served { display: flex; gap: var(--space-2); align-items: flex-start; margin: 0; color: var(--text-2); font-size: var(--fs-14); }
 .co-served > svg { flex: none; margin-top: 2px; color: var(--link); }
 .co-served span { display: grid; gap: 2px; }
@@ -83,6 +90,8 @@ html .co-block-head .text-button.co-aside { min-height: 44px; padding-inline: va
 .co-check label small { color: var(--text-2); font-size: var(--fs-13); }
 .co-check [role="checkbox"] { flex: none; margin-top: 1px; }
 .co-consent.invalid label { color: var(--danger); }
+/* The consent sentence with its link reads as one line of text, not three grid rows. */
+.co-consent label { display: block; }
 
 /* ---------- Из чего сумма (the aside) ---------- */
 .co-summary { position: sticky; top: calc(var(--shell-header-h, 64px) + var(--space-4)); display: grid; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
@@ -100,7 +109,9 @@ html .co-block-head .text-button.co-aside { min-height: 44px; padding-inline: va
 .co-lines dt { display: grid; gap: 2px; min-width: 0; color: var(--text-2); }
 .co-lines dt small { color: var(--text-2); font-size: var(--fs-12); line-height: var(--lh-snug); }
 .co-lines dd { margin: 0; color: var(--text); font-weight: var(--fw-medium); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.co-line-promo dt { display: flex; align-items: center; gap: 6px; color: var(--discount); font-weight: var(--fw-medium); }
+.co-line-promo dt { color: var(--discount); font-weight: var(--fw-medium); }
+.co-line-promo dt > span { display: flex; align-items: center; gap: 6px; }
+.co-line-promo dt small { font-weight: var(--fw-regular); }
 .co-line-promo dd { color: var(--discount); }
 .co-line-apart dd { color: var(--text-2); }
 .co-line-zero dd { color: var(--text-2); }
@@ -133,9 +144,9 @@ html .co-block-head .text-button.co-aside { min-height: 44px; padding-inline: va
 .co-paybar-sum strong { font-size: var(--fs-20); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .co-pay { display: inline-flex; flex: none; align-items: center; justify-content: center; gap: var(--space-2); min-width: min(320px, 56vw); min-height: var(--h-lg); padding-inline: var(--space-6); border-radius: var(--r-control); font-size: var(--fs-16); font-weight: var(--fw-semibold); }
 .co-pay[aria-busy="true"] { cursor: progress; }
-.co-demo { width: min(1120px, 100%); margin: 6px auto 0; color: var(--text-2); font-size: var(--fs-12); line-height: var(--lh-snug); text-align: right; }
-.co-empty { display: grid; justify-items: start; gap: var(--space-4); padding: var(--space-6); border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
-.co-empty p { margin: 0; color: var(--text-2); }
+.co-demo { margin: 0; color: var(--text-2); font-size: var(--fs-12); line-height: var(--lh-snug); }
+/* Wide screens: «Оплатить» stands under the sum in the aside (which stays in view), so the pinned bar is not needed. */
+.co-summary-pay .co-pay { width: 100%; min-width: 0; }
 
 /* The storage notice steps above the pay bar instead of covering «Оплатить». */
 body:has(.co-paybar) .storage-notice { bottom: 112px; }
@@ -165,6 +176,12 @@ body:has(.co-paybar) .storage-notice { bottom: 112px; }
 .co-passport .btn { grid-column: 1 / -1; min-height: var(--h-md); }
 .co-placed-links { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-4); }
 .co-placed-links .btn, .co-placed-links .text-button { min-height: 44px; }
+.co-placed-links .text-button { display: inline-flex; align-items: center; }
+.co-placed-signin { display: grid; gap: var(--space-3); width: 100%; text-align: left; }
+.co-placed-signin > p { margin: 0; color: var(--text-2); text-align: center; }
+.co-signin-down { flex-wrap: wrap; align-items: center; margin: 0; }
+.co-signin-down > span { flex: 1 1 200px; }
+.co-signin-down .btn { min-height: 44px; }
 
 /* ---------- Guest cart (app/guest-cart-view.tsx) and lines that did not move ---------- */
 .guest-estimate { display: flex; gap: var(--space-2); align-items: flex-start; margin: 0; color: var(--text-2); font-size: var(--fs-13); line-height: var(--lh-snug); }
@@ -182,26 +199,40 @@ body:has(.co-paybar) .storage-notice { bottom: 112px; }
 .guest-problems .btn { min-height: 44px; }
 .guest-problems .icon-btn { width: 44px; height: 44px; }
 
+/* ---------- Wide screens: the button in the aside, no pinned bar ---------- */
+@media (min-width: 901px) {
+  .co-paybar { display: none; }
+  main.site-main[data-view="checkout"]:has(.co-paybar) { padding-bottom: var(--space-10); }
+  body:has(.co-paybar) .storage-notice { bottom: var(--space-4); }
+  /* A tall summary scrolls inside itself, so its button never drops below the window. */
+  .co-summary { max-height: calc(100dvh - var(--shell-header-h, 64px) - 2 * var(--space-4)); overflow-y: auto; overscroll-behavior: contain; }
+}
+
 /* ---------- Phones ---------- */
 @media (max-width: 900px) {
   .co-layout { grid-template-columns: minmax(0, 1fr); }
   .co-summary { position: static; }
+  .co-summary-pay { display: none; }
 }
 @media (max-width: 760px) {
   .co-page { padding: var(--space-2) 0 var(--space-6); }
-  body:has(.mobile-nav) main.site-main[data-view="checkout"]:has(.co-paybar) { padding-bottom: calc(var(--atlas-mobile-nav-clearance, 68px) + 120px); }
+  /* The checkout is a focused step: the bottom navigation steps aside, so the pinned bar alone sits above the home indicator. */
+  html:has(main[data-view="checkout"] .co-paybar) { --atlas-mobile-nav-clearance: 0px; }
+  html:has(main[data-view="checkout"] .co-paybar) .mobile-nav { display: none !important; }
+  main.site-main[data-view="checkout"]:has(.co-paybar), body:has(.mobile-nav) main.site-main[data-view="checkout"]:has(.co-paybar) { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .co-head { margin-bottom: var(--space-4); }
   .co-head h1 { font-size: var(--fs-24); }
   .co-block, .co-summary { padding: var(--space-4); }
   .co-two { grid-template-columns: minmax(0, 1fr); }
   .co-signin-choices { grid-template-columns: minmax(0, 1fr); }
   /* Above the bottom navigation, which already keeps the home indicator clear. */
-  .co-paybar { bottom: var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))); padding: var(--space-2) var(--space-4); }
+  .co-paybar { bottom: 0; padding: var(--space-2) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom)); }
   .co-paybar-sum strong { font-size: var(--fs-18); }
-  .co-pay { min-width: 0; min-height: var(--h-md); padding-inline: var(--space-4); font-size: var(--fs-14); }
-  .co-demo { text-align: left; }
-  body:has(.co-paybar) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance, 68px) + 112px); }
-  html:has(main[data-view="checkout"]) { scroll-padding-bottom: calc(var(--atlas-mobile-nav-clearance, 68px) + 120px); }
+  /* The sum keeps its room: a long label («Войдите, чтобы оплатить», a large sum) wraps inside the button instead. */
+  .co-paybar-sum { flex: 1 0 auto; }
+  .co-paybar .co-pay { flex: 0 1 auto; min-width: 0; min-height: var(--h-md); padding-inline: var(--space-4); font-size: var(--fs-14); line-height: var(--lh-snug); text-align: center; }
+  body:has(.co-paybar) .storage-notice { bottom: calc(80px + env(safe-area-inset-bottom)); }
+  html:has(main[data-view="checkout"]) { scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .guest-problems li { grid-template-columns: 48px minmax(0, 1fr) auto; }
   .guest-problems li .btn { grid-column: 2 / -1; justify-self: start; }
   .co-placed { padding: var(--space-6) var(--space-4); }

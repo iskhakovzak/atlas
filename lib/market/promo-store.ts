@@ -8,8 +8,10 @@ import { normalizePromoCode, type PromoInput, type PromoKind, type PromoRule } f
  * would make every checkout race every other one (and the operator's edits) on one compare-and-swap.
  * The functions take a D1-like object so tests run them on node:sqlite.
  */
-type Statement = { bind(...values: unknown[]): { first<T>(): Promise<T | null>; run(): Promise<{ meta: { changes: number } }>; all<T>(): Promise<{ results: T[] }> } };
-export type PromoDb = { prepare(sql: string): Statement };
+type Bound = { first<T>(): Promise<T | null>; run(): Promise<{ meta: { changes: number } }>; all<T>(): Promise<{ results: T[] }> };
+type Statement = { bind(...values: unknown[]): Bound };
+/** D1's prepare, and its batch (statements run in order in one transaction) for the use counted together with its record. */
+export type PromoDb = { prepare(sql: string): Statement; batch?(statements: Bound[]): Promise<{ meta: { changes: number } }[]> };
 
 type Row = { id: string; code: string; kind: PromoKind; value: number; starts_at: number | null; ends_at: number | null; max_uses: number | null; min_order: number | null; active: number; uses: number; note: string | null; created_at: number; updated_at: number; discount_total?: number | null };
 const ruleOf = (row: Row): PromoRule => ({
@@ -69,4 +71,40 @@ export async function releasePromo(db: PromoDb, id: string): Promise<void> {
 export async function recordRedemption(db: PromoDb, value: { codeId: string; code: string; userId: string; batchId: string; orderIds: string[]; discount: number }, now = Date.now()): Promise<void> {
   await db.prepare('INSERT OR IGNORE INTO market_promo_redemptions (id,code_id,code,user_id,batch_id,order_ids,discount,created_at) VALUES (?,?,?,?,?,?,?,?)')
     .bind('RED-' + crypto.randomUUID().slice(0, 8).toUpperCase(), value.codeId, value.code, value.userId, value.batchId, JSON.stringify(value.orderIds.slice(0, 50)), value.discount, now).run();
+}
+
+/** One checkout that uses a code: who, which checkout key (the batch), its orders and the discount they carry. */
+export type PromoUse = { codeId: string; code: string; userId: string; batchId: string; orderIds: string[]; discount: number };
+
+/**
+ * Places a checkout that uses a code (POST /api/actions): the use is counted and its record written in one transaction
+ * before the orders are saved, and both are taken back when the save fails (a stale revision, a failed write), so the
+ * admin's «Скидок выдано» and the use count always agree with the orders the books see.
+ * - The record goes first (INSERT OR IGNORE, one per checkout key); the count rises only when that row is this call's new
+ *   one and the code is still on, in its dates and under its cap; otherwise the new row is removed again. Two requests
+ *   with the same key count one use; two customers taking the last use cannot both get it.
+ * - `usedUp`: the code could not be counted (cap reached, switched off, dates over) and nothing was saved.
+ */
+export async function placeWithPromo<T>(db: PromoDb, use: PromoUse | null | undefined, save: () => Promise<T>, now = Date.now()): Promise<{ usedUp: true } | { usedUp: false; value: T }> {
+  if (!use || !db.batch) return { usedUp: false, value: await save() };
+  const id = 'RED-' + crypto.randomUUID().slice(0, 8).toUpperCase();
+  const mine = 'EXISTS (SELECT 1 FROM market_promo_redemptions WHERE id=?)';
+  const [inserted, counted] = await db.batch([
+    db.prepare('INSERT OR IGNORE INTO market_promo_redemptions (id,code_id,code,user_id,batch_id,order_ids,discount,created_at) VALUES (?,?,?,?,?,?,?,?)')
+      .bind(id, use.codeId, use.code, use.userId, use.batchId, JSON.stringify(use.orderIds.slice(0, 50)), use.discount, now),
+    db.prepare(`UPDATE market_promo_codes SET uses=uses+1, updated_at=? WHERE id=? AND ${mine} AND active=1 AND (starts_at IS NULL OR starts_at<=?) AND (ends_at IS NULL OR ends_at>?) AND (max_uses IS NULL OR uses<max_uses)`)
+      .bind(now, use.codeId, id, now, now),
+    // The count did not rise (the statement before changed no row): this call's record is removed again.
+    db.prepare('DELETE FROM market_promo_redemptions WHERE id=? AND changes()=0').bind(id),
+  ]);
+  const fresh = inserted.meta.changes === 1;
+  if (fresh && counted.meta.changes !== 1) return { usedUp: true };
+  try { return { usedUp: false, value: await save() }; }
+  catch (error) {
+    if (fresh) await db.batch([
+      db.prepare(`UPDATE market_promo_codes SET uses=uses-1 WHERE id=? AND uses>0 AND ${mine}`).bind(use.codeId, id),
+      db.prepare('DELETE FROM market_promo_redemptions WHERE id=?').bind(id),
+    ]).catch((release) => console.error('Promo use release failed', release));
+    throw error;
+  }
 }

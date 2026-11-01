@@ -19,12 +19,12 @@ type Copy = {
     recipient: { title: string; other: string; useThis: string; list: string; add: string; change: string; passportLater: string };
     speed: { title: string };
     customs: { title: string; none: string };
-    sum: { title: string; item: string; service: string; serviceHelp: (fee: string) => string; delivery: (kg: string, speed: string) => string; storeShipping: string; guarantee: string; duty: string; promo: (code: string) => string; balance: string; total: string; hold: (sum: string) => string; items: (n: number) => string; later: (n: number) => string };
+    sum: { title: string; item: string; service: string; serviceHelp: (fee: string) => string; serviceHelpCustoms: (fee: string, customs: string) => string; delivery: (kg: string, speed: string) => string; storeShipping: string; guarantee: string; duty: string; promo: (code: string) => string; balance: string; dutyLater: string; promoBase: string; total: string; hold: (sum: string) => string; items: (n: number) => string; later: (n: number) => string };
     promo: { label: string; placeholder: string; apply: string; remove: string; checking: string; applied: (code: string, sum: string) => string; percent: (value: string) => string; fixed: (sum: string) => string; onlyService: string; minOrder: (sum: string) => string; open: string };
-    check: { running: string; changedTitle: string; changedHint: string; failed: string; retry: string };
+    check: { running: string; changedTitle: string; changedHint: string; failed: string; retry: string; rechecked: string };
     pay: { button: (sum: string) => string; busy: string; signinFirst: string; demo: string; consentFirst: string; paying: string };
   };
-  success: { title: string; text: (n: number) => string; total: string; demo: string; numbers: string; passportTitle: string; passportText: (name: string) => string; passportReady: string; addPassport: string; orders: string; catalog: string; paid: string };
+  success: { title: string; text: (n: number) => string; total: string; demo: string; numbers: string; passportTitle: string; passportText: (name: string) => string; passportReady: string; addPassport: string; orders: string; catalog: string; paid: string; signin: string; paidNow: string };
 };
 
 const n = (count: number, one: string, few: string, many: string) => {
@@ -55,9 +55,9 @@ export const checkoutCopy: Record<Locale, Copy> = /*@__PURE__*/withCyrillic({
       recipient: { title: 'Получатель', other: 'Другой получатель', useThis: 'Доставить этому получателю', list: 'Сохранённые получатели', add: 'Новый получатель', change: 'Изменить', passportLater: 'Паспорт попросим после оплаты' },
       speed: { title: 'Доставка' },
       customs: { title: 'Таможня', none: 'Пошлины нет: заказ укладывается в лимит получателя.' },
-      sum: { title: 'Из чего сумма', item: 'Товар', service: 'Сервис Atlas', serviceHelp: fee => `Комиссия Atlas ${fee} от цены товара: выкуп, проверка и упаковка.`, delivery: (kg, speed) => kg ? `Доставка · ${kg} кг · ${speed}` : `Доставка · ${speed}`, storeShipping: 'Доставка магазина до склада', guarantee: 'Гарантия сохранности', duty: 'Пошлина', promo: c => `Промокод ${c}`, balance: 'С баланса Atlas', total: 'К оплате', hold: sum => `Отдельно удерживается ${sum} на доставку магазина — в сумму не входит.`, items: count => `${count} ${n(count, 'товар', 'товара', 'товаров')}`, later: count => `Ещё ${count} шт. отложено в корзине — их можно оформить позже.` },
+      sum: { title: 'Из чего сумма', item: 'Товар', service: 'Сервис Atlas', serviceHelp: fee => `Комиссия Atlas ${fee} от цены товара: выкуп, проверка и упаковка.`, serviceHelpCustoms: (fee, customs) => `Комиссия Atlas ${fee} от цены товара (выкуп, проверка, упаковка) и ${customs} за оплату таможни.`, delivery: (kg, speed) => kg ? `Доставка · ${kg} кг · ${speed}` : `Доставка · ${speed}`, storeShipping: 'Доставка магазина до склада', guarantee: 'Гарантия сохранности', duty: 'Пошлина', promo: c => `Промокод ${c}`, balance: 'С баланса Atlas', dutyLater: 'Пошлина — посчитаем после входа', promoBase: 'Скидка с комиссии Atlas', total: 'К оплате', hold: sum => `Отдельно удерживается ${sum} на доставку магазина — в сумму не входит.`, items: count => `${count} ${n(count, 'товар', 'товара', 'товаров')}`, later: count => `Ещё ${count} шт. отложено в корзине — их можно оформить позже.` },
       promo: { label: 'Промокод', placeholder: 'Например, ATLAS10', apply: 'Применить', remove: 'Убрать', checking: 'Проверяем…', applied: (c, sum) => `Промокод ${c}: −${sum}`, percent: value => `−${value} от сервиса Atlas`, fixed: sum => `−${sum} от сервиса Atlas`, onlyService: 'Скидка только на сервис Atlas: цену товара и доставку промокод не меняет.', minOrder: sum => `Действует от ${sum}.`, open: 'Есть промокод?' },
-      check: { running: 'Сверяем цены и наличие с магазинами…', changedTitle: 'С момента добавления изменилась цена', changedHint: 'Итог ниже уже пересчитан по новой цене.', failed: 'Не удалось сверить цены. Проверьте связь и повторите.', retry: 'Повторить' },
+      check: { running: 'Сверяем цены и наличие с магазинами…', changedTitle: 'С момента добавления изменилась цена', changedHint: 'Итог ниже уже пересчитан по новой цене.', failed: 'Не удалось сверить цены. Проверьте связь и повторите.', retry: 'Повторить', rechecked: 'Расчёт устарел, и мы сверили цены заново. Проверьте итог и нажмите «Оплатить» ещё раз.' },
       pay: { button: sum => `Оплатить ${sum}`, busy: 'Оформляем…', signinFirst: 'Войдите, чтобы оплатить', demo: 'Демо-оплата: платёжный провайдер ещё не подключён, деньги с карты не списываются.', consentFirst: 'Отметьте согласие с таможенными условиями.', paying: 'Отмечаем оплату…' },
     },
     success: {
@@ -65,7 +65,7 @@ export const checkoutCopy: Record<Locale, Copy> = /*@__PURE__*/withCyrillic({
       total: 'Сумма заказа',
       demo: 'Оплата отмечена в Atlas в демо-режиме: платёжный провайдер не подключён, деньги не списывались.', numbers: 'Номера заказов',
       passportTitle: 'Паспорт получателя', passportText: name => `Нужен для таможенной декларации${name ? ` на имя ${name}` : ''}. Займёт минуту.`, passportReady: 'Паспорт этого получателя уже добавлен — ничего делать не нужно.',
-      addPassport: 'Добавить паспорт', orders: 'Мои заказы', catalog: 'Продолжить покупки', paid: 'Оплачено',
+      addPassport: 'Добавить паспорт', orders: 'Мои заказы', catalog: 'Продолжить покупки', paid: 'Оплачено', signin: 'Войдите, чтобы увидеть заказ.', paidNow: 'Оплата отмечена.',
     },
   },
   uz: {
@@ -89,9 +89,9 @@ export const checkoutCopy: Record<Locale, Copy> = /*@__PURE__*/withCyrillic({
       recipient: { title: 'Qabul qiluvchi', other: 'Boshqa qabul qiluvchi', useThis: 'Shu qabul qiluvchiga yetkazish', list: 'Saqlangan qabul qiluvchilar', add: 'Yangi qabul qiluvchi', change: 'O‘zgartirish', passportLater: 'Pasportni to‘lovdan keyin so‘raymiz' },
       speed: { title: 'Yetkazish' },
       customs: { title: 'Bojxona', none: 'Boj yo‘q: buyurtma qabul qiluvchi limitiga sig‘adi.' },
-      sum: { title: 'Summa nimadan iborat', item: 'Tovar', service: 'Atlas xizmati', serviceHelp: fee => `Tovar narxidan ${fee} Atlas komissiyasi: sotib olish, tekshirish va qadoqlash.`, delivery: (kg, speed) => kg ? `Yetkazish · ${kg} kg · ${speed}` : `Yetkazish · ${speed}`, storeShipping: 'Do‘kondan omborgacha yetkazish', guarantee: 'Saqlash kafolati', duty: 'Boj', promo: c => `${c} promokodi`, balance: 'Atlas balansidan', total: 'To‘lov', hold: sum => `Do‘kon yetkazishi uchun alohida ${sum} ushlab turiladi — summaga kirmaydi.`, items: count => `${count} ta tovar`, later: count => `Savatda yana ${count} dona keyinroq rasmiylashtirish uchun qoldirilgan.` },
+      sum: { title: 'Summa nimadan iborat', item: 'Tovar', service: 'Atlas xizmati', serviceHelp: fee => `Tovar narxidan ${fee} Atlas komissiyasi: sotib olish, tekshirish va qadoqlash.`, serviceHelpCustoms: (fee, customs) => `Tovar narxidan ${fee} Atlas komissiyasi (sotib olish, tekshirish, qadoqlash) va bojxona to‘lovi uchun ${customs}.`, delivery: (kg, speed) => kg ? `Yetkazish · ${kg} kg · ${speed}` : `Yetkazish · ${speed}`, storeShipping: 'Do‘kondan omborgacha yetkazish', guarantee: 'Saqlash kafolati', duty: 'Boj', promo: c => `${c} promokodi`, balance: 'Atlas balansidan', dutyLater: 'Boj — kirgandan keyin hisoblaymiz', promoBase: 'Atlas komissiyasidan chegirma', total: 'To‘lov', hold: sum => `Do‘kon yetkazishi uchun alohida ${sum} ushlab turiladi — summaga kirmaydi.`, items: count => `${count} ta tovar`, later: count => `Savatda yana ${count} dona keyinroq rasmiylashtirish uchun qoldirilgan.` },
       promo: { label: 'Promokod', placeholder: 'Masalan, ATLAS10', apply: 'Qo‘llash', remove: 'Olib tashlash', checking: 'Tekshiryapmiz…', applied: (c, sum) => `${c} promokodi: −${sum}`, percent: value => `Atlas xizmatidan −${value}`, fixed: sum => `Atlas xizmatidan −${sum}`, onlyService: 'Chegirma faqat Atlas xizmatiga: promokod tovar narxi va yetkazishni o‘zgartirmaydi.', minOrder: sum => `${sum} dan amal qiladi.`, open: 'Promokodingiz bormi?' },
-      check: { running: 'Narx va mavjudlikni do‘konlar bilan tekshiryapmiz…', changedTitle: 'Qo‘shilgandan beri narx o‘zgardi', changedHint: 'Quyidagi jami yangi narx bo‘yicha qayta hisoblangan.', failed: 'Narxlarni tekshirib bo‘lmadi. Aloqani tekshirib, qayta urinib ko‘ring.', retry: 'Qayta urinish' },
+      check: { running: 'Narx va mavjudlikni do‘konlar bilan tekshiryapmiz…', changedTitle: 'Qo‘shilgandan beri narx o‘zgardi', changedHint: 'Quyidagi jami yangi narx bo‘yicha qayta hisoblangan.', failed: 'Narxlarni tekshirib bo‘lmadi. Aloqani tekshirib, qayta urinib ko‘ring.', retry: 'Qayta urinish', rechecked: 'Hisob-kitob eskirdi, narxlarni qayta tekshirdik. Jamini tekshirib, «To‘lash»ni yana bosing.' },
       pay: { button: sum => `${sum} to‘lash`, busy: 'Rasmiylashtiryapmiz…', signinFirst: 'To‘lash uchun kiring', demo: 'Demo to‘lov: to‘lov provayderi hali ulanmagan, kartadan pul yechilmaydi.', consentFirst: 'Bojxona shartlariga roziligingizni belgilang.', paying: 'To‘lovni belgilayapmiz…' },
     },
     success: {
@@ -99,7 +99,7 @@ export const checkoutCopy: Record<Locale, Copy> = /*@__PURE__*/withCyrillic({
       total: 'Buyurtma summasi',
       demo: 'To‘lov Atlasda demo rejimda belgilandi: to‘lov provayderi ulanmagan, pul yechilmadi.', numbers: 'Buyurtma raqamlari',
       passportTitle: 'Qabul qiluvchining pasporti', passportText: name => `Bojxona deklaratsiyasi uchun kerak${name ? ` (${name} nomiga)` : ''}. Bir daqiqa vaqt oladi.`, passportReady: 'Bu qabul qiluvchining pasporti allaqachon qo‘shilgan — hech narsa qilish shart emas.',
-      addPassport: 'Pasport qo‘shish', orders: 'Buyurtmalarim', catalog: 'Xaridni davom ettirish', paid: 'To‘langan',
+      addPassport: 'Pasport qo‘shish', orders: 'Buyurtmalarim', catalog: 'Xaridni davom ettirish', paid: 'To‘langan', signin: 'Buyurtmani ko‘rish uchun kiring.', paidNow: 'To‘lov belgilandi.',
     },
   },
   en: {
@@ -123,9 +123,9 @@ export const checkoutCopy: Record<Locale, Copy> = /*@__PURE__*/withCyrillic({
       recipient: { title: 'Recipient', other: 'Another recipient', useThis: 'Deliver to this recipient', list: 'Saved recipients', add: 'New recipient', change: 'Change', passportLater: 'We ask for the passport after payment' },
       speed: { title: 'Delivery' },
       customs: { title: 'Customs', none: 'No duty: the order fits the recipient’s allowance.' },
-      sum: { title: 'What the total is made of', item: 'Item', service: 'Atlas service', serviceHelp: fee => `Atlas fee of ${fee} of the item price: purchase, inspection and packing.`, delivery: (kg, speed) => kg ? `Delivery · ${kg} kg · ${speed}` : `Delivery · ${speed}`, storeShipping: 'Store delivery to the warehouse', guarantee: 'Safe-arrival guarantee', duty: 'Duty', promo: c => `Promo code ${c}`, balance: 'From Atlas balance', total: 'To pay', hold: sum => `${sum} is held separately for store delivery — not part of the total.`, items: count => `${count} ${count === 1 ? 'item' : 'items'}`, later: count => `${count} more left in the cart for later.` },
+      sum: { title: 'What the total is made of', item: 'Item', service: 'Atlas service', serviceHelp: fee => `Atlas fee of ${fee} of the item price: purchase, inspection and packing.`, serviceHelpCustoms: (fee, customs) => `Atlas fee of ${fee} of the item price (purchase, inspection, packing) and ${customs} for paying customs.`, delivery: (kg, speed) => kg ? `Delivery · ${kg} kg · ${speed}` : `Delivery · ${speed}`, storeShipping: 'Store delivery to the warehouse', guarantee: 'Safe-arrival guarantee', duty: 'Duty', promo: c => `Promo code ${c}`, balance: 'From Atlas balance', dutyLater: 'Duty — worked out after you sign in', promoBase: 'Off the Atlas fee', total: 'To pay', hold: sum => `${sum} is held separately for store delivery — not part of the total.`, items: count => `${count} ${count === 1 ? 'item' : 'items'}`, later: count => `${count} more left in the cart for later.` },
       promo: { label: 'Promo code', placeholder: 'For example, ATLAS10', apply: 'Apply', remove: 'Remove', checking: 'Checking…', applied: (c, sum) => `Promo code ${c}: −${sum}`, percent: value => `−${value} off the Atlas service`, fixed: sum => `−${sum} off the Atlas service`, onlyService: 'The discount applies only to the Atlas service: the item price and delivery stay the same.', minOrder: sum => `Valid from ${sum}.`, open: 'Have a promo code?' },
-      check: { running: 'Checking prices and stock with the stores…', changedTitle: 'The price changed since you added it', changedHint: 'The total below already uses the new price.', failed: 'Could not check the prices. Check your connection and try again.', retry: 'Try again' },
+      check: { running: 'Checking prices and stock with the stores…', changedTitle: 'The price changed since you added it', changedHint: 'The total below already uses the new price.', failed: 'Could not check the prices. Check your connection and try again.', retry: 'Try again', rechecked: 'The quote had expired, so we checked the prices again. Review the total and press “Pay” again.' },
       pay: { button: sum => `Pay ${sum}`, busy: 'Placing the order…', signinFirst: 'Sign in to pay', demo: 'Demo payment: no payment provider is connected yet, nothing is charged to your card.', consentFirst: 'Tick your agreement with the customs terms.', paying: 'Recording the payment…' },
     },
     success: {
@@ -133,7 +133,7 @@ export const checkoutCopy: Record<Locale, Copy> = /*@__PURE__*/withCyrillic({
       total: 'Order total',
       demo: 'The payment was recorded in Atlas in demo mode: no payment provider is connected and no money was taken.', numbers: 'Order numbers',
       passportTitle: 'Recipient’s passport', passportText: name => `Needed for the customs declaration${name ? ` in the name of ${name}` : ''}. Takes a minute.`, passportReady: 'This recipient’s passport is already added — nothing to do.',
-      addPassport: 'Add passport', orders: 'My orders', catalog: 'Continue shopping', paid: 'Paid',
+      addPassport: 'Add passport', orders: 'My orders', catalog: 'Continue shopping', paid: 'Paid', signin: 'Sign in to see the order.', paidNow: 'Payment marked.',
     },
   },
 });

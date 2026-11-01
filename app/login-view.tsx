@@ -186,13 +186,14 @@ export function OtpLogin({channel,c,dev,onDone,onError,link=false}:{channel:'pho
  const autoTried=useRef('');
  useEffect(()=>{if(wait<=0)return;const timer=setTimeout(()=>setWait(value=>value-1),1000);return ()=>clearTimeout(timer)},[wait]);
  useEffect(()=>{if(code.length===6&&!busy&&challenge&&autoTried.current!==code){autoTried.current=code;formRef.current?.requestSubmit()}},[code,busy,challenge]);
+ // The code field takes the focus once it is on screen (after «send code»), so the keyboard and a screen reader land on it.
+ useEffect(()=>{if(challenge)codeInput.current?.focus()},[challenge]);
  async function send(event?:FormEvent){
   event?.preventDefault();if(busy)return;setBusy(true);onError();setCodeError(null);autoTried.current='';
   const {ok,data}=await post('/api/auth/otp',{step:'start',channel,target});
   setBusy(false);
   if(!ok||!data.challengeId){onError(data.error);return}
   setChallenge(data.challengeId);setDevCode(data.devCode??null);setCode('');setWait(60);
-  setTimeout(()=>codeInput.current?.focus(),0);
  }
  async function verify(event:FormEvent){
   event.preventDefault();if(busy||!challenge)return;setBusy(true);onError();setCodeError(null);

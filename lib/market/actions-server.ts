@@ -43,7 +43,9 @@ export function codedActionError(error: unknown): { status: number; code: string
   if (error instanceof ZodError) return { status: 400, code: error.issues.length && error.issues.every((issue) => recipientFields.has(String(issue.path.at(-1)))) ? 'err_80' : 'err_10' };
   if (error instanceof UnsupportedStoreError || !(error instanceof Error)) return undefined;
   const code = Object.prototype.hasOwnProperty.call(error, 'code') ? (error as { code?: unknown }).code : undefined;
-  return typeof code === 'string' && /^err_\d+$/.test(code) ? { status: 400, code } : undefined;
+  // An Error may name its own 4xx status (promo-code conflicts answer 409); anything else is 400.
+  const status = (error as { status?: unknown }).status;
+  return typeof code === 'string' && /^err_\d+$/.test(code) ? { status: typeof status === 'number' && status >= 400 && status < 500 ? status : 400, code } : undefined;
 }
 
 /** The revision the client saw is no longer the stored one: answer with the current state, write nothing. */
