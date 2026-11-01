@@ -369,9 +369,12 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pr
 @media (min-width: 1600px) { .site-main .catalog-page .catalog-results > .finds-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 
 .pcard { position: relative; display: flex; flex-direction: column; min-width: 0; border-radius: var(--r-card); background-color: var(--surface); box-shadow: var(--shadow-2); overflow: clip; transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out); }
-.pcard-visual { position: relative; flex: none; aspect-ratio: 4 / 5; background-color: var(--c-sunken); }
+.pcard-visual { position: relative; flex: none; aspect-ratio: 1 / 1; background-color: var(--c-sunken); }
 .pcard-photo { position: absolute; inset: 0; display: block; overflow: hidden; }
-.pcard-photo > .product-img { display: block; width: 100%; height: 100%; padding: 6%; object-fit: contain; mix-blend-mode: multiply; transition: transform var(--dur-slow) var(--ease-out); }
+.pcard-photo > .product-img { display: block; width: 100%; height: 100%; padding: 0; object-fit: cover; transition: transform var(--dur-slow) var(--ease-out); }
+/* The photo fills the card's frame edge to edge (owner, 2 November 2026: a store photo with its own backdrop sat inside the
+   frame as a box within a box). Only a clearly tall or wide photo (app/market-ui.tsx markPhotoShape) stays whole, inset. */
+.pcard-photo > .product-img[data-shape="odd"] { padding: 6%; object-fit: contain; mix-blend-mode: multiply; }
 .pcard-photo > .no-photo { height: 100%; background-color: transparent; }
 
 /* On the photo: "−N %" and «Топ-цена» top left, the heart top right, the store mark bottom left, "+" bottom right. */

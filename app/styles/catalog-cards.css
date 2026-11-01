@@ -778,3 +778,7 @@ html[data-theme="dark"] .find-card .find-official { color: var(--night-accent, #
   .site-main .find-card .find-facts { margin-top: 2px; }
   .site-main .find-card .find-purchase { padding-top: 12px; }
 }
+
+/* Compact cards (home rail, «Вы смотрели»): a square store photo fills the square frame like the catalog card's
+   (app/styles/catalog-pages.css .pcard-photo); a tall or wide one stays whole. */
+.find-card.find-card-compact .find-visual > .find-photo .product-img:not([data-shape="odd"]) { padding: 0; object-fit: cover !important; mix-blend-mode: normal !important; }
