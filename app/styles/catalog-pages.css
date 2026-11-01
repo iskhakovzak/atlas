@@ -526,7 +526,7 @@ html[data-theme="dark"] .pcard-save:not(.saved) { background-color: rgba(255, 25
 .catalog-stores-row > li { flex: none; scroll-snap-align: start; }
 .catalog-stores-row :is(button, a) { display: grid; justify-items: center; align-content: start; gap: var(--space-1); width: 76px; min-height: 96px; padding: var(--space-1) 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--text-2); font: inherit; text-decoration: none; cursor: pointer; }
 .catalog-stores-logo { position: relative; display: grid; place-items: center; width: 56px; height: 56px; border-radius: var(--r-pill); background: var(--surface); box-shadow: var(--shadow-1); color: var(--text-2); transition: box-shadow var(--dur-fast) var(--ease-out); }
-html[data-theme="dark"] .catalog-stores-logo:has(img) { background: #fff; }
+html[data-theme="dark"] .catalog-stores-row li:not(.catalog-stores-more) .catalog-stores-logo { background: #fff; color: var(--c-ink); }
 html[data-theme="dark"] .pcard-save:focus-visible { outline-color: var(--c-brand); }
 .catalog-stores-logo .store-logo { width: 48px !important; height: 48px !important; border: 0; border-radius: var(--r-pill); overflow: hidden; background: transparent; }
 .catalog-stores-name { max-width: 100%; overflow: hidden; color: var(--text); font-size: var(--fs-12); font-weight: var(--fw-medium); line-height: var(--lh-snug); text-align: center; text-overflow: ellipsis; white-space: nowrap; }

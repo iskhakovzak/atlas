@@ -83,7 +83,7 @@
 .lo-source-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .lo-source-link svg { flex-shrink: 0; }
 /* The item name with the favourites heart beside it (catalog items, signed-in customers). */
-.site-main .lo-page .find-save.lo-save { position: relative; flex: none; display: grid; place-items: center; width: var(--h-sm); height: var(--h-sm); margin: 0; border: 0; border-radius: 50%; background: var(--surface); color: var(--text); box-shadow: var(--shadow-1); cursor: pointer; }
+.site-main .lo-page .find-save.lo-save { position: relative; inset: auto; flex: none; display: grid; place-items: center; width: var(--h-sm); height: var(--h-sm); margin: -6px 0 0; border: 0; border-radius: 50%; background: var(--surface); color: var(--text); box-shadow: var(--shadow-1); cursor: pointer; }
 .site-main .lo-page .find-save.lo-save::after { content: ""; position: absolute; inset: -2px; }
 .site-main .lo-page .find-save.lo-save:hover:not(.saved) { background: var(--hover); }
 /* Phones: every control on the link-order page is at least 44 px to tap; icon sizes stay as they are. */
