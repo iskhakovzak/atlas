@@ -62,3 +62,29 @@ export const stripCopy: Record<Locale, Record<StripKind, (id: string) => string>
     passport: (id) => `Order ${id} awaits the recipient’s passport`,
   },
 });
+
+/** The order number's tail on phones: "…101DC" (the last five characters), so the strip fits one line at 360 px. */
+export const orderTail = (id: string) => '…' + id.replace(/\s+/g, '').slice(-5);
+
+/** Phones (≤ 760 px, app/shell.css): the same line in short, given the number's tail (orderTail)
+ *  so the Cyrillic copy keeps it Latin; the strip's accessible name keeps the full line (stripCopy). */
+export const stripShortCopy: Record<Locale, Record<StripKind, (id: string) => string>> = /*@__PURE__*/withCyrillic({
+  ru: {
+    extra: (tail) => `Заказ ${tail} ждёт доплату`,
+    change: (tail) => `Заказ ${tail} ждёт решения`,
+    payment: (tail) => `Заказ ${tail} ждёт оплаты`,
+    passport: (tail) => `Заказ ${tail} ждёт паспорт`,
+  },
+  uz: {
+    extra: (tail) => `Buyurtma ${tail}: qo‘shimcha to‘lov`,
+    change: (tail) => `Buyurtma ${tail}: qaroringiz kerak`,
+    payment: (tail) => `Buyurtma ${tail}: to‘lov kutilmoqda`,
+    passport: (tail) => `Buyurtma ${tail}: pasport kerak`,
+  },
+  en: {
+    extra: (tail) => `Order ${tail} needs an extra payment`,
+    change: (tail) => `Order ${tail} needs your decision`,
+    payment: (tail) => `Order ${tail} awaits payment`,
+    passport: (tail) => `Order ${tail} needs a passport`,
+  },
+});

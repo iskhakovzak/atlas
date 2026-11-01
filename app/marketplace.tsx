@@ -3,7 +3,7 @@ import {useKeyboardInset} from '@/lib/market/keyboard-inset';
 import {Suspense,lazy,useEffect,useLayoutEffect,useMemo,useState,useSyncExternalStore,type MouseEvent,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import Link,{usePageLang,useWarmLinks} from '@/components/site-link';
-import {ArrowUpRight,ArrowRight,ShoppingBag,Heart,LayoutGrid,Settings2,House,UserRound,MessageCircle,Plus,Search} from 'lucide-react';
+import {ArrowUpRight,ArrowRight,ChevronRight,ShoppingBag,Heart,LayoutGrid,Settings2,House,UserRound,MessageCircle,Plus,Search} from 'lucide-react';
 import {ToasterSlot} from './toaster-slot';
 import {money,balanceOf} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
@@ -27,7 +27,7 @@ import {GuestCartMerge} from './guest-cart-merge';
 import {useGuestCart} from './use-guest-cart';
 import {guestUnits} from '@/lib/market/guest-cart';
 import {ProfileMenu} from './profile-menu';
-import {firstProfileAction,stripCopy} from '@/lib/market/profile-strip';
+import {firstProfileAction,orderTail,stripCopy,stripShortCopy} from '@/lib/market/profile-strip';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
 import {focusSearchKey,headerSearchLink,headerSearchTarget} from '@/lib/market/shell-search';
 
@@ -68,13 +68,17 @@ const profileViews=new Set(['account','orders','balance','notifications','favori
 /** Pages where the «ждёт действия» strip would repeat what the page itself shows (or would get in the way of it). */
 const stripHidden=new Set(['account','parcel','orders','cart','checkout','login','operations','admin','analytics','documents','batch']);
 
-/** Wide screens: one field for the catalog search and for a pasted store link (a pasted link opens its calculation). */
+
+/** One field for the catalog search and for a pasted store link (a pasted link opens its calculation): wide screens from
+ *  1200 px, and phones (≤ 760 px) between the logo and the bell, where it is a 40 px pill (app/shell.css, 1.11.2026). */
 function HeaderSearch({nav}:{nav:NavCopy}){
   const router=useRouter();
   const [text,setText]=useState('');
   function go(value:string){
     const href=headerSearchTarget(value);
     if(!href)return;
+    // The phone's keyboard goes down with the field's focus before the next page comes.
+    if(document.activeElement instanceof HTMLElement&&document.activeElement.id==='shell-search-input')document.activeElement.blur();
     // The same page with another query is a full load, as SiteLink does (those pages read the address once).
     if(window.location.pathname===href.split('?')[0]){window.location.assign(href);return}
     startNavigationFeedback();
@@ -167,8 +171,9 @@ export default function Marketplace({view,children,crumb,crumbPath}:{view:string
   }
   return <><ViewMark view={view}/><a className="skip-link" href="#main">{modalWords.skip}</a><ToasterSlot theme={theme==='dark'?'dark':theme==='light'?'light':'system'} label={pickLocale({ru:'Сообщения',uz:'Xabarlar',en:'Messages'},locale)}/>
   {/* Wide screens: logo · Каталог · Магазины · Купить по ссылке · Доставка · search · language · ♥ · cart · profile.
-      Phones: logo · search · language (and the bell); the bottom bar carries the rest (app/shell.css). */}
-  <header className="site-header shell-header">
+      Phones: logo · search field (not on the catalog and the checkout) · language · bell; the bottom bar carries the rest (app/shell.css). */}
+  {/* data-search="off": the catalog (its own search field under the header) and the checkout leave the phone's field out. */}
+  <header className="site-header shell-header" data-search={(view==='products'&&!crumb)||view==='checkout'?'off':undefined}>
    <Link className="wordmark" href="/" aria-label={modalWords.homeLabel}>atlas<ArrowUpRight aria-hidden="true"/></Link>
    <nav className="shell-nav" aria-label={modalWords.navigation}>{navItems.map(([href,key,label])=><Link key={key} data-nav={key} className={key===view?'active':''} aria-current={key===view?'page':undefined} href={href}>{label}</Link>)}</nav>
    <HeaderSearch nav={nav}/>
@@ -187,7 +192,8 @@ export default function Marketplace({view,children,crumb,crumbPath}:{view:string
      :view==='login'?null:<a className="shell-signin shell-wide" href={signInPath('/account')} onClick={event=>{event.currentTarget.href=signInPath(returnPath())}}>{nav.signin}</a>}
    </div>
   </header>
-  {strip&&<Link className="shell-attention" href={strip.href}><span className="shell-attention-dot" aria-hidden="true"/><span className="shell-attention-text">{stripCopy[locale][strip.kind](strip.orderId)}</span><ArrowRight size={16} aria-hidden="true"/></Link>}
+  {/* Phones show the short line (…101DC); the link's name is the full one on every width. */}
+  {strip&&<Link className="shell-attention" href={strip.href} aria-label={stripCopy[locale][strip.kind](strip.orderId)}><span className="shell-attention-dot" aria-hidden="true"/><span className="shell-attention-text" aria-hidden="true"><span className="shell-attention-full">{stripCopy[locale][strip.kind](strip.orderId)}</span><span className="shell-attention-short">{stripShortCopy[locale][strip.kind](orderTail(strip.orderId))}</span></span><ChevronRight size={16} aria-hidden="true"/></Link>}
   <CartAnnouncer count={count} ready={ready} locale={locale}/>
   <GuestCartMerge/>
   {/* Phones hide the breadcrumb (app/shell.css); its JSON-LD stays for search engines. */}
