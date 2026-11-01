@@ -1,9 +1,9 @@
 'use client';
 import {useKeyboardInset} from '@/lib/market/keyboard-inset';
-import {Suspense,lazy,useEffect,useLayoutEffect,useMemo,useState,useSyncExternalStore,type MouseEvent,type ReactNode} from 'react';
+import {Suspense,lazy,useEffect,useLayoutEffect,useMemo,useRef,useState,useSyncExternalStore,type MouseEvent,type ReactNode} from 'react';
 import {useRouter} from 'next/navigation';
 import Link,{usePageLang,useWarmLinks} from '@/components/site-link';
-import {ArrowUpRight,ArrowRight,ChevronRight,ShoppingBag,Heart,LayoutGrid,Settings2,House,UserRound,MessageCircle,Plus,Search,X} from 'lucide-react';
+import {ArrowUpRight,ArrowRight,ShoppingBag,Heart,LayoutGrid,Settings2,House,UserRound,MessageCircle,Plus,Search,X} from 'lucide-react';
 import {ToasterSlot} from './toaster-slot';
 import {money,balanceOf} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
@@ -27,7 +27,8 @@ import {GuestCartMerge} from './guest-cart-merge';
 import {useGuestCart} from './use-guest-cart';
 import {guestUnits} from '@/lib/market/guest-cart';
 import {ProfileMenu} from './profile-menu';
-import {firstProfileAction,orderTail,stripCopy,stripShortCopy} from '@/lib/market/profile-strip';
+import {firstProfileAction,missingPassports} from '@/lib/market/profile-strip';
+import {takeSignedIn} from '@/lib/market/action-session';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
 import {focusSearchKey,headerSearchLink,headerSearchTarget,readCatalogSearch,subscribeCatalogSearch} from '@/lib/market/shell-search';
 
@@ -65,8 +66,10 @@ const LinkSheet=lazy(()=>loadChunk(loadLinkSheet).then(module=>({default:module.
 const preloadLinkSheet=()=>{loadLinkSheet().catch(()=>undefined)};
 /** Views reached through the profile: its tab and its menu button stay lit on them. */
 const profileViews=new Set(['account','orders','balance','notifications','favorites','identity','declaration','documents','settings','parcel']);
-/** Pages where the «ждёт действия» strip would repeat what the page itself shows (or would get in the way of it). */
-const stripHidden=new Set(['account','parcel','orders','cart','checkout','login','operations','admin','analytics','documents','batch']);
+/** Pages where the toast after sign-in would repeat what the page itself shows (the home card, the profile, the orders,
+ *  the documents) or get in the way of a purchase. The mint strip under the header is gone since 1 November 2026. */
+const actionToastQuiet=new Set(['catalog','account','parcel','orders','cart','checkout','login','operations','admin','analytics','documents','identity','batch']);
+const loadActionToast=()=>import('./action-toast');
 
 
 /** Phones (≤ 760 px): the header field is then the catalog's own search on /catalog and a store's page. */
@@ -123,6 +126,7 @@ function HeaderSearch({nav}:{nav:NavCopy}){
 export default function Marketplace({view,children,crumb,crumbPath}:{view:string;children?:ReactNode;crumb?:string;crumbPath?:string}) {
  useKeyboardInset();
   const {state,ready,status,error,user,refresh,setLocale,sessionHint,siteContent}=useMarket();
+  const router=useRouter();
   const supportBot=siteContent.contacts.telegramSupport;
   const {theme}=useTheme();
   const locale=state.communication.language as Locale,words=ui(locale),pageLang=usePageLang();
@@ -154,10 +158,18 @@ export default function Marketplace({view,children,crumb,crumbPath}:{view:string
   const shownBalance=ready?balance:snapshot?.balance??0,shownCount=ready||status==='guest'?count:snapshot?.count??0;
   const walletAmount=known?(locale==='ru'?money(shownBalance):new Intl.NumberFormat(isUzbek(locale)?uzText(locale, 'uz-UZ'):'en-US').format(shownBalance)+(isUzbek(locale)?uzText(locale, ' so‘m'):' UZS')):'';
   // An order waits for the customer (an extra payment, a change to answer, a payment to finish, a recipient's passport):
-  // a dot on the profile, and under the header one mint line that leads straight to it (1 November 2026).
+  // a dot on the profile, and on «Документы» in its menu while a passport is missing. No strip under the header on every
+  // page (owner, 1 November 2026): the home card and the profile say what waits, and one toast right after sign-in.
   const firstAction=ready?firstProfileAction(state):undefined;
   const attention=Boolean(firstAction);
-  const strip=firstAction&&!stripHidden.has(view)?firstAction:undefined;
+  const passportNeeded=ready&&missingPassports(state).length>0;
+  const toastChecked=useRef(false);
+  useEffect(()=>{
+   if(!ready||status!=='authenticated'||toastChecked.current)return;
+   toastChecked.current=true;
+   if(!takeSignedIn()||!firstAction||actionToastQuiet.has(view))return;
+   loadChunk(loadActionToast).then(module=>module.showActionToast(state,locale,href=>router.push(href))).catch(()=>undefined);
+  },[ready,status,firstAction,view,state,locale,router]);
   // The count is in the cart's name (a polite status line says each change, app/cart-announcer.tsx).
   const cartLabel=known||status==='guest'?modalWords.cart+shownCount:words.cart;
   // Saved items need an account: a guest's heart signs in first and comes back. The cart is open to guests (stage 6).
@@ -208,14 +220,12 @@ export default function Marketplace({view,children,crumb,crumbPath}:{view:string
     {member&&<NotificationsPanel open={noticesOpen} onOpenChange={setNoticesOpen} label={modalWords.notifications} active={view==='notifications'}/>}
     <Link aria-label={modalWords.favorites} href={favoritesHref} className={'shell-icon shell-wide'+(view==='favorites'?' active':'')}><Heart size={20} aria-hidden="true"/></Link>
     <Link href={cartHref} className={'shell-cart shell-wide'+(view==='cart'||view==='checkout'?' active':'')} aria-label={cartLabel}><ShoppingBag size={18} aria-hidden="true"/><span className="shell-cart-label">{words.cart}</span>{(known||status==='guest')&&shownCount>0&&<b>{shownCount}</b>}</Link>
-    {member?<span className="shell-wide"><ProfileMenu nav={nav} locale={locale} balance={walletAmount} attention={attention} view={view}/></span>
+    {member?<span className="shell-wide"><ProfileMenu nav={nav} locale={locale} balance={walletAmount} attention={attention} documentsDot={passportNeeded} view={view}/></span>
      // A guest goes straight to sign-in and comes back to this page (the href is set on click, so the server and the browser render the same link).
      // On the sign-in page itself the button would lead to the same page: it is left out there.
      :view==='login'?null:<a className="shell-signin shell-wide" href={signInPath('/account')} onClick={event=>{event.currentTarget.href=signInPath(returnPath())}}>{nav.signin}</a>}
    </div>
   </header>
-  {/* Phones show the short line (…101DC); the link's name is the full one on every width. */}
-  {strip&&<Link className="shell-attention" href={strip.href} aria-label={stripCopy[locale][strip.kind](strip.orderId)}><span className="shell-attention-dot" aria-hidden="true"/><span className="shell-attention-text" aria-hidden="true"><span className="shell-attention-full">{stripCopy[locale][strip.kind](strip.orderId)}</span><span className="shell-attention-short">{stripShortCopy[locale][strip.kind](orderTail(strip.orderId))}</span></span><ChevronRight size={16} aria-hidden="true"/></Link>}
   <CartAnnouncer count={count} ready={ready} locale={locale}/>
   <GuestCartMerge/>
   {/* Phones hide the breadcrumb (app/shell.css); its JSON-LD stays for search engines. */}

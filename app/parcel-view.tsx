@@ -81,7 +81,7 @@ export function ParcelView({ id }: { id: string }) {
             <h2 id="pf-stage-title" className="pf-stage-title">{parcel.awaitingPayment && stage === 0 ? t.stage.awaitingPayment : names[stage]}</h2>
             {!delivered && stage + 1 < names.length && <p className="pf-stage-next">{t.stage.next(names[stage + 1])}</p>}
             <ParcelStageBar stage={stage} awaitingPayment={parcel.awaitingPayment} locale={locale} size="full" />
-            {action ? <ul className="pf-actions pf-actions-inline"><ProfileActionCard action={action} locale={locale} stage={stage} /></ul>
+            {action ? <ul className="pf-actions pf-actions-inline"><ProfileActionCard action={action} locale={locale} orders={state.orders} /></ul>
               : <p className="pf-calm"><Check size={16} aria-hidden="true" />{delivered ? t.parcel.delivered : t.parcel.nothingToDo}</p>}
           </>}
         </section>

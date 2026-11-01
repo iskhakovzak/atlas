@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 import { navCopy, routeTitle, locales } from '../lib/market/i18n.ts';
 import { signInPath } from '../lib/market/access.ts';
 import { headerSearchLink, headerSearchTarget, publishCatalogSearch, readCatalogSearch, subscribeCatalogSearch } from '../lib/market/shell-search.ts';
-import { orderTail, stripCopy, stripShortCopy } from '../lib/market/profile-strip.ts';
 
 const source = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 
@@ -63,9 +62,14 @@ test('the sign-in tab on /login keeps the page the guest came from', () => {
 
 test('the profile shows a dot while an order waits for the customer, said to screen readers too', () => {
   const shell = source('app/marketplace.tsx');
-  // Since 1 November 2026 the recipient's passport counts too, and the same first action is the mint strip under the header.
+  // Since 1 November 2026 the recipient's passport counts too. The mint strip under the header is gone (owner: "вообще
+  // не то"): the dot stays, and «Документы» in the profile menu gets its own while a passport is missing.
   assert.match(shell, /const firstAction=ready\?firstProfileAction\(state\):undefined;\r?\n  const attention=Boolean\(firstAction\);/);
-  assert.match(shell, /<Link className="shell-attention" href=\{strip\.href\} aria-label=\{stripCopy\[locale\]\[strip\.kind\]\(strip\.orderId\)\}>/, 'the strip is named by its full line');
+  assert.doesNotMatch(shell, /shell-attention|stripCopy/, 'no strip under the header on any page');
+  assert.doesNotMatch(source('app/shell.css'), /\.shell-attention/);
+  assert.match(shell, /const passportNeeded=ready&&missingPassports\(state\)\.length>0;/);
+  assert.match(shell, /documentsDot=\{passportNeeded\}/);
+  assert.match(source('app/profile-menu.tsx'), /key==='documents'&&documentsDot&&<><i className="shell-menu-dot" aria-hidden="true"\/><span className="sr-only"> — \{nav\.passportNeeded\}<\/span><\/>/);
   assert.match(shell, /dot\?`\$\{label\} — \$\{nav\.needsAction\}`/);
   // The button's name starts with the word it shows ("Профиль"), so a voice command finds it; the list keeps "Меню профиля".
   assert.match(source('app/profile-menu.tsx'), /aria-label=\{nav\.profile\+\(attention\?' — '\+nav\.needsAction:''\)\}/);
@@ -134,18 +138,17 @@ test('phones: the header is logo · search field · language · bell, the field 
   assert.match(phone, /min-height: calc\(56px \+ env\(safe-area-inset-top\)\)/, '56 px under the safe area');
 });
 
-test('phones: the attention strip reads short (…101DC), its name stays full', () => {
-  assert.equal(orderTail('AT-FC5B6C1101DC'), '…101DC');
-  assert.equal(stripShortCopy.ru.passport(orderTail('AT-FC5B6C1101DC')), 'Заказ …101DC ждёт паспорт');
-  for (const locale of ['ru', 'uz', 'oz', 'en']) for (const kind of ['extra', 'change', 'payment', 'passport']) {
-    const short = stripShortCopy[locale][kind](orderTail('AT-FC5B6C1101DC'));
-    assert.ok(short.includes('101DC'), `${locale}.${kind} keeps the number's tail: ${short}`);
-    assert.ok(short.length <= 36 && short.length < stripCopy[locale][kind]('AT-FC5B6C1101DC').length, `${locale}.${kind} is short: ${short}`);
-  }
-  assert.match(stripShortCopy.oz.passport(orderTail('AT-FC5B6C1101DC')), /^Буюртма …101DC: паспорт керак$/, 'oz is Cyrillic, the number stays Latin');
-  const css = source('app/shell.css');
-  assert.match(css, /\.shell-attention-short \{ display: none; \}/);
-  assert.match(css, /@media \(max-width: 760px\) \{\s+\.shell-attention \{[^}]*min-height: 36px;[^}]*font-size: 13px;/);
+test('one toast after sign-in when something waits, never on a later page change', () => {
+  const shell = source('app/marketplace.tsx');
+  // The sign-in page marks the tab (a code, Telegram, Google or Apple); the shell reads and clears the mark once.
+  assert.match(source('app/login-view.tsx'), /const done=useCallback\(\(\)=>\{setSignedIn\(true\);markSignedIn\(\);/);
+  assert.match(source('app/login-view.tsx'), /if\(!link\)markSignedIn\(\);/);
+  assert.match(shell, /if\(!takeSignedIn\(\)\|\|!firstAction\|\|actionToastQuiet\.has\(view\)\)return;/);
+  // Not where the page already says it (the home card, the profile, the orders, the documents) nor during a purchase.
+  const quiet = shell.match(/const actionToastQuiet=new Set\(\[([^\]]*)\]\);/)[1];
+  for (const view of ['catalog', 'account', 'orders', 'documents', 'cart', 'checkout', 'login']) assert.ok(quiet.includes(`'${view}'`), view);
+  // Its chunk is loaded only then.
+  assert.match(shell, /const loadActionToast=\(\)=>import\('\.\/action-toast'\);/);
 });
 
 test('phones: on the catalog and a store page the header field is the catalog search', () => {

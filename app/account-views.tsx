@@ -70,10 +70,6 @@ export function AccountView() {
   const parcels = buyerParcels(state.orders);
   const activeParcels = parcels.filter(parcelActive);
   const actions = profileActions(state);
-  // A passport card speaks of the furthest parcel of its recipient: "for customs" once one of them is on its way.
-  const actionStage = (action: (typeof actions)[number]) => action.kind === "passport"
-    ? Math.max(-1, ...activeParcels.filter(parcel => parcel.deliveryProfileId === action.recipientId || parcel.id === action.parcelId).map(parcel => parcel.stage ?? -1))
-    : undefined;
   const unread = state.notifications.filter(item => !item.read).length;
   const balance = balanceOf(state);
   const allowance = monthlyAllowance(state, pricing.fx);
@@ -102,7 +98,7 @@ export function AccountView() {
             eight-stage bar and one button. A new account sees one invitation instead of empty blocks. */}
         {actions.length > 0 && <section className="pf-section" aria-labelledby="pf-actions-title">
           <h2 id="pf-actions-title" className="pf-section-title">{p.hub.actions}<span className="pf-count">{actions.length}</span></h2>
-          <ul className="pf-actions">{actions.map(action => <ProfileActionCard key={action.kind + action.orderId + (action.recipientId ?? "")} action={action} locale={lang} stage={actionStage(action)} />)}</ul>
+          <ul className="pf-actions">{actions.map(action => <ProfileActionCard key={action.kind + action.orderId + (action.recipientId ?? "")} action={action} locale={lang} orders={state.orders} />)}</ul>
         </section>}
         {activeParcels.length > 0 ? <section className="pf-section" aria-labelledby="pf-parcels-title">
           <div className="pf-section-head"><h2 id="pf-parcels-title" className="pf-section-title">{p.hub.parcels}<span className="pf-count">{activeParcels.length}</span></h2><Link className="pf-section-link" href="/orders">{p.hub.allParcels}<ArrowRight size={16} aria-hidden="true" /></Link></div>

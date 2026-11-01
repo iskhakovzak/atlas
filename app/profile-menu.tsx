@@ -10,7 +10,8 @@ import {ThemeToggle} from './theme-control';
  * theme and sign-out in one menu, so the header itself keeps only the catalog, the search, the cart and this button.
  * A disclosure, as the language menu (app/header-language.tsx): Escape or a click outside closes it.
  */
-export function ProfileMenu({nav,locale,balance,attention,view}:{nav:NavCopy;locale:Locale;balance:string;attention:boolean;view:string}){
+/** `documentsDot`: a recipient's passport is missing — «Документы» carries the same small dot as the button. */
+export function ProfileMenu({nav,locale,balance,attention,documentsDot=false,view}:{nav:NavCopy;locale:Locale;balance:string;attention:boolean;documentsDot?:boolean;view:string}){
   // The menu belongs to the page it was opened on: a page change (a link in it) closes it.
   const [openFor,setOpenFor]=useState<string|null>(null);
   const open=openFor===view,setOpen=(next:boolean)=>setOpenFor(next?view:null);
@@ -50,7 +51,7 @@ export function ProfileMenu({nav,locale,balance,attention,view}:{nav:NavCopy;loc
       <span className="shell-profile-icon"><UserRound size={18} aria-hidden="true"/>{attention&&<i className="shell-dot" aria-hidden="true"/>}</span><span className="shell-profile-label">{nav.profile}</span><ChevronDown size={14} aria-hidden="true" className="shell-chevron"/>
     </button>
     <div className="shell-menu-list" id={listId} role="group" aria-label={nav.profileMenu} hidden={!open} onKeyDown={move}>
-      {items.map(([href,key,Icon,label,extra])=><Link key={key} href={href} className={key===view||(key==='account'&&view==='parcel')?'active':''} aria-current={key===view?'page':undefined} onClick={()=>setOpen(false)}><Icon size={18} aria-hidden="true"/><span>{label}</span>{extra&&<small>{extra}</small>}</Link>)}
+      {items.map(([href,key,Icon,label,extra])=><Link key={key} href={href} className={key===view||(key==='account'&&view==='parcel')?'active':''} aria-current={key===view?'page':undefined} onClick={()=>setOpen(false)}><Icon size={18} aria-hidden="true"/><span>{label}</span>{extra&&<small>{extra}</small>}{key==='documents'&&documentsDot&&<><i className="shell-menu-dot" aria-hidden="true"/><span className="sr-only"> — {nav.passportNeeded}</span></>}</Link>)}
       <div className="shell-menu-row"><span>{nav.theme}</span><ThemeToggle locale={locale}/></div>
       <button type="button" className="shell-menu-signout" onClick={()=>void signOut()}><LogOut size={18} aria-hidden="true"/><span>{nav.signOut}</span></button>
     </div>

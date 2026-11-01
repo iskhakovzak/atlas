@@ -1,5 +1,6 @@
 'use client';
 import {useCallback,useEffect,useRef,useState,type FormEvent,type ReactNode} from 'react';
+import {markSignedIn} from '@/lib/market/action-session';
 import {ArrowLeft,ArrowRight,ChevronRight,Loader2,Mail,MapPin,MessageCircle,Package,Send,ShieldCheck,Smartphone} from 'lucide-react';
 import {useMarket} from '@/lib/market/store';
 import {safeReturnTo} from '@/lib/auth/return-to';
@@ -49,6 +50,8 @@ export function providerPath(provider:'google'|'apple',returnTo:string,options:{
 }
 /** Opens the flow: a plain navigation in a browser, the system browser inside the apps (a link needs a ticket first). Returns an error code. */
 export async function openProvider(provider:'google'|'apple',returnTo:string,link=false):Promise<string|undefined>{
+ // A sign-in (not linking a method) marks the tab, so the page it returns to may say once what waits (lib/market/action-session.ts).
+ if(!link)markSignedIn();
  if(!isNative()){window.location.assign(providerPath(provider,returnTo,{link}));return}
  let ticket:string|undefined;
  if(link){
@@ -123,7 +126,7 @@ export function LoginView(){
  },[]);
  // Signed in by any method: the "signed in" screen shows at once while the page heads back.
  const [signedIn,setSignedIn]=useState(false);
- const done=useCallback(()=>{setSignedIn(true);window.location.replace(returnTo)},[returnTo]);
+ const done=useCallback(()=>{setSignedIn(true);markSignedIn();window.location.replace(returnTo)},[returnTo]);
  useEffect(()=>{if(status==='authenticated')window.location.replace(returnTo)},[status,returnTo]);
 
  // Signed in: a check draws itself while the page heads back (app/motion.css, "Sign-in screens").

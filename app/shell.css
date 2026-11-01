@@ -85,6 +85,8 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
 .shell-menu-list > a, .shell-menu-signout { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border: 0; border-radius: var(--r-control); background: transparent; color: var(--text); font: inherit; font-size: var(--fs-14); font-weight: var(--fw-medium); text-align: left; text-decoration: none; cursor: pointer; }
 .shell-menu-list > a > svg, .shell-menu-signout > svg { flex: none; color: var(--text-3); }
 .shell-menu-list > a > span { flex: 1 1 auto; }
+/* «Документы» while a recipient's passport is missing: the same small dot as on the profile button (1 November 2026). */
+.shell-menu-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #d4623f; }
 .shell-menu-list > a > small { color: var(--text-2); font-size: var(--fs-13); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .shell-menu-list > a:hover, .shell-menu-signout:hover { background: var(--hover); }
 .shell-menu-list > a.active { background: var(--selected); color: var(--link); }
@@ -193,27 +195,6 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   :root .site-header.shell-header { gap: 8px; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
   :root .site-header.shell-header .wordmark { font-size: 22px !important; }
   .shell-actions, .shell-header .shell-search ~ .shell-actions { gap: 0; }
-}
-
-/* «Ждёт действия» (1 November 2026): one mint line under the header while an order waits for the buyer — a payment,
-   a доплата, a decision or the recipient's passport. It leads straight there (lib/market/profile-strip.ts). */
-.shell-attention { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 4%; border-bottom: 1px solid var(--selected-line); background: var(--discount-bg); color: var(--discount); font-size: var(--fs-14); font-weight: var(--fw-semibold); line-height: var(--lh-snug); text-decoration: none; }
-.shell-attention-short { display: none; }
-.shell-attention:hover { text-decoration: underline; text-underline-offset: 3px; }
-.shell-attention-dot { flex: none; width: 8px; height: 8px; border-radius: var(--r-pill); background: currentColor; }
-.shell-attention-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.shell-attention svg { flex: none; }
-/* Its text starts where the header's logo does (layout-desktop.css: the header's padding-inline), not 10 px left of it. */
-@media (min-width: 761px) { .shell-attention { padding-left: max(var(--gutter), calc((100% - 1500px) / 2 + 72px), env(safe-area-inset-left)); padding-right: max(var(--gutter), calc((100% - 1500px) / 2 + 72px), env(safe-area-inset-right)); } }
-/* Phones: a calm 36 px line — the short text (…101DC), a 6 px dot, a chevron on the header's right edge. */
-@media (max-width: 760px) {
-  .shell-attention { gap: 8px; min-height: 36px; padding: 0 max(14px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); border-bottom-color: color-mix(in srgb, var(--discount) 14%, transparent); font-size: 13px; font-weight: var(--fw-medium); }
-  .shell-attention-full { display: none; }
-  .shell-attention-short { display: inline; }
-  .shell-attention-dot { width: 6px; height: 6px; }
-  .shell-attention > svg { margin-left: auto; opacity: .8; }
-  .shell-attention:hover { text-decoration: none; }
-  .shell-attention:active { background: color-mix(in srgb, var(--discount) 20%, transparent); }
 }
 
 /* A product under the catalog: its long name ends the breadcrumb on one line (app/marketplace.tsx `crumb`). */

@@ -1,4 +1,4 @@
-import { claimKindsOpen, deliveredStage, parcelStageOf, type DeliveryProfile, type Order, type State } from './domain.ts';
+import { claimKindsOpen, deliveredStage, parcelStageOf, pendingExtraCharge, type DeliveryProfile, type Order, type State } from './domain.ts';
 import { groupOrders, type OrderGroup, type OrderStoreGroup } from './order-groups.ts';
 import { orderAttention, parcelPath } from './notice-panel.ts';
 import { documentsPath, missingPassports } from './profile-strip.ts';
@@ -66,14 +66,25 @@ export type ProfileAction = {
   /** Where the one button leads: the decision or the payment on "Мои заказы", the passport on the documents page. */
   href: string;
   name: string;
-  /** Payment: the checkout's one amount. */
+  /** Payment: the checkout's one amount; доплата: the amount waiting for the buyer's approval. */
   amount?: number;
   /** Payment: items in the checkout. */
   items?: number;
+  /** Payment: live lines of the checkout (one line is named by its product, several by their item count). */
+  lines?: number;
   /** Passport: the saved recipient. */
   recipientId?: string;
   recipientName?: string;
 };
+
+/** The доплата an order waits for: the store's shipping, the warehouse weight, the customs duty, or an extra invoice
+ *  (the amounts of the "Доплатить" buttons on "Мои заказы", app/order-workspace.tsx and app/order-extra-charges.tsx). */
+export function pendingExtraAmount(order: Order): number {
+  return (!order.storeShippingExtraApproved ? order.storeShippingSettlement?.extra ?? 0 : 0)
+    || (!order.extraApproved ? order.settlement?.extra ?? 0 : 0)
+    || (!order.customsExtraApproved ? order.customsSettlement?.extra ?? 0 : 0)
+    || (pendingExtraCharge(order)?.amount ?? 0);
+}
 
 type ActionState = Pick<State, 'orders' | 'deliveryProfiles'> & Partial<Pick<State, 'identityProfiles' | 'identityProfile'>>;
 
@@ -91,14 +102,15 @@ export function profileActions(state: ActionState): ProfileAction[] {
     const checkout = order.batchId ?? order.id;
     if (seenCheckouts.has(checkout)) continue;
     seenCheckouts.add(checkout);
-    decisions.push({ kind: reason, orderId: order.id, parcelId: parcelIdOf(order.id), href: '/orders#' + encodeURIComponent(order.id), name: order.product.name });
+    const extra = reason === 'extra' ? pendingExtraAmount(order) : 0;
+    decisions.push({ kind: reason, orderId: order.id, parcelId: parcelIdOf(order.id), href: '/orders#' + encodeURIComponent(order.id), name: order.product.name, ...(extra > 0 ? { amount: extra } : {}) });
   }
   for (const group of groupOrders(state.orders)) {
     if (!group.payment) continue;
     const order = group.orders.find((item) => !item.cancelled && item.payment?.status === 'pending');
     if (!order) continue;
     // The amount on the pay button of "Мои заказы" (the balance part is already out of it).
-    payments.push({ kind: 'payment', orderId: order.id, parcelId: parcelIdOf(order.id), href: '/orders#' + encodeURIComponent(order.id), name: order.product.name, amount: group.payment.amount, items: group.items });
+    payments.push({ kind: 'payment', orderId: order.id, parcelId: parcelIdOf(order.id), href: '/orders#' + encodeURIComponent(order.id), name: order.product.name, amount: group.payment.amount, items: group.items, lines: group.orders.filter((item) => !item.cancelled).length });
   }
   const passports = missingPassports(state).map(({ recipientId, name, order }): ProfileAction => ({ kind: 'passport', orderId: order.id, parcelId: parcelIdOf(order.id), href: documentsPath(recipientId), name: order.product.name, recipientId, recipientName: name }));
   return [...decisions, ...payments, ...passports];
