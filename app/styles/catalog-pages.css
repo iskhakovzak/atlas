@@ -372,8 +372,6 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pr
 .pcard-save.saved { background-color: var(--c-brand); color: #fff; }
 .pcard-save.saved svg { fill: currentColor; }
 .pcard-save:disabled { opacity: .55; cursor: wait; }
-.pcard-store { position: absolute; z-index: 2; left: 8px; bottom: 8px; pointer-events: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background-color: #fff; box-shadow: var(--shadow-1); }
-.pcard-store .store-logo { width: 18px; height: 18px; }
 .pcard-plus { position: absolute; z-index: 2; right: 8px; bottom: 8px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background-color: var(--brand); color: var(--on-brand); box-shadow: var(--shadow-2); text-decoration: none; }
 .pcard-plus:active { background-color: var(--brand-hover); }
 .pcard-plus[data-in-cart] { background-color: #fff; color: var(--c-brand); }
@@ -620,7 +618,6 @@ html[data-theme="dark"] .pcard-save:focus-visible { outline-color: var(--c-brand
   .store-link .paste-button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 /* A store's own page is one store: the store mark on each card would repeat its header. */
-.store-page .pcard-store { display: none; }
 /* The dark theme gives every input a filled background (theme-night.css); the store field is one composite control. */
 html[data-theme="dark"] .store-link .store-link-field > input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) { border: 0; background: transparent; box-shadow: none; }
 

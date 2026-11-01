@@ -1267,7 +1267,8 @@ html:not([data-theme="dark"]) .pd-gallery .product-gallery-slide .product-img { 
 
 /* Brand, name, the one big sum in soum, the store price small under it. */
 .pd-head { display: grid; gap: var(--space-2); min-width: 0; }
-.pd-brand { margin: 0; color: var(--text-2); font-size: var(--fs-13); font-weight: var(--fw-medium); line-height: var(--lh-snug); }
+.pd-brand { display: flex; align-items: center; gap: var(--space-2); margin: 0; color: var(--text-2); font-size: var(--fs-13); font-weight: var(--fw-medium); line-height: var(--lh-snug); }
+.pd-brand > span:not(.sr-only):not(.store-badge) { min-width: 0; overflow-wrap: anywhere; }
 .pd-name-row { display: flex; align-items: flex-start; gap: var(--space-3); }
 .lo-page .pd-title { flex: 1; min-width: 0; margin: 0; color: var(--text); font-size: var(--fs-20); font-weight: var(--fw-semibold); line-height: var(--lh-snug); letter-spacing: -.01em; overflow-wrap: anywhere; }
 @media (min-width: 900px) { .lo-page .pd-title { font-size: var(--fs-24); } }

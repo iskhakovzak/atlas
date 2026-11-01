@@ -5,7 +5,7 @@ import { BadgeCheck, Check, Flame, Heart, Plus, ShoppingBag } from 'lucide-react
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { price, storeShippingUsd, tariff, type DeliverySpeed, type Product } from '@/lib/market/domain';
 import { catalogDeliverySpeed } from '@/lib/market/deals';
-import { officialStoreBrand, officialStoreText } from '@/lib/market/official-stores';
+import { officialBadgeLabel, officialListing, officialStoreBrand, officialStoreText } from '@/lib/market/official-stores';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { catalogCopy, shortDate } from '@/lib/market/catalog-copy';
 import { storeLabel, type CatalogItem } from '@/lib/market/catalog-query';
@@ -20,7 +20,7 @@ import { useMarket } from '@/lib/market/store';
 import { ProductImage } from './market-ui';
 import { Swatch } from './catalog-swatch';
 import { Money } from './money';
-import { StoreLogo } from './store-logo';
+import { StoreBadge, StoreLogo } from './store-logo';
 import {uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
 
@@ -88,6 +88,12 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
     ? <Tooltip><TooltipTrigger asChild><span className="find-official" tabIndex={0}><BadgeCheck size={14} aria-hidden="true" /><span aria-hidden="true">{official}</span><span className="sr-only">{officialText.full}</span></span></TooltipTrigger><TooltipContent>{officialText.full}</TooltipContent></Tooltip>
     : storeLabel(item.store, locale) || product.brand || category;
   const priceId = useId(), usdId = useId();
+  // The store on the photo, one plate on every card; the verified mark only for the brand's own store (owner, 2 November 2026).
+  const storeBrand = brandForHost(item.store);
+  const officialMark = officialListing({ ...product, store: item.store }, storeBrand);
+  const officialLabel = officialBadgeLabel(locale);
+  const storeText = officialText?.full ?? storeLabel(item.store, locale);
+  const storeBadge = storeBrand ? <span className="pcard-store" title={officialMark ? `${storeText} · ${officialLabel}` : storeText}><StoreBadge brand={storeBrand} size={30} official={Boolean(officialMark)} officialLabel={officialLabel} /><span className="sr-only">{cc.storeOf(storeText)}{officialMark ? `. ${officialLabel}` : ''}</span></span> : null;
   // The new card draws its own heart (pcard-save); the compact card keeps the older one.
   const saveClass = variant === 'compact' ? 'find-save' : 'pcard-save';
   const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={saveClass + ' ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
@@ -101,10 +107,10 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
     // The whole card is one button (phrasing content only, so spans), with the heart beside it, not inside.
     return <article className="find-card find-card-compact" data-saved={saved || undefined}>
       <button type="button" className="find-compact" onClick={open} aria-label={cc.open(name)} aria-describedby={costs ? priceId : undefined}>
-        <span className="find-visual"><span className="find-photo"><ProductImage product={product} decorative locale={locale} /></span>{(item.topDeal || showDiscount) && <span className="find-photo-badges">{item.topDeal && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}{showDiscount && <em className="find-discount">−{discount}&#x202F;%</em>}</span>}</span>
+        <span className="find-visual"><span className="find-photo"><ProductImage product={product} decorative locale={locale} /></span>{storeBadge}{(item.topDeal || showDiscount) && <span className="find-photo-badges">{item.topDeal && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}{showDiscount && <em className="find-discount">−{discount}&#x202F;%</em>}</span>}</span>
         <span className="find-content">
           {/* Plain text here: a focusable tooltip trigger inside the card's button would be nested interactive content. */}
-          <span className="find-meta"><span className="find-store"><StoreMark host={item.store} />{officialText ? <span className="find-official"><BadgeCheck size={14} aria-hidden="true" />{official}</span> : storeName}</span></span>
+          <span className="find-meta"><span className="find-store">{officialText ? <span className="find-official"><BadgeCheck size={14} aria-hidden="true" />{official}</span> : storeName}</span></span>
           <b className="find-compact-title">{name}</b>
           <span className="find-compact-price" id={priceId}>{costs ? <><span className="find-compact-store">{storePriceText}</span><span className="find-compact-arrow" aria-hidden="true"> → </span>{needsPrice && <span className="find-compact-approx" aria-hidden="true">≈ </span>}<Money value={costs.total} locale={locale} /></> : <span className="find-compact-store">{storePriceText}</span>}</span>
         </span>
@@ -120,10 +126,8 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   // Direction A (1 November 2026): the brand on its own grey line, the title without it, one big sum in soum. No brand
   // reads as the category, and so does a marketplace recorded as the brand ("Amazon" over a Sony headset): the store is
   // the mark on the photo. A single-brand store keeps its name (nike.com: "Nike").
-  const storeBrand = brandForHost(item.store);
   const brandName = official ?? (displayBrand(product.brand, storeLabel(item.store, locale), storeBrand?.focus === 'marketplace' ? storeBrand.name : undefined) || category);
   const title = nameWithoutBrand(nameWithoutBrand(name, official ?? product.brand), brandName);
-  const storeText = officialText?.full ?? storeLabel(item.store, locale);
   // Only the shared-parcel note stays on the card (neutral): the allowance lives in the banner above the grid, the
   // size count on the colour line, an unconfirmed price in the "≈" and its date.
   const parcel = signals.find((signal) => signal.kind === 'parcel');
@@ -134,7 +138,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
         {showDiscount && <em className="pcard-off" title={copy.compareHint}>−{discount}&#x202F;%</em>}
         {item.topDeal && <span className="pcard-top"><Flame size={14} aria-hidden="true" />{copy.topDeal}</span>}
       </span>}
-      {brandForHost(item.store) && <span className="pcard-store" title={storeText}><StoreMark host={item.store} /><span className="sr-only">{cc.storeOf(storeText)}</span></span>}
+      {storeBadge}
       {save}
       {/* Phones: no button row; the round "+" does what "В корзину" does on a computer (the variant choice). */}
       {inCart
@@ -195,7 +199,8 @@ export function CatalogSkeleton({ count = 8, label }: { count?: number; label: s
   </div>;
 }
 
-/** Small brand icon next to a store name; nothing for stores outside the directory. */
+
+/** Small brand icon next to a store name (the store filter); nothing for stores outside the directory. */
 export function StoreMark({ host }: { host: string }) {
   const brand = brandForHost(host);
   return brand ? <StoreLogo brand={brand} size={18} /> : null;

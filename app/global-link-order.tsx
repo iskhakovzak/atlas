@@ -58,7 +58,8 @@ import { displayBrand } from "@/lib/market/product-name";
 import { browserStorage as catalogStorage, catalogItemHref, rememberPendingFavorite } from "@/lib/market/catalog-links";
 import { loginPath } from "@/lib/auth/return-to";
 import { dealCopy } from "@/lib/market/deal-copy";
-import { StoreLogo } from "./store-logo";
+import { StoreBadge, StoreLogo } from "./store-logo";
+import { officialBadgeLabel, officialListing } from "@/lib/market/official-stores";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
 import {isOrderableVariant, isStockUnconfirmed} from '@/lib/importer/variant-normalization';
 import { optionStock } from "@/lib/market/link-order-stock";
@@ -1123,6 +1124,8 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   const hostBrand = sourceHost ? brandForHost(sourceHost) : undefined;
   const brandShown = displayBrand(brand, storeName, hostBrand?.focus === "marketplace" ? hostBrand.name : undefined);
   const brandLine = [brandShown && brandShown !== storeName ? brandShown : "", storeName].filter(Boolean).join(" · ");
+  // The store plate before the brand line, as on the catalog card; the verified mark only for the brand's own store.
+  const officialMark = sourceHost ? officialListing({ store: sourceHost, brand, sourceUrl: source || undefined, sourceVariants: variants.map((variant) => ({ ...variant, sellerId: variant.sellerId })) as Product["sourceVariants"] }, hostBrand) : undefined;
   const previewProduct: Product = {
     id: "preview",
     name: name || "Фото товара",
@@ -1712,7 +1715,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
           <div className="pd-info">
             <div className="pd-head">
               {brandLine || !checking
-                ? <p className="pd-brand">{brandLine}</p>
+                ? <p className="pd-brand">{hostBrand && <StoreBadge brand={hostBrand} size={28} official={Boolean(officialMark)} officialLabel={officialBadgeLabel(lang)} />}<span>{brandLine}</span>{officialMark && <span className="sr-only">. {officialBadgeLabel(lang)}</span>}</p>
                 : <span className="lo-skel lo-skel-brand" aria-hidden="true" />}
               <div className="pd-name-row">
                 <TitleTag id="lo-product-name" className="pd-title">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</TitleTag>
