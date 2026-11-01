@@ -8,8 +8,8 @@ import {codedActionError,editorialShippingFor,prepareAction,staleRevision,type E
 import {initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from '@/lib/market/catalog-editor';
 import {cleanPassportNumber,cleanPinfl,type Product,type State} from '@/lib/market/domain';
 import {addCustomerLinkDraft,readStoredCatalogDocument} from '@/lib/market/catalog-server';
-import {findPromo,placeWithPromo} from '@/lib/market/promo-store';
-import {promoErrors} from '@/lib/market/promo';
+import {customerPromoUses,findPromo,placeWithPromo,returnPromoUses} from '@/lib/market/promo-store';
+import {promoReturnable,promoReturns,type PromoRule} from '@/lib/market/promo';
 /**
  * The catalog's delivery record for a product link, read once per request and only when an action needs it.
  * Read-only: the bundled cards are merged in memory, nothing is written. Without the stored catalog
@@ -42,15 +42,29 @@ export async function POST(request:Request){try{
   // Independent reads go out together with the limits: one wait instead of up to five in a row on every action.
   const identityAction=parsed.data.type==='identity-confirm'?parsed.data:undefined;
   // A checkout with a promo code: the stored code is read with the rest (migration 0017); a missing table reads as no code.
+  // A code that works once per customer also brings this account's unreturned uses of it (migration 0018).
   const promoCode=parsed.data.type==='checkout'?parsed.data.promoCode:undefined;
+  const readPromo=async(code:string):Promise<(PromoRule&{usedBatches?:string[]})|null>=>{
+    const rule=await findPromo(database(),code);
+    return rule?.oncePerCustomer?{...rule,usedBatches:await customerPromoUses(database(),rule.id,user.userId)}:rule;
+  };
   // An older scan's id must be the caller's own; text-only details (13.10.2026) get an id assigned below.
-  const [,,status,current,settings,owned,promo]=await Promise.all([
+  const [,,status,current,settings,owned,promoRead]=await Promise.all([
     rateLimit(`${user.userId}:actions`,60,60_000),
     storeCheck?rateLimit(`${user.userId}:store-checks`,40,10*60_000,'err_39'):undefined,
     customerStatus(user.userId),account(user),pricingAndPolicy(),
     identityAction?.documentId?database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first():undefined,
-    promoCode?rateLimit(`${user.userId}:promo`,30,10*60_000).then(()=>findPromo(database(),promoCode)).catch(error=>{if(error instanceof HttpError)throw error;console.error('Promo code read failed',error);return null}):undefined,
+    promoCode?rateLimit(`${user.userId}:promo`,30,10*60_000).then(()=>readPromo(promoCode)).catch(error=>{if(error instanceof HttpError)throw error;console.error('Promo code read failed',error);return null}):undefined,
   ]);
+  // «Один раз на покупателя»: a use whose checkout this account has already cancelled in full but that was not given back
+  // (the return after that save failed) is returned now, so it never blocks the customer (owner, 2 November 2026).
+  let promo:PromoRule|null|undefined=promoRead;
+  if(promoRead?.usedBatches){
+    const {usedBatches,...rule}=promoRead;
+    const stale=promoReturnable(current.state,usedBatches);
+    if(stale.length)await returnPromoUses(database(),user.userId,stale).catch(error=>console.error('Promo use return failed',error));
+    promo={...rule,usedByCustomer:usedBatches.length>stale.length};
+  }
   if(status==='blocked')throw new HttpError(403, 'err_11');
   if(status==='review'&&['checkout','payment-demo','payment-demo-batch','extra-charge-pay'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
   if(identityAction){
@@ -94,9 +108,13 @@ export async function POST(request:Request){try{
   // the use and its record are written together before the save, so the cap holds when several customers pay at once,
   // and both are given back if the save fails (lib/market/promo-store.ts placeWithPromo).
   const placedBatch=action.type==='checkout'&&!refusal&&promo&&!current.state.checkoutKeys.includes(action.key)?next.orders.filter(order=>order.batchId===action.key&&order.promo):[];
-  const use=placedBatch.length&&promo&&action.type==='checkout'?{codeId:promo.id,code:promo.code,userId:user.userId,batchId:action.key,orderIds:placedBatch.map(order=>order.id),discount:placedBatch.reduce((sum,order)=>sum+(order.quote.promoDiscount??0),0)}:null;
+  const use=placedBatch.length&&promo&&action.type==='checkout'?{codeId:promo.id,code:promo.code,userId:user.userId,batchId:action.key,orderIds:placedBatch.map(order=>order.id),discount:placedBatch.reduce((sum,order)=>sum+(order.quote.promoDiscount??0),0),oncePerCustomer:promo.oncePerCustomer===true}:null;
   const placed=await placeWithPromo(database(),use,()=>persist(user.userId,next,current.revision,current.state));
-  if(placed.usedUp)throw new HttpError(409,promoErrors.usedUp);
+  if(placed.usedUp)throw new HttpError(409,placed.code);
+  // A checkout with a code whose orders are now all cancelled before the purchase gives its use back, once (owner,
+  // 2 November 2026). The cancel is already saved; a failed return is made good at the customer's next use of a code.
+  const returning=promoReturns(current.state,next);
+  if(returning.length)await returnPromoUses(database(),user.userId,returning).catch(error=>console.error('Promo use return failed',error));
   if(refusal)return json({error:serverError(requestLocale(request),refusal),errorCode:refusal,state:next,revision:current.revision+1},409);
   const addedProduct=parsed.data.type==='cart-add'?parsed.data.product:parsed.data.type==='cart-add-many'?parsed.data.items[0].product:undefined;
   if(addedProduct?.sourceUrl&&verifiedSource){

@@ -4,6 +4,8 @@
 .admin-promo-table td small { display: block; color: var(--text-2); font-size: var(--fs-12); }
 .admin-promo h2 { display: flex; align-items: center; gap: var(--space-2); }
 .admin-promo-active input { margin: 0; }
+.admin-promo-checks { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--space-5); }
+.admin-promo-hint { flex-basis: 100%; color: var(--text-2); font-size: var(--fs-12); }
 .admin-promo-table .acc-actions { white-space: nowrap; }
 .admin-promo-table .acc-actions .text-button { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-right: var(--space-3); vertical-align: middle; }
 

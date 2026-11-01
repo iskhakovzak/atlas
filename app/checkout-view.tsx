@@ -45,7 +45,7 @@ type Field = "savedPostal" | "recipient" | "phone" | "address" | "postal";
 const fieldIds: Record<Field, string> = { savedPostal: "co-saved-postal", recipient: "co-recipient", phone: "co-phone", address: "co-address", postal: "co-postal" };
 /** Store refusals that repriced or marked the cart: the page shows what changed instead of an error. */
 const repricedCodes = new Set(["err_35", "err_36", "err_37", "err_38"]);
-const promoCodes = new Set(["err_87", "err_88", "err_89", "err_90", "err_91"]);
+const promoCodes = new Set(["err_87", "err_88", "err_89", "err_90", "err_91", "err_96"]);
 
 const storeMoney = (amount: number, currency: string, locale: Locale) => {
   if (currency === "USD") return usdText(amount, locale);

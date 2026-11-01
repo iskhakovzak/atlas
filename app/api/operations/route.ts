@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { env } from "cloudflare:workers";
 import { actionSchema, applyAction } from "@/lib/market/actions";
+import { promoReturns } from "@/lib/market/promo";
+import { returnPromoUses } from "@/lib/market/promo-store";
 import { normalizePricing, pricingRevision, pricingSchema, validateServiceCatalog } from "@/lib/market/domain";
 import { policySchema } from "@/lib/market/policy";
 import { canPerformAction, customerStatusAllowed, hasPermission, hasStaffAccess, operationsKindPermissions, operationsQueryPermissions, operatorActionTypes, type Permission } from "@/lib/market/access";
@@ -294,6 +296,9 @@ export async function POST(request: Request) {
     }
     // Atlas's own step: new notices may also go to the customer's Telegram (their consent; the live site only).
     await persist(current.id, next, current.revision, current.state, { notify: telegramNoticesLive(request), push: true });
+    // Should a staff action ever cancel a checkout with a promo code before the purchase, its use goes back (as for the customer).
+    const returning = promoReturns(current.state, next);
+    if (returning.length) await returnPromoUses(database(), current.id, returning).catch((error) => console.error("Promo use return failed", error));
     const orderId='id' in parsedAction.data?String(parsedAction.data.id):undefined;
     await recordAudit(user,`order.${parsedAction.data.type}`,'order',orderId,{accountId:current.id});
     return json({

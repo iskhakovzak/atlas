@@ -1,6 +1,6 @@
 "use client";
 // Admin → Промокоды (redesign stage 6, 1 November 2026): create a code, switch it on or off, change its terms, and see how
-// many times it was used and how much it took off the Atlas service. Server: app/api/promo-codes/route.ts.
+// many times it was used and how much it took off the Atlas commission. Server: app/api/promo-codes/route.ts.
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Pencil, Tag } from "lucide-react";
 import { toast } from "@/lib/market/toast";
@@ -8,12 +8,12 @@ import { normalizePromoCode, promoCodePattern, promoDefaultEnd, type PromoKind, 
 import { serverError } from "@/lib/market/i18n";
 import { money } from "./admin-shared";
 
-type Draft = { id?: string; code: string; kind: PromoKind; value: string; startsOn: string; endsOn: string; maxUses: string; minOrder: string; active: boolean; note: string };
+type Draft = { id?: string; code: string; kind: PromoKind; value: string; startsOn: string; endsOn: string; maxUses: string; minOrder: string; active: boolean; oncePerCustomer: boolean; note: string };
 const tashkentDay = (at: number) => new Date(at + 5 * 3600_000).toISOString().slice(0, 10);
 /** A date field read as Tashkent midnight; `end` moves it to the next midnight (the code works through that whole day). */
 const dayStart = (value: string, end = false) => { if (!value) return null; const at = Date.parse(value + "T00:00:00+05:00"); return Number.isFinite(at) ? at + (end ? 86_400_000 : 0) : null; };
-const blank = (): Draft => ({ code: "", kind: "percent", value: "10", startsOn: tashkentDay(Date.now()), endsOn: tashkentDay(promoDefaultEnd(Date.now()) - 86_400_000), maxUses: "100", minOrder: "", active: true, note: "" });
-const fromRule = (rule: PromoRule): Draft => ({ id: rule.id, code: rule.code, kind: rule.kind, value: String(rule.value), startsOn: rule.startsAt ? tashkentDay(rule.startsAt) : "", endsOn: rule.endsAt ? tashkentDay(rule.endsAt - 86_400_000) : "", maxUses: rule.maxUses ? String(rule.maxUses) : "", minOrder: rule.minOrder ? String(rule.minOrder) : "", active: rule.active, note: rule.note ?? "" });
+const blank = (): Draft => ({ code: "", kind: "percent", value: "10", startsOn: tashkentDay(Date.now()), endsOn: tashkentDay(promoDefaultEnd(Date.now()) - 86_400_000), maxUses: "100", minOrder: "", active: true, oncePerCustomer: true, note: "" });
+const fromRule = (rule: PromoRule): Draft => ({ id: rule.id, code: rule.code, kind: rule.kind, value: String(rule.value), startsOn: rule.startsAt ? tashkentDay(rule.startsAt) : "", endsOn: rule.endsAt ? tashkentDay(rule.endsAt - 86_400_000) : "", maxUses: rule.maxUses ? String(rule.maxUses) : "", minOrder: rule.minOrder ? String(rule.minOrder) : "", active: rule.active, oncePerCustomer: rule.oncePerCustomer === true, note: rule.note ?? "" });
 const day = (at?: number | null) => at ? new Date(at).toLocaleDateString("ru-RU", { timeZone: "Asia/Tashkent" }) : "";
 
 async function request<T>(method: "GET" | "POST", body?: unknown): Promise<T> {
@@ -52,7 +52,7 @@ export function AdminPromo() {
     try {
       const data = await request<{ promos: PromoRule[] }>("POST", { promo: {
         ...(next.id ? { id: next.id } : {}), code: normalizePromoCode(next.code), kind: next.kind, value: Number(next.value), active: next.active,
-        startsAt: dayStart(next.startsOn), endsAt: dayStart(next.endsOn, true), maxUses: next.maxUses ? Number(next.maxUses) : null, minOrder: next.minOrder ? Number(next.minOrder) : null,
+        startsAt: dayStart(next.startsOn), endsAt: dayStart(next.endsOn, true), maxUses: next.maxUses ? Number(next.maxUses) : null, minOrder: next.minOrder ? Number(next.minOrder) : null, oncePerCustomer: next.oncePerCustomer,
         ...(next.note.trim() ? { note: next.note.trim() } : {}),
       } });
       setPromos(data.promos); setNow(Date.now()); toast.success(message);
@@ -71,13 +71,13 @@ export function AdminPromo() {
   return <section className="surface admin-section admin-promo" aria-labelledby="admin-promo-title">
     <div className="admin-section-head"><div>
       <h2 id="admin-promo-title"><Tag size={20} aria-hidden="true" /> Промокоды</h2>
-      <p>Скидка действует только на сервис Atlas — комиссию Atlas за выкуп, проверку, упаковку и конвертацию (у покупателя — строка «Комиссия Atlas»): цену товара, доставку, гарантию и пошлину промокод не меняет, сервис не уходит ниже нуля. Atlas — агент, поэтому скидка уменьшает доход Atlas и видна в бухгалтерии. Использования считаются в момент оформления заказа.</p>
+      <p>Скидка считается только от комиссии Atlas — за выкуп, проверку, упаковку и конвертацию (у покупателя она внутри строки «Сервис Atlas»). Сбор «Atlas оплатит таможню», который стоит в той же строке, цену товара, доставку, гарантию и пошлину промокод не меняет; комиссия не уходит ниже нуля. Atlas — агент, поэтому скидка уменьшает доход Atlas и видна в бухгалтерии. Использование считается в момент оформления и возвращается, если покупатель отменил все заказы этого оформления до выкупа.</p>
     </div></div>
     <form className="admin-promo-form" noValidate onSubmit={(event) => void submit(event)}>
       <h3 className="admin-subhead">{draft.id ? `Изменить ${draft.code}` : "Новый промокод"}</h3>
       <div className="pricing-grid admin-promo-grid">
         <div className={"field" + (issues.code ? " invalid" : "")}><label htmlFor="promo-code">Код</label><input id="promo-code" autoCapitalize="characters" spellCheck={false} maxLength={30} value={draft.code} aria-invalid={!!issues.code} aria-describedby={issues.code ? "promo-code-error" : undefined} onChange={(event) => setDraft({ ...draft, code: event.target.value.toUpperCase() })} />{field("code")}</div>
-        <div className="field"><label htmlFor="promo-kind">Скидка</label><select id="promo-kind" value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as PromoKind })}><option value="percent">Процент от сервиса Atlas</option><option value="fixed">Сумма в сумах</option></select></div>
+        <div className="field"><label htmlFor="promo-kind">Скидка</label><select id="promo-kind" value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as PromoKind })}><option value="percent">Процент от комиссии Atlas</option><option value="fixed">Сумма в сумах</option></select></div>
         <div className={"field" + (issues.value ? " invalid" : "")}><label htmlFor="promo-value">{draft.kind === "percent" ? "Процент, %" : "Сумма, сум"}</label><input id="promo-value" type="number" inputMode="numeric" min="1" max={draft.kind === "percent" ? 100 : 100000000} step="1" value={draft.value} aria-invalid={!!issues.value} aria-describedby={issues.value ? "promo-value-error" : undefined} onChange={(event) => setDraft({ ...draft, value: event.target.value })} />{field("value")}</div>
         <div className="field"><label htmlFor="promo-start">Действует с</label><input id="promo-start" type="date" value={draft.startsOn} onChange={(event) => setDraft({ ...draft, startsOn: event.target.value })} /></div>
         <div className={"field" + (issues.window ? " invalid" : "")}><label htmlFor="promo-end">по (включительно)</label><input id="promo-end" type="date" value={draft.endsOn} aria-invalid={!!issues.window} aria-describedby={issues.window ? "promo-window-error" : undefined} onChange={(event) => setDraft({ ...draft, endsOn: event.target.value })} />{field("window")}</div>
@@ -85,7 +85,12 @@ export function AdminPromo() {
         <div className={"field" + (issues.minOrder ? " invalid" : "")}><label htmlFor="promo-min">Заказ от, сум</label><input id="promo-min" type="number" inputMode="numeric" min="1" step="1000" placeholder="любой" value={draft.minOrder} aria-invalid={!!issues.minOrder} aria-describedby={issues.minOrder ? "promo-minOrder-error" : undefined} onChange={(event) => setDraft({ ...draft, minOrder: event.target.value })} />{field("minOrder")}</div>
         <div className="field"><label htmlFor="promo-note">Заметка (видна только сотрудникам)</label><input id="promo-note" maxLength={200} value={draft.note} onChange={(event) => setDraft({ ...draft, note: event.target.value })} /></div>
       </div>
-      <label className="admin-promo-active"><input type="checkbox" checked={draft.active} onChange={(event) => setDraft({ ...draft, active: event.target.checked })} /><span>Включён</span></label>
+      <div className="admin-promo-checks">
+        <label className="admin-promo-active"><input type="checkbox" checked={draft.active} onChange={(event) => setDraft({ ...draft, active: event.target.checked })} /><span>Включён</span></label>
+        {/* On for a new code (owner, 2 November 2026); codes made earlier keep it off until changed here. */}
+        <label className="admin-promo-active"><input type="checkbox" checked={draft.oncePerCustomer} aria-describedby="promo-once-hint" onChange={(event) => setDraft({ ...draft, oncePerCustomer: event.target.checked })} /><span>Один раз на покупателя</span></label>
+        <small id="promo-once-hint" className="admin-promo-hint">Один аккаунт — одно оформление с этим кодом. После отмены до выкупа код можно применить снова.</small>
+      </div>
       <div className="admin-system-actions">
         <button type="submit" className="btn primary" disabled={busy}>{busy ? "Сохраняем…" : draft.id ? "Сохранить промокод" : "Создать промокод"}</button>
         {draft.id && <button type="button" className="btn secondary" disabled={busy} onClick={() => setDraft(blank())}>Отмена</button>}
@@ -97,9 +102,9 @@ export function AdminPromo() {
       <thead><tr><th scope="col">Код</th><th scope="col">Скидка</th><th scope="col">Срок</th><th scope="col">Использований</th><th scope="col">Заказ от</th><th scope="col">Скидок выдано</th><th scope="col">Статус</th><th scope="col"><span className="sr-only">Действия</span></th></tr></thead>
       <tbody>{promos.map((rule) => <tr key={rule.id} className={rule.active ? undefined : "muted-row"}>
         <td data-label="Код"><b>{rule.code}</b>{rule.note && <small>{rule.note}</small>}</td>
-        <td data-label="Скидка" className="num">{rule.kind === "percent" ? `${rule.value} % сервиса` : `${money(rule.value)}`}</td>
+        <td data-label="Скидка" className="num">{rule.kind === "percent" ? `${rule.value} % комиссии` : `${money(rule.value)}`}</td>
         <td data-label="Срок">{rule.startsAt || rule.endsAt ? `${day(rule.startsAt) || "…"} — ${rule.endsAt ? day(rule.endsAt - 1) : "…"}` : "без срока"}</td>
-        <td data-label="Использований" className="num">{rule.uses}{rule.maxUses ? ` из ${rule.maxUses}` : ""}</td>
+        <td data-label="Использований" className="num">{rule.uses}{rule.maxUses ? ` из ${rule.maxUses}` : ""}{rule.oncePerCustomer && <small>раз на покупателя</small>}{(rule.returnedUses ?? 0) > 0 && <small>вернулось после отмены: {rule.returnedUses}</small>}</td>
         <td data-label="Заказ от" className="num">{rule.minOrder ? money(rule.minOrder) : "—"}</td>
         <td data-label="Скидок выдано" className="num">{money(rule.discountTotal ?? 0)}</td>
         <td data-label="Статус">{state(rule)}</td>

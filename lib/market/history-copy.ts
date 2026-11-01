@@ -63,9 +63,9 @@ const historyCopy: Record<string, Copy> = {
     en: v => `Atlas safe-arrival guarantee: ${v.sum('fee')} is part of the order total.`,
   }),
   'promo': /*@__PURE__*/withCyrillic({
-    ru: v => `Промокод ${v.text('code')}: скидка ${v.sum('discount')} с сервиса Atlas.`,
-    uz: v => `${v.text('code')} promokodi: Atlas xizmatidan ${v.sum('discount')} chegirma.`,
-    en: v => `Promo code ${v.text('code')}: ${v.sum('discount')} off the Atlas service.`,
+    ru: v => `Промокод ${v.text('code')}: скидка ${v.sum('discount')} с комиссии Atlas.`,
+    uz: v => `${v.text('code')} promokodi: Atlas komissiyasidan ${v.sum('discount')} chegirma.`,
+    en: v => `Promo code ${v.text('code')}: ${v.sum('discount')} off the Atlas fee.`,
   }),
   'source-price-changed': /*@__PURE__*/withCyrillic({
     ru: v => `Цена в магазине изменилась до оформления: ${v.text('from')} → ${v.text('to')} ${v.text('currency')}. Покупатель оформил заказ по новому расчёту.`,
