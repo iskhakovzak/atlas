@@ -299,7 +299,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   // Delivery is chosen only in the cart; estimates follow its current speed.
   const [previewSpeed, setPreviewSpeed] = useState<"express" | "standard">(defaultDeliverySpeed);
   // The heart beside a catalog item's name: the same favourites as in the catalog.
-  const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [favoriteBusy] = useState(false);
   const cartSpeed = cartDeliverySpeed(state.cart);
   useEffect(() => {
     let active = true;
@@ -1227,9 +1227,9 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   const guestFavoriteId = catalogMode && isGuest && currentCatalogSeed ? currentCatalogSeed.id : "";
   const dc = dealCopy(lang);
   async function toggleFavorite() {
-    if (!favoriteId || favoriteBusy) return;
-    setFavoriteBusy(true);
-    try { await act({ type: "favorite", id: favoriteId }); } finally { setFavoriteBusy(false); }
+    if (!favoriteId) return;
+    // Optimistic: the heart changes at once and stays tappable (lib/market/optimistic.ts).
+    await act({ type: "favorite", id: favoriteId });
   }
   // Units already in the cart, for the entry beside the order button (signed-in customers only).
   const cartUnits = ready && !isGuest ? state.cart.reduce((sum, line) => sum + line.quantity, 0) : 0;
@@ -1875,7 +1875,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
               <label htmlFor="manual-confirm">{tx('Я сверил название, цену, вариант и доставку со страницей магазина. Оператор Atlas сверит их с магазином перед выкупом.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirdim. Atlas operatori xariddan oldin ularni do‘kon bilan solishtiradi.','I checked the name, price, option and shipping against the store page. An Atlas operator checks them with the store before buying.')}</label>
             </div> : sourceCheckStatus !== "verified" && sourceCheckStatus !== "catalog" ? <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p> : null}
             <div className={"lo-cta-row" + (cartUnits ? " has-cart" : "")}>
-            {nothingToChoose ? <button type="button" className="btn primary basket-cta" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary basket-cta" onClick={focusChoice}>{nextChoiceText}</button> : <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest && !canKeep ? lc.signinContinue : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
+            {nothingToChoose ? <button type="button" className="btn primary basket-cta" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary basket-cta" onClick={focusChoice}>{nextChoiceText}</button> : <button className="btn primary basket-cta" disabled={addBusy || status==='loading'} aria-busy={addBusy || undefined}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest && !canKeep ? lc.signinContinue : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
             {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
             </div>
             {/* For a guest, right under the button it explains: the item goes to the cart by itself after sign-in. */}

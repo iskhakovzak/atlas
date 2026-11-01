@@ -80,7 +80,7 @@ export function CatalogView({ mode, initial, lang, store, firstPage }: { mode: '
   const [query, setQueryState] = useState<CatalogQuery>(initial ?? emptyCatalogQuery);
   const [selected, setSelected] = useState<Product | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [saving, setSaving] = useState<string | null>(null);
+  const [saving] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const gridRef = useRef<HTMLElement>(null);
   const side = useSheetSide();
@@ -226,8 +226,8 @@ export function CatalogView({ mode, initial, lang, store, firstPage }: { mode: '
   const recent = mode === 'catalog' && !store && catalogReady && filterCount === 0 && !query.q && query.page === 1 ? recentIds.filter((id) => id !== selected?.id).map((id) => items.find((item) => item.product.id === id)).filter((item): item is CatalogItem => Boolean(item)).slice(0, 8) : [];
 
   async function save(product: Product) {
-    setSaving(product.id);
-    try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }
+    // Optimistic (lib/market/optimistic.ts): the heart changes at once and stays tappable; the request is queued.
+    await act({ type: 'favorite', id: product.id });
   }
   async function retry() {
     if (retrying) return;

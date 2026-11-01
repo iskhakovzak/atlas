@@ -19,6 +19,7 @@ test('the store applies screenLocale to every action answer and treats only a su
   const source = readFileSync(new URL('../lib/market/store.tsx', import.meta.url), 'utf8');
   const act = source.slice(source.indexOf('const act=useCallback'), source.indexOf('const setLocale=useCallback'));
   assert.match(act, /screenLocale\(localeRef\.current,parsed\.communication\.language,res\.ok&&action\.type==='communication-save'\)/);
-  assert.match(act, /setState\(\{\.\.\.parsed,communication:\{\.\.\.parsed\.communication,language:shown\}\}\)/);
+  // The server state goes through showServer (optimistic actions on top, lib/market/optimistic.ts), in the screen language.
+  assert.match(act, /showServer\(\{\.\.\.parsed,communication:\{\.\.\.parsed\.communication,language:shown\}\}\)/);
   assert.doesNotMatch(act, /setState\(next\)/);
 });

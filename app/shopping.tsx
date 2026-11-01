@@ -1,12 +1,11 @@
 "use client";
-import { shownBrand } from "@/lib/importer/brand-name";
 
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Package, Plus, RotateCcw, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Bookmark, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Package, Plus, RotateCcw, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { cartDeliverySpeed, checkoutLines, customsHelpChosen, inCheckout, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, withCustomsHelpFor, type CartItem, type DeliverySpeed, type Product } from "@/lib/market/domain";
+import { cartDeliverySpeed, checkoutLines, customsHelpChosen, inCheckout, maxLineQuantity, parcelServiceUnits, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, withCustomsHelpFor, type CartItem, type DeliverySpeed, type Product } from "@/lib/market/domain";
 import { guaranteeAmount, parcelRoomKg, parcelStoreHost, reorderCandidates, uninsuredParcelLimit } from "@/lib/market/cart-parcel";
 import { orderGroupCopy } from "@/lib/market/order-groups";
 import { LazyProductSheet } from "./product-sheet-lazy";
@@ -19,7 +18,7 @@ import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { CalcLines, CustomsPanel, DeliverySpeedSwitch, HoldNote, customsDutyAmount, sumQuotes, usdText } from "./calc-summary";
 import type { Locale } from "@/lib/market/i18n";
-import { LoadingCards, ProductImage, WasPrice } from "./market-ui";
+import { LoadingCards, ProductImage } from "./market-ui";
 import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { toast } from "@/lib/market/toast";
@@ -28,8 +27,7 @@ import { GuestCartView, GuestProblems } from "./guest-cart-view";
 import { useGuestCart, useGuestMerging } from "./use-guest-cart";
 import { checkoutCopy } from "@/lib/market/checkout-copy";
 import { pendingCartFreshMs } from "@/lib/market/link-order-draft";
-import {uzText,withCyrillic} from '@/lib/market/uz-cyrl';
-import {isUzbek} from '@/lib/market/i18n';
+import {withCyrillic} from '@/lib/market/uz-cyrl';
 import { catalogUrlKey, sameCatalogProduct, storeHost } from "@/lib/market/catalog-query";
 
 // The rows of catalog cards under the cart (picks under an empty one, saved products under a full one) are their own
@@ -61,7 +59,6 @@ function sourceMoney(amount: number, currency: string, locale: Locale) {
 }
 /** Store price as the shop shows it. */
 const storePrice = (item: CartItem, locale: Locale) => sourceMoney(item.product.sourcePrice ?? item.product.usd, item.product.sourceCurrency ?? "USD", locale);
-const clock = (at: number, locale: Locale) => new Date(at).toLocaleTimeString(locale === "ru" ? "ru-RU" : isUzbek(locale) ? uzText(locale, "uz-UZ") : "en-US", { hour: "2-digit", minute: "2-digit" });
 
 /**
  * Quantity stepper that waits for a pause (400 ms) before saving, so quick taps add up to one request
@@ -84,7 +81,8 @@ function QuantityControl({ item, c, save, pending }: { item: CartItem; c: CartCo
     clearTimeout(timer.current);
     const flush = () => { clearTimeout(timer.current); if (pending.get(id) === flush) pending.delete(id); return save(next).then((ok) => { if (!ok) setValue(item.quantity); return ok; }); };
     flushRef.current = flush; pending.set(id, flush);
-    timer.current = setTimeout(() => void flush(), 400);
+    // The line and the sums change at once (optimistic, lib/market/optimistic.ts); taps within 150 ms go as one request.
+    timer.current = setTimeout(() => void flush(), 150);
   }
   return <div className="basket-qty" role="group" aria-label={`${c.item.quantity}: ${optionName}`}>
     <button type="button" aria-label={`${c.item.decrease}: ${optionName}`} disabled={value <= 1} onClick={() => step(-1)}><Minus size={16} aria-hidden="true" /></button>
@@ -125,20 +123,12 @@ function PriceHold({ expiresAt, c }: { expiresAt: number; c: CartCopy }) {
 /** Dollars rounded up to the cent, sign first ("$12,50"), as the rest of the cart writes them. */
 const usd = (amount: number, locale: Locale) => usdText(Math.ceil(amount * 100 - 1e-6) / 100, locale);
 
-/** Long store titles are cut to three lines; a tap shows the whole name. */
-function ItemName({ name }: { name: string }) {
-  const [open, setOpen] = useState(false);
-  return <h3 className={"basket-name" + (open ? " open" : "")}>{name.length > 70
-    ? <button type="button" className="basket-name-toggle" aria-expanded={open} onClick={() => setOpen(value => !value)}>{name}</button>
-    : name}</h3>;
-}
-
 export function CartView() {
   const { state, act, ready, error, status, pricing, catalogProducts, catalogReady, loadCatalog } = useMarket();
   // Lines of this browser's guest cart that the store refused when they moved into the account, and the move itself.
   const guestCart = useGuestCart(), merging = useGuestMerging();
   const guestProblems = guestCart.cart.lines.filter((line) => line.problem);
-  const [favoriteBusy, setFavoriteBusy] = useState("");
+  const [favoriteBusy] = useState("");
   // Catalog products by their store page, built once per catalog, so each line finds its product in one lookup.
   const catalogByUrl = useMemo(() => new Map(catalogProducts.flatMap((product) => product.sourceUrl ? [[catalogUrlKey(product.sourceUrl), product] as const] : [])), [catalogProducts]);
   // Favourites hold catalog products: a cart line can be saved when it is a product from the Atlas catalog.
@@ -303,9 +293,8 @@ export function CartView() {
   const kc = keepCopy[locale];
   const catalogMatch = (item: CartItem) => item.product.sourceUrl ? catalogByUrl.get(catalogUrlKey(item.product.sourceUrl)) : undefined;
   async function toggleFavorite(id: string) {
-    if (favoriteBusy) return false;
-    setFavoriteBusy(id);
-    try { return await act({ type: "favorite", id }); } finally { setFavoriteBusy(""); }
+    // Optimistic: the heart changes at once and stays tappable (lib/market/optimistic.ts).
+    return await act({ type: "favorite", id });
   }
   /** Saved, then every given line leaves the cart in one request. */
   async function saveForLater(lines: CartItem[], id: string) {
@@ -348,29 +337,37 @@ export function CartView() {
         <TriangleAlert size={16} aria-hidden="true" /><span>{c.item.issues[issue.kind]}{issue.kind !== "unreachable" && reopen && <> <Link href={reopen}>{c.item.reload}</Link></>}</span></p>}
     </>;
   }
-  const stockText = (item: CartItem) => item.product.stockQuantity !== undefined
-    ? `${item.product.stockQuantity ? k.stockLeft(item.product.stockQuantity) : k.outOfStock} · ${k.stockByEbay}`
-    : item.product.stockMoreThan !== undefined ? `${k.stockMore(item.product.stockMoreThan)} · ${k.stockByEbay}` : "";
+  // Stock only when it is short (3 or fewer, by the store's own count): a small note, nothing on ordinary lines
+  // (owner, 2 November 2026: "оставь самое основное").
+  const lowStock = (item: CartItem) => item.product.stockQuantity !== undefined && item.product.stockQuantity <= 3
+    ? `${item.product.stockQuantity ? k.stockLeft(item.product.stockQuantity) : k.outOfStock} · ${k.stockByEbay}` : "";
+  /** The catalog card behind a line opens in the product sheet; a line ordered by link opens its link page. */
+  function openLine(item: CartItem) {
+    const match = catalogMatch(item);
+    if (match) { setPicked(match); return; }
+    if (item.product.sourceUrl) window.location.assign(`/order-by-link?url=${encodeURIComponent(item.product.sourceUrl)}`);
+  }
+  const lineName = (item: CartItem) => [item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
 
+  /**
+   * One cart line on an even grid (2 November 2026): [tick] [photo 64] [name 15/600 in two lines · the option 13 grey in
+   * one · the store price 13 grey] [the sum 16/700], then the notes, and a bottom row with the quantity and remove.
+   */
   function renderItem(item: CartItem) {
-    // The country is in the parcel's heading above; the line names only its option (27 October 2026).
     const meta = shownVariant(item.variant, item.product.sourceOptions);
-    const issue = item.sourceIssue, stock = stockText(item);
-    return <article className={"basket-item" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
-      {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ")))}
-      <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative size={240} /></div>
-      <div className="basket-info">
-        {shownBrand(item.product.brand) && <p className="basket-brand">{shownBrand(item.product.brand)}</p>}
-        <ItemName name={item.product.name} />
+    const issue = item.sourceIssue, stock = lowStock(item);
+    return <article className={"basket-item cl" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
+      {selectBox([item], s.selectLine(lineName(item)))}
+      <button type="button" className="cl-photo" aria-label={item.product.name} onClick={() => openLine(item)}><ProductImage product={item.product} locale={locale} decorative size={160} /></button>
+      <div className="cl-text">
+        <h3 className="cl-title"><button type="button" onClick={() => openLine(item)}><span>{item.product.name}</span></button></h3>
+        {meta && <p className="cl-option">{meta}</p>}
+        <p className="cl-store">{item.product.sourceUrl ? <a href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}<ArrowUpRight size={12} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</>}</p>
         {!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
-        {meta && <p className="basket-meta">{meta}</p>}
-        <p className="basket-meta">{item.product.sourceUrl ? <a className="basket-source" href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.storePrice}: {storePrice(item, locale)}<ArrowUpRight size={14} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{c.item.storePrice}: {storePrice(item, locale)}</>}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{(() => { const off = storeDiscount(item.product); return off && <WasPrice was={off.was} percent={off.percent} format={value => sourceMoney(value, item.product.sourceCurrency ?? "USD", locale)} />; })()}</p>
-        {!item.priceChange && !issue && item.product.sourceCheckedAt && <p className="basket-meta basket-checked"><BadgeCheck size={14} aria-hidden="true" />{c.item.checked(clock(item.product.sourceCheckedAt, locale))}</p>}
-        {stock && <p className={"basket-meta basket-stock" + ((item.product.stockQuantity ?? 99) <= 3 ? " low" : "")}>{stock}</p>}
       </div>
-      <div className="basket-price"><strong>{formatSum(lineTotal(item), locale)}</strong>{item.quantity > 1 && <small>{c.item.forQuantity(item.quantity)}</small>}</div>
-      {itemNotes(item)}
-      <div className="basket-controls">
+      <strong className="cl-sum">{formatSum(lineTotal(item), locale)}</strong>
+      {(item.priceChange || item.sourceIssue || stock) && <div className="cl-notes">{itemNotes(item)}{stock && <p className="cl-stock">{stock}</p>}</div>}
+      <div className="cl-actions">
         <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity }, { queue: true })} />
         {keepActions([item])}
         <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} instant onConfirm={() => removeWithUndo([item.id], item.product.name)} />
@@ -395,33 +392,35 @@ export function CartView() {
     const colour = cartColourOptions(lead.product)?.color;
     const total = lines.reduce((sum, line) => sum + lineTotal(line), 0), units = lines.reduce((sum, line) => sum + line.quantity, 0);
     return <div className="basket-group" key={`group:${lead.id}`}>
-      <article className="basket-item basket-group-head">
+      <article className="basket-item basket-group-head cl">
         {selectBox(lines, s.selectGroup(lead.product.name))}
-        <div className="basket-photo"><ProductImage product={lead.product} locale={locale} decorative size={240} /></div>
-        <div className="basket-info">
-          {shownBrand(lead.product.brand) && <p className="basket-brand">{shownBrand(lead.product.brand)}</p>}
-          <ItemName name={lead.product.name} />
-          {colour && <p className="basket-meta">{colour}</p>}
-          {lead.product.sourceUrl && <p className="basket-meta"><a className="basket-source" href={lead.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.openStore}<ArrowUpRight size={14} aria-hidden="true" /></a></p>}
+        <button type="button" className="cl-photo" aria-label={lead.product.name} onClick={() => openLine(lead)}><ProductImage product={lead.product} locale={locale} decorative size={160} /></button>
+        <div className="cl-text">
+          <h3 className="cl-title"><button type="button" onClick={() => openLine(lead)}><span>{lead.product.name}</span></button></h3>
+          {colour && <p className="cl-option">{colour}</p>}
+          <p className="cl-store">{c.item.forQuantity(units)}</p>
         </div>
-        <div className="basket-price"><strong>{formatSum(total, locale)}</strong><small>{c.item.forQuantity(units)}</small></div>
-        <div className="basket-controls">
+        <strong className="cl-sum">{formatSum(total, locale)}</strong>
+        <div className="cl-actions">
           {keepActions(lines)}
           <SafeDeleteButton label={kc.removeAll(lines.length)} itemName={lead.product.name} locale={locale} instant onConfirm={() => removeWithUndo(ids, lead.product.name)} />
         </div>
       </article>
-      <ul className="basket-variants" aria-label={kc.variants}>{lines.map((item) => {
-        const issue = item.sourceIssue, stock = stockText(item), checked = !item.priceChange && !issue && item.product.sourceCheckedAt;
-        return <li className={"basket-variant" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
-          {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ")))}
-          <div className="basket-variant-info">
-            <b>{readableNikeSizeLabel(cartColourOptions(item.product)?.label ?? "") || shownVariant(item.variant) || item.variant}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
-            <small>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{checked ? <> · <BadgeCheck size={14} role="img" aria-label={c.item.checked(clock(item.product.sourceCheckedAt!, locale))} /></> : null}{stock ? ` · ${stock}` : ""}</small>
+      <ul className="basket-variants cl-variants" aria-label={kc.variants}>{lines.map((item) => {
+        const issue = item.sourceIssue, stock = lowStock(item);
+        const name = shownVariant(item.variant, item.product.sourceOptions) || readableNikeSizeLabel(cartColourOptions(item.product)?.label ?? "") || item.variant;
+        return <li className={"cl-variant" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
+          {selectBox([item], s.selectLine(lineName(item)))}
+          <div className="cl-text">
+            <b className="cl-variant-name">{name}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
+            <p className="cl-store">{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</p>
           </div>
-          <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity }, { queue: true })} />
-          <strong className="basket-variant-sum">{formatSum(lineTotal(item), locale)}</strong>
-          <SafeDeleteButton label={kc.removeVariant} itemName={[item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ")} locale={locale} instant onConfirm={() => removeWithUndo([item.id], [item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · "))} />
-          {itemNotes(item)}
+          <strong className="cl-sum">{formatSum(lineTotal(item), locale)}</strong>
+          {(item.priceChange || item.sourceIssue || stock) && <div className="cl-notes">{itemNotes(item)}{stock && <p className="cl-stock">{stock}</p>}</div>}
+          <div className="cl-actions">
+            <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity }, { queue: true })} />
+            <SafeDeleteButton label={kc.removeVariant} itemName={lineName(item)} locale={locale} instant onConfirm={() => removeWithUndo([item.id], lineName(item))} />
+          </div>
           {renderNote(item)}
         </li>;
       })}</ul>

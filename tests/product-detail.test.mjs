@@ -81,7 +81,9 @@ test('wiring: the catalog opens the shared product page in place, without asking
   assert.match(engine, /<DetailSection title=\{pd\.deliveryTitle\}/);
   assert.match(source('app/product-detail.tsx'), /<details className="pd-breakdown" open>/);
   const sheet = source('app/product-sheet.tsx');
-  assert.match(sheet, /<ProductOrder key=\{[^}]+\} mode="catalog" product=\{product as MerchantFind\} inSheet\/>/);
+  // The shown product stays on the sheet while it slides away (2 November 2026).
+  assert.match(sheet, /<ProductOrder key=\{[^}]+\} mode="catalog" product=\{view as MerchantFind\} inSheet\/>/);
+  assert.match(sheet, /const view=product\?\?shown;/);
   assert.doesNotMatch(sheet, /Tabs/);
   const card = source('app/catalog-card.tsx');
   assert.doesNotMatch(card, /findOrderUrl/, 'the card no longer sends "+" and "В корзину" to /order-by-link');

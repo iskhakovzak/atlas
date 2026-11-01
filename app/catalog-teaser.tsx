@@ -27,7 +27,7 @@ const countFrom = 12;
 export function CatalogTeaser({ select }: { select: (product: Product) => void }) {
   const { state, pricing, ready, act, catalogProducts } = useMarket();
   const locale = state.communication.language as Locale, cc = catalogCopy[locale];
-  const [saving, setSaving] = useState<string | null>(null);
+  const [saving] = useState<string | null>(null);
   const items = useMemo(() => applyCatalogQuery(catalogItems(catalogProducts, pricing), emptyCatalogQuery, { dutyLimitUsd: courierAllowanceUsd }), [catalogProducts, pricing]);
   const shown = items.slice(0, 8);
   const trackId = useId();
@@ -57,8 +57,8 @@ export function CatalogTeaser({ select }: { select: (product: Product) => void }
     el.scrollBy({ left: direction * el.clientWidth, behavior: reduce ? 'auto' : 'smooth' });
   }, []);
   async function save(product: Product) {
-    setSaving(product.id);
-    try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }
+    // Optimistic (lib/market/optimistic.ts): the heart changes at once and stays tappable; the request is queued.
+    await act({ type: 'favorite', id: product.id });
   }
   return <TooltipProvider delayDuration={300}><section className="home-rail" id="finds" aria-labelledby="finds-title">
     <div className="home-rail-head">

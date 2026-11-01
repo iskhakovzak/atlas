@@ -189,3 +189,8 @@ html[data-theme="dark"] .mobile-nav .shell-dot { box-shadow: 0 0 0 2px var(--bg)
   :is(.pd-breakdown, .home-faq details, .ux-disclosure, .order-x-more, .customs-estimate-how) > summary:hover { background-color: var(--hover); }
   .order-tabs [data-slot=tabs-trigger]:not([data-state=active]):hover { color: var(--text); background-color: var(--hover); }
 }
+
+/* The on-screen keyboard (lib/market/keyboard-inset.ts): a bottom sheet rides above it and keeps its field in view;
+   sticky bottom bars stay out of the way (owner's Android, 2 November 2026: the link field sat under the keyboard). */
+[data-slot="sheet-content"][data-side="bottom"] { bottom: var(--keyboard-inset, 0px) !important; max-height: calc(100dvh - var(--keyboard-inset, 0px) - 12px); overflow-y: auto; transition: bottom var(--dur-base, 220ms) var(--ease-out, ease-out); }
+@media (prefers-reduced-motion: reduce) { [data-slot="sheet-content"][data-side="bottom"] { transition: none; } }

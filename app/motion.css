@@ -189,9 +189,7 @@ html[data-theme="dark"] .account-skeleton :is(i, b) { background-image: linear-g
 .atlas-loader svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; animation: atlas-loader-nudge 1.6s ease-in-out infinite; }
 @keyframes atlas-loader-nudge { 50% { transform: translate(2px, -2px); } }
 
-/* Product photos from the stores fade in as they arrive instead of popping in (app/market-ui.tsx, ProductImage). */
-img.product-img { transition: opacity .35s ease-out; }
-img.product-img[data-fade] { opacity: 0; }
+/* Product photos from the stores fade in as they arrive: see "Photos arriving" below. */
 
 /* ---------- Reduced motion: no page, dialog or content movement; the check is drawn at once. ---------- */
 @media (prefers-reduced-motion: reduce) {
@@ -234,3 +232,57 @@ html:is([data-view="catalog"], [data-view="cart"], [data-view="link"]) #main.vie
   html[data-arrived] .site-main { animation: atlas-page-arrive 220ms cubic-bezier(.22, 1, .36, 1) both; }
 }
 @keyframes atlas-page-arrive { from { opacity: .35; } }
+
+/* ---------- One motion for everything that opens and closes (2 November 2026) ---------- */
+/* Owner: closing the product sheet "disappears abruptly". Every sheet, menu, popover and dialog enters on the shared
+   tokens (app/tokens.css: --dur-enter on --ease-spring / --ease-out) and leaves faster (--dur-exit on --ease-in). One
+   mechanism: Radix's data-state="open|closed" with CSS animations — Radix keeps the element mounted until its closing
+   animation ends, so ×, a swipe, Escape and Back (all set the same state) animate alike, and reopening mid-close simply
+   switches the state back. Menus shown with the hidden attribute (the language menu) use transitions on display. */
+html body [data-slot="sheet-overlay"][data-state="open"] { animation: atlas-fade-in var(--dur-enter) var(--ease-out) both; }
+html body [data-slot="sheet-overlay"][data-state="closed"] { animation: atlas-fade-out var(--dur-exit) var(--ease-in) both; }
+html body [data-slot="sheet-content"][data-state="open"] { animation: atlas-sheet-in-right var(--dur-slow) var(--ease-out) both; }
+html body [data-slot="sheet-content"][data-state="closed"] { animation: atlas-sheet-out-right var(--dur-exit) var(--ease-in) both; }
+html body [data-slot="sheet-content"]:is(.product-sheet-bottom, [class*="bottom-0"])[data-state="open"] { animation-name: atlas-sheet-in-bottom; }
+html body [data-slot="sheet-content"]:is(.product-sheet-bottom, [class*="bottom-0"])[data-state="closed"] { animation-name: atlas-sheet-out-bottom; }
+html body [data-slot="sheet-content"][class*="left-0"]:not([class*="right-0"])[data-state="open"] { animation-name: atlas-sheet-in-left; }
+html body [data-slot="sheet-content"][class*="left-0"]:not([class*="right-0"])[data-state="closed"] { animation-name: atlas-sheet-out-left; }
+@keyframes atlas-sheet-in-right { from { opacity: .4; transform: translate3d(100%, 0, 0); } }
+@keyframes atlas-sheet-out-right { to { opacity: 0; transform: translate3d(40px, 0, 0) scale(.98); } }
+@keyframes atlas-sheet-in-left { from { opacity: .4; transform: translate3d(-100%, 0, 0); } }
+@keyframes atlas-sheet-out-left { to { opacity: 0; transform: translate3d(-40px, 0, 0) scale(.98); } }
+@keyframes atlas-sheet-in-bottom { from { transform: translate3d(0, 100%, 0); } }
+@keyframes atlas-sheet-out-bottom { to { transform: translate3d(0, 100%, 0); } }
+/* Menus, popovers and lists drop in from their trigger and fade back. */
+html body :is([data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="hover-card-content"], [data-slot="tooltip-content"])[data-state="open"] { animation: atlas-pop-in var(--dur-base) var(--ease-out) both; }
+html body :is([data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="hover-card-content"])[data-state="closed"] { animation: atlas-pop-out var(--dur-exit) var(--ease-in) both; }
+@keyframes atlas-pop-in { from { opacity: 0; transform: translate3d(0, -4px, 0) scale(.98); } }
+@keyframes atlas-pop-out { to { opacity: 0; transform: translate3d(0, -2px, 0) scale(.98); } }
+/* The dialogs above keep their own shape, on the shared timing. */
+html body :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"])[data-state="open"] { animation-duration: var(--dur-enter); animation-timing-function: var(--ease-spring); }
+html body :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"])[data-state="closed"] { animation-duration: var(--dur-exit); animation-timing-function: var(--ease-in); }
+/* The language menu (hidden attribute): fades and drops in, and fades out before it is hidden. */
+.lang-menu-list { transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), display var(--dur-base) allow-discrete, overlay var(--dur-base) allow-discrete; }
+.lang-menu-list[hidden] { opacity: 0; transform: translate3d(0, -4px, 0) scale(.98); transition-duration: var(--dur-exit); transition-timing-function: var(--ease-in); }
+@starting-style { .lang-menu-list:not([hidden]) { opacity: 0; transform: translate3d(0, -4px, 0) scale(.98); } }
+
+/* ---------- Photos arriving (app/market-ui.tsx ProductImage, data-fade) ---------- */
+/* The box is reserved by the card; while the file is on its way it shimmers softly; the photo then fades in and settles
+   from 1.02 (the `scale` property, so a card's hover transform still applies). A cached photo has no data-fade and shows
+   at once. */
+img.product-img { transition: opacity .36s var(--ease-out), scale .42s var(--ease-out); }
+img.product-img[data-fade] { opacity: 0; scale: 1.02; }
+:is(.pcard-photo, .find-photo, .basket-photo, .order-photo, .product-gallery-stage, .cart-line-photo):has(> img.product-img[data-fade]) {
+  background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .55) 50%, transparent 70%);
+  background-size: 240% 100%; background-repeat: no-repeat; animation: atlas-photo-wait 1.4s linear infinite;
+}
+@keyframes atlas-photo-wait { from { background-position-x: 140%; } to { background-position-x: -100%; } }
+html[data-theme="dark"] :is(.pcard-photo, .find-photo, .basket-photo, .order-photo, .product-gallery-stage, .cart-line-photo):has(> img.product-img[data-fade]) { background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .25) 50%, transparent 70%); }
+
+@media (prefers-reduced-motion: reduce) {
+  html body :is([data-slot="sheet-overlay"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="hover-card-content"], [data-slot="tooltip-content"])[data-state="open"] { animation: atlas-fade-in var(--dur-reduced) linear both; }
+  html body :is([data-slot="sheet-overlay"], [data-slot="sheet-content"], [data-slot="dropdown-menu-content"], [data-slot="popover-content"], [data-slot="select-content"], [data-slot="hover-card-content"])[data-state="closed"] { animation: atlas-fade-out var(--dur-reduced) linear both; }
+  .lang-menu-list, .lang-menu-list[hidden] { transform: none; transition-duration: var(--dur-reduced); }
+  img.product-img, img.product-img[data-fade] { scale: none; transition: none; }
+  :is(.pcard-photo, .find-photo, .basket-photo, .order-photo, .product-gallery-stage, .cart-line-photo):has(> img.product-img[data-fade]) { animation: none; }
+}

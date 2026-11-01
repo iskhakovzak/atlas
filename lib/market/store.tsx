@@ -2,6 +2,7 @@
 import {createContext,useCallback,useContext,useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import { toast } from '@/lib/market/toast';
 import {blank,parseState,pricingSchema,tariff,type Pricing,type State} from './domain';
+import {applyOptimistic,isOptimistic,withPending,type OptimisticAction} from './optimistic';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import type {Action} from './actions';
 import {reloadAfterErrorCodes,screenLocale,serverError,setLocaleCookie,supportedLocale,type Locale} from './i18n';
@@ -38,6 +39,11 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
  // Signed in as of the last successful read. A network or server hiccup must not sign the customer out.
  const signedIn=useRef(false),retryTimer=useRef<ReturnType<typeof setTimeout>|null>(null),lastRefresh=useRef(0);
  const lastActionError=useCallback(()=>lastError.current,[]);
+ // Optimistic actions (lib/market/optimistic.ts): the server's last state, the actions shown before it confirmed them,
+ // and the tariff they are priced with. The screen is always the server's state with the pending ones on top.
+ const serverState=useRef<State|null>(null),pending=useRef<{action:OptimisticAction}[]>([]),pricingRef=useRef<Pricing>(initialPricing??tariff);
+ useEffect(()=>{pricingRef.current=pricing},[pricing]);
+ const showServer=useCallback((server:State)=>{serverState.current=server;setState(pending.current.length?withPending(server,pending.current.map(item=>item.action),pricingRef.current):server)},[]);
  const loadCatalog=useCallback((force=false)=>{
   if(force)catalogLoaded.current=false;
   if(catalogLoaded.current)return Promise.resolve();
@@ -102,7 +108,7 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
    // Keep asynchronous request fallbacks in the locale the customer just selected.
    localeRef.current=next.communication.language;
    setLocaleCookie(next.communication.language);
-   setState(next);
+   showServer(next);
    const parsedPricing=pricingSchema.safeParse(data.pricing);setPricing(previous=>nextPricing(previous,parsedPricing.success?parsedPricing.data:tariff));
    const parsedPolicy=policySchema.safeParse(data.policy);setPolicy(parsedPolicy.success?parsedPolicy.data:defaultPolicy);
    revision.current=data.revision;setUser(data.user);setStatus('authenticated');setError(null);signedIn.current=true;
@@ -112,7 +118,7 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
    clearPrivate();setStatus('error');setError(marketMessages[localeRef.current].connection);
   }
   finally{clearTimeout(timeout)}
- },[clearPrivate,readStoredLocale]);
+ },[clearPrivate,readStoredLocale,showServer]);
  useEffect(()=>{
   // ?lang=uz|ru|en (hreflang URLs) is an explicit choice and is saved; otherwise a
   // locally saved choice wins over the server's pick.
@@ -141,9 +147,19 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
  useEffect(()=>{document.documentElement.lang=htmlLang(state.communication.language)},[state.communication.language]);
  const act=useCallback(async(action:Action,options?:{queue?:boolean})=>{
   if(!ready){toast.error(marketMessages[localeRef.current].signin);return false}
+  // A safe action shows at once and waits its turn behind the others (taps are never dropped); the server's answer
+  // then replaces it, or takes it back when the server refuses (lib/market/optimistic.ts).
+  let intent:{action:OptimisticAction}|undefined;
+  if(isOptimistic(action)){
+   intent={action};pending.current=[...pending.current,intent];
+   setState(current=>applyOptimistic(current,action,pricingRef.current)??current);
+   options={...options,queue:true};
+  }
+  let answered=false;
+  const settleIntent=()=>{if(!intent)return;pending.current=pending.current.filter(item=>item!==intent);if(!answered&&serverState.current)showServer(serverState.current)};
   // Without `queue` a second click during a save is dropped (a double-clicked "Pay" must not pay twice).
   while(busy.current&&options?.queue&&inflight.current)await inflight.current;
-  if(busy.current)return false;
+  if(busy.current){settleIntent();return false}
   busy.current=true;
   let settle=()=>{};inflight.current=new Promise<void>(resolve=>{settle=resolve});
   // A pending read must not overwrite the result of this newer mutation.
@@ -158,15 +174,16 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
     // The screen keeps its language; only a language the customer has just saved in the settings switches it (screenLocale).
     const shown=screenLocale(localeRef.current,parsed.communication.language,res.ok&&action.type==='communication-save');
     if(shown!==localeRef.current){localeRef.current=shown;try{localStorage.setItem('atlas-language',shown)}catch{}setLocaleCookie(shown)}
-    setState({...parsed,communication:{...parsed.communication,language:shown}});revision.current=data.revision;
+    if(intent)pending.current=pending.current.filter(item=>item!==intent);
+    answered=true;showServer({...parsed,communication:{...parsed.communication,language:shown}});revision.current=data.revision;
    }
    // The server's reason ("the price changed…") is the useful part; the generic text is only a fallback.
    if(!res.ok){lastError.current={code:data.errorCode,message:data.error};toast.error((data.errorCode ? serverError(localeRef.current, data.errorCode) : undefined) ?? data.error ?? marketMessages[localeRef.current].saveFailed);if((res.status===409&&!data.state)||(data.errorCode&&reloadAfterErrorCodes.includes(data.errorCode)))await refresh();return false}
    lastError.current=null;
    return true;
   }catch{toast.error(marketMessages[localeRef.current].actionConnection);await refresh();return false}
-  finally{busy.current=false;settle()}
- },[ready,refresh,clearPrivate]);
+  finally{busy.current=false;settle();settleIntent()}
+ },[ready,refresh,clearPrivate,showServer]);
  useEffect(()=>{
   if(status!=='authenticated')return;
   const preferred=readStoredLocale();
