@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, ExternalLink, PencilLine, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, PackageCheck, Plus, RotateCcw, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
 import Link from "@/components/site-link";
 import { toast } from "@/lib/market/toast";
+import { showCartAdded } from "./cart-toast";
 import { useMarket } from "@/lib/market/store";
 import { signInPath } from "@/lib/market/access";
 import { catalogOrderVariants, type MerchantFind } from "@/lib/market/catalog";
@@ -1197,7 +1198,10 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
      setComment(""); setFormIssue(""); setGoneOptions([]); setChoiceNote(""); setResumedFrom("");
     // Added: the page stays, and the message leads on to checkout (redesign stage 5, 1 November 2026; until then the
     // page went straight to the cart).
-    toast.success(message, { action: { label: pd.checkout, onClick: () => router.push("/cart") } });
+    // The mini-cart card (app/cart-toast.tsx, 2 November 2026): the photo and what was added, one action to the cart.
+    const first = picks[0] ? pickedVariant(picks[0][0]) : undefined;
+    const detail = picks.length > 1 ? "" : first ? variantAxes(variants).map(axis => { const value = axisValue(first, axis.name); return !value ? "" : axis.kind === "color" ? describeSingleColorway(value).primary : axis.kind === "size" && value === first.size ? sizeDisplay(value) : value; }).filter(Boolean).join(" · ") || first.label : variant.trim();
+    showCartAdded({ title: message, name: name.trim(), detail, image: first?.image || image || undefined, action: pd.checkout, close: tx("Закрыть", "Yopish", "Close"), onAction: () => router.push("/cart") });
   }
   // A guest's "add to cart" is sent once after sign-in, when this product is on screen again (app/pending-cart-add.ts).
   const pendingAdd = usePendingCartAdd(!checking && !adding && Boolean(source) && draftDecidedFor === draftKey, (result: PendingCartAddResult) => {
@@ -1334,6 +1338,11 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
   const colourPrimaries = variantColors.map(color => describeSingleColorway(color).primary);
   // The chosen options named by their axes in the list under the picker ("Black / White · Big & Tall · 3XLT").
   const listAxes = variantAxes(variants);
+  /** An option named by its axes ("Black / White · Big & Tall · 3XLT"), as in the list of picks and the cart card. */
+  const pickText = (option: ProductVariant | undefined, label: string) => {
+    const axesText = option ? listAxes.map(axis => { const value = axisValue(option, axis.name); return !value ? "" : axis.kind === "color" ? colourName(value) : axis.kind === "size" && value === option.size ? sizeDisplay(value) : value; }).filter(Boolean).join(" · ") : "";
+    return axesText || (option?.size ? [option.color ? colourName(option.color) : "", sizeDisplay(option.size)].filter(Boolean).join(" · ") : option ? optionDisplay(variants).text(option) : label);
+  };
   const colourName = (color: string) => { const primary = describeSingleColorway(color).primary; return colourPrimaries.filter(value => value === primary).length === 1 ? primary : color.replace(/\//g, "/\u200b"); };
   // One price on every tile says nothing: when all colours cost the same, the tiles show only the name (the price
   // stays in the button label and the total below; 27 October 2026).
@@ -1830,8 +1839,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
               {picks.length > 0 && <ul className={"lo-picks" + (manyMode ? "" : " single")} aria-label={k.chosen}>{picks.map(([label, quantity]) => {
                 const option = pickedVariant(label);
                 const optionPrice = option?.price ?? Number(amount);
-                const axesText = option ? listAxes.map(axis => { const value = axisValue(option, axis.name); return !value ? "" : axis.kind === "color" ? colourName(value) : axis.kind === "size" && value === option.size ? sizeDisplay(value) : value; }).filter(Boolean).join(" · ") : "";
-                const shown = axesText || (option?.size ? [option.color ? colourName(option.color) : "", sizeDisplay(option.size)].filter(Boolean).join(" · ") : option ? optionDisplay(variants).text(option) : label);
+                const shown = pickText(option, label);
                 return <li key={label}>
                   <Check className="lo-pick-tick" size={18} aria-hidden="true"/>
                   <span className="lo-pick-label"><b>{shown}</b><small>{[Number.isFinite(optionPrice) && optionPrice > 0 ? sourceFormat(optionPrice) : "", stockText(option, k)].filter(Boolean).join(" · ")}</small></span>

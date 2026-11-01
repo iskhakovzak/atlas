@@ -115,6 +115,11 @@ export default function Marketplace({view,children,crumb,crumbPath}:{view:string
   // the real path right after. On /login the tab keeps that page's own return_to (signInReturn), not '/'.
   const here=useSyncExternalStore(subscribeNever,returnPath,()=>'/');
   const snapshot=useMemo(()=>{try{const saved=JSON.parse(savedHeader??'null');return saved&&typeof saved.balance==='number'&&typeof saved.count==='number'?saved as {balance:number;count:number}:null}catch{return null}},[savedHeader]);
+  // The cart icons in the header and the bottom bar bump when something is added (app/cart-toast.tsx, 2 November 2026).
+  useEffect(()=>{
+    const bump=()=>{for(const icon of document.querySelectorAll<HTMLElement>('.shell-cart, .mobile-nav a[data-tab="cart"] .mobile-nav-icon')){icon.classList.remove('is-bump');void icon.offsetWidth;icon.classList.add('is-bump')}};
+    window.addEventListener('atlas:cart-bump',bump);return()=>window.removeEventListener('atlas:cart-bump',bump);
+  },[]);
   useEffect(()=>{try{if(ready)sessionStorage.setItem('atlas-header',JSON.stringify({balance,count}));else if(status==='guest')sessionStorage.removeItem('atlas-header')}catch{}},[ready,status,balance,count]);
   // A session cookie alone (a new tab) gives the member header too, just without the numbers until the account answers.
   const member=ready||(status==='loading'&&(!!snapshot||sessionHint)),known=ready||!!snapshot;

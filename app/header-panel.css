@@ -76,17 +76,83 @@ html[data-theme="dark"] .site-header .notice-link > b { border-color: var(--nigh
   .site-header .notice-link b, .site-header .notice-link svg { animation: none; }
 }
 
-/* ---------- Toasts (sonner) ---------- */
-/* Inter like the rest of the page, softer corners, and calm Day colours: white cards with a coloured edge and text
-   instead of the library's bright tinted fills. Night keeps its own values (theme-night.css). */
-:root body [data-sonner-toaster] { font-family: inherit; }
-:root body [data-sonner-toast] { border-radius: var(--r-control); }
-html:not([data-theme="dark"]) [data-sonner-toaster] {
-  --normal-bg: #fff; --normal-border: var(--day-line, var(--c-line)); --normal-text: var(--day-ink, var(--c-ink));
-  --success-bg: #fff; --success-border: #cfe3d6; --success-text: var(--c-ok);
-  --error-bg: #fff; --error-border: #f1c9c4; --error-text: #9b2c20;
-  --warning-bg: #fffaf0; --warning-border: #f0dca8; --warning-text: #7a5a12;
+/* ---------- Toasts (sonner), 2 November 2026 ---------- */
+/* Owner: "обводка топорная, окошко как будто старое". A soft card: hairline instead of an outline, the sheet shadow,
+   radius 18; the icon in a tinted circle (green success, red error, amber warning), the title and an optional line,
+   one filled action (radius 12) and a quiet ×. Enters by rising 14 px and settling from .98 on the shared spring,
+   leaves faster, fading down; reduced motion fades only. "Added to cart" is its own card (app/cart-toast.tsx). */
+:root body [data-sonner-toaster] { font-family: inherit; --width: 380px; --border-radius: 18px; }
+:root body [data-sonner-toaster] {
+  --normal-bg: var(--surface, #fff); --normal-border: var(--line); --normal-text: var(--text);
+  --success-bg: var(--normal-bg); --success-border: var(--line); --success-text: var(--text);
+  --error-bg: var(--normal-bg); --error-border: var(--line); --error-text: var(--text);
+  --warning-bg: var(--normal-bg); --warning-border: var(--line); --warning-text: var(--text);
+  --info-bg: var(--normal-bg); --info-border: var(--line); --info-text: var(--text);
 }
-html:not([data-theme="dark"]) [data-sonner-toast] { box-shadow: var(--shadow-3); }
-/* Success shows sonner's tick icon; no coloured stripe down the left edge (27 October 2026). */
-html:not([data-theme="dark"]) [data-sonner-toast][data-type="success"] [data-icon] { color: var(--ok); }
+:root body [data-sonner-toaster] [data-sonner-toast] {
+  transition: transform var(--dur-enter) var(--ease-spring), opacity var(--dur-enter) var(--ease-out), height var(--dur-enter) var(--ease-out), box-shadow .2s;
+}
+:root body [data-sonner-toaster] [data-sonner-toast][data-y-position="bottom"][data-mounted="false"] { --y: translateY(14px) scale(.98); }
+:root body [data-sonner-toaster] [data-sonner-toast][data-y-position="top"][data-mounted="false"] { --y: translateY(-12px) scale(.98); }
+:root body [data-sonner-toaster] [data-sonner-toast][data-removed="true"] { transition: transform var(--dur-exit) var(--ease-in), opacity var(--dur-exit) var(--ease-in), height var(--dur-exit) var(--ease-in); }
+:root body [data-sonner-toaster] [data-sonner-toast][data-removed="true"][data-front="true"][data-swipe-out="false"][data-y-position="bottom"] { --y: translateY(12px) scale(.98); opacity: 0; }
+:root body [data-sonner-toaster] [data-sonner-toast][data-removed="true"][data-front="true"][data-swipe-out="false"][data-y-position="top"] { --y: translateY(-8px) scale(.98); opacity: 0; }
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+  align-items: flex-start; gap: 12px; padding: 14px 44px 14px 14px; border: 1px solid var(--normal-border); border-radius: 18px;
+  background: var(--normal-bg); color: var(--normal-text); box-shadow: var(--shadow-3); font-size: 14px; line-height: 1.35;
+}
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-icon] {
+  display: grid; place-items: center; flex: none; width: 32px; height: 32px; margin: 0; border-radius: 999px;
+  background: color-mix(in srgb, var(--toast-tone, var(--text-2)) 12%, transparent); color: var(--toast-tone, var(--text-2));
+}
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-icon] > * { width: 18px; height: 18px; }
+:root body [data-sonner-toaster] [data-sonner-toast][data-type="success"] { --toast-tone: var(--brand, #1f4d3b); }
+:root body [data-sonner-toaster] [data-sonner-toast][data-type="error"] { --toast-tone: #d13438; }
+:root body [data-sonner-toaster] [data-sonner-toast][data-type="warning"] { --toast-tone: #b7791f; }
+:root body [data-sonner-toaster] [data-sonner-toast][data-type="info"] { --toast-tone: var(--link, #2563eb); }
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-content] { gap: 2px; min-width: 0; padding-top: 6px; }
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-title] { color: var(--text); font-size: 15px; font-weight: 650; line-height: 1.3; }
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-description] { color: var(--text-2); font-size: 13px; line-height: 1.4; }
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-button] {
+  align-self: center; height: 38px; margin-left: auto; padding: 0 14px; border: 0; border-radius: 12px; background: var(--brand, #1f4d3b);
+  color: #fff; font-size: 14px; font-weight: 650; white-space: nowrap;
+}
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+  inset: 12px 10px auto auto; left: auto; width: 28px; height: 28px; border: 0; border-radius: 999px; background: transparent;
+  color: var(--text-2); transform: none;
+}
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:hover { background: var(--sunken, rgba(0, 0, 0, .05)); color: var(--text); }
+:root body [data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] svg { width: 14px; height: 14px; }
+/* "Added to cart": the photo with a small tick, what was added on one line, the action and ×. */
+@media (min-width: 640px) { :root body [data-sonner-toaster] [data-sonner-toast].atlas-toast-cart { width: var(--width); } }
+.cart-toast {
+  display: grid; grid-template-columns: 48px minmax(0, 1fr) 32px; grid-template-areas: "photo text close" "photo action action";
+  align-items: center; column-gap: 12px; row-gap: 10px; width: 100%; box-sizing: border-box;
+  padding: 12px 8px 12px 12px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface, #fff); color: var(--text);
+  box-shadow: var(--shadow-3); font-family: inherit;
+}
+.cart-toast-photo { grid-area: photo; align-self: start; }
+.cart-toast-text { grid-area: text; }
+.cart-toast-action { grid-area: action; justify-self: start; }
+.cart-toast-close { grid-area: close; align-self: start; }
+.cart-toast-photo { position: relative; width: 48px; height: 48px; border-radius: 12px; background: var(--sunken, #f2f1ec); }
+.cart-toast-photo img { display: block; width: 48px; height: 48px; border-radius: 12px; object-fit: contain; background: #fff; }
+.cart-toast-photo i { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 20px; height: 20px; border: 2px solid var(--surface, #fff); border-radius: 999px; background: var(--brand, #1f4d3b); color: #fff; }
+.cart-toast-text { display: grid; gap: 2px; min-width: 0; }
+.cart-toast-text b { overflow: hidden; font-size: 15px; font-weight: 650; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.cart-toast-text span { overflow: hidden; color: var(--text-2); font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.cart-toast-action { height: 38px; padding: 0 14px; border: 0; border-radius: 12px; background: var(--brand, #1f4d3b); color: #fff; font: inherit; font-size: 14px; font-weight: 650; white-space: nowrap; cursor: pointer; }
+.cart-toast-action:active { transform: scale(.97); }
+.cart-toast-close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--text-2); cursor: pointer; }
+.cart-toast-close:hover { background: var(--sunken, rgba(0, 0, 0, .05)); color: var(--text); }
+:is(.cart-toast-action, .cart-toast-close, [data-sonner-toast] [data-button]):focus-visible { outline: 2px solid var(--brand, #1f4d3b); outline-offset: 2px; }
+/* The cart icon bumps when something is added. */
+.is-bump { animation: atlas-cart-bump 420ms var(--ease-spring); }
+@keyframes atlas-cart-bump { 0% { transform: scale(1); } 35% { transform: scale(1.15); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  :root body [data-sonner-toaster] [data-sonner-toast],
+  :root body [data-sonner-toaster] [data-sonner-toast][data-removed="true"] { transition: opacity var(--dur-reduced) linear; }
+  :root body [data-sonner-toaster] [data-sonner-toast][data-mounted="false"],
+  :root body [data-sonner-toaster] [data-sonner-toast][data-removed="true"][data-front="true"][data-swipe-out="false"] { --y: none; }
+  .is-bump { animation: none; }
+}
