@@ -392,19 +392,19 @@ export type FooterCopy = { tagline: string; buyers: string; contacts: string; le
 /** Footer words (every page), apart from the home page copy, which uses them as `footer` and `trust.inn`. */
 export const footerCopy: Record<Locale, FooterCopy> = /*@__PURE__*/withCyrillic({
   ru: {
-      tagline: 'Покупки в зарубежных магазинах с доставкой в Ташкент.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
+      tagline: 'Atlas — сервис-посредник: выкупает товары в зарубежных магазинах и доставляет в Ташкент.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
       support: 'Поддержка в личном кабинете', rules: 'Все документы', privacy: 'Политика данных', customs: 'Таможня', faq: 'Частые вопросы',
       telegramSupport: 'Telegram-бот', telegramChannel: 'Telegram-канал', phone: 'Телефон', instagram: 'Instagram', email: 'Почта', hours: 'Часы работы', pickup: 'Пункт выдачи', theme: 'Тема',
       inn: 'ИНН',
   },
   uz: {
-      tagline: 'Xorijiy do‘konlardan Toshkentga yetkazib berish bilan xaridlar.', buyers: 'Xaridorlarga', contacts: 'Bog‘lanish', legal: 'Yuridik ma’lumotlar',
+      tagline: 'Atlas — vositachi xizmat: xorijiy do‘konlardan tovarlarni sotib olib, Toshkentga yetkazadi.', buyers: 'Xaridorlarga', contacts: 'Bog‘lanish', legal: 'Yuridik ma’lumotlar',
       support: 'Shaxsiy kabinetdagi yordam', rules: 'Barcha hujjatlar', privacy: 'Ma’lumotlar siyosati', customs: 'Bojxona', faq: 'Savollar',
       telegramSupport: 'Telegram-bot', telegramChannel: 'Telegram-kanal', phone: 'Telefon', instagram: 'Instagram', email: 'Pochta', hours: 'Ish vaqti', pickup: 'Topshirish punkti', theme: 'Mavzu',
       inn: 'STIR',
   },
   en: {
-      tagline: 'Shopping in international stores with delivery to Tashkent.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
+      tagline: 'Atlas is a purchasing service: it buys items from international stores and delivers them to Tashkent.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
       support: 'Support in your account', rules: 'All documents', privacy: 'Privacy policy', customs: 'Customs', faq: 'FAQ',
       telegramSupport: 'Telegram bot', telegramChannel: 'Telegram channel', phone: 'Phone', instagram: 'Instagram', email: 'Email', hours: 'Working hours', pickup: 'Pickup point', theme: 'Theme',
       inn: 'Tax ID (INN)',

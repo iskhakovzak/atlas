@@ -1,3 +1,34 @@
+## SEO: правки после проверки — 1 ноября 2026
+- **Кеш публичных страниц** (`middleware.ts`): публичные адреса (`isPublicPath`) без cookie сессии отдаются с `Cache-Control: public, max-age=0, must-revalidate` и `Vary: Cookie` вместо `no-store, must-revalidate` от vinext — страница снова попадает в bfcache, но каждый раз сверяется с сервером. С сессией и на приватных страницах — по-прежнему `no-store`.
+- **`?lang=RU` и другой регистр** — 308 на адрес с `?lang=ru` (раньше страница рендерилась на узбекском с canonical x-default).
+- **`og:locale:alternate`** выводит `app/layout.tsx` как `<meta property=…>` в `<head>` (из `alternateOgLocales`); `other` в `pageMetadata` убран — он давал `<meta name=…>`, который Open Graph не читает.
+- **`SearchAction` убран** из `WebSite`: окно поиска Google не показывает с ноября 2024, а `/catalog?q=` фильтруется только в браузере.
+- **robots.txt:** `/login` больше не закрыт — на него ссылаются все страницы, теперь Google видит его `noindex`, а не индексирует адрес без содержимого. Остальные приватные пути закрыты как раньше.
+- Серверный рендер первой страницы каталога по-прежнему ждёт решения владельца (TODO.md).
+
+## SEO: метаданные, hreflang, разметка, sitemap и llms.txt — 1 ноября 2026
+По трём аудитам (технический; schema/ecommerce/content; GEO/агенты/локальное) и сводному аудиту редизайна.
+- **Метаданные в `<head>` для ботов** (`next.config.ts`, `htmlLimitedBots`): vinext стримил title, canonical и hreflang в `<body>` всем, кого нет в его списке, а Googlebot в списке не было. Теперь боты, превью-сервисы и Lighthouse получают метаданные в `<head>`, браузеры — как раньше потоком.
+- **Общие помощники `lib/seo/*`** (для редизайна тоже):
+  - `locales.ts` — языковые версии: `localizedPath`, `languageAlternates`, `canonicalPath`, `withLang` (внутренняя ссылка сохраняет `?lang`), `russianOnlyPaths`.
+  - `metadata.ts` — `pageMetadata({path, lang, fallback, text, image})`: canonical, hreflang (uz, uz-Cyrl, ru, en, x-default), OG (теги `og:locale:alternate` с `property=` выводит `app/layout.tsx`: vinext 1.0 не выводит `alternateLocale`), Twitter.
+  - `structured-data.ts` — Organization (`areaServed` = Ташкент, `alternateName` atlasmarket.uz, языки с uz-Cyrl), `breadcrumbList`, `webPage`, `productJsonLd` (Offer только с реальной суммой в UZS, `availability` только при подтверждении магазином, без рейтингов, отзывов, возврата и доставки), `collectionPage`.
+  - `sitemap.ts` + `routes.ts` — генератор и флаги семейств страниц (`productPages`, `storePages`, `deliveryPage`, сейчас выключены). Тест падает, если флаг включён без файла страницы.
+- **Sitemap** — маршрут `app/sitemap.xml/route.ts` вместо `public/sitemap.xml`: 38 адресов, у каждого `xhtml:link`, без `changefreq`/`priority`, `lastmod` только у /customs (2026-09-11, дата на странице). Товары `/catalog/p/{id}` (дата — максимум из публикации, сверки и подтверждения) и магазины добавятся, когда этапы 5 и 8 включат флаг в `lib/seo/routes.ts`.
+- **Юридические документы только на русском:** `/legal`, `/privacy`, `/terms` с любым `?lang` канонизируются на `?lang=ru`, hreflang — только `ru` и `x-default`, в sitemap по одному адресу. Вернуть полный набор, когда опубликуют переводы: очистить `russianOnlyPaths`.
+- **Ссылки сохраняют язык.** `SiteLink` через контекст `PageLang` (`app/page-lang.tsx`, `requestedPageLocale()` в layout) добавляет `?lang` к ссылкам на публичные страницы, если страница открыта как `?lang`-версия. На x-default ссылки без параметра. Пункты меню языка — ссылки `<a href="{path}?lang=xx" hrefLang>`, клик по-прежнему переключает язык на месте.
+- **`Vary: Accept-Language, Cookie`** у страниц без `?lang` (`middleware.ts`): их язык зависит от cookie и браузера.
+- **robots.txt:** `Allow: /api/catalog$` (Google рендерит каталог через этот запрос), `/order-by-link` закрыт только с параметрами (`/order-by-link?`): голый адрес обходится, и его `noindex` виден.
+- **Тексты:** title ≤ 60 знаков вместе с «· Atlas», description 70–160 знаков на всех языках (тест). H1 `/stores` — «215 зарубежных магазинов с доставкой в Ташкент». Слоган в подвале — определение «Atlas — сервис-посредник…». Счётчик групп на `/stores` вынесен из `<h3>`.
+- **/customs:** JSON-LD `WebPage` с `dateModified` = `customsPageCheckedOn` (`lib/market/customs.ts`; тест сверяет с датой в тексте страницы) и `citation` — ссылки на lex.uz.
+- **llms.txt:** блок «Key facts» (Ташкент, 215 магазинов, 9,98 %, $15,98/$13,98 за кг и сроки, 0,3 кг упаковки, $200 в месяц, 4,98 %, 2,9/3,9 %), версия `?lang=oz`, юридические ссылки на `?lang=ru`. Тест сверяет цифры с константами кода. Формулировки «pre-release/simulated» не менялись — решает владелец.
+- **Карточки каталога:** `rel="nofollow"` у ссылок на `/login?return_to=` и `/order-by-link?url=`.
+- **Не сделано, причины:**
+  - серверный рендер первой страницы каталога и self-canonical `?page=N` — решение владельца (Lighthouse 85→79 в прошлый раз), до появления `/catalog/p/[id]` ссылки вести некуда;
+  - кеш `/api/catalog` — клиент сам запрашивает `cache: 'no-store'`, CDN нет, без лёгкого списка выигрыша нет;
+  - бренды в title главной и блок «Популярные магазины», `Content-Signal`, IndexNow, `security.txt` (нет контакта), `/faq`, noindex `/app`, посадочная `/order-by-link` — решения или данные владельца.
+- Проверено на собранном сервере (порт 8860, UA Googlebot): 50 адресов (10 страниц × 5), у всех метаданные до `</head>`, JSON-LD разбирается, `Vary` только на x-default.
+
 ## Дизайн, этап 5: одна страница товара и «Купить по ссылке» — 1 ноября 2026
 - **Один компонент.** `ProductOrder` в `app/global-link-order.tsx` (бывший `GlobalLinkOrder`, теперь обёртка над ним) рисует товар везде: шторка каталога (`app/product-sheet.tsx`, `mode="catalog" inSheet`), страница `/catalog/p/[id]` и `/order-by-link` после ответа магазина. Общие блоки — `app/product-detail.tsx` (`SumHero`, `SumBreakdown`, `TrustRow`, `DetailSection`), слова — `lib/market/product-detail-copy.ts` (ru/uz/oz/en; узбекское «dan» стоит после суммы).
 - **Раскладка:** галерея; бренд; название; одна крупная сумма в сумах «до Ташкента» («от …», пока вариант не выбран; «≈» у датированной цены); мелко цена магазина с зачёркнутой старой; цвета-фото и размеры прямо здесь (тот же выбор, что после PR #82, без перехода «Уточнить и продолжить»); «Из чего сумма» раскрыт сразу (товар · сервис Atlas · доставка по тарифу · гарантия, если есть · пошлина или «Без пошлины до $200 в месяц» · итог — те же `repriceCart`/`sumQuotes`, что у корзины); ряд доверия (цена сверена · гарантия сохранности · срок); разделы «О товаре» и «Доставка» друг под другом, без вкладок. На ПК (от 900 px) фото и разделы занимают 7 колонок, решение — 5; на телефоне одна колонка и закреплённый низ «сумма + кнопка». CSS — в конце `app/styles/link-pages.css` (`.pd*`); колонки — flex-стопки, чтобы старые `grid-area` частей страницы ссылки не открывали вторую колонку.
@@ -1161,7 +1192,7 @@ ImpactTracking is a client component inside MarketProvider. It waits for current
 
 Ветка `feat/seo`.
 
-- **JSON-LD** (`lib/seo/structured-data.ts`, вывод — `app/json-ld.tsx`, `<` экранируется). На всех страницах — `Organization` + `WebSite` на языке страницы: квадратный логотип `icon-512.png` (раньше баннер 1200×630), `sameAs` и `contactPoint` только из опубликованных контактов `siteContent.contacts`, `SearchAction` на `/catalog?q=`. Публичные подстраницы (`publicViewPaths`) получают `BreadcrumbList` в `app/marketplace.tsx` рядом с видимой крошкой; FAQ главной и `/support` — `FAQPage` с теми же вопросами, что на странице. Цен, наличия и рейтингов в разметке нет — импорт остаётся подсказкой.
+- **JSON-LD** (`lib/seo/structured-data.ts`, вывод — `app/json-ld.tsx`, `<` экранируется). На всех страницах — `Organization` + `WebSite` на языке страницы: квадратный логотип `icon-512.png` (раньше баннер 1200×630), `sameAs` и `contactPoint` только из опубликованных контактов `siteContent.contacts`, без `SearchAction` (с 1 ноября 2026). Публичные подстраницы (`publicViewPaths`) получают `BreadcrumbList` в `app/marketplace.tsx` рядом с видимой крошкой; FAQ главной и `/support` — `FAQPage` с теми же вопросами, что на странице. Цен, наличия и рейтингов в разметке нет — импорт остаётся подсказкой.
 - **Заголовки.** Если заголовок страницы уже содержит «Atlas», он не дополняется шаблоном `%s · Atlas` (было «Поддержка Atlas · Atlas»).
 - **robots.** `index, follow` + `max-image-preview: large` объявляют только публичные страницы (`publicMetadata`); в корневых метаданных robots нет, поэтому у 404 остаётся один `noindex` (раньше рядом стоял `index, follow`). У 404 один `<title>` из `generateMetadata` в `app/not-found.tsx`.
 - `public/llms.txt` — добавлен `/catalog` с поиском `?q=`.

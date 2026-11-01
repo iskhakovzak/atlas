@@ -501,6 +501,15 @@ The user explicitly requested the partner tracking code in the main homepage hea
 - [x] ~~`www2.hm.com` в JSON allowlist прокси~~ — неактуально с 10.10.2026: H&M не загружается, покупатель вводит данные сам.
 - [ ] Батч админа ограничен 25 ссылками за запрос (8 одновременно на сервере, лимит Worker по времени); больше — по частям, остаток остаётся в поле.
 - [ ] Не проверено вживую в UI админа (`/admin` → импорт): проверялись сервер, разбор ссылок и импортер тестами и живым прогоном через прод-прокси из Node.
+## SEO после аудитов — 1 ноября 2026
+
+- [ ] Владелец: серверный рендер первой страницы каталога (24 карточки ссылками) против оценки Lighthouse; затем self-canonical у `?page=N` и закрыть фасеты в robots (`/catalog?*brand=` и т. п.).
+- [ ] Этапы 5 и 8: включить флаги в `lib/seo/routes.ts` вместе с `app/catalog/p/[id]` и `app/stores/[slug]`, вызвать `storeEntries` в `app/sitemap.xml/route.ts`, карточки каталога — ссылками на `/catalog/p/{id}`.
+- [ ] Владелец: реквизиты и контакты в админке «Контент сайта» (сами попадут в подвал и Organization); переводы юридических документов (потом очистить `russianOnlyPaths`).
+- [ ] Владелец: бренды (Amazon, eBay, Nike, Zara) в title главной и блок «Популярные магазины»; `Content-Signal ai-train`; IndexNow; noindex `/app` до выхода в сторы; посадочная `/order-by-link`; статус «pre-release» в llms.txt.
+- [ ] Владелец: GSC и Яндекс Вебмастер (коды `ATLAS_GOOGLE_SITE_VERIFICATION` / `ATLAS_YANDEX_VERIFICATION` или DNS), отправить `/sitemap.xml`, регион «Ташкент»; Caddy: `www` сразу 301 на апекс одним переходом.
+- [ ] Цифры в `public/llms.txt` сверяются тестом только с константами кода, не с тарифом в D1: после смены тарифа в админке обновить файл.
+
 ## SEO: что не исправить из кода — 7 октября 2026
 
 - [ ] Хешированные файлы `/_next/static/*` отдаются с `Cache-Control: public, max-age=0, must-revalidate`, хотя vinext кладёт в `dist/client/_headers` правило `max-age=31536000, immutable`: хостинг его не применяет. Каждый повторный визит перепроверяет CSS/JS — хуже LCP. Нужна настройка хостинга или правило кеширования Cloudflare для `/_next/static/*`.

@@ -1,7 +1,11 @@
 import Marketplace from '../marketplace';
 import { CustomsView } from '../customs-view';
 import type { Metadata } from 'next';
-import { pageLocale } from '../page-locale';
+import { pageLocale, requestedPageLocale } from '../page-locale';
+import { JsonLd } from '../json-ld';
+import { routeTitle } from '@/lib/market/i18n';
+import { customsPageCheckedOn, customsReferences } from '@/lib/market/customs';
+import { webPage } from '@/lib/seo/structured-data';
 import { publicMetadata } from '../route-metadata';
 // Rules split out of the layout CSS for the routes that use them. Each is shared by several pages, so the build links it
 // after this page's own CSS: a page rule that must beat one of its rules needs a more specific selector, not a later
@@ -14,4 +18,9 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const { lang } = await searchParams;
   return publicMetadata('customs', typeof lang === 'string' ? lang : undefined, await pageLocale());
 }
-export default function Page(){return <Marketplace view="customs"><CustomsView/></Marketplace>;}
+// The date the page shows as "checked on" and the lex.uz documents it cites, for search engines and AI answers.
+export default async function Page(){
+  const [locale, requested] = await Promise.all([pageLocale(), requestedPageLocale()]);
+  const page = webPage({ path: '/customs', requested, locale, name: routeTitle(locale, 'customs'), dateModified: customsPageCheckedOn, citations: customsReferences.map((source) => source.url) });
+  return <Marketplace view="customs"><JsonLd data={page}/><CustomsView/></Marketplace>;
+}

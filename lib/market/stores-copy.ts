@@ -10,7 +10,7 @@ function ruPlural(count: number, [one, few, many]: [string, string, string]) {
 }
 
 const ru = {
-  title: (count: number) => `${count} ${ruPlural(count, ['магазин', 'магазина', 'магазинов'])} мира в одном месте`,
+  title: (count: number) => `${count} ${ruPlural(count, ['зарубежный магазин', 'зарубежных магазина', 'зарубежных магазинов'])} с доставкой в Ташкент`,
   intro: 'Вставьте ссылку — покажем итог в сумах.',
   howtoTitle: 'Как скопировать ссылку на товар',
   howto: [['iPhone', 'В Safari откройте товар, нажмите «Поделиться» → «Скопировать».'], ['Android', 'В Chrome: меню ⋮ → «Поделиться» → «Копировать ссылку».'], ['Компьютер', 'Скопируйте адрес из строки браузера: Ctrl+C (⌘C).']] as [string, string][],
@@ -56,7 +56,7 @@ const ru = {
 type Copy = typeof ru;
 
 const uz: Copy = {
-  title: (count: number) => `Dunyoning ${count} ta do‘koni bir joyda`,
+  title: (count: number) => `Toshkentga yetkazib berish bilan ${count} ta xorijiy do‘kon`,
   intro: 'Havolani qo‘ying — narxni so‘mda ko‘rsatamiz.',
   howtoTitle: 'Tovar havolasini qanday nusxalash',
   howto: [['iPhone', 'Safari’da tovarni oching, «Ulashish» → «Nusxalash» ni bosing.'], ['Android', 'Chrome’da: menyu ⋮ → «Ulashish» → «Havolani nusxalash».'], ['Kompyuter', 'Brauzer manzil satridan nusxalang: Ctrl+C (⌘C).']],
@@ -100,7 +100,7 @@ const uz: Copy = {
 };
 
 const en: Copy = {
-  title: (count: number) => `${count} stores from around the world in one place`,
+  title: (count: number) => `${count} international stores with delivery to Tashkent`,
   intro: 'Paste a link — see the total in soum.',
   howtoTitle: 'How to copy a product link',
   howto: [['iPhone', 'In Safari open the product, tap Share → Copy.'], ['Android', 'In Chrome: menu ⋮ → Share → Copy link.'], ['Computer', 'Copy the address from the browser bar: Ctrl+C (⌘C).']],
