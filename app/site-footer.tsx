@@ -5,6 +5,7 @@ import {useMarket} from '@/lib/market/store';
 import {ThemeToggle} from './theme-control';
 import {footerCopy,navCopy,routeTitle,type Locale} from '@/lib/market/i18n';
 import {pickLocale} from '@/lib/market/uz-cyrl';
+import {consentOpenEvent} from '@/lib/market/cookie-consent';
 
 const isDev=(import.meta as {env?:{DEV?:boolean}}).env?.DEV===true;
 /** Dev-only marker for business data that is not filled yet; production renders nothing. */
@@ -50,6 +51,8 @@ export function SiteFooter(){
    {legal.inn&&<li>{c.trust.inn}: {legal.inn}</li>}
    {legalAddress&&<li>{legalAddress}</li>}
    <li><Link href="/terms">{routeTitle(locale,'terms')}</Link></li><li><Link href="/privacy">{routeTitle(locale,'privacy')}</Link></li><li><Link href="/legal">{c.footer.rules}</Link></li>
+   {/* Cookies can be changed or withdrawn at any time: opens the consent card with its switches (app/storage-notice.tsx). */}
+   <li><button type="button" className="home-footer-consent" onClick={()=>window.dispatchEvent(new Event(consentOpenEvent))}>{c.footer.dataSettings}</button></li>
   </ul>{!legal.entityName&&<MissingContent what="юрлицо, ИНН (STIR) и юридический адрес"/>}</section>
   </div>
   <div className="home-footer-bottom"><span suppressHydrationWarning>© {new Date().getFullYear()} Atlas{legal.entityName?` · ${legal.entityName}`:''}</span><span className="home-footer-theme"><span>{c.footer.theme}</span><ThemeToggle locale={locale}/></span></div>

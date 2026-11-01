@@ -167,8 +167,6 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .basket-line-help { flex-basis: 100%; margin: 4px 0 6px; padding: 10px 12px; border-radius: var(--r-control); background: var(--home-soft); color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 /* The breakdown's 36 px tap row already leaves room under the bill lines; with the card's own 12 px the gap read ~40 px. */
 .basket-lines + .calc-customs, .folio-sheet .basket-lines + .calc-customs { margin-top: 4px; }
-/* Wide screens: the data notice sat bottom-right over the sticky "Checkout" button; on the cart it moves left. */
-@media (min-width: 761px) { body:has(.basket-summary) .storage-notice { right: auto; left: 24px; } }
 .basket-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
 .basket-total span { color: var(--home-ink); font-size: 16px; font-weight: 700; }
 .basket-total strong { color: var(--home-ink); font-size: clamp(24px, 6.4vw, 30px); letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -843,11 +841,6 @@ html[data-theme="dark"] .lo-product > :is(.lo-variant, .lo-check) { border: 0; b
 
 /* ── app/mobile.css ── */
 /* Touch screens keep :hover after a tap; lifted cards would stay lifted. */
-@media (max-width: 760px) {
-  /* ...and above a sticky total or call-to-action bar (cart and link-order total ~69px, home dock 68px), so their buttons stay tappable. */
-  body:has(.basket-sticky:not(.is-hidden)) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 84px); }
-  body:not(:has(.mobile-nav)):has(.basket-sticky:not(.is-hidden)) .storage-notice { bottom: calc(84px + env(safe-area-inset-bottom)); }
-}
 
 /* Fingers: small text buttons keep their look but take taps from a little around them (an invisible frame). */
 @media (pointer: coarse) {
@@ -875,8 +868,6 @@ html:root .basket-summary .bill-total .money { font-size: var(--day-money-l); li
 /* On the slip, the hold and the customs estimate read as rows, not as boxes inside a box. */
 html:not([data-theme="dark"]) .folio-outside .calc-hold + .calc-customs { padding-top: 10px; border-top: 1px solid var(--day-slip-line); }
 html:not([data-theme="dark"]) .lo-summary .cabinet-empty { margin: 0; color: var(--day-muted); }
-@media (max-width: 600px) {
-}
 /* Cart items: the parcel cards line up with the summary and stay compact. */
 html:not([data-theme="dark"]) .basket-parcel-title { background: var(--day-soft); }
 
@@ -1098,7 +1089,6 @@ html[data-theme="dark"] .lo-page .variant-options.sizes button small.lo-stock { 
 .lo-load-stage > svg { flex: none; color: var(--day-accent, var(--c-brand)); }
 html[data-theme="dark"] .lo-load-stage { color: var(--night-muted, var(--night-muted)); }
 html[data-theme="dark"] .lo-load-stage > svg { color: var(--night-jade, var(--night-jade)); }
-
 
 /* Colours by how many there are (app/global-link-order.tsx colourMode, 29 October 2026; owner: no empty space around
    small photos, many colours and few must both look composed). Tiles: the photo fills the tile, the name under it.

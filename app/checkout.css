@@ -167,8 +167,6 @@ html .co-block-head .text-button.co-aside { margin-left: auto; min-height: 44px;
 /* Wide screens: «Оплатить» stands under the sum in the aside (which stays in view), so the pinned bar is not needed. */
 .co-summary-pay .co-pay { width: 100%; min-width: 0; }
 
-/* The storage notice steps above the pay bar instead of covering «Оплатить». */
-body:has(.co-paybar) .storage-notice { bottom: 112px; }
 .co-promo-applied:focus { outline: none; }
 .co-promo-applied:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
@@ -222,7 +220,6 @@ body:has(.co-paybar) .storage-notice { bottom: 112px; }
 @media (min-width: 901px) {
   .co-paybar { display: none; }
   main.site-main[data-view="checkout"]:has(.co-paybar) { padding-bottom: var(--space-10); }
-  body:has(.co-paybar) .storage-notice { bottom: var(--space-4); }
   /* A tall summary scrolls inside itself, so its button never drops below the window. */
   .co-summary { max-height: calc(100dvh - var(--shell-header-h, 64px) - 2 * var(--space-4)); overflow-y: auto; overscroll-behavior: contain; }
   /* …and when it does scroll (a laptop 768 px tall, a promo code applied), «Оплатить» stays pinned to its bottom. */
@@ -261,7 +258,6 @@ body:has(.co-paybar) .storage-notice { bottom: 112px; }
   /* The sum keeps its room: a long label («Войдите, чтобы оплатить», a large sum) wraps inside the button instead. */
   .co-paybar-sum { flex: 1 0 auto; }
   .co-paybar .co-pay { flex: 0 1 auto; min-width: 0; min-height: var(--h-md); padding-inline: var(--space-4); font-size: var(--fs-14); line-height: var(--lh-snug); text-align: center; }
-  body:has(.co-paybar) .storage-notice { bottom: calc(80px + env(safe-area-inset-bottom)); }
   html:has(main[data-view="checkout"]) { scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .guest-problems li { grid-template-columns: 48px minmax(0, 1fr) auto; }
   .guest-problems li .btn { grid-column: 2 / -1; justify-self: start; }

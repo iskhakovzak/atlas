@@ -15,11 +15,6 @@ html body button.paste-button > svg { flex: none; width: 16px; height: 16px; }
 html body :is(.lo-link-field, .stores-link-field, .store-link-field) > input, html body :is(.lo-link-field, .stores-link-field, .store-link-field) > input:is(:focus, :focus-visible) {
   border: 0; outline: none; box-shadow: none; background: transparent;
 }
-/* A focused link field already supplies the action; the floating duplicate must not cover the keyboard/form. */
-@media (max-width: 760px) {
-  body:has(#home-link-form:focus-within, .lo-link:focus-within, .stores-link:focus-within, .store-link:focus-within, .batch-import:focus-within, .catalog-importer:focus-within) .storage-notice { visibility: hidden; pointer-events: none; }
-}
-
 /* A store link is already in the clipboard (app/use-clipboard-link.ts): "Вставить" turns into the field's filled action
    and pulses once, so the eye finds it; it goes quiet again after the paste. */
 html body button.paste-button.is-ready { background: var(--day-accent, var(--c-brand)); color: #fff; }

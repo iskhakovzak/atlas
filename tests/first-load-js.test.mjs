@@ -69,7 +69,8 @@ test('the consent sheet, the speed beacon and Impact come right after hydration;
   // Script errors from before the beacon mounts are kept and handed to it.
   assert.match(extras, /^listenEarlyErrors\(\);$/m);
   assert.match(source('app/performance-probe.tsx'), /window\.addEventListener\('unhandledrejection', onRejection\);\n    takeEarlyErrors\(\)\.forEach\(report\);/);
-  assert.match(source('app/shell-extras-parts.tsx'), /return <><StorageNotice\/><PerformanceProbe\/><ImpactTracking\/><\/>/);
+  // All three are still mounted, fed by one read of the cookie choice (2 November 2026).
+  assert.match(source('app/shell-extras-parts.tsx'), /return <><StorageNotice choice=\{choice\} known=\{known\}\/><PerformanceProbe analytics=\{[^}]+\}\/><ImpactTracking choice=\{choice\} known=\{known\}\/><\/>/);
   // The head bootstrap of Impact stays in the layout.
   assert.match(layout, /<script id="atlas-impact-bootstrap"/);
 });

@@ -19,7 +19,7 @@ html[data-theme="dark"] .wordmark, html[data-theme="dark"] h1, html[data-theme="
   color: var(--atlas-ink);
 }
 
-html[data-theme="dark"] .wordmark svg, html[data-theme="dark"] .text-link, html[data-theme="dark"] .storage-notice a, html[data-theme="dark"] .find-title:hover {
+html[data-theme="dark"] .wordmark svg, html[data-theme="dark"] .text-link, html[data-theme="dark"] .find-title:hover {
   color: var(--atlas-link);
 }
 
@@ -42,16 +42,14 @@ html[data-theme="dark"] :is(.surface, .find-card, .catalog-draft, .order-card, .
 }
 
 html[data-theme="dark"] .btn.primary,
-html[data-theme="dark"] .cart-link,
-html[data-theme="dark"] .storage-notice button {
+html[data-theme="dark"] .cart-link {
   background: var(--brand);
   border-color: var(--brand);
   color: var(--on-brand);
 }
 
 html[data-theme="dark"] .btn.primary:hover,
-html[data-theme="dark"] .cart-link:hover,
-html[data-theme="dark"] .storage-notice button:hover {
+html[data-theme="dark"] .cart-link:hover {
   background: var(--brand);
   border-color: var(--brand);
   color: var(--on-brand);
@@ -171,16 +169,6 @@ html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .ops-stats stron
   color: var(--night-ink);
 }
 
-html[data-theme="dark"] .storage-notice {
-  background: var(--night-surface);
-  border-color: var(--atlas-line);
-  color: var(--atlas-ink);
-}
-
-html[data-theme="dark"] .storage-notice p {
-  color: var(--night-ink-2);
-}
-
 html[data-theme="dark"] .atlas-modal,
 html[data-theme="dark"] .product-sheet,
 html[data-theme="dark"] [data-slot="dialog-content"],
@@ -229,16 +217,14 @@ html[data-theme="dark"] .eyebrow {
 }
 
 html[data-theme="dark"] .btn.primary,
-html[data-theme="dark"] .cart-link,
-html[data-theme="dark"] .storage-notice button {
+html[data-theme="dark"] .cart-link {
   background: var(--brand);
   border-color: var(--brand);
   color: var(--on-brand);
 }
 
 html[data-theme="dark"] .btn.primary:hover,
-html[data-theme="dark"] .cart-link:hover,
-html[data-theme="dark"] .storage-notice button:hover {
+html[data-theme="dark"] .cart-link:hover {
   background: var(--brand);
   border-color: var(--brand);
   color: var(--on-brand);
@@ -344,16 +330,6 @@ html[data-theme="dark"] .status-badge.needs-action {
 }
 
 html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .change-amount > strong {
-  color: var(--night-ink-2);
-}
-
-html[data-theme="dark"] .storage-notice {
-  background: var(--night-raised);
-  border-color: var(--atlas-line);
-  color: var(--atlas-ink);
-}
-
-html[data-theme="dark"] .storage-notice p {
   color: var(--night-ink-2);
 }
 
@@ -657,16 +633,14 @@ html[data-theme="dark"] .wordmark svg {
 }
 
 html[data-theme="dark"] .btn.primary,
-html[data-theme="dark"] .cart-link,
-html[data-theme="dark"] .storage-notice button {
+html[data-theme="dark"] .cart-link {
   background: var(--brand);
   border-color: var(--brand);
   color: var(--on-brand);
 }
 
 html[data-theme="dark"] .btn.primary:hover,
-html[data-theme="dark"] .cart-link:hover,
-html[data-theme="dark"] .storage-notice button:hover {
+html[data-theme="dark"] .cart-link:hover {
   background: var(--brand);
   border-color: var(--brand);
   color: var(--on-brand);

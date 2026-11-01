@@ -47,8 +47,6 @@ body { -webkit-tap-highlight-color: transparent; }
   /* The pinned bars (cart, product, checkout) step aside with it while a field or a picker is open: they used to keep the
      menu's height under them and float mid-screen over the form on iOS (owner, 2 November 2026). Back on blur. */
   body:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]), textarea, select):focus) :is(.basket-sticky, .co-paybar, .pd-bar-sheet) { display: none; }
-  /* +22 px: the centre "Ссылка" circle rises 16 px over the bar, the notice clears it. */
-  body:has(.mobile-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 22px); }
 
   /* Header: the bottom bar carries navigation and sign-in, so the top bar stays light (app/shell.css). */
 

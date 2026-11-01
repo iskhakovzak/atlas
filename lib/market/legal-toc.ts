@@ -31,6 +31,7 @@ export const privacyToc: readonly LegalTocEntry[] = [
   { id: "privacy-purpose", title: "Для чего они нужны" },
   { id: "privacy-recipients", title: "Кому данные могут передаваться" },
   { id: "privacy-impact", title: "Партнёрские ссылки Impact на сайте" },
+  { id: "privacy-cookies", title: "Cookies и данные в браузере" },
   { id: "privacy-storage", title: "Хранение и права клиента" },
   { id: "privacy-security", title: "Безопасность" },
   { id: "privacy-apps", title: "Мобильные приложения Atlas для iOS и Android" },

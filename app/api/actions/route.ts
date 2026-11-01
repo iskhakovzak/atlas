@@ -134,5 +134,12 @@ export async function POST(request:Request){try{
     const rows=consent.documents.map(key=>db.prepare('INSERT OR IGNORE INTO market_legal_consents (id,customer_id,document_key,document_version,accepted_at) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),user.userId,key,consent.version,acceptedAt));
     try{await db.batch(rows)}catch(error){console.error('Legal consent record failed',error)}
   }
+  if(parsed.data.type==='cookie-consent'&&next.cookieConsent?.at!==current.state.cookieConsent?.at){
+    // Proof of each optional-cookie choice, given or withdrawn (2 November 2026). The version column carries the
+    // decision and its time, so turning a category off and on again leaves one row per change under the unique index.
+    const choice=parsed.data,at=next.cookieConsent?.at??Date.now(),db=database();
+    const rows=(['analytics','partners'] as const).map(category=>db.prepare('INSERT OR IGNORE INTO market_legal_consents (id,customer_id,document_key,document_version,accepted_at) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),user.userId,`cookies-${category}`,`${choice.version}:${choice[category]?'granted':'withdrawn'}:${at}`,at));
+    try{await db.batch(rows)}catch(error){console.error('Cookie consent record failed',error)}
+  }
   return json({state:next,revision:current.revision+1})
 }catch(e){return failure(e,request)}}

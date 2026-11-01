@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { parsePerformanceSamples, performancePercentile, performanceRoute, performanceStorageKey, performanceUpdateEvent, telemetryPath, upsertPerformanceSample, type PerformanceSample } from '@/lib/market/performance';
 import { errorFromEvent, errorFromRejection, reportedErrorLimit, takeEarlyErrors, type ReportedError } from '@/lib/market/early-errors';
 
 type TimedEntry = PerformanceEntry & { value?: number; hadRecentInput?: boolean; interactionId?: number };
 
-// Besides the local summary for the operator's own browser, each page view sends one anonymous
-// beacon to /api/telemetry: page speed when the page is hidden, and up to five script errors.
+// Each page view may send one anonymous beacon to /api/telemetry. Script errors (up to five, scrubbed, no identifier)
+// are necessary for the site to work and are always reported. Page speed (sent when the page is hidden) and the local
+// speed summary for the operator's own browser are analytics: only with that consent (lib/market/cookie-consent.ts),
+// checked at the moment of sending and saving, so a withdrawal stops them on the open page too.
 // It carries the path and device class only; the server keeps fixed route names and scrubs messages.
 // Errors from before this mounts (it loads after hydration, app/shell-extras.tsx) come from lib/market/early-errors.ts.
-export function PerformanceProbe() {
+export function PerformanceProbe({ analytics }: { analytics: boolean }) {
+  const allowed = useRef(analytics);
+  useEffect(() => { allowed.current = analytics; }, [analytics]);
   useEffect(() => {
     let current: PerformanceSample = {
       id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -21,7 +25,7 @@ export function PerformanceProbe() {
     const pending: ReportedError[] = [];
     let reported = 0, vitalsSent = false, flushTimer: number | undefined;
     const send = (withVitals: boolean) => {
-      const vitals = withVitals && !vitalsSent;
+      const vitals = withVitals && !vitalsSent && allowed.current;
       if (!pending.length && !vitals) return;
       if (vitals) vitalsSent = true;
       const body = JSON.stringify({
@@ -49,6 +53,7 @@ export function PerformanceProbe() {
     const interactions = new Map<number, number>();
     const observers: PerformanceObserver[] = [];
     const persist = () => {
+      if (!allowed.current) return;
       try {
         const next = upsertPerformanceSample(parsePerformanceSamples(window.localStorage.getItem(performanceStorageKey)), current);
         window.localStorage.setItem(performanceStorageKey, JSON.stringify(next));

@@ -70,6 +70,10 @@ html body .home-faq details[open] summary::after { content: "+"; transform: rota
 .home-footer a { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--home-ink); text-decoration: none; }
 .home-footer-groups a { max-width: 100%; overflow-wrap: anywhere; }
 .home-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.home-footer-consent { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--home-ink); font: inherit; text-align: start; cursor: pointer; }
+.home-footer-consent:hover { text-decoration: underline; text-underline-offset: 3px; }
+html:not([data-theme="dark"]) .home-footer-consent { font-weight: 500; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-footer-consent:hover { color: var(--day-ink); }
 .home-footer .wordmark { min-height: 0; }
 .home-footer-bottom { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; padding-top: 10px; border-top: 1px solid var(--home-line); color: var(--home-muted); font-size: 13px; }
 .home-footer-theme { display: inline-flex; align-items: center; gap: 8px; }
