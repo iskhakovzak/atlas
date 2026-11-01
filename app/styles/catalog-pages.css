@@ -637,4 +637,5 @@ html[data-theme="dark"] .store-link .store-link-field > input:not([type="checkbo
 .pcard-usd > .card-chip { align-self: center; }
 
 /* The shared-parcel saving reads as good news: mint chip-like note (owner, 2 November 2026). */
-.pcard-note { display: inline-flex; align-self: flex-start; padding: 3px 8px; border-radius: 10px; background-color: var(--c-ok-bg); color: var(--c-ok); font-weight: var(--fw-semibold); }
+.pcard-note { position: relative; z-index: 2; display: inline-flex; align-self: flex-start; align-items: center; gap: 2px; max-width: 100%; padding: 2px 4px 2px 8px; border-radius: var(--r-pill); background-color: var(--c-ok-bg); color: var(--c-ok); font-size: 11px; font-weight: var(--fw-bold); line-height: 18px; white-space: nowrap; }
+.pcard-note > span { overflow: hidden; text-overflow: ellipsis; }

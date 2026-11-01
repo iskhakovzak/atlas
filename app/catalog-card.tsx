@@ -9,6 +9,7 @@ import { catalogDeliverySpeed } from '@/lib/market/deals';
 import { officialBadgeLabel, officialListing, officialStoreBrand, officialStoreText } from '@/lib/market/official-stores';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { catalogCopy, shortDate } from '@/lib/market/catalog-copy';
+import { InfoTip } from '@/components/info-tip';
 import { storeLabel, type CatalogItem } from '@/lib/market/catalog-query';
 import type { Signal } from '@/lib/market/catalog-signals';
 import { formatPriceUsd, formatSum } from '@/lib/market/format';
@@ -162,7 +163,8 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
         {priceDated && <>{' '}<small>{cc.priceOn(shortDate(item.checkedAt, locale))}</small></>}
       </p>
       <Variants item={item} locale={locale} />
-      {parcel && <p className="pcard-note" title={parcel.hint}>{parcel.text}{parcel.hint && <span className="sr-only">. {parcel.hint}</span>}</p>}
+      {/* Short chip, the explanation behind «?» (owner, 2 November 2026: the long sentence on every card read as noise). */}
+      {parcel && <p className="pcard-note"><span>{parcel.text}</span>{parcel.hint && <InfoTip locale={locale}>{parcel.hint}</InfoTip>}</p>}
       <div className="pcard-buy">
         {inCart
           ? <a className="btn secondary" href="/cart"><Check size={18} aria-hidden="true" />{cc.inCart}</a>
