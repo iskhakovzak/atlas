@@ -635,3 +635,6 @@ html[data-theme="dark"] .store-link .store-link-field > input:not([type="checkbo
 .card-chip-off { background-color: var(--c-ok-bg); color: var(--c-ok); }
 .card-chip-top { background-color: var(--c-gold-bg); color: var(--c-gold); }
 .pcard-usd > .card-chip { align-self: center; }
+
+/* The shared-parcel saving reads as good news: mint chip-like note (owner, 2 November 2026). */
+.pcard-note { display: inline-flex; align-self: flex-start; padding: 3px 8px; border-radius: 10px; background-color: var(--c-ok-bg); color: var(--c-ok); font-weight: var(--fw-semibold); }
