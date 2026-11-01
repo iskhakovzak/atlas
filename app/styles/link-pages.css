@@ -661,8 +661,9 @@ html:not([data-theme="dark"]) .lo-page .lo-block .select-control:not(:disabled) 
   .lo-page .lo-manual-store > p { flex: 0 0 auto; }
 }
 @media (max-width: 760px) {
-  /* While the session is checked there is no bottom bar yet: the bar keeps to the screen edge. */
-  body:not(:has(.mobile-nav)) .basket-sticky.lo-sticky { bottom: 0; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  /* No bottom menu on the page (the session still checked, a page without it): every pinned bar keeps to the screen edge,
+     its content above the home indicator, never the menu's height above nothing. */
+  body:not(:has(.mobile-nav)) .basket-sticky { bottom: 0; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 }
 
 /* ---------- Passport and declaration ---------- */
@@ -1362,6 +1363,10 @@ html:root main.site-main:not([data-view="admin"]):not([data-view="operations"]):
 .pd-bar > div { display: grid; min-width: 0; }
 .pd-bar > div > span { color: var(--text-2); font-size: var(--fs-12); }
 .pd-bar > div > strong { color: var(--text); font-size: var(--fs-18); font-weight: var(--fw-bold); white-space: nowrap; font-feature-settings: var(--tnum); }
+/* Nothing to sum yet: what to fill in, in plain words, wrapping if it must. */
+.pd-bar > .pd-bar-ask { flex: 1 1 auto; }
+.pd-bar > .pd-bar-ask > strong { font-size: var(--fs-14); font-weight: var(--fw-semibold); line-height: 1.25; white-space: normal; }
+.lo-country-note { margin: var(--space-2) 0 0; color: var(--text-2); line-height: var(--lh-body); }
 .pd-bar-sheet { position: sticky; bottom: 0; z-index: 4; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin: var(--space-4) calc(var(--pd-sheet-pad, 16px) * -1) 0; padding: var(--space-3) var(--pd-sheet-pad, 16px) calc(var(--space-3) + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background-color: var(--surface); box-shadow: var(--shadow-up); }
 .pd-bar-sheet .btn { flex: 0 1 auto; min-width: 0; min-height: var(--h-md); padding-inline: var(--space-6); }
 @media (max-width: 380px) { .pd-bar-sheet .btn { padding-inline: var(--space-4); } }

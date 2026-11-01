@@ -80,6 +80,20 @@ export const paymentLabels: Record<PaymentMethod, string> = {
 };
 
 /** Dispatch regions in table order, with the Product.country labels used by pricing overrides. */
+/**
+ * Dispatch countries with an Atlas tariff, in the order /delivery shows them (deliveryRegions below), then «Другая страна»:
+ * the manual product form offers only these (owner, 2 November 2026). A country an import names without a tariff
+ * (Франция, Япония…) shows as «Другая страна» with its name kept; the server prices it as today (the base tariff,
+ * pricingForCountry) and the page says Atlas confirms the delivery cost before buying.
+ */
+export const otherCountry = 'Другая страна';
+export function tariffCountries(): string[] { return deliveryRegions.flatMap((region) => region.countries); }
+export function formCountries(): string[] { return [...tariffCountries(), otherCountry]; }
+/** The option of the form's country list a stored country shows as. */
+export function formCountryOption(country: string): string { return tariffCountries().includes(country) ? country : otherCountry; }
+/** True when Atlas has a tariff for this dispatch country (else the delivery is an estimate to confirm). */
+export function hasCountryTariff(country: string): boolean { return tariffCountries().includes(country); }
+
 export const deliveryRegions: { id: DeliveryRegion; countries: string[] }[] = [
   { id: 'us', countries: ['США'] },
   { id: 'uk', countries: ['Великобритания'] },

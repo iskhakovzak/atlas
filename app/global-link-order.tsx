@@ -59,6 +59,7 @@ import { browserStorage as catalogStorage, catalogItemHref, rememberPendingFavor
 import { loginPath } from "@/lib/auth/return-to";
 import { dealCopy } from "@/lib/market/deal-copy";
 import { StoreBadge, StoreLogo } from "./store-logo";
+import { formCountries, formCountryOption, hasCountryTariff } from "@/lib/market/site-content";
 import { officialBadgeLabel, officialListing } from "@/lib/market/official-stores";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
 import {isOrderableVariant, isStockUnconfirmed} from '@/lib/importer/variant-normalization';
@@ -1391,14 +1392,17 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
             {locks.country ? <LockedFacts hint={lc.locked.value} rows={[{ id: "ship-country", label: tx("Страна", "Mamlakat", "Country"), value: countryText }]} /> : <>
               <div className="field">
                 <label htmlFor="ship-country" className="sr-only">{c.shipCountry}</label>
-                <select id="ship-country" className="select-control" value={canonicalCountry(country)} onChange={(e) => { setCountry(canonicalCountry(e.target.value));  }}>
-                  {countries.map((value) => <option key={value} value={value}>{countryLabel(value,lang)}</option>)}
+                {/* Only the countries /delivery has a tariff for, then «Другая страна» (owner, 2 November 2026). A country an import
+                    named without a tariff stays in the state with its name and shows as «Другая страна» here. */}
+                <select id="ship-country" className="select-control" aria-describedby={!hasCountryTariff(canonicalCountry(country)) ? "ship-country-note" : undefined} value={formCountryOption(canonicalCountry(country))} onChange={(e) => { setCountry(canonicalCountry(e.target.value));  }}>
+                  {formCountries().map((value) => <option key={value} value={value}>{countryLabel(value,lang)}</option>)}
                 </select>
               </div>
-              {country === "Другая страна" && <div className="field">
+              {formCountryOption(canonicalCountry(country)) === "Другая страна" && <div className="field">
                 <label htmlFor="other-country">{c.otherCountry}</label>
-                <input id="other-country" {...issueProps('other-country')} required maxLength={60} value={otherCountry} onChange={(e) => setOtherCountry(e.target.value)} />
+                <input id="other-country" {...issueProps('other-country')} required maxLength={60} value={country === "Другая страна" ? otherCountry : countryLabel(canonicalCountry(country), lang)} onChange={(e) => { setCountry("Другая страна"); setOtherCountry(e.target.value); }} />
               </div>}
+              {!hasCountryTariff(canonicalCountry(country)) && <p id="ship-country-note" className="micro lo-country-note" role="note">{tx("Для этой страны у Atlas пока нет своего тарифа: доставка в сумме — оценка по базовому тарифу. Точную стоимость Atlas подтвердит перед выкупом, доплата — только с вашего согласия.","Bu mamlakat uchun Atlasda hozircha alohida tarif yo‘q: summadagi yetkazish — asosiy tarif bo‘yicha taxmin. Aniq narxni Atlas xariddan oldin tasdiqlaydi, qo‘shimcha to‘lov — faqat roziligingiz bilan.","Atlas has no tariff of its own for this country yet: the delivery in the total is an estimate at the base rate. Atlas confirms the exact cost before buying; any extra payment needs your consent.")}</p>}
             </>}
           </fieldset>
           <fieldset className="lo-block">
@@ -1843,7 +1847,11 @@ export function ProductOrder({ mode = "link", product, inSheet = false }: { mode
           and no arrow on every width, on the page and in the sheet: the sum has the room (owner, 2 November 2026). */}
       {(source || checking) && <div className={inSheet ? "pd-bar pd-bar-sheet" : "basket-sticky lo-sticky pd-bar" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
         {/* A dated card's sum is an estimate here as at the top: "≈" and its own label, never "К оплате". */}
-        <div><span>{datedSums ? pd.approxTotal : heroFrom ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : heroTotal !== null ? (datedSums ? "≈ " : "") + formatSum(heroTotal, lang) : "—"}</strong></div>
+        {/* No sum yet in the form (the price or another field still empty): the bar says what to fill in instead of «—»;
+            its button submits and the form scrolls to the first missing field with its message (owner, 2 November 2026). */}
+        {!checking && heroTotal === null && orderable && !nothingToChoose && !soldOutAtStore && !needsChoice && !awaitingCheck
+          ? <div className="pd-bar-ask"><span>{k.lines.total}</span><strong>{name.trim() && !(Number(amount) > 0) ? tx("Укажите цену товара", "Tovar narxini kiriting", "Enter the item price") : tx("Заполните данные товара", "Tovar ma’lumotlarini to‘ldiring", "Fill in the item details")}</strong></div>
+          : <div><span>{datedSums ? pd.approxTotal : heroFrom ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : heroTotal !== null ? (datedSums ? "≈ " : "") + formatSum(heroTotal, lang) : "—"}</strong></div>}
         {awaitingCheck ? <button type="button" className="btn primary" onClick={checkDated}>{pd.checkPrice}</button> : nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}</button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? tx("Добавляем…", "Qo‘shilmoqda…", "Adding…") : isGuest && !canKeep ? lc.signinContinue : lc.addShort}</button>}
         {!inSheet && cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
       </div>}
