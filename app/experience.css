@@ -6,15 +6,11 @@
 .legal-disclosure > summary p,.legal-disclosure > summary span { color:#61776c; font-size:.875rem; }
 /* Narrow phones: long Russian words («конфиденциальности») must not push the chevron out of the card. */
 button:focus-visible,a:focus-visible,summary:focus-visible { outline:3px solid #3d9471; outline-offset:4px; }
-@media(max-width:700px) {
- .header-actions .operator-entry { display:none; }
-}
 
 /* Commerce direction A: shared scale and a calmer shopping surface. */
 body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .site-main{max-width:1500px;padding-inline:clamp(20px,4.7vw,72px)}
 .site-header{min-height:80px;border-bottom:1px solid var(--atlas-line);box-shadow:none}
-.desktop-nav a.active{color:var(--atlas-ink);border-color:var(--atlas-ink)}
 .eyebrow{color:var(--c-ink-2);font-size:var(--atlas-type-meta);letter-spacing:.02em}
 .page-heading h1{font-size:var(--atlas-type-page);line-height:1.08;letter-spacing:-.02em}
 .page-heading p{max-width:62ch;line-height:1.6}
@@ -75,12 +71,11 @@ html[data-theme="dark"] .storage-notice .storage-notice-details,html[data-theme=
 body{background:var(--background);color:var(--atlas-ink)}
 .site-header, .surface, .find-card, .catalog-draft, .order-card{background-color:#fff}
 .wordmark{color:var(--c-ink)}
-.wordmark svg, .desktop-nav a.active, .text-link, .storage-notice a{color:var(--c-brand)}
+.wordmark svg, .text-link, .storage-notice a{color:var(--c-brand)}
 .cart-link,.btn.primary,.storage-notice button{background:var(--c-brand);border-color:var(--c-brand)}
 .cart-link:hover,.btn.primary:hover,.storage-notice button:hover{background:var(--c-brand-hover);border-color:var(--c-brand-hover)}
 .cart-link b{background:#dff0b5;color:var(--c-ink)}
 .btn.light{background:#dff0b5;border-color:#dff0b5;color:var(--c-ink)}
-.desktop-nav a.active{border-color:var(--c-brand)}
 .icon-btn:hover, .notice-link.active{background:#edf5e9;color:var(--c-brand)}
 button:focus-visible,a:focus-visible,summary:focus-visible{outline-color:var(--c-brand)}
 input:focus-visible,textarea:focus-visible,select:focus-visible{outline-color:var(--c-brand);box-shadow:0 0 0 4px #164e4018}
@@ -92,10 +87,6 @@ a, button, input, textarea, select, summary, .surface, .find-card{transition:col
   :root{--atlas-mobile-nav-clearance:max(68px,calc(56px + env(safe-area-inset-bottom)))}
   .site-header{min-width:0;justify-content:space-between}
   .wordmark{flex:0 0 auto}
-  .header-actions{min-width:0;gap:8px}
-  .header-actions>a[href="/account"],.header-actions>.cart-link{display:none}
-  .header-actions>.operator-entry{min-width:44px;min-height:44px;justify-content:center;font-size:0}
-  .header-actions>.operator-entry svg{width:20px;height:20px;flex:0 0 auto}
   .mobile-nav{min-height:var(--atlas-mobile-nav-clearance)}
   .mobile-nav a{min-height:44px}
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea{min-height:48px;font-size:16px!important}
@@ -110,10 +101,6 @@ a, button, input, textarea, select, summary, .surface, .find-card{transition:col
 .find-title:hover, .find-breakdown>summary, .finds-signin a{color:var(--atlas-blue)}
 
 /* Mobile operator access and admin tables: override the older fixed 90px columns. */
-@media(max-width:700px){
-  .header-actions .operator-entry{display:inline-flex;width:44px;min-width:44px;min-height:44px;justify-content:center;padding-inline:0;font-size:0}
-  .header-actions .operator-entry svg{width:20px;height:20px;flex:0 0 auto}
-}
 .finance-lines>div:last-child{border-bottom:0}.audit-folders button.active{border-color:var(--atlas-blue)}
 .payment-reserve-hint>svg{flex:0 0 auto;margin-top:2px;color:var(--muted-foreground)}.payment-reserve-hint>div{display:grid;gap:3px;min-width:0}.payment-reserve-hint p{font-size:13px;line-height:1.5}
 
@@ -212,3 +199,49 @@ html[data-theme="dark"] .operator-admin .admin-metrics article>svg,html[data-the
 html[data-theme="dark"] .operator-admin .admin-shortcut-grid svg,html[data-theme="dark"] .operator-admin .admin-subhead svg,html[data-theme="dark"] .operator-admin .admin-policy .admin-section-head h2 svg{color:var(--night-jade,var(--night-jade))}
 html[data-theme="dark"] .operator-admin .staff-status,html[data-theme="dark"] .operator-admin .staff-status.disabled{background:var(--night-raised,var(--night-raised));color:var(--night-muted,var(--night-muted))}
 html[data-theme="dark"] .operator-admin .admin-legacy-body{border-top-color:var(--night-line,rgba(226,238,231,.085))}
+
+/* ── Formerly app/home-polish.css and app/mobile-polish.css (folded in here on 1 November 2026, redesign stage 8: they
+   loaded right after this file, so the cascade is unchanged). ── */
+/* Catalog card: price breakdown and honest action labels. */
+.find-breakdown > summary { cursor:pointer; color:var(--atlas-link,#255b45); font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:4px; }
+html[data-theme="dark"] .find-breakdown dt, html[data-theme="dark"] .find-breakdown p { color:var(--night-ink-2); }
+
+/* Photo gestures preserve vertical document scrolling and browser pinch zoom. */
+/* The informational notice returns when the dialog closes; it cannot cover a trapped form. */
+body:has([role=dialog][data-state=open],[role=listbox][data-state=open]) .storage-notice{visibility:hidden}
+
+@media(max-width:600px){
+  /* Let copy reflow instead of creating hidden page overflow. */
+  .site-main{padding-inline:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+  .page-heading{gap:12px;margin-bottom:24px}
+  .page-heading h1{font-size:clamp(30px,8vw,40px);line-height:1.15;overflow-wrap:anywhere}
+  .page-heading p{font-size:16px;line-height:1.5}
+  .site-main :is(.field input:not([type=checkbox]):not([type=radio]),.field textarea,.select-control,.field select){font-size:16px;min-height:48px;line-height:1.4}
+  .site-main :is(.btn,.text-button,.icon-btn){min-height:44px}
+  .site-main :is(.notice, .customer-badge){overflow-wrap:anywhere}
+  .atlas-modal{width:calc(100vw - 24px);max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;padding:24px 18px;scroll-padding-block:24px;overscroll-behavior-y:contain}
+  .atlas-modal .modal-title{padding-right:32px;font-size:24px;overflow-wrap:anywhere}
+  .atlas-modal [data-slot=dialog-close]{width:44px;height:44px;display:grid;place-items:center;top:8px;right:8px}
+  .atlas-modal :is(input:not([type=checkbox]):not([type=radio]),textarea,select){font-size:16px;min-height:48px}
+  .atlas-modal .btn{min-height:48px;white-space:normal}
+  .storage-notice{bottom:calc(var(--atlas-mobile-nav-clearance) + 8px);max-height:35dvh;overflow-y:auto}
+  .cost-lines .quote-cost-help>summary{min-width:44px;min-height:44px;display:grid;place-items:center}
+}
+/* Sideways rows settle on the edge of a card or chip instead of stopping halfway (proximity: a short flick
+   still stops where the finger leaves it). The product gallery and the home catalog row snap on their own. */
+:is(.find-collections, .catalog-sets, .stores-chips, .notice-filters, .product-gallery-thumbnails, .import-gallery, .catalog-photo-gallery>div, .audit-folders, .admin-tabs, .legal-nav){scroll-snap-type:x proximity;scroll-padding-inline:16px}
+:is(.find-collections, .catalog-sets, .stores-chips, .notice-filters, .product-gallery-thumbnails, .import-gallery, .catalog-photo-gallery>div, .audit-folders, .admin-tabs, .legal-nav)>*{scroll-snap-align:start}
+/* Sideways rows fade at an edge only while more is hidden that way, so a row that ends at the screen edge reads as
+   "there is more". No script: a scroll-driven animation moves the fade; a row that fits, an older browser, or a row
+   with its own mask (home stores) shows no fade at all. */
+@property --edge-start{syntax:'<length>';inherits:false;initial-value:0px}
+@property --edge-end{syntax:'<length>';inherits:false;initial-value:0px}
+@keyframes atlas-edge-fade{0%{--edge-start:0px;--edge-end:28px}8%{--edge-start:28px}92%{--edge-end:28px}100%{--edge-start:28px;--edge-end:0px}}
+@supports (animation-timeline: scroll()){
+  :is(.catalog-categories, .find-collections, .catalog-sets, .stores-chips, .product-gallery-thumbnails, .import-gallery, .audit-folders, .admin-tabs, .legal-nav){
+    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 var(--edge-start),#000 calc(100% - var(--edge-end)),transparent 100%);
+    mask-image:linear-gradient(90deg,transparent 0,#000 var(--edge-start),#000 calc(100% - var(--edge-end)),transparent 100%);
+    animation:atlas-edge-fade linear both;animation-timeline:scroll(self inline)}
+}
+/* The fade follows the finger, it is not motion: the reduced-motion reset (experience.css) must not turn it into a timed one. */
+@media (prefers-reduced-motion: reduce){@supports (animation-timeline: scroll()){:is(.catalog-categories, .find-collections, .catalog-sets, .stores-chips, .product-gallery-thumbnails, .import-gallery, .audit-folders, .admin-tabs, .legal-nav){animation-duration:auto!important}}}

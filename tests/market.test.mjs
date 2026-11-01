@@ -68,7 +68,7 @@ try{s=receiveOrder(s,id,[1.8,30,20,15]);const q=JSON.parse(original);const shipp
 });
 test('dimensional weight dominates and extra payment blocks shipment until approved',()=>{
 let s=warehouse();const id=s.orders[0].id;s=receiveOrder(s,id,[1,50,50,50]);assert.equal(s.orders[0].settlement.chargeableWeight,25);assert.equal(balanceOf(s),0);assert.throws(()=>advanceOrder(s,id,3));assert.throws(()=>approveExtra(s,id,1));
-s=approveExtra(s,id,s.orders[0].settlement.extra);s=setParcel(s,id,'Atlas Cargo','ATLAS-001','WH-TAS-01');s=advanceOrder(s,id,3);assert.equal(s.orders[0].status,4);assert.throws(()=>advanceOrder(s,id,3));s=advanceOrder(s,id,4);assert.throws(()=>advanceOrder(s,id,5));
+s=approveExtra(s,id,s.orders[0].settlement.extra);s=setParcel(s,id,'Atlas Cargo','ATLAS-001','WH-TAS-01');s=advanceOrder(s,id,3);assert.equal(s.orders[0].status,4);assert.throws(()=>advanceOrder(s,id,3));s=advanceOrder(s,id,4);s=advanceOrder(s,id,5);s=advanceOrder(s,id,6);assert.equal(s.orders[0].status,5);assert.throws(()=>advanceOrder(s,id,7));
 });
 test('cancel returns full simulated payment once and credits fund future orders',()=>{
 let s=prepare();const id=s.orders[0].id,full=s.orders[0].quote.total;s=cancelOrder(s,id);assert.equal(balanceOf(s),full);s=cancelOrder(s,id);assert.equal(s.entries.length,2);assert.equal(s.orders[0].payment.status,'refunded');assert.throws(()=>advanceOrder(s,id,0));s=addToCart(s,products[2],products[2].variants[0],2000);s=checkoutCart(s,'next',cartSignature(s.cart),true,2001);const next=s.orders[0];assert.equal(next.balanceUsed,next.quote.total);assert.equal(balanceOf(s),full-next.quote.total);s=cancelOrder(s,next.id);assert.equal(balanceOf(s),full);

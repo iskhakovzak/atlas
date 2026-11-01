@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
-import {products, blank, addToCart, cartSignature, checkoutCart as checkoutCore, confirmDemoPayment, advanceOrder, inspectWarehouseOrder, cancelOrder, saveDeliveryProfile, updateOrderIssueCase, parseState, setParcel, receiveOrder, requestExtraCharge, readyToWeigh} from '../lib/market/domain.ts';
+import {products, blank, addToCart, cartSignature, checkoutCart as checkoutCore, confirmDemoPayment, advanceOrder, inspectWarehouseOrder, cancelOrder, saveDeliveryProfile, updateOrderIssueCase, parseState, setParcel, receiveOrder, requestExtraCharge, readyToWeigh, parcelStageOf} from '../lib/market/domain.ts';
 import {customsVersion} from '../lib/market/world.ts';
 import {operatorQueue, operatorQueueCounts, queueSummaries} from '../lib/market/operator-queue-server.ts';
 import {orderCredit, operatorNextStep, orderIdleDays, parseQueueCursor, queueTabTotals, queueCursor, queueMatches, queueSearchFields, queueTabsOf, slimQueueAccount} from '../lib/market/operator-queue.ts';
@@ -154,10 +154,10 @@ test('load more merges pages of one customer: newer copy wins, nothing is lost',
 // The queue row says whose move an order waits for (app/order-workspace.tsx): "yours" with a moving step exactly where
 // the operator's main button can move the order on the server (advanceOrder, or weighing via readyToWeigh).
 test('operatorNextStep: the operator step is shown exactly where the order can move on', () => {
-  const moving = new Set(['buyout', 'receive', 'weigh', 'ship', 'deliver']);
+  const moving = new Set(['buyout', 'receive', 'weigh', 'ship', 'toCustoms', 'toTashkent', 'deliver']);
   const canMove = (state, order) => {
     if (order.status === 2) return readyToWeigh(order);
-    try { advanceOrder(state, order.id, order.status, 9000); return true; } catch { return false; }
+    try { advanceOrder(state, order.id, parcelStageOf(order), 9000); return true; } catch { return false; }
   };
   const seen = [];
   const look = (state, id, expected) => {
@@ -189,10 +189,15 @@ test('operatorNextStep: the operator step is shown exactly where the order can m
   s = setParcel(s, id, 'DHL', 'TRK123', 'TAS-1', 1600);
   look(s, id, {kind: 'yours', key: 'ship'});
   s = advanceOrder(s, id, 3, 1700);
+  // On its way: the operator marks "Таможня", then "В Ташкенте", then the delivery (1 November 2026).
+  look(s, id, {kind: 'yours', key: 'toCustoms'});
+  s = advanceOrder(s, id, 4, 1750);
+  look(s, id, {kind: 'yours', key: 'toTashkent'});
+  s = advanceOrder(s, id, 5, 1760);
   look(s, id, {kind: 'yours', key: 'deliver'});
-  s = advanceOrder(s, id, 4, 1800);
+  s = advanceOrder(s, id, 6, 1800);
   look(s, id, null);
-  assert.deepEqual(seen, ['payment', 'buyout', 'decision', 'receive', 'inspect', 'problem', 'weigh', 'tracking', 'ship', 'deliver', null]);
+  assert.deepEqual(seen, ['payment', 'buyout', 'decision', 'receive', 'inspect', 'problem', 'weigh', 'tracking', 'ship', 'toCustoms', 'toTashkent', 'deliver', null]);
 
   // A store charges its own shipping: confirming it comes before the buyout.
   let t = saveDeliveryProfile(blank(), profile('Бобур Алиев', '+998 93 000 11 22'), 'Дом');

@@ -98,7 +98,7 @@ function ItemNote({ id, note, locale, save }: { id: string; note: string; locale
   const k = calcCopy[locale];
   const [open, setOpen] = useState(Boolean(note));
   const [text, setText] = useState(note);
-  if (!open) return <button type="button" className="basket-note-add" onClick={() => setOpen(true)}><MessageSquare size={15} aria-hidden="true" />{k.blocks.comment}</button>;
+  if (!open) return <button type="button" className="basket-note-add" onClick={() => setOpen(true)}><MessageSquare size={16} aria-hidden="true" />{k.blocks.comment}</button>;
   return <div className="basket-note">
     <label htmlFor={`note-${id}`}>{k.blocks.comment}<small> · {k.commentHint}</small></label>
     <textarea id={`note-${id}`} rows={2} maxLength={500} value={text} placeholder={k.commentPlaceholder} onChange={(event) => setText(event.target.value)}
@@ -119,7 +119,7 @@ function PriceHold({ expiresAt, c }: { expiresAt: number; c: CartCopy }) {
   }, []);
   // After the hold the total is not lost: "Check out" checks the stores and reprices first.
   if (!now || now < expiresAt) return null;
-  return <p className="basket-expiry"><Clock3 size={15} aria-hidden="true" />{c.summary.recheckNote}</p>;
+  return <p className="basket-expiry"><Clock3 size={16} aria-hidden="true" />{c.summary.recheckNote}</p>;
 }
 
 /** Dollars rounded up to the cent, sign first ("$12,50"), as the rest of the cart writes them. */
@@ -416,7 +416,7 @@ export function CartView() {
           {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ")))}
           <div className="basket-variant-info">
             <b>{readableNikeSizeLabel(cartColourOptions(item.product)?.label ?? "") || shownVariant(item.variant) || item.variant}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
-            <small>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{checked ? <> · <BadgeCheck size={13} role="img" aria-label={c.item.checked(clock(item.product.sourceCheckedAt!, locale))} /></> : null}{stock ? ` · ${stock}` : ""}</small>
+            <small>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{checked ? <> · <BadgeCheck size={14} role="img" aria-label={c.item.checked(clock(item.product.sourceCheckedAt!, locale))} /></> : null}{stock ? ` · ${stock}` : ""}</small>
           </div>
           <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity }, { queue: true })} />
           <strong className="basket-variant-sum">{formatSum(lineTotal(item), locale)}</strong>
@@ -484,7 +484,7 @@ export function CartView() {
       return <div className="basket-guarantee" key={service.id} aria-busy={saving || undefined}>
         <Checkbox id={boxId} checked={checked} disabled={service.required} aria-describedby={`${boxId}-limit`} onCheckedChange={(value) => toggle(service, value === true)} />
         <span className="basket-guarantee-copy">
-          <span className="basket-guarantee-head"><label htmlFor={boxId}><ShieldCheck size={16} aria-hidden="true" />{serviceTitle(service, locale)}</label>{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{s.saving}</span>}</span>
+          <span className="basket-guarantee-head"><label htmlFor={boxId}><ShieldCheck size={16} aria-hidden="true" />{serviceTitle(service, locale)}</label>{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={14} className="spin" aria-hidden="true" />{s.saving}</span>}</span>
           <small className="basket-guarantee-rate">{c.services.percentRule(formatPercent(service.valuePercent ?? 0, locale), highRate(service))}</small>
           <small>{serviceDescription(service, locale)}</small>
           <small id={`${boxId}-limit`}>{c.services.uninsuredLimit(formatSum(limit, locale))}</small>
@@ -519,7 +519,7 @@ export function CartView() {
         const boxId = `cart-service-${parcelKey}-${service.id}`;
         return <div className="basket-service" key={service.id} aria-busy={saving || undefined}>
           <Checkbox id={boxId} checked={checked} disabled={service.required} onCheckedChange={(value) => toggle(service, value === true)} />
-          <span className="basket-service-copy"><b><label htmlFor={boxId}>{serviceTitle(service, locale)}</label>{checked && <span className="basket-service-unit">{unitLabel}</span>}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{s.saving}</span>}</b><small>{serviceDescription(service, locale)}</small>
+          <span className="basket-service-copy"><b><label htmlFor={boxId}>{serviceTitle(service, locale)}</label>{checked && <span className="basket-service-unit">{unitLabel}</span>}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={14} className="spin" aria-hidden="true" />{s.saving}</span>}</b><small>{serviceDescription(service, locale)}</small>
             <small className="basket-service-rate">{service.pricingMode === "fixed"
               ? `${c.services.fixed}: ${formatSum(unitFee, locale)} / ${unitName}${count > 1 ? ` · ${count} × ${formatSum(unitFee, locale)} = ${formatSum(unitFee * count, locale)}` : ""}`
               : c.services.quote}</small>

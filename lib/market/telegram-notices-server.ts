@@ -2,7 +2,7 @@ import { database, deferBackground, HttpError, json, persist, rateLimit, storedA
 import type { State } from "./domain";
 import { requestLocale, serverError } from "./i18n";
 import { consentVersion } from "./account-delete";
-import { botReply, formatTelegramNotices, telegramCopy, telegramSettingsPath, telegramSupportPath, welcomeMessage } from "./telegram-notices";
+import { botReply, telegramCopy, telegramMessagesFor, telegramSettingsPath, telegramSupportPath, welcomeMessage } from "./telegram-notices";
 import { casUpdate, newNotices, setTelegramNotices, shouldNotifyTelegram, stopOutcome, telegramPending, type AccountUpdate, type TelegramChange, type TelegramLanguage, type TelegramOffReason } from "./telegram-state";
 import { sendTelegram, telegramAccountsOf, telegramBotConnected, telegramConfigured, telegramConsentSubject, telegramNoticesLive, type TelegramNoticeHooks } from "@/lib/auth/server";
 import { siteOrigin } from "@/lib/seo/structured-data";
@@ -84,24 +84,26 @@ export async function deliverTelegramNotices(userId: string, previous: State, ne
   } catch {
     return; // more than 30 messages an hour: the bell still has them all
   }
-  const message = formatTelegramNotices(newNotices(previous, next, now), next.orders, next.communication.language, siteOrigin, now);
-  if (!message) return;
-  let sent = await sendTelegram(subject, message);
-  // Only Telegram's own "wait" is retried, once and briefly; a timeout may have delivered, so it is not.
-  if (!sent.ok && sent.failure.kind === "rate" && (sent.failure.retryAfter ?? 99) <= 3) {
-    await sleep((sent.failure.retryAfter ?? 1) * 1000);
-    sent = await sendTelegram(subject, message);
-  }
-  if (sent.ok) return;
-  if (sent.failure.kind === "blocked" || sent.failure.kind === "not-started") {
-    const off = await disableTelegramNotices(userId, "blocked", { since });
-    if (off.status === "failed") {
-      console.error("Telegram notices not turned off", brief(off.error));
-      await recordProblem("off-failed");
+  // The news in one message, then each action (the passport, a доплата) in its own (telegramMessagesFor, 1 November 2026).
+  for (const message of telegramMessagesFor(newNotices(previous, next, now), next.orders, next.communication.language, siteOrigin, now)) {
+    let sent = await sendTelegram(subject, message);
+    // Only Telegram's own "wait" is retried, once and briefly; a timeout may have delivered, so it is not.
+    if (!sent.ok && sent.failure.kind === "rate" && (sent.failure.retryAfter ?? 99) <= 3) {
+      await sleep((sent.failure.retryAfter ?? 1) * 1000);
+      sent = await sendTelegram(subject, message);
     }
-    return;
+    if (sent.ok) continue;
+    if (sent.failure.kind === "blocked" || sent.failure.kind === "not-started") {
+      // Blocked: nothing more can arrive, so the rest of this write is not tried either.
+      const off = await disableTelegramNotices(userId, "blocked", { since });
+      if (off.status === "failed") {
+        console.error("Telegram notices not turned off", brief(off.error));
+        await recordProblem("off-failed");
+      }
+      return;
+    }
+    await recordProblem(sent.failure.kind);
   }
-  await recordProblem(sent.failure.kind);
 }
 
 /** The welcome after a successful "Turn on"; if Telegram refuses it after all, the consent it followed is undone. */

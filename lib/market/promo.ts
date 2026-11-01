@@ -66,7 +66,7 @@ export type PromoRule = {
 export type AppliedPromo = { id: string; code: string; kind: PromoKind; value: number };
 
 /** Refusal codes (lib/market/i18n.ts): unknown or switched off, outside its dates, used up, order below the minimum, discount changed. */
-export const promoErrors = { unknown: 'err_86', expired: 'err_87', usedUp: 'err_88', minOrder: 'err_89', changed: 'err_90' } as const;
+export const promoErrors = { unknown: 'err_87', expired: 'err_88', usedUp: 'err_89', minOrder: 'err_90', changed: 'err_91' } as const;
 
 type QuoteLike = { service: number; buyout?: number; conversion?: number; total: number; customsDuty?: number };
 type LineLike = { id: string; quote: QuoteLike };

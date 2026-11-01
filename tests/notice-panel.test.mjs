@@ -17,7 +17,12 @@ test('orders that wait for the customer', () => {
 
 test('a notification leads to its order or document', () => {
   assert.deepEqual(noticeTarget({ orderId: 'AT-1' }), { href: '/orders#AT-1', kind: 'order' });
-  assert.deepEqual(noticeTarget({ code: 'declaration-saved' }), { href: '/declaration', kind: 'document' });
+  assert.deepEqual(noticeTarget({ code: 'declaration-saved' }), { href: '/account/documents#declarations', kind: 'document' });
+  // A new stage opens the parcel (1 November 2026); the passport request opens the documents on that recipient.
+  assert.deepEqual(noticeTarget({ orderId: 'AT-1', code: 'parcel-stage', params: { stage: 5 } }), { href: '/account/parcels/AT-1', kind: 'parcel' });
+  assert.deepEqual(noticeTarget({ orderId: 'AT-1', code: 'status', params: { status: 1 } }), { href: '/account/parcels/AT-1', kind: 'parcel' });
+  assert.deepEqual(noticeTarget({ orderId: 'AT-1', code: 'passport-needed', params: { recipient: 'r 1' } }), { href: '/account/documents?recipient=r%201', kind: 'document' });
+  assert.deepEqual(noticeTarget({ orderId: 'AT-1', code: 'parcel-extra' }), { href: '/orders#AT-1', kind: 'order' }, 'a доплата opens the decision on "Мои заказы"');
   // A support reply has no order: it opens the support section of the account.
   assert.deepEqual(noticeTarget({ code: 'support-answered', params: { subject: 'Где посылка?' } }), { href: '/account#support', kind: 'support' });
   assert.equal(noticeTarget({}), null);

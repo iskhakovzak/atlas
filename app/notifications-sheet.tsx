@@ -68,7 +68,7 @@ export function NotificationsSheet({open,onOpenChange,bell}:{open:boolean;onOpen
           <SheetDescription>{!ready?c.loading:panel.unread?c.unread(panel.unread):panel.total?c.allRead:p.none}</SheetDescription>
           {ready&&panel.unread>0&&<button type="button" className="notice-panel-read" onClick={()=>void act({type:'notifications-read'})}><CheckCheck size={16} aria-hidden="true"/>{p.read}</button>}
         </div>
-        <SheetClose asChild><button type="button" className="notice-panel-close" aria-label={p.close}><X size={19} aria-hidden="true"/></button></SheetClose>
+        <SheetClose asChild><button type="button" className="notice-panel-close" aria-label={p.close}><X size={18} aria-hidden="true"/></button></SheetClose>
       </header>
       <div className="notice-panel-scroll">
         {/* One item per checkout (notice-panel.ts), the same count as the "Нужно действие" tab of "My orders". */}
@@ -79,19 +79,20 @@ export function NotificationsSheet({open,onOpenChange,bell}:{open:boolean;onOpen
               <div className="notice-panel-top"><b>{p.reasons[reason]}</b>{notice&&time(notice.at)}</div>
               {/* The reason above is the headline; the message adds the amount and the step, without repeating a title. */}
               {notice?<p>{renderNotification(notice,locale).message}</p>:reason==='payment'&&toPay(order)!==undefined&&<p>{orderGroupCopy[locale].payable} {formatSum(toPay(order)!,locale)}</p>}
-              <div className="notice-panel-foot"><span className="notice-panel-id">{reason==='payment'?'':`${p.order} ${order.id}`}</span><Link className="notice-panel-cta" href={'/orders#'+encodeURIComponent(order.id)} onClick={close}>{c.openOrder}<ArrowRight size={15} aria-hidden="true"/></Link></div>
+              <div className="notice-panel-foot"><span className="notice-panel-id">{reason==='payment'?'':`${p.order} ${order.id}`}</span><Link className="notice-panel-cta" href={'/orders#'+encodeURIComponent(order.id)} onClick={close}>{c.openOrder}<ArrowRight size={16} aria-hidden="true"/></Link></div>
             </div>
           </li>)}
         </ul></section>}
         {ready&&<section aria-labelledby="notice-panel-updates"><h3 id="notice-panel-updates">{p.updates}</h3>
-          {!panel.updates.length?<div className="notice-panel-empty"><span aria-hidden="true"><Inbox size={24}/></span><b>{panel.total?p.nothing:c.emptyTitle}</b>{!panel.total&&<p>{c.emptyText}</p>}{!panel.total&&!panel.action.length&&<Link className="btn primary notice-panel-empty-cta" href="/order-by-link" onClick={close}><Link2 size={17} aria-hidden="true"/>{p.emptyCta}</Link>}</div>:<>{days.map(group=><div key={group.day} className="notice-panel-day">{days.length>1&&<h4>{p[group.day]}</h4>}<ul className="notice-panel-list">
+          {!panel.updates.length?<div className="notice-panel-empty"><span aria-hidden="true"><Inbox size={24}/></span><b>{panel.total?p.nothing:c.emptyTitle}</b>{!panel.total&&<p>{c.emptyText}</p>}{!panel.total&&!panel.action.length&&<Link className="btn primary notice-panel-empty-cta" href="/order-by-link" onClick={close}><Link2 size={18} aria-hidden="true"/>{p.emptyCta}</Link>}</div>:<>{days.map(group=><div key={group.day} className="notice-panel-day">{days.length>1&&<h4>{p[group.day]}</h4>}<ul className="notice-panel-list">
             {group.items.map((item)=>{const index=panel.updates.indexOf(item);const text=renderNoticeRow(item,locale,item.orderId?orderOf.get(item.orderId)?.product.name:undefined),target=noticeTarget(item);return <li key={item.id} className={'notice-panel-item'+(item.read?'':' unread')} style={row(panel.action.length+index)}>
-              <span className={'notice-panel-icon'+(item.orderId&&orderOf.get(item.orderId)?.product.image?' has-photo':'')} aria-hidden="true">{target?.kind==='document'?<FileText size={18}/>:target?.kind==='order'?<Package size={18}/>:target?.kind==='support'?<MessageCircle size={18}/>:<Bell size={18}/>}{item.orderId&&<OrderPhoto order={orderOf.get(item.orderId)}/>}</span>
+              <span className={'notice-panel-icon'+(item.orderId&&orderOf.get(item.orderId)?.product.image?' has-photo':'')} aria-hidden="true">{target?.kind==='document'?<FileText size={18}/>:target?.kind==='order'||target?.kind==='parcel'?<Package size={18}/>:target?.kind==='support'?<MessageCircle size={18}/>:<Bell size={18}/>}{item.orderId&&<OrderPhoto order={orderOf.get(item.orderId)}/>}</span>
               <div className="notice-panel-body">
                 <div className="notice-panel-top"><b>{!item.read&&<span className="notice-panel-dot"><span className="sr-only">{c.newBadge}</span></span>}{text.title}</b>{time(item.at,days.length>1)}</div>
                 <p>{text.message}</p>
                 <div className="notice-panel-foot">
                   {target?.kind==='order'&&<Link className="order-x-link" href={target.href} onClick={close}>{p.order} {item.orderId}<ArrowRight size={14} aria-hidden="true"/></Link>}
+                  {target?.kind==='parcel'&&<Link className="order-x-link" href={target.href} onClick={close}>{c.openParcel}<ArrowRight size={14} aria-hidden="true"/></Link>}
                   {target?.kind==='document'&&<Link className="order-x-link" href={target.href} onClick={close}>{p.document}<ArrowRight size={14} aria-hidden="true"/></Link>}
                   {target?.kind==='support'&&<Link className="order-x-link" href={target.href} onClick={close}>{p.reply}<ArrowRight size={14} aria-hidden="true"/></Link>}
                   {!target&&<Link className="order-x-link" href={'/notifications?id='+encodeURIComponent(item.id)} onClick={close}>{p.open}<ArrowRight size={14} aria-hidden="true"/></Link>}</div>
@@ -101,7 +102,7 @@ export function NotificationsSheet({open,onOpenChange,bell}:{open:boolean;onOpen
         </section>}
       </div>
       {/* With nothing to show, the full inbox is a quiet link: the empty card holds the one call to action. */}
-      <footer className="notice-panel-footer"><Link className={'notice-panel-all'+(ready&&panel.total===0?' quiet':'')} href="/notifications" onClick={close}>{p.all}<ArrowRight size={17} aria-hidden="true"/></Link>
+      <footer className="notice-panel-footer"><Link className={'notice-panel-all'+(ready&&panel.total===0?' quiet':'')} href="/notifications" onClick={close}>{p.all}<ArrowRight size={18} aria-hidden="true"/></Link>
         {/* Order statuses in Telegram: a quiet line to the account's setting while they are off (nothing without the bot). */}
         <TelegramBellLink locale={locale} onNavigate={close}/>{ready&&<PushBellLink locale={locale}/>}</footer>
     </SheetContent>

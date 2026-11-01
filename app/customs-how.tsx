@@ -72,7 +72,7 @@ export function CustomsHow({estimate,pricing,locale}:{estimate:CustomsEstimate;p
 
  return <PopoverPrimitive.Root open={open} onOpenChange={change}>
   <PopoverPrimitive.Trigger asChild>
-   <button ref={triggerRef} type="button" className="calc-customs-link customs-how-trigger"><Calculator size={15} aria-hidden="true"/>{c.title}</button>
+   <button ref={triggerRef} type="button" className="calc-customs-link customs-how-trigger"><Calculator size={16} aria-hidden="true"/>{c.title}</button>
   </PopoverPrimitive.Trigger>
   <PopoverPrimitive.Portal container={dialog??undefined}>
    <PopoverPrimitive.Content ref={contentRef} className="customs-how" side={beside?'left':'top'} align={beside?'center':'start'} sideOffset={beside?18:8} collisionPadding={12} aria-label={c.title}>
@@ -86,9 +86,9 @@ export function CustomsHow({estimate,pricing,locale}:{estimate:CustomsEstimate;p
      <div className="customs-how-calc" role="group" aria-label={c.try}>
       <span className="customs-how-label">{c.try}</span>
       <div className="customs-how-stepper">
-       <button type="button" aria-label={c.minus} disabled={amount<=0} onClick={()=>setAmount(value=>Math.max(0,Math.ceil(value/step)*step-step))}><Minus size={15} aria-hidden="true"/></button>
+       <button type="button" aria-label={c.minus} disabled={amount<=0} onClick={()=>setAmount(value=>Math.max(0,Math.ceil(value/step)*step-step))}><Minus size={16} aria-hidden="true"/></button>
        <output aria-label={c.amount}>{usd(amount,locale)}</output>
-       <button type="button" aria-label={c.plus} disabled={amount>=maxUsd} onClick={()=>setAmount(value=>Math.min(maxUsd,Math.floor(value/step)*step+step))}><Plus size={15} aria-hidden="true"/></button>
+       <button type="button" aria-label={c.plus} disabled={amount>=maxUsd} onClick={()=>setAmount(value=>Math.min(maxUsd,Math.floor(value/step)*step+step))}><Plus size={16} aria-hidden="true"/></button>
       </div>
       <p className={'customs-how-result'+(result.excessUsd>0?' over':'')} aria-live="polite">{result.excessUsd>0?c.over(usd(result.excessUsd,locale),formatSum(result.dutySoum,locale)):c.none}</p>
      </div>

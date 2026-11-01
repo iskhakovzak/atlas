@@ -62,7 +62,9 @@ test('the sign-in tab on /login keeps the page the guest came from', () => {
 
 test('the profile shows a dot while an order waits for the customer, said to screen readers too', () => {
   const shell = source('app/marketplace.tsx');
-  assert.match(shell, /const attention=ready&&state\.orders\.some\(order=>orderAttention\(order\)!==null\);/);
+  // Since 1 November 2026 the recipient's passport counts too, and the same first action is the mint strip under the header.
+  assert.match(shell, /const firstAction=ready\?firstProfileAction\(state\):undefined;\r?\n  const attention=Boolean\(firstAction\);/);
+  assert.match(shell, /<Link className="shell-attention" href=\{strip\.href\}>/);
   assert.match(shell, /dot\?`\$\{label\} — \$\{nav\.needsAction\}`/);
   // The button's name starts with the word it shows ("Профиль"), so a voice command finds it; the list keeps "Меню профиля".
   assert.match(source('app/profile-menu.tsx'), /aria-label=\{nav\.profile\+\(attention\?' — '\+nav\.needsAction:''\)\}/);
@@ -93,7 +95,8 @@ test('the header search: words go to the catalog, a store link to its calculatio
 
 test('the theme stays reachable: the profile menu, the account settings and the footer', () => {
   assert.match(source('app/profile-menu.tsx'), /<ThemeToggle locale=\{locale\}\/>/);
-  assert.match(source('app/account-views.tsx'), /<ThemeToggle locale=\{locale\} \/>/);
+  // The account's settings moved to /account/settings (1 November 2026).
+  assert.match(source('app/account-views.tsx'), /<ThemeToggle locale=\{lang\} \/>/);
   assert.match(source('app/site-footer.tsx'), /<ThemeToggle locale=\{locale\}\/>/);
 });
 
@@ -101,7 +104,7 @@ test('phones: no breadcrumb (its JSON-LD stays), a shorter footer, none in the a
   const css = source('app/shell.css');
   assert.match(css, /@media \(max-width: 760px\) \{[\s\S]*\.site-main > \.breadcrumb \{ display: none; \}/);
   assert.match(css, /\.home-footer \.footer-dup, \.home-footer-brand p \{ display: none; \}/);
-  assert.match(source('app/marketplace.tsx'), /<JsonLd data=\{breadcrumbs\(locale,publicViewPaths\[view\],routeTitle\(locale,view\)\)\}\/>/);
+  assert.match(source('app/marketplace.tsx'), /<JsonLd data=\{crumb&&crumbPath\?breadcrumbList\(\[[\s\S]*?\],pageLang\):breadcrumbs\(locale,publicViewPaths\[view\],routeTitle\(locale,view\),pageLang,pageLanguageSet\(publicViewPaths\[view\]\)\)\}\/>/);
   assert.match(source('app/native.css'), /html\[data-native\] \.home-footer \{ display: none; \}/);
 });
 

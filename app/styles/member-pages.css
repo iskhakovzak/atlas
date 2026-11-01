@@ -34,7 +34,7 @@
 .order-amount{margin-left:auto;text-align:right;flex-shrink:0}
 .order-amount strong{font-size:20px;font-weight:500;letter-spacing:-.02em;display:block}
 .order-amount span{font-size:12px;color:#7b8b67}
-.order-timeline{list-style:none;display:grid;grid-template-columns:repeat(6,1fr);margin:30px 0;padding:0}
+.order-timeline{list-style:none;display:grid;grid-template-columns:repeat(8,1fr);margin:30px 0;padding:0}
 .order-timeline li{position:relative;display:flex;flex-direction:column;gap:11px;font-size:12px;padding-right:10px;color:#859575}
 .order-timeline li:before{content:'';position:absolute;top:14px;height:1px;background:#dce6ce;width:100%}
 .order-timeline li:last-child:before{display:none}
@@ -65,8 +65,8 @@
   .order-controls{align-items:stretch;flex-direction:column}
   .order-detail-grid{grid-template-columns:1fr;gap:0}
   .history-list{padding-left:0}
-  .order-timeline{grid-template-columns:repeat(3,1fr);gap:25px 0}
-  .order-timeline li:nth-child(3):before{display:none}
+  .order-timeline{grid-template-columns:repeat(4,1fr);gap:25px 0}
+  .order-timeline li:nth-child(4):before{display:none}
   .order-product{flex-wrap:wrap}
   .order-amount{margin-left:auto}
   .ops-stats{gap:12px}
@@ -1137,7 +1137,7 @@ html[data-theme="dark"] .cabinet-next-thumb { border-color: var(--night-line); b
 /* Deep links (?support=new, ?order=…, #account-delete) scroll a card to the top while it still rises in (motion.css, 10 px):
    a margin keeps its edge and heading in view instead of under the top of the screen. */
 .cabinet :is(.cabinet-card[id], .cabinet-setting-more[id]) { scroll-margin-top: 24px; }
-.cabinet-card h2, .cabinet-signin h1 { margin: 0 0 4px; color: var(--home-ink); font-size: 18px; font-weight: 800; line-height: 1.3; }
+.cabinet-card h2, .docs-page .cabinet-card > h3, .docs-page .docs-step > h3, .cabinet-signin h1 { margin: 0 0 4px; color: var(--home-ink); font-size: 18px; font-weight: 800; line-height: 1.3; }
 .cabinet-lead, .cabinet-note { margin: 0 0 14px; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 .cabinet-note { margin: 12px 0 0; font-size: 13px; }
 .cabinet-muted { color: var(--home-muted); }
@@ -1215,7 +1215,7 @@ html[data-theme="dark"] .cabinet-next-thumb { border-color: var(--night-line); b
 .order-x-steps li[data-state="current"] { color: var(--home-ink); font-weight: 800; }
 .order-x-steps li[data-state="current"] > span { border-color: var(--home-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--home-accent) 18%, transparent); color: var(--home-accent); }
 @media (min-width: 900px) {
-  .order-x-steps { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .order-x-steps { grid-template-columns: repeat(8, minmax(0, 1fr)); }
   .order-x-steps li { flex-direction: column; align-items: flex-start; gap: 8px; min-height: 0; padding-right: 8px; font-size: 13px; }
   .order-x-steps li:not(:last-child)::before { top: 10px; right: 0; bottom: auto; left: 30px; width: auto; height: 2px; }
 }
@@ -1422,7 +1422,7 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
   .docs-steps { grid-template-columns: 1fr 1fr; align-items: start; }
   .docs-steps > li:first-child, .docs-steps > li:last-child:nth-child(2) { grid-column: 1 / -1; }
 }
-.docs-step h2, .docs-checklist h2, .docs-declare h2, .docs-scans h2, .docs-history h2 { display: flex; align-items: center; gap: 10px; }
+.docs-step h2, .docs-checklist h2, .docs-declare h2, .docs-scans h2, .docs-history h2, .docs-step > h3, .docs-checklist > h3, .docs-scans > h3, .docs-history > h3 { display: flex; align-items: center; gap: 10px; }
 .docs-num { display: grid; flex-shrink: 0; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--home-accent); color: var(--home-accent-ink); font-size: 14px; font-weight: 800; }
 .docs-step.muted .docs-num { background: var(--home-line); color: var(--home-muted); }
 .docs-recipients { display: grid; gap: 8px; margin-bottom: 12px; }
@@ -1800,7 +1800,7 @@ html:not([data-theme="dark"]) .recipient-choice-manual strong { color: var(--day
 /* ---------- Phones: a lighter scale ---------- */
 @media (max-width: 600px) {
   /* Page titles 25px, section titles 20–21px, leads 15px; weights one step lighter. */
-  .site-main .cabinet-card h2 { font-size: 16px; }
+  .site-main .cabinet-card h2, .site-main .docs-page .cabinet-card > h3 { font-size: 16px; }
 }
 
 /* ── app/day-folio.css ── */
@@ -1912,3 +1912,34 @@ html[data-theme="dark"] .login-done-bar::after { background: var(--night-jade, v
 /* globals.css draws it with the light #e5e9f1, which read as a bright stripe on the Night page. */
 html[data-theme="dark"] .warehouse-customer-note span { color: var(--atlas-dark-ink); }
 .allowance-readout:empty { min-height: 0; margin: 0; }
+
+/* ---------- The sign-in page in the new style (redesign stage 8, 1 November 2026) ----------
+   Direction A: one white card with shadow, every method as the same 56 px row (icon · name · chevron), none pushed; on a
+   computer the account's benefits beside it. Scoped to .login-layout (the page itself): the account settings reuse the
+   same method components (app/login-view.tsx) and keep their look. Tokens only, so the dark theme comes from the roles. */
+.login-layout .login-card { gap: var(--space-4); max-width: 480px; padding: var(--space-8); border: 0; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
+.login-layout .login-card h1 { margin: 0; color: var(--text); font-size: var(--fs-30); font-weight: var(--fw-bold); letter-spacing: var(--tracking-title); line-height: var(--lh-tight); }
+.login-layout .login-intro { margin: 0; color: var(--text-2); font-size: var(--fs-16); line-height: var(--lh-body); }
+.login-layout .login-choices { gap: var(--space-2); }
+.login-layout .btn.login-choice { justify-content: flex-start; gap: var(--space-3); min-height: var(--h-lg); padding: 0 var(--space-4); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface); box-shadow: none; color: var(--text); font-size: var(--fs-16); font-weight: var(--fw-semibold); }
+.login-layout .btn.login-choice:hover { border-color: var(--field); background: var(--hover); }
+.login-layout .btn.login-choice:focus-visible { outline: none; border-color: var(--brand); box-shadow: var(--focus-ring); }
+.login-layout .btn.login-choice > span { flex: 1; min-width: 0; text-align: left; }
+.login-layout .btn.login-choice > svg:first-child { flex: none; width: 20px; height: 20px; color: var(--text-2); }
+.login-layout .login-choice-go { flex: none; margin-left: auto; color: var(--text-2); }
+.login-layout .btn.login-choice.apple { border-color: #000; background: #000; color: #fff; }
+.login-layout .btn.login-choice.apple:hover { background: #1a1a1a; }
+.login-layout .btn.login-choice.apple > svg:first-child { color: currentColor; }
+.login-layout .btn.tg-login { min-height: var(--h-lg); }
+.login-layout .login-or { color: var(--text-2); font-size: var(--fs-13); }
+.login-layout .login-or::before, .login-layout .login-or::after { background: var(--line); }
+.login-layout .login-form .btn { min-height: var(--h-md); }
+.login-layout .login-legal { color: var(--text-2); font-size: var(--fs-12); line-height: var(--lh-body); }
+.login-layout .login-benefits { padding: var(--space-6); border: 0; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-2); }
+.login-layout .login-benefits h2 { color: var(--text); font-size: var(--fs-20); font-weight: var(--fw-semibold); letter-spacing: var(--tracking-title); }
+.login-layout .login-benefits li { color: var(--text-2); font-size: var(--fs-16); }
+.login-layout .login-benefits svg { width: 20px; height: 20px; color: var(--link); }
+@media (max-width: 760px) {
+  .login-layout .login-card { margin: var(--space-2) 0 var(--space-8); padding: var(--space-6) var(--space-4); }
+  .login-layout .login-card h1 { font-size: var(--fs-24); }
+}

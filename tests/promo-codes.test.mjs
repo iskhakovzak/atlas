@@ -65,15 +65,15 @@ test('codes are case-insensitive and the admin input is checked', () => {
 
 test('a code works only while on, inside its dates, under its cap and above its minimum', () => {
   assert.equal(promoProblem(rule(), now), undefined);
-  assert.equal(promoProblem(null, now), 'err_86');
-  assert.equal(promoProblem(rule({ active: false }), now), 'err_86');
-  assert.equal(promoProblem(rule({ startsAt: now + 1 }), now), 'err_87', 'not started yet');
-  assert.equal(promoProblem(rule({ endsAt: now }), now), 'err_87', 'the end is exclusive');
-  assert.equal(promoProblem(rule({ maxUses: 5, uses: 5 }), now), 'err_88');
-  assert.equal(promoProblem(rule({ minOrder: 1_000_000 }), now, 999_999), 'err_89');
+  assert.equal(promoProblem(null, now), 'err_87');
+  assert.equal(promoProblem(rule({ active: false }), now), 'err_87');
+  assert.equal(promoProblem(rule({ startsAt: now + 1 }), now), 'err_88', 'not started yet');
+  assert.equal(promoProblem(rule({ endsAt: now }), now), 'err_88', 'the end is exclusive');
+  assert.equal(promoProblem(rule({ maxUses: 5, uses: 5 }), now), 'err_89');
+  assert.equal(promoProblem(rule({ minOrder: 1_000_000 }), now, 999_999), 'err_90');
   assert.equal(promoProblem(rule({ minOrder: 1_000_000 }), now, 1_000_000), undefined);
   assert.equal(promoProblem(rule({ minOrder: 1_000_000 }), now), undefined, 'the code check alone leaves the minimum to the page');
-  for (const code of ['err_86', 'err_87', 'err_88', 'err_89', 'err_90', 'err_91', 'err_92', 'err_93', 'err_94']) for (const locale of ['ru', 'uz', 'oz', 'en'])
+  for (const code of ['err_87', 'err_88', 'err_89', 'err_90', 'err_91', 'err_92', 'err_93', 'err_94', 'err_95']) for (const locale of ['ru', 'uz', 'oz', 'en'])
     assert.notEqual(serverError(locale, code), serverError(locale, 'err_unknown'), `${code} ${locale}`);
 });
 
@@ -110,7 +110,7 @@ test('D1: one code per text, uses counted atomically under concurrent checkouts,
   const results = await Promise.all(Array.from({ length: 10 }, () => reservePromo(db, created.id, now)));
   assert.equal(results.filter(Boolean).length, 3);
   assert.equal((await findPromo(db, 'LAST3')).uses, 3);
-  assert.equal(promoProblem(await findPromo(db, 'LAST3'), now), 'err_88');
+  assert.equal(promoProblem(await findPromo(db, 'LAST3'), now), 'err_89');
   // A save that failed after the use was counted gives it back; the count never goes below zero.
   await releasePromo(db, created.id);
   assert.equal((await findPromo(db, 'LAST3')).uses, 2);
@@ -145,14 +145,14 @@ test('checkout: the code lowers only the Atlas service, the server checks the am
   const expected = promoDiscount(code, state.cart).total;
   assert.ok(expected > 0);
   // The amount the page showed must be the server's.
-  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'atlas10', promoDiscount: expected + 1 }), deps(code)), (error) => error.code === 'err_90');
-  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'NOPE', promoDiscount: expected }), deps(null)), (error) => error.code === 'err_86');
-  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected }), deps({ ...code, endsAt: now - 1 })), (error) => error.code === 'err_87' && codedActionError(error).status === 409);
+  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'atlas10', promoDiscount: expected + 1 }), deps(code)), (error) => error.code === 'err_91');
+  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'NOPE', promoDiscount: expected }), deps(null)), (error) => error.code === 'err_87');
+  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected }), deps({ ...code, endsAt: now - 1 })), (error) => error.code === 'err_88' && codedActionError(error).status === 409);
   // A changed discount, dates, cap and minimum are conflicts (409); an unknown code is a plain refusal (400).
   await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected + 1 }), deps(code)), (error) => codedActionError(error).status === 409);
   await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'NOPE', promoDiscount: expected }), deps(null)), (error) => codedActionError(error).status === 400);
-  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected }), deps({ ...code, uses: 5 })), (error) => error.code === 'err_88');
-  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected }), deps({ ...code, minOrder: 1e12 })), (error) => error.code === 'err_89');
+  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected }), deps({ ...code, uses: 5 })), (error) => error.code === 'err_89');
+  await assert.rejects(prepareAction(state, checkout(state, { promoCode: 'ATLAS10', promoDiscount: expected }), deps({ ...code, minOrder: 1e12 })), (error) => error.code === 'err_90');
   const result = await prepareAction(state, checkout(state, { promoCode: 'atlas10', promoDiscount: expected }), deps(code));
   const orders = result.next.orders;
   assert.equal(orders.length, 2);
@@ -227,7 +227,7 @@ test('route: the same checkout key counts one use', async () => {
   assert.equal(redemptions(db, code.id).total, 40_000);
 });
 
-test('route: the last use goes to one checkout, the next one is refused with err_88 and nothing is saved', async () => {
+test('route: the last use goes to one checkout, the next one is refused with err_89 and nothing is saved', async () => {
   const db = fakeD1();
   const code = await savePromo(db, promoInputSchema.parse({ code: 'route', kind: 'fixed', value: 50_000, maxUses: 1, active: true }), 'operator@atlas.local', now);
   const saved = [];
@@ -236,7 +236,7 @@ test('route: the last use goes to one checkout, the next one is refused with err
   assert.equal(saved.length, 1, 'the refused checkout is not saved');
   assert.equal((await findPromo(db, 'ROUTE')).uses, 1);
   assert.equal(redemptions(db, code.id).n, 1, 'the refused checkout leaves no record');
-  assert.equal(promoProblem(await findPromo(db, 'ROUTE'), now), 'err_88');
+  assert.equal(promoProblem(await findPromo(db, 'ROUTE'), now), 'err_89');
   // Switched off: refused, nothing counted.
   await savePromo(db, promoInputSchema.parse({ id: code.id, code: 'ROUTE', kind: 'fixed', value: 50_000, maxUses: 10, active: false }), 'operator@atlas.local', now);
   assert.deepEqual(await placeWithPromo(db, use(code.id, 'c'), async () => 'x', now), { usedUp: true });

@@ -35,7 +35,7 @@ export function SiteFooter(){
   <div className="home-footer-groups">
   <nav aria-labelledby="footer-buyers"><h2 id="footer-buyers" className="home-footer-title">{c.footer.buyers}</h2><ul>
    {/* Phones hide the links the bottom bar already has (app/shell.css), so the footer stays short there. */}
-   <li className="footer-dup"><Link href="/order-by-link">{routeTitle(locale,'link')}</Link></li><li className="footer-dup"><Link href="/catalog">{c.nav.catalog}</Link></li><li><Link href="/stores">{c.nav.stores}</Link></li><li><Link href="/#how">{c.nav.how}</Link></li><li><Link href="/#tariffs">{c.nav.tariffs}</Link></li>
+   <li className="footer-dup"><Link href="/order-by-link">{routeTitle(locale,'link')}</Link></li><li className="footer-dup"><Link href="/catalog">{c.nav.catalog}</Link></li><li><Link href="/stores">{c.nav.stores}</Link></li><li><Link href="/#how">{c.nav.how}</Link></li><li><Link href="/delivery">{c.nav.delivery}</Link></li>
    <li><Link href="/customs">{c.footer.customs}</Link></li><li><Link href="/#faq">{c.footer.faq}</Link></li>
    <li><Link href="/support">{routeTitle(locale,'support')}</Link></li><li><Link href="/app">{routeTitle(locale,'app')}</Link></li>
   </ul>{!hasContacts&&<MissingContent what="Telegram-бот поддержки и канал, телефон, почта, часы работы, Instagram, адрес пункта выдачи"/>}</nav>

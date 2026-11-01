@@ -63,7 +63,7 @@ export function AdminCustomers({data,busy,canBlock,onStatus,initialCustomer}:{da
  const [seenCustomer,setSeenCustomer]=useState(initialCustomer);
  if(initialCustomer!==seenCustomer){setSeenCustomer(initialCustomer);if(initialCustomer)setOpen(initialCustomer)}
  return <section className="surface admin-section admin-customers">
-  <div className="admin-section-head"><div><h2>{t.title}</h2><p>{t.intro}</p></div><div className="admin-system-actions"><button type="button" className="btn secondary" onClick={()=>downloadCsv('customers=csv')}><Download size={17}/>{t.exportCsv}</button></div></div>
+  <div className="admin-section-head"><div><h2>{t.title}</h2><p>{t.intro}</p></div><div className="admin-system-actions"><button type="button" className="btn secondary" onClick={()=>downloadCsv('customers=csv')}><Download size={18}/>{t.exportCsv}</button></div></div>
   <div className="admin-filters">
    <label className="field"><span>{t.search}</span><span className="admin-search"><Search size={16} aria-hidden="true"/><input type="search" placeholder={t.searchPlaceholder} value={query} onChange={event=>setQuery(event.target.value)}/></span></label>
    <label className="field"><span>{t.access}</span><select value={statusFilter} onChange={event=>setStatusFilter(event.target.value as StatusFilter)}><option value="all">{t.all}</option><option value="active">{t.activeMany}</option><option value="review">{t.reviewMany}</option><option value="blocked">{t.blockedMany}</option><option value="cart">{k.cartFilter}</option></select></label>

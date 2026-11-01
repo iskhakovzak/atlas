@@ -7,6 +7,8 @@ Allow: /terms
 Allow: /support
 Allow: /app
 Allow: /delete-account
+# The public catalog feed only: until the catalog grid is rendered on the server, Google renders /catalog with it.
+Allow: /api/catalog$
 Disallow: /api/
 Disallow: /auth/
 Disallow: /account
@@ -21,9 +23,11 @@ Disallow: /identity
 Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
-Disallow: /order-by-link
+# The bare page stays crawlable so its noindex is seen; the ?url= variants are not crawled.
+Disallow: /order-by-link?
 Disallow: /share
-Disallow: /login
+# /login is not closed: every page links to it (sign-in, cart, favourites), so it stays crawlable and its noindex is
+# seen, instead of the address being indexed without content.
 
 # Search access and model-training access are separate controls. Atlas opts in
 # for public facts only; private paths remain blocked below.
@@ -36,6 +40,8 @@ Allow: /terms
 Allow: /support
 Allow: /app
 Allow: /delete-account
+# The public catalog feed only: until the catalog grid is rendered on the server, Google renders /catalog with it.
+Allow: /api/catalog$
 Disallow: /api/
 Disallow: /auth/
 Disallow: /account
@@ -50,9 +56,11 @@ Disallow: /identity
 Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
-Disallow: /order-by-link
+# The bare page stays crawlable so its noindex is seen; the ?url= variants are not crawled.
+Disallow: /order-by-link?
 Disallow: /share
-Disallow: /login
+# /login is not closed: every page links to it (sign-in, cart, favourites), so it stays crawlable and its noindex is
+# seen, instead of the address being indexed without content.
 
 User-agent: *
 Allow: /
@@ -63,6 +71,8 @@ Allow: /terms
 Allow: /support
 Allow: /app
 Allow: /delete-account
+# The public catalog feed only: until the catalog grid is rendered on the server, Google renders /catalog with it.
+Allow: /api/catalog$
 Disallow: /api/
 Disallow: /auth/
 Disallow: /account
@@ -77,9 +87,11 @@ Disallow: /identity
 Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
-Disallow: /order-by-link
+# The bare page stays crawlable so its noindex is seen; the ?url= variants are not crawled.
+Disallow: /order-by-link?
 Disallow: /share
-Disallow: /login
+# /login is not closed: every page links to it (sign-in, cart, favourites), so it stays crawlable and its noindex is
+# seen, instead of the address being indexed without content.
 
 # Yandex: ad and click tags do not change the page.
 Clean-param: utm_source&utm_medium&utm_campaign&utm_content&utm_term&gclid&fbclid&yclid&ysclid

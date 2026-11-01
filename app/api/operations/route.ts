@@ -288,6 +288,8 @@ export async function POST(request: Request) {
       const {pricing:currentPricing,policy:currentPolicy} = await pricingAndPolicy();
       next = applyAction(current.state, parsedAction.data, true, currentPricing, currentPolicy);
     } catch (error) {
+      // A refusal with its own code (err_86: the stage already changed) is answered in the operator's language.
+      if ((error as { code?: unknown }).code === 'err_86') throw new HttpError(400, 'err_86');
       throw new HttpError(400, (error as Error).message);
     }
     // Atlas's own step: new notices may also go to the customer's Telegram (their consent; the live site only).

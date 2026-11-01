@@ -106,10 +106,17 @@ const orderStatuses = /*@__PURE__*/withCyrillic({
   en: ["Awaiting purchase", "Purchased", "At overseas warehouse", "Ready to ship", "In transit", "Delivered"],
 });
 export function localizedStatuses(locale:Locale){return orderStatuses[locale]}
+/** The buyer's eight parcel stages (domain.ts parcelStages, GLOSSARY.md «Этап посылки»), 1 November 2026. */
+const parcelStageNames = /*@__PURE__*/withCyrillic({
+  ru: ["Ожидает выкупа", "Выкуплен", "На зарубежном складе", "Готов к отправке", "В пути", "Таможня", "В Ташкенте", "Доставлен"],
+  uz: ["Xarid kutilmoqda", "Xarid qilindi", "Xorijdagi omborda", "Jo‘natishga tayyor", "Yo‘lda", "Bojxonada", "Toshkentda", "Yetkazildi"],
+  en: ["Awaiting purchase", "Purchased", "At overseas warehouse", "Ready to ship", "In transit", "Customs", "In Tashkent", "Delivered"],
+});
+export function localizedParcelStages(locale:Locale){return parcelStageNames[locale]}
 const routeTitles:Record<Locale,Record<string,string>>=/*@__PURE__*/withCyrillic({
-  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',checkout:'Оформление',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена',privacy:'Политика конфиденциальности',terms:'Условия использования',support:'Поддержка',app:'Приложение','delete-account':'Удаление аккаунта'},
-  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',checkout:'Rasmiylashtirish',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi',privacy:'Maxfiylik siyosati',terms:'Foydalanish shartlari',support:'Yordam',app:'Ilova','delete-account':'Akkauntni o‘chirish'},
-  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',checkout:'Checkout',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found',privacy:'Privacy policy',terms:'Terms of use',support:'Support',app:'App','delete-account':'Delete account'},
+  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',delivery:'Доставка',cart:'Корзина',checkout:'Оформление',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Профиль',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',documents:'Документы',settings:'Настройки',parcel:'Посылка',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена',privacy:'Политика конфиденциальности',terms:'Условия использования',support:'Поддержка',app:'Приложение','delete-account':'Удаление аккаунта'},
+  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',delivery:'Yetkazib berish',cart:'Savat',checkout:'Rasmiylashtirish',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Profil',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',documents:'Hujjatlar',settings:'Sozlamalar',parcel:'Posilka',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi',privacy:'Maxfiylik siyosati',terms:'Foydalanish shartlari',support:'Yordam',app:'Ilova','delete-account':'Akkauntni o‘chirish'},
+  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',delivery:'Delivery',cart:'Cart',checkout:'Checkout',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Profile',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',documents:'Documents',settings:'Settings',parcel:'Parcel',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found',privacy:'Privacy policy',terms:'Terms of use',support:'Support',app:'App','delete-account':'Delete account'},
 });
 export function routeTitle(locale:Locale,view:string){return routeTitles[locale][view]??view}
 
@@ -189,16 +196,17 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_83': 'Telegram сейчас не отвечает. Повторите через минуту.',
     'err_84': 'Уведомления в Telegram пока недоступны.',
     'err_85': 'Вернуть товар уже нельзя. Добавьте его снова со страницы товара.',
+    'err_86': 'Этап уже изменился — обновите очередь.',
     // Promo codes (redesign stage 6, lib/market/promo.ts).
-    'err_86': 'Такой промокод не найден или сейчас не действует. Проверьте написание.',
-    'err_87': 'Срок действия промокода закончился или ещё не начался.',
-    'err_88': 'Промокод уже использован максимальное число раз.',
-    'err_89': 'Сумма заказа меньше той, с которой действует промокод.',
-    'err_90': 'Скидка по промокоду пересчитана. Проверьте итог и нажмите «Оплатить» ещё раз.',
-    'err_91': 'Промокоды пока недоступны: примените миграцию базы 0017.',
-    'err_92': 'Проверьте промокод: 3–30 латинских букв или цифр, процент от 1 до 100 или сумма в сумах, конец срока позже начала.',
-    'err_93': 'Промокод с таким текстом уже есть. Придумайте другой.',
-    'err_94': 'Промокоды временно недоступны. Оформите заказ без промокода или попробуйте позже.',
+    'err_87': 'Такой промокод не найден или сейчас не действует. Проверьте написание.',
+    'err_88': 'Срок действия промокода закончился или ещё не начался.',
+    'err_89': 'Промокод уже использован максимальное число раз.',
+    'err_90': 'Сумма заказа меньше той, с которой действует промокод.',
+    'err_91': 'Скидка по промокоду пересчитана. Проверьте итог и нажмите «Оплатить» ещё раз.',
+    'err_92': 'Промокоды пока недоступны: примените миграцию базы 0017.',
+    'err_93': 'Проверьте промокод: 3–30 латинских букв или цифр, процент от 1 до 100 или сумма в сумах, конец срока позже начала.',
+    'err_94': 'Промокод с таким текстом уже есть. Придумайте другой.',
+    'err_95': 'Промокоды временно недоступны. Оформите заказ без промокода или попробуйте позже.',
     'err_55': 'Нельзя отключить собственный доступ.',
     'err_56': 'Основного администратора из настроек хостинга отключить нельзя.',
     'err_57': 'Заметки о клиентах пока недоступны: примените миграцию базы 0011.',
@@ -278,15 +286,16 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_83': 'Telegram hozir javob bermayapti. Bir daqiqadan so‘ng qayta urining.',
     'err_84': 'Telegramdagi bildirishnomalar hozircha mavjud emas.',
     'err_85': 'Tovarni endi qaytarib bo‘lmaydi. Uni tovar sahifasidan qayta qo‘shing.',
-    'err_86': 'Bunday promokod topilmadi yoki hozir amal qilmaydi. Yozilishini tekshiring.',
-    'err_87': 'Promokodning amal qilish muddati tugagan yoki hali boshlanmagan.',
-    'err_88': 'Promokod ruxsat etilgan marta ishlatib bo‘lingan.',
-    'err_89': 'Buyurtma summasi promokod amal qiladigan summadan kam.',
-    'err_90': 'Promokod chegirmasi qayta hisoblandi. Jamini tekshirib, «To‘lash»ni yana bosing.',
-    'err_91': 'Promokodlar hozircha mavjud emas: 0017 migratsiyasini qo‘llang.',
-    'err_92': 'Promokodni tekshiring: 3–30 lotin harfi yoki raqam, 1 dan 100 gacha foiz yoki so‘mdagi summa, tugash sanasi boshlanishdan keyin.',
-    'err_93': 'Bunday matnli promokod allaqachon bor. Boshqasini o‘ylab toping.',
-    'err_94': 'Promokodlar vaqtincha ishlamayapti. Buyurtmani promokodsiz rasmiylashtiring yoki keyinroq urinib ko‘ring.',
+    'err_86': 'Bosqich allaqachon o‘zgargan — navbatni yangilang.',
+    'err_87': 'Bunday promokod topilmadi yoki hozir amal qilmaydi. Yozilishini tekshiring.',
+    'err_88': 'Promokodning amal qilish muddati tugagan yoki hali boshlanmagan.',
+    'err_89': 'Promokod ruxsat etilgan marta ishlatib bo‘lingan.',
+    'err_90': 'Buyurtma summasi promokod amal qiladigan summadan kam.',
+    'err_91': 'Promokod chegirmasi qayta hisoblandi. Jamini tekshirib, «To‘lash»ni yana bosing.',
+    'err_92': 'Promokodlar hozircha mavjud emas: 0017 migratsiyasini qo‘llang.',
+    'err_93': 'Promokodni tekshiring: 3–30 lotin harfi yoki raqam, 1 dan 100 gacha foiz yoki so‘mdagi summa, tugash sanasi boshlanishdan keyin.',
+    'err_94': 'Bunday matnli promokod allaqachon bor. Boshqasini o‘ylab toping.',
+    'err_95': 'Promokodlar vaqtincha ishlamayapti. Buyurtmani promokodsiz rasmiylashtiring yoki keyinroq urinib ko‘ring.',
     'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
     'err_56': 'Hosting sozlamalaridagi asosiy administratorni o‘chirib bo‘lmaydi.',
     'err_57': 'Mijozlar haqidagi eslatmalar hozircha mavjud emas: 0011 migratsiyasini qo‘llang.',
@@ -366,15 +375,16 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_83': 'Telegram isn’t responding right now. Try again in a minute.',
     'err_84': 'Telegram notifications aren’t available yet.',
     'err_85': 'The item can no longer be restored. Add it again from its page.',
-    'err_86': 'This promo code was not found or is not valid right now. Check the spelling.',
-    'err_87': 'The promo code has expired or is not valid yet.',
-    'err_88': 'The promo code has been used the maximum number of times.',
-    'err_89': 'The order is below the amount this promo code starts from.',
-    'err_90': 'The promo discount was recalculated. Check the total and press “Pay” again.',
-    'err_91': 'Promo codes are not available yet: apply database migration 0017.',
-    'err_92': 'Check the promo code: 3–30 Latin letters or digits, a percent from 1 to 100 or an amount in soum, and an end after the start.',
-    'err_93': 'A promo code with this text already exists. Choose another one.',
-    'err_94': 'Promo codes are temporarily unavailable. Check out without one or try again later.',
+    'err_86': 'The stage has already changed — refresh the queue.',
+    'err_87': 'This promo code was not found or is not valid right now. Check the spelling.',
+    'err_88': 'The promo code has expired or is not valid yet.',
+    'err_89': 'The promo code has been used the maximum number of times.',
+    'err_90': 'The order is below the amount this promo code starts from.',
+    'err_91': 'The promo discount was recalculated. Check the total and press “Pay” again.',
+    'err_92': 'Promo codes are not available yet: apply database migration 0017.',
+    'err_93': 'Check the promo code: 3–30 Latin letters or digits, a percent from 1 to 100 or an amount in soum, and an end after the start.',
+    'err_94': 'A promo code with this text already exists. Choose another one.',
+    'err_95': 'Promo codes are temporarily unavailable. Check out without one or try again later.',
     'err_55': 'You cannot disable your own access.',
     'err_56': 'The primary administrator from the hosting settings cannot be disabled.',
     'err_57': 'Customer notes are not available yet: apply database migration 0011.',
@@ -387,7 +397,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
  * (err_76), the duty for the recipient is another (err_77). The client reloads the account after them, so the cart
  * and the tariff it shows are the ones the next attempt is checked against.
  */
-export const reloadAfterErrorCodes: readonly string[] = ['err_75', 'err_76', 'err_77', 'err_90'];
+export const reloadAfterErrorCodes: readonly string[] = ['err_75', 'err_76', 'err_77', 'err_91'];
 /** The localized text of an error code; `{name}` placeholders take the given values. */
 export function serverError(locale:Locale, key:string, params?:Record<string,string|number>){
   const text = serverErrors[locale][key] ?? pickLocale({
@@ -402,37 +412,37 @@ export function serverError(locale:Locale, key:string, params?:Record<string,str
  *  kept for the footer and tests; the bottom bar's centre button says `link`. */
 export type NavCopy = { catalog: string; byLink: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string; help: string;
   link: string; buyByLink: string; delivery: string; profile: string; profileMenu: string; search: string; searchPlaceholder: string; searchShort: string;
-  balance: string; notifications: string; favorites: string; documents: string; theme: string; signOut: string; needsAction: string };
+  balance: string; notifications: string; favorites: string; documents: string; settings: string; theme: string; signOut: string; needsAction: string };
 /** Header navigation words, kept here (loaded on every page) rather than in the home page copy, which uses them as `nav`. */
 export const navCopy: Record<Locale, NavCopy> = /*@__PURE__*/withCyrillic({
   ru: { catalog: 'Каталог', byLink: 'По ссылке', stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта', help: 'Помощь',
     link: 'Ссылка', buyByLink: 'Купить по ссылке', delivery: 'Доставка', profile: 'Профиль', profileMenu: 'Меню профиля', search: 'Поиск', searchPlaceholder: 'Товар или ссылка', searchShort: 'Найти',
-    balance: 'Баланс', notifications: 'Уведомления', favorites: 'Избранное', documents: 'Документы', theme: 'Тема', signOut: 'Выйти', needsAction: 'заказ ждёт вашего действия' },
+    balance: 'Баланс', notifications: 'Уведомления', favorites: 'Избранное', documents: 'Документы', settings: 'Настройки', theme: 'Тема', signOut: 'Выйти', needsAction: 'заказ ждёт вашего действия' },
   uz: { catalog: 'Katalog', byLink: 'Havola', stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili', help: 'Yordam',
     link: 'Havola', buyByLink: 'Havola orqali xarid', delivery: 'Yetkazib berish', profile: 'Profil', profileMenu: 'Profil menyusi', search: 'Qidiruv', searchPlaceholder: 'Tovar yoki havola', searchShort: 'Topish',
-    balance: 'Balans', notifications: 'Bildirishnomalar', favorites: 'Saqlanganlar', documents: 'Hujjatlar', theme: 'Mavzu', signOut: 'Chiqish', needsAction: 'buyurtma harakatingizni kutmoqda' },
+    balance: 'Balans', notifications: 'Bildirishnomalar', favorites: 'Saqlanganlar', documents: 'Hujjatlar', settings: 'Sozlamalar', theme: 'Mavzu', signOut: 'Chiqish', needsAction: 'buyurtma harakatingizni kutmoqda' },
   en: { catalog: 'Catalog', byLink: 'By link', stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language', help: 'Help',
     link: 'Link', buyByLink: 'Buy by link', delivery: 'Delivery', profile: 'Profile', profileMenu: 'Profile menu', search: 'Search', searchPlaceholder: 'Item or link', searchShort: 'Find',
-    balance: 'Balance', notifications: 'Notifications', favorites: 'Saved', documents: 'Documents', theme: 'Theme', signOut: 'Sign out', needsAction: 'an order needs your action' },
+    balance: 'Balance', notifications: 'Notifications', favorites: 'Saved', documents: 'Documents', settings: 'Settings', theme: 'Theme', signOut: 'Sign out', needsAction: 'an order needs your action' },
 });
 
 export type FooterCopy = { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; email: string; hours: string; pickup: string; theme: string; inn: string };
 /** Footer words (every page), apart from the home page copy, which uses them as `footer` and `trust.inn`. */
 export const footerCopy: Record<Locale, FooterCopy> = /*@__PURE__*/withCyrillic({
   ru: {
-      tagline: 'Покупки в зарубежных магазинах с доставкой в Ташкент.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
+      tagline: 'Atlas — сервис-посредник: выкупает товары в зарубежных магазинах и доставляет в Ташкент.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
       support: 'Поддержка в личном кабинете', rules: 'Все документы', privacy: 'Политика данных', customs: 'Таможня', faq: 'Частые вопросы',
       telegramSupport: 'Telegram-бот', telegramChannel: 'Telegram-канал', phone: 'Телефон', instagram: 'Instagram', email: 'Почта', hours: 'Часы работы', pickup: 'Пункт выдачи', theme: 'Тема',
       inn: 'ИНН',
   },
   uz: {
-      tagline: 'Xorijiy do‘konlardan Toshkentga yetkazib berish bilan xaridlar.', buyers: 'Xaridorlarga', contacts: 'Bog‘lanish', legal: 'Yuridik ma’lumotlar',
+      tagline: 'Atlas — vositachi xizmat: xorijiy do‘konlardan tovarlarni sotib olib, Toshkentga yetkazadi.', buyers: 'Xaridorlarga', contacts: 'Bog‘lanish', legal: 'Yuridik ma’lumotlar',
       support: 'Shaxsiy kabinetdagi yordam', rules: 'Barcha hujjatlar', privacy: 'Ma’lumotlar siyosati', customs: 'Bojxona', faq: 'Savollar',
       telegramSupport: 'Telegram-bot', telegramChannel: 'Telegram-kanal', phone: 'Telefon', instagram: 'Instagram', email: 'Pochta', hours: 'Ish vaqti', pickup: 'Topshirish punkti', theme: 'Mavzu',
       inn: 'STIR',
   },
   en: {
-      tagline: 'Shopping in international stores with delivery to Tashkent.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
+      tagline: 'Atlas is a purchasing service: it buys items from international stores and delivers them to Tashkent.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
       support: 'Support in your account', rules: 'All documents', privacy: 'Privacy policy', customs: 'Customs', faq: 'FAQ',
       telegramSupport: 'Telegram bot', telegramChannel: 'Telegram channel', phone: 'Phone', instagram: 'Instagram', email: 'Email', hours: 'Working hours', pickup: 'Pickup point', theme: 'Theme',
       inn: 'Tax ID (INN)',

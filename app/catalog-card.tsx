@@ -90,7 +90,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const saveClass = variant === 'compact' ? 'find-save' : 'pcard-save';
   const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={saveClass + ' ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>
     // The address is read on the tap, not while rendering (the card renders on the server too): back to these filters.
-    : guestSave ? <Tooltip><TooltipTrigger asChild><a className={saveClass} href={loginPath('/catalog')} aria-label={copy.signinToSave + ': ' + name} onClick={(event) => { rememberPendingFavorite(browserStorage(), product.id, Date.now()); event.currentTarget.href = loginPath(window.location.pathname + window.location.search); }}><Heart size={20} aria-hidden="true" /></a></TooltipTrigger><TooltipContent>{copy.signinToSave}</TooltipContent></Tooltip>
+    : guestSave ? <Tooltip><TooltipTrigger asChild><a className={saveClass} href={loginPath('/catalog')} rel="nofollow" aria-label={copy.signinToSave + ': ' + name} onClick={(event) => { rememberPendingFavorite(browserStorage(), product.id, Date.now()); event.currentTarget.href = loginPath(window.location.pathname + window.location.search); }}><Heart size={20} aria-hidden="true" /></a></TooltipTrigger><TooltipContent>{copy.signinToSave}</TooltipContent></Tooltip>
     : null;
   // The store discount shows on a dated price too, when that price is the recorded USD one (owner, 12 October 2026).
   const showDiscount = discount > 0 && (!needsPrice || (hasRecordedPrice && product.sourceCurrency === 'USD'));
@@ -130,7 +130,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <span className="pcard-photo"><ProductImage product={product} decorative locale={locale} /></span>
       {(showDiscount || item.topDeal) && <span className="pcard-badges">
         {showDiscount && <em className="pcard-off" title={copy.compareHint}>−{discount}&#x202F;%</em>}
-        {item.topDeal && <span className="pcard-top"><Flame size={13} aria-hidden="true" />{copy.topDeal}</span>}
+        {item.topDeal && <span className="pcard-top"><Flame size={14} aria-hidden="true" />{copy.topDeal}</span>}
       </span>}
       {brandForHost(item.store) && <span className="pcard-store" title={storeText}><StoreMark host={item.store} /><span className="sr-only">{cc.storeOf(storeText)}</span></span>}
       {save}
@@ -157,8 +157,8 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       {parcel && <p className="pcard-note" title={parcel.hint}>{parcel.text}{parcel.hint && <span className="sr-only">. {parcel.hint}</span>}</p>}
       <div className="pcard-buy">
         {inCart
-          ? <a className="btn secondary" href="/cart"><Check size={17} aria-hidden="true" />{cc.inCart}</a>
-          : <a className="btn primary" href={productHref} onClick={openFromLink}><ShoppingBag size={17} aria-hidden="true" />{cc.addToCart}</a>}
+          ? <a className="btn secondary" href="/cart"><Check size={18} aria-hidden="true" />{cc.inCart}</a>
+          : <a className="btn primary" href={productHref} onClick={openFromLink}><ShoppingBag size={18} aria-hidden="true" />{cc.addToCart}</a>}
       </div>
     </div>
   </article>;

@@ -21,7 +21,23 @@ import type { Locale } from '@/lib/market/i18n';
 import { Money } from './money';
 import { CountryFlag } from './flags';
 import { StoreLogo } from './store-logo';
-import { StoreDialog, byRank, goToLinkOrder, type BrandCatalog, type Copy, type CountryTerms, type PersonalMark, type TermsByCountry } from './store-dialog';
+import { goToLinkOrder } from './store-page';
+import { storePath } from '@/lib/seo/routes';
+
+type Copy = (typeof storesCopy)['ru'];
+/** storeCountryTerms plus the short day ranges the directory prints ("5–9 раб. дн"). */
+type CountryTerms = ReturnType<typeof storeCountryTerms> & { expressShort: string | null; standardShort: string | null };
+type TermsByCountry = Record<StoreCountry, CountryTerms>;
+/** The catalog products of one brand, priced; `items` sorted as the storefront shows them. */
+type BrandCatalog = { count: number; hosts: Set<string>; items: CatalogItem[]; minTotal: number | null; stale: boolean };
+/** The visitor's own link to a store: a parcel from it in the cart, or an earlier order. */
+type PersonalMark = 'cart' | 'orders';
+/** Popular brands first, then the bigger ones (more country storefronts), then by name. */
+const byRank = (a: StoreBrand, b: StoreBrand) => {
+  const pa = popularBrandKeys.indexOf(a.key), pb = popularBrandKeys.indexOf(b.key);
+  if (pa !== pb) return (pa < 0 ? 99 : pa) - (pb < 0 ? 99 : pb);
+  return b.storefronts.length - a.storefronts.length || a.name.localeCompare(b.name);
+};
 
 type CatalogByBrand = Map<string, BrandCatalog>;
 const focusKeys = new Set<string>(storeFocusOrder);
@@ -43,8 +59,9 @@ const byShowcase = (a: CatalogItem, b: CatalogItem) =>
 
 /**
  * Store directory: brands with logos (country storefronts of one store grouped), delivery terms per country,
- * storefronts with catalog products, search, type / region / country filters kept in the address, and a
- * store card (deep-linked as ?brand=) that explains how to order from the store.
+ * storefronts with catalog products, search and type / region / country filters kept in the address. Every store leads
+ * to its own page, /stores/[slug] (redesign stage 8, 1 November 2026: it replaced the store card; an old `?brand=` link
+ * is sent there).
  */
 export function StoresDirectory() {
   const { state, pricing, catalogProducts, loadCatalog, sessionHint, ready } = useMarket();
@@ -54,7 +71,6 @@ export function StoresDirectory() {
   const [focus, setFocus] = useState<StoreFocus | ''>('');
   const [region, setRegion] = useState<StoreRegion | ''>('');
   const [country, setCountry] = useState<StoreCountry | ''>('');
-  const [open, setOpen] = useState<StoreBrand | null>(null);
   const [expanded, setExpanded] = useState<StoreFocus[]>([]);
   const [showcaseOpen, setShowcaseOpen] = useState(false);
   const field = useRef<HTMLInputElement>(null);
@@ -70,19 +86,20 @@ export function StoresDirectory() {
       if (f && focusKeys.has(f)) setFocus(f as StoreFocus);
       if (r && regionKeys.has(r)) setRegion(r as StoreRegion);
       if (k && countryKeys.has(k)) setCountry(k as StoreCountry);
+      // The store card of `?brand=` is now the store's own page.
       const brand = b ? storeBrands.find((entry) => entry.key === b) : undefined;
-      if (brand) setOpen(brand);
+      if (brand) { window.location.replace(storePath(brand.key)); return; }
       hydrated.current = true;
     });
   }, []);
   useEffect(() => {
     if (!hydrated.current) return;
     const params = new URLSearchParams(window.location.search);
-    for (const [key, value] of [['q', query.trim()], ['focus', focus], ['region', region], ['country', country], ['brand', open?.key ?? '']] as const) { if (value) params.set(key, value); else params.delete(key); }
+    for (const [key, value] of [['q', query.trim()], ['focus', focus], ['region', region], ['country', country]] as const) { if (value) params.set(key, value); else params.delete(key); }
     const search = params.toString();
     const next = window.location.pathname + (search ? '?' + search : '') + window.location.hash;
     if (next !== window.location.pathname + window.location.search + window.location.hash) window.history.replaceState(window.history.state, '', next);
-  }, [query, focus, region, country, open]);
+  }, [query, focus, region, country]);
 
   // Delivery terms per store country at the current tariff, with the short day ranges the tiles print.
   const terms = useMemo<TermsByCountry>(() => {
@@ -150,7 +167,7 @@ export function StoresDirectory() {
   const regionCount = (key: StoreRegion) => searched.filter((brand) => (!focus || brand.focus === focus) && brandRegions(brand).has(key) && inCountry(brand)).length;
   const grouped = !search && !focus;
   const speed = deliverySpeedCopy[locale];
-  const gridProps = { locale, c, catalog: catalogByBrand, marks, terms, onOpen: setOpen };
+  const gridProps = { locale, c, catalog: catalogByBrand, marks, terms };
 
   return <div className="stores-page">
     <header className="stores-hero">
@@ -182,7 +199,7 @@ export function StoresDirectory() {
         down when "your stores" arrive (mobile CLS, 26 October 2026). */}
     {(mine.length > 0 || (sessionHint && !ready)) && <section className={"stores-shelf stores-mine" + (ready ? "" : " is-loading")} aria-labelledby="stores-mine-title" aria-busy={!ready || undefined}>
       <h2 id="stores-mine-title">{c.mine}</h2>
-      <ul>{ready ? mine.map((brand) => <li key={brand.key}><button type="button" onClick={() => setOpen(brand)}><StoreLogo brand={brand} size={44} loading="eager" /><span>{brand.name}</span></button></li>)
+      <ul>{ready ? mine.map((brand) => <li key={brand.key}><Link href={storePath(brand.key)}><StoreLogo brand={brand} size={44} loading="eager" /><span>{brand.name}</span></Link></li>)
         : [0, 1, 2, 3].map((key) => <li key={key} aria-hidden="true"><span className="stores-mine-placeholder" /></li>)}</ul>
     </section>}
 
@@ -193,12 +210,12 @@ export function StoresDirectory() {
         if (!entry) return null;
         const main = brand.storefronts[0], t = terms[main.country], photos = entry.items.slice(0, 3);
         return <li key={brand.key}><article className="store-showcase-card" aria-labelledby={'stores-showcase-' + brand.key}>
-          {/* The name opens the store's terms; the main button below leads to its products in the catalog. */}
+          {/* The name and the main button below both lead to the store's own page (its products and terms). */}
           <header>
-            <button type="button" className="store-showcase-open" aria-label={c.aboutStore(brand.name)} onClick={() => setOpen(brand)}>
+            <Link className="store-showcase-open" href={storePath(brand.key)}>
               <StoreLogo brand={brand} size={36} />
               <span className="store-showcase-name"><b id={'stores-showcase-' + brand.key}>{brand.name}</b><small><CountryFlag code={main.country} /><span>{storeCountryNames[main.country][locale]}</span></small></span>
-            </button>
+            </Link>
             <span>{c.products(entry.count)}</span>
           </header>
           {/* As many slots as photos (up to three): one photo fills the stage; the logo stands in only for one that fails to load. */}
@@ -209,7 +226,7 @@ export function StoresDirectory() {
             {entry.stale && entry.minTotal !== null && <small>{c.lastPrices}</small>}
           </p>
           <p className="store-showcase-terms">{t.region ? `${t.expressShort ?? c.pendingTerms} · ${t.expressPerKg}` : c.pendingTerms}</p>
-          <Link className="btn secondary" href={'/catalog?store=' + [...entry.hosts].join(',')}>{c.viewProducts(entry.count)}<ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link className="btn secondary" href={storePath(brand.key)}>{c.viewProducts(entry.count)}<ArrowRight size={16} aria-hidden="true" /></Link>
         </article></li>;
       })}</ul>
       {/* Wide screens fold the shelf to two rows (le8: everything fits at four per row); phones scroll the whole row, so CSS hides the button there. */}
@@ -220,7 +237,7 @@ export function StoresDirectory() {
 
     <section className="stores-shelf stores-popular" aria-labelledby="stores-popular-title">
       <h2 id="stores-popular-title">{c.popular}</h2>
-      <ul>{popular.map((brand) => <li key={brand.key}><button type="button" onClick={() => setOpen(brand)}><StoreLogo brand={brand} size={44} loading="eager" /><span>{brand.name}</span></button></li>)}</ul>
+      <ul>{popular.map((brand) => <li key={brand.key}><Link href={storePath(brand.key)}><StoreLogo brand={brand} size={44} loading="eager" /><span>{brand.name}</span></Link></li>)}</ul>
     </section>
 
     <section className="stores-browse" aria-labelledby="stores-browse-title">
@@ -242,7 +259,7 @@ export function StoresDirectory() {
           // le8/le9/le10: everything fits in the collapsed rows of that breakpoint, so no "show all" there.
           const fits = [8, 9, 10].filter((limit) => items.length <= limit).map((limit) => ' le' + limit).join('');
           return items.length ? <section className={'stores-group' + (isOpen ? ' open' : '') + fits} key={key} aria-labelledby={'stores-' + key}>
-            <h3 id={'stores-' + key}>{storeFocusNames[key][locale]}<span>{items.length}</span></h3>
+            <div className="stores-group-head"><h3 id={'stores-' + key}>{storeFocusNames[key][locale]}</h3><span>{items.length}</span></div>
             <StoreGrid items={items} {...gridProps} drawnUpTo={isOpen ? undefined : collapsedMax} />
             {items.length > collapsedCount && <button type="button" className="stores-more" aria-expanded={isOpen} aria-controls={'stores-grid-' + key} onClick={() => setExpanded(isOpen ? expanded.filter((value) => value !== key) : [...expanded, key])}>
               {isOpen ? c.showLess : c.showAll(items.length)}<ChevronDown size={18} aria-hidden="true" />
@@ -257,7 +274,6 @@ export function StoresDirectory() {
       </div>
       <p className="stores-note">{c.note}</p>
     </section>
-    <StoreDialog brand={open} c={c} locale={locale} pricing={pricing} terms={terms} catalog={open ? catalogByBrand.get(open.key) : undefined} mark={open ? marks.get(open.key) : undefined} onOpen={setOpen} onClose={() => setOpen(null)} />
   </div>;
 }
 
@@ -265,12 +281,12 @@ export function StoresDirectory() {
  * `drawnUpTo`: tiles past it sit hidden in a closed shelf, so they keep their name and country (the page lists every
  * store) but skip the logo and flag — their SVG made up most of the page's ~9000 elements. Opening the shelf draws them.
  */
-function StoreGrid({ items, locale, c, catalog, marks, terms, onOpen, drawnUpTo = Infinity }: { items: StoreBrand[]; locale: Locale; c: Copy; catalog: CatalogByBrand; marks: Map<string, PersonalMark>; terms: TermsByCountry; onOpen: (brand: StoreBrand) => void; drawnUpTo?: number }) {
+function StoreGrid({ items, locale, c, catalog, marks, terms, drawnUpTo = Infinity }: { items: StoreBrand[]; locale: Locale; c: Copy; catalog: CatalogByBrand; marks: Map<string, PersonalMark>; terms: TermsByCountry; drawnUpTo?: number }) {
   return <ul className="stores-grid" id={items[0] ? 'stores-grid-' + items[0].focus : undefined}>{items.map((brand, index) => {
     const drawn = index < drawnUpTo;
     const main = brand.storefronts[0], t = terms[main.country], mark = marks.get(brand.key);
     const countries = new Set(brand.storefronts.map((s) => s.country)).size, inCatalog = catalog.get(brand.key)?.count ?? 0;
-    return <li key={brand.key}><button type="button" className="store-tile" onClick={() => onOpen(brand)}>
+    return <li key={brand.key}><Link className="store-tile" href={storePath(brand.key)}>
       <span className="store-tile-logo">{drawn ? <StoreLogo brand={brand} size={36} /> : <span className="store-logo" style={{ width: 36, height: 36 }} aria-hidden="true" />}{mark && <i className="store-tile-mark" title={mark === 'cart' ? c.inCartMark : c.youOrdered}><span className="sr-only">{mark === 'cart' ? c.inCartMark : c.youOrdered}</span></i>}</span>
       <span className="store-tile-text">
         <span className="store-tile-row"><b>{brand.name}</b>{inCatalog > 0 && <em className="store-tile-count">{c.products(inCatalog)}</em>}</span>
@@ -280,7 +296,7 @@ function StoreGrid({ items, locale, c, catalog, marks, terms, onOpen, drawnUpTo 
           {countries > 1 && <span className="store-tile-more">{c.moreCountries(countries - 1)}</span>}
         </small>
       </span>
-    </button></li>;
+    </Link></li>;
   })}</ul>;
 }
 

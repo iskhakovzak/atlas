@@ -10,7 +10,7 @@ import './telegram-notices-link.css';
 
 // Light links to the Telegram setting in the account, for the bell sheet and /notifications (no sign-in code here).
 
-const settingsHref='/account#telegram-notices';
+const settingsHref='/account/settings#telegram-notices';
 
 /**
  * What the account's notices really are: "on" only while the Telegram they were turned on for is still the one
@@ -34,7 +34,7 @@ export function TelegramBellLink({locale,onNavigate}:{locale:Locale;onNavigate?:
  const {bot,known,on}=useTelegramOn();
  // While the attached Telegram is still being read, an "on" account shows nothing rather than a flicker.
  if(!ready||!bot||!known||on)return null;
- return <Link className="notice-panel-tg" href={settingsHref} onClick={onNavigate}><Send size={15} aria-hidden="true"/>{telegramUiCopy[locale].bellLink}</Link>;
+ return <Link className="notice-panel-tg" href={settingsHref} onClick={onNavigate}><Send size={16} aria-hidden="true"/>{telegramUiCopy[locale].bellLink}</Link>;
 }
 
 /**
@@ -44,7 +44,7 @@ export function TelegramBellLink({locale,onNavigate}:{locale:Locale;onNavigate?:
  */
 export function OperatorTelegramHint({on,locale}:{on:boolean;locale:Locale}){
  const t=telegramUiCopy[locale];
- return <p className={'micro operator-tg-hint'+(on?' on':'')}>{on&&<Send size={13} aria-hidden="true"/>}{on?t.operatorOn:t.operatorOff}</p>;
+ return <p className={'micro operator-tg-hint'+(on?' on':'')}>{on&&<Send size={14} aria-hidden="true"/>}{on?t.operatorOn:t.operatorOff}</p>;
 }
 
 /** The first row of the notification settings on /notifications: on or off, and where to change it. */
@@ -54,7 +54,7 @@ export function TelegramSettingsRow({locale}:{locale:Locale}){
  // "Changed" (Telegram re-linked after the consent) sends nothing, so it reads "off" here; the account says why.
  const t=telegramUiCopy[locale];
  return <div className="notice-tg-row">
-  <span className="notice-tg-row-label"><Send size={17} aria-hidden="true"/>{on?t.rowOn:t.rowOff}</span>
-  <Link className="notice-tg-row-link" href={settingsHref}>{t.setUp}<ArrowRight size={15} aria-hidden="true"/></Link>
+  <span className="notice-tg-row-label"><Send size={18} aria-hidden="true"/>{on?t.rowOn:t.rowOff}</span>
+  <Link className="notice-tg-row-link" href={settingsHref}>{t.setUp}<ArrowRight size={16} aria-hidden="true"/></Link>
  </div>;
 }

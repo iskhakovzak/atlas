@@ -58,9 +58,9 @@ await apply({ type: "checkout", key: crypto.randomUUID(), signature: cartSignatu
 assert.equal(account.state.orders[0].quote.promoDiscount, promoAmount);
 assert.equal(account.state.orders[0].promo.code, promoCode);
 const usedUp = await fetch(new URL("/api/promo", base), { method: "POST", headers: { ...auth(customerEmail), "Content-Type": "application/json", Origin: base.origin }, body: JSON.stringify({ code: promoCode }) });
-// The code check answers the same 404 err_86 for unknown, expired and used-up codes (nothing to learn by trying codes).
+// The code check answers the same 404 err_87 for unknown, expired and used-up codes (nothing to learn by trying codes).
 assert.equal(usedUp.status, 404, "a code with one use is used up after the order");
-assert.equal((await usedUp.json()).errorCode, "err_86");
+assert.equal((await usedUp.json()).errorCode, "err_87");
 const orderId = account.state.orders[0].id;
 assert.equal(account.state.orders[0].payment.status, "pending");
 await apply({ type: "payment-demo", id: orderId });
@@ -87,7 +87,12 @@ await operate({ type: "advance", id: orderId, expected: 1 });
 await operate({ type: "warehouse-inspect", id: orderId, condition: "ok", quantityReceived: 1, notes: "Комплектность подтверждена", services: ["photo"], packageGroup: "SMOKE-BOX" });
 await operate({ type: "receive", id: orderId, dimensions: [1.8, 30, 20, 15] });
 await operate({ type: "advance", id: orderId, expected: 3 });
+// On its way: the operator marks "Таможня" (stage 5) and "В Ташкенте" (6), then the delivery (1 November 2026).
 await operate({ type: "advance", id: orderId, expected: 4 });
+assert.equal(account.state.orders[0].transitStage, "customs");
+await operate({ type: "advance", id: orderId, expected: 5 });
+assert.equal(account.state.orders[0].transitStage, "tashkent");
+await operate({ type: "advance", id: orderId, expected: 6 });
 assert.equal(account.state.orders[0].status, 5);
 assert.equal(account.state.orders[0].parcel.events.at(-1).status, "Доставлено получателю");
 account = await request("/api/account");

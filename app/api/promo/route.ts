@@ -13,12 +13,12 @@ export async function POST(request:Request){try{
   const user=await identity();
   await rateLimit(`${user.userId}:promo-check`,20,10*60_000);
   const body=z.object({code:z.string().trim().min(1).max(40)}).safeParse(await requestJson(request,2000));
-  if(!body.success)throw new HttpError(400,'err_86');
+  if(!body.success)throw new HttpError(400,'err_87');
   let rule;
-  // The customer sees a plain «temporarily unavailable» (err_94); the migration hint (err_91) is for the admin only.
-  try{rule=await findPromo(database(),body.data.code)}catch(error){console.error('Promo code read failed',error);throw new HttpError(503,'err_94')}
+  // The customer sees a plain «temporarily unavailable» (err_95); the migration hint (err_92) is for the admin only.
+  try{rule=await findPromo(database(),body.data.code)}catch(error){console.error('Promo code read failed',error);throw new HttpError(503,'err_95')}
   // One answer for every code that cannot be used now (unknown, off, outside its dates, used up): trying codes here tells
   // nothing about which ones exist. The exact reason is given only at payment, for a code this check accepted.
-  if(promoProblem(rule,Date.now())||!rule)throw new HttpError(404,'err_86');
+  if(promoProblem(rule,Date.now())||!rule)throw new HttpError(404,'err_87');
   return json({promo:promoPreview(rule)});
 }catch(error){return failure(error,request)}}

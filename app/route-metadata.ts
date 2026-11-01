@@ -1,45 +1,50 @@
 import type { Metadata } from 'next';
-import { routeTitle, supportedLocale, type Locale } from '../lib/market/i18n.ts';
+import { routeTitle, type Locale } from '../lib/market/i18n.ts';
 import {withCyrillic} from '../lib/market/uz-cyrl.ts';
+import { alternateOgLocales, defaultImage, ogLocale, pageMetadata } from '../lib/seo/metadata.ts';
+import { pageLanguageSet, type LanguageSet } from '../lib/seo/locales.ts';
 
-const ogLocale: Record<Locale, string> = /*@__PURE__*/withCyrillic({ uz: 'uz_UZ', ru: 'ru_RU', en: 'en_US' });
-const ogImage: Record<Locale, string> = /*@__PURE__*/withCyrillic({ uz: '/og-image-uz.png', ru: '/og-image.png', en: '/og-image-en.png' });
-const imageAlt: Record<Locale, string> = /*@__PURE__*/withCyrillic({
-  uz: 'Atlas — xorijiy do‘konlardan Toshkentga yetkazib berish',
-  ru: 'Atlas — покупки в зарубежных магазинах с доставкой в Ташкент',
-  en: 'Atlas — shop international stores with delivery to Tashkent',
-});
-// Route-level openGraph replaces the root object, so each route repeats the preview image.
-const images = (locale: Locale) => [{ url: ogImage[locale], width: 1200, height: 630, alt: imageAlt[locale] }];
-
-export type PublicPage = 'home' | 'catalog' | 'stores' | 'customs' | 'legal' | 'privacy' | 'terms' | 'support' | 'app' | 'delete-account';
-const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
+export type PublicPage = 'home' | 'catalog' | 'stores' | 'delivery' | 'customs' | 'legal' | 'privacy' | 'terms' | 'support' | 'app' | 'delete-account';
+const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', delivery: '/delivery', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
 
 export function publicPath(page: PublicPage): string {
   return paths[page];
 }
+
+/** Every public page, in sitemap order. */
+export const publicPages = Object.keys(paths) as PublicPage[];
+
+/** Language versions per page: the legal documents exist only in Russian for now (lib/seo/locales.ts). */
+export const pageLanguages = Object.fromEntries(publicPages.map((page) => [page, pageLanguageSet(paths[page])])) as Record<PublicPage, LanguageSet>;
 
 // Titles that already name Atlas are used as is, so the "%s · Atlas" template does not repeat the brand.
 const pageText: Record<PublicPage, Record<Locale, { title: string; description: string }>> = {
   home: /*@__PURE__*/withCyrillic({
     uz: { title: 'Atlas — xorijiy do‘konlardan Toshkentga yetkazib berish', description: 'Xorijiy do‘kondagi tovar havolasini qo‘ying va yakuniy narxni so‘mda biling: tovar narxi va xalqaro yetkazish bilan Atlas xizmati, tarkibi hisobda ko‘rinadi.' },
     ru: { title: 'Atlas — покупки в зарубежных магазинах с доставкой в Ташкент', description: 'Вставьте ссылку на товар из зарубежного магазина и узнайте итог в сумах: цена товара и сервис Atlas с международной доставкой, состав виден в счёте.' },
-    en: { title: 'Atlas — shop international stores with delivery to Tashkent', description: 'Paste a product link from an international store and see the total in soum: the item price and the Atlas service with international delivery, broken down in the bill.' },
+    en: { title: 'Atlas — shop international stores with delivery to Tashkent', description: 'Paste a product link from a store abroad and see the total in soum with delivery to Tashkent: the item and the Atlas service, broken down in the bill.' },
   }),
   catalog: /*@__PURE__*/withCyrillic({
-    uz: { title: 'Xorijiy tovarlar katalogi — Toshkentga yetkazib berish', description: 'Poyabzal, kiyim, elektronika va go‘zallik mahsulotlari — yakuniy narxi so‘mda, Toshkentgacha yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit bo‘yicha filtrlar.' },
+    uz: { title: 'Xorijiy tovarlar katalogi Toshkentga yetkazish bilan', description: 'Poyabzal, kiyim, elektronika va go‘zallik — yakuniy narx so‘mda, Toshkentga yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit filtrlari.' },
     ru: { title: 'Каталог зарубежных товаров с доставкой в Ташкент', description: 'Обувь, одежда, электроника и красота с итогом в сумах и доставкой в Ташкент. Фильтры по магазину, цене, размеру и беспошлинному лимиту.' },
-    en: { title: 'Catalog of international products with delivery to Tashkent', description: 'Shoes, clothing, electronics and beauty with the total in soum and delivery to Tashkent. Filter by store, price, size and duty-free allowance.' },
+    en: { title: 'International product catalog, delivered to Tashkent', description: 'Shoes, clothing, electronics and beauty with the total in soum and delivery to Tashkent. Filter by store, price, size and duty-free allowance.' },
   }),
   stores: /*@__PURE__*/withCyrillic({
-    uz: { title: 'AQSh, Yevropa va Xitoy do‘konlaridan Toshkentga buyurtma', description: 'AQSh, Yevropa, Xitoy va boshqa mamlakatlardagi do‘konlar: Atlas havolangiz bo‘yicha tovarni sotib olib, Toshkentga yetkazadi. Har bir do‘kon uchun muddat, 1 kg narxi va valyuta.' },
+    uz: { title: 'AQSh, Yevropa, Xitoy do‘konlari: Toshkentga buyurtma', description: 'AQSh, Yevropa, Xitoy va boshqa davlatlar do‘konlari: Atlas havolangiz bo‘yicha tovarni sotib olib, Toshkentga yetkazadi. Muddat, 1 kg narxi va valyuta.' },
     ru: { title: 'Магазины США, Европы и Китая с доставкой в Ташкент', description: 'Магазины США, Европы, Китая и других стран: Atlas выкупит товар по вашей ссылке и доставит в Ташкент. Для каждого магазина — срок, цена за 1 кг и валюта.' },
-    en: { title: 'Order from US, European and Chinese stores to Tashkent', description: 'Stores in the US, Europe, China and other countries: Atlas buys the item from your link and delivers it to Tashkent. Delivery time, price per kg and currency for each store.' },
+    en: { title: 'US, EU and Chinese stores with delivery to Tashkent', description: 'Stores in the US, Europe, China and beyond: Atlas buys the item from your link and delivers it to Tashkent. Delivery time, price per kg and currency.' },
+  }),
+  // The six countries are named by hand here; tests/store-pages.test.mjs keeps them equal to the page's own list
+  // (deliveryDescriptionRegions = the regions of tariffRows): a country added to the tariff fails the test until this text names it.
+  delivery: /*@__PURE__*/withCyrillic({
+    uz: { title: 'Toshkentga yetkazish: tariflar va muddatlar', description: 'AQSh, Britaniya, Xitoy, Germaniya, Italiya va Ispaniyadan Toshkentga yetkazish: 1 kg narxi, ekspress va oddiy muddat, bojsiz limit va kalkulyator.' },
+    ru: { title: 'Доставка в Ташкент: тарифы и сроки по странам', description: 'Доставка из США, Великобритании, Китая, Германии, Италии и Испании в Ташкент: цена за 1 кг, сроки экспресс и обычной, беспошлинный лимит, калькулятор.' },
+    en: { title: 'Delivery to Tashkent: rates and times by country', description: 'Delivery from the US, UK, China, Germany, Italy and Spain to Tashkent: price per kg, express and standard times, the duty-free allowance and a calculator.' },
   }),
   customs: /*@__PURE__*/withCyrillic({
-    uz: { title: 'O‘zbekistonga jo‘natmalar uchun bojsiz limit va bojxona to‘lovi', description: 'Bojsiz limit qanday ishlashi, qanday ma’lumotlar kerakligi va O‘zbekistonga buyurtmalarda bojxona to‘lovlari qanday hisoblanishi.' },
+    uz: { title: 'Bojsiz limit va boj: O‘zbekistonga posilkalar', description: 'Bojsiz limit qanday ishlashi, qanday ma’lumotlar kerakligi va O‘zbekistonga buyurtmalarda bojxona to‘lovlari qanday hisoblanishi.' },
     ru: { title: 'Таможенный лимит и пошлина на посылки в Узбекистан', description: 'Как работает беспошлинный лимит, какие данные нужны и как рассчитываются таможенные платежи при заказе в Узбекистан.' },
-    en: { title: 'Customs duty and duty-free allowance for parcels to Uzbekistan', description: 'How the duty-free allowance works, which details are needed and how customs payments are calculated for orders to Uzbekistan.' },
+    en: { title: 'Customs duty and duty-free allowance in Uzbekistan', description: 'How the duty-free allowance works, which details are needed and how customs payments are calculated for orders to Uzbekistan.' },
   }),
   legal: /*@__PURE__*/withCyrillic({
     uz: { title: 'Huquqiy ma’lumotlar', description: 'Atlas xizmati qoidalari, buyurtma berish, hisob-kitob va ma’lumotlarni qayta ishlash tartibi.' },
@@ -80,33 +85,14 @@ const rootText: Record<Locale, { title: string; description: string; social: str
 });
 
 /**
- * Public pages: `/path` is the x-default, rendered in the visitor's language (Uzbek for crawlers
- * without a preference); `/path?lang=xx` are self-canonical hreflang versions rendered in that
- * language on the server (middleware.ts). Titles always match the language of the page text.
+ * Public pages: `/path` is the x-default, rendered in the visitor's language (Uzbek for crawlers without a
+ * preference); `/path?lang=xx` are self-canonical hreflang versions rendered in that language on the server
+ * (middleware.ts). Titles always match the language of the page text. Built by lib/seo/metadata.ts, which the
+ * redesigned pages (/catalog/p/[id], /stores/[slug], /delivery) use too.
  */
 export function publicMetadata(page: PublicPage, lang: string | undefined, fallback: Locale = 'uz'): Metadata {
-  const requested = supportedLocale(lang);
-  const locale = requested ?? fallback;
-  const path = paths[page];
-  const version = (code: Locale) => `${path}?lang=${code}`;
-  const url = requested ? version(requested) : path;
-  const text = pageText[page][locale];
-  // Titles that already carry the brand stand alone; the rest use the root "%s · Atlas" template.
-  const branded = text.title.includes('Atlas');
-  const socialTitle = branded ? text.title : `${text.title} · Atlas`;
-  return {
-    title: branded ? { absolute: text.title } : text.title,
-    description: text.description,
-    robots: publicRobots,
-    alternates: { canonical: url, languages: { uz: version('uz'), 'uz-Cyrl': version('oz'), ru: version('ru'), en: version('en'), 'x-default': path } },
-    openGraph: { type: 'website', url, title: socialTitle, description: text.description, locale: ogLocale[locale], images: images(locale) },
-    twitter: { card: 'summary_large_image', title: socialTitle, description: text.description, images: [ogImage[locale]] },
-  };
+  return pageMetadata({ path: paths[page], lang, fallback, text: (locale) => pageText[page][locale], languages: pageLanguages[page] });
 }
-
-// Set on public pages only: a root-level `index, follow` would be repeated next to the
-// framework's `noindex` on the 404 page.
-const publicRobots: Metadata['robots'] = { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } };
 
 const productText: Record<Locale, (title: string, sum?: string) => string> = /*@__PURE__*/withCyrillic({
   uz: (title, sum) => `${title} — ${sum ? `Toshkentgacha ${sum}, ` : ''}narx so‘mda: tovar, Atlas xizmati va tarif bo‘yicha yetkazish. Narxni xariddan oldin do‘kon bilan tekshiramiz.`,
@@ -114,25 +100,35 @@ const productText: Record<Locale, (title: string, sum?: string) => string> = /*@
   en: (title, sum) => `${title} — ${sum ? `${sum} to Tashkent, ` : ''}the sum in soum: the item, the Atlas service and delivery by tariff. We check the price with the store before buying.`,
 });
 
-/** A catalog product page (/catalog/p/[id]): its own title, description and photo, with the language versions of the other public pages. */
+/** A catalog product page (/catalog/p/[id]): its own title, description and photo, with the shared canonical/hreflang rules. */
 export function productMetadata(product: { id: string; name: string; brand?: string; image?: string }, sum: string | undefined, lang: string | undefined, fallback: Locale = 'uz'): Metadata {
-  const requested = supportedLocale(lang);
-  const locale = requested ?? fallback;
-  const path = '/catalog/p/' + encodeURIComponent(product.id);
-  const version = (code: Locale) => `${path}?lang=${code}`;
-  const url = requested ? version(requested) : path;
   const brand = product.brand?.trim();
   const title = brand && !product.name.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${product.name}` : product.name;
-  const description = productText[locale](title, sum);
-  const photo = product.image?.startsWith('https://') ? [{ url: product.image, alt: title }] : images(locale);
-  return {
-    title,
-    description,
-    robots: publicRobots,
-    alternates: { canonical: url, languages: { uz: version('uz'), 'uz-Cyrl': version('oz'), ru: version('ru'), en: version('en'), 'x-default': path } },
-    openGraph: { type: 'website', url, title: `${title} · Atlas`, description, locale: ogLocale[locale], images: photo },
-    twitter: { card: 'summary_large_image', title: `${title} · Atlas`, description, images: photo.map(item => item.url) },
-  };
+  return pageMetadata({
+    path: '/catalog/p/' + encodeURIComponent(product.id),
+    lang,
+    fallback,
+    text: (locale) => ({ title, description: productText[locale](title, sum) }),
+    image: product.image?.startsWith('https://') ? { url: product.image, alt: title } : undefined,
+  });
+}
+
+/** What a store page's description states: the delivery time from its country and its catalog count, both in the page language. */
+export type StoreFacts = { days: string | null; products: string | null };
+const storeText: Record<Locale, (name: string, domain: string, facts: StoreFacts) => { title: string; description: string }> = /*@__PURE__*/withCyrillic({
+  uz: (name, domain, { days, products }) => ({ title: `${name}: Toshkentga yetkazib berish`, description: `${domain} saytidan Toshkentga xarid${days ? `, yetkazish ${days}` : ''}: havolani qo‘ying va yakuniy narxni so‘mda ko‘ring.${products ? ` Atlas katalogida: ${products}.` : ''} Atlas tovarni sotib olib, Toshkentga yetkazadi.` }),
+  ru: (name, domain, { days, products }) => ({ title: `${name} с доставкой в Ташкент`, description: `Покупки на ${domain} с доставкой в Ташкент${days ? ` за ${days}` : ''}: вставьте ссылку и узнайте итог в сумах.${products ? ` В каталоге Atlas: ${products}.` : ''} Atlas выкупит товар и привезёт его в Ташкент.` }),
+  en: (name, domain, { days, products }) => ({ title: `${name} with delivery to Tashkent`, description: `Shop ${domain} with delivery to Tashkent${days ? ` in ${days}` : ''}: paste a link and see the total in soum.${products ? ` In the Atlas catalog: ${products}.` : ''} Atlas buys the item and brings it to Tashkent.` }),
+});
+
+/**
+ * A store page (/stores/[slug]): its own title and description with the store's domain and delivery time. A store that
+ * is not `indexable` (no catalog products and not among the popular ones, lib/market/store-pages.ts) keeps its canonical
+ * and hreflang but asks search engines not to index it and to follow its links.
+ */
+export function storeMetadata(store: { slug: string; name: string; domain: string }, facts: (locale: Locale) => StoreFacts, indexable: boolean, lang: string | undefined, fallback: Locale = 'uz'): Metadata {
+  const meta = pageMetadata({ path: '/stores/' + encodeURIComponent(store.slug), lang, fallback, text: (locale) => storeText[locale](store.name, store.domain, facts(locale)) });
+  return indexable ? meta : { ...meta, robots: { index: false, follow: true, googleBot: { index: false, follow: true } } };
 }
 
 export function homeMetadata(lang?: string, fallback: Locale = 'uz'): Metadata {
@@ -164,10 +160,10 @@ export function rootMetadata(locale: Locale, codes: SiteVerification = {}): Meta
     category: 'shopping',
     creator: 'Atlas',
     openGraph: {
-      type: 'website', locale: ogLocale[locale], alternateLocale: (['uz', 'ru', 'en'] as const).filter((code) => code !== locale).map((code) => ogLocale[code]),
-      siteName: 'Atlas', title: text.title, description: text.social, images: images(locale),
+      type: 'website', locale: ogLocale[locale], alternateLocale: alternateOgLocales(locale),
+      siteName: 'Atlas', title: text.title, description: text.social, images: [defaultImage(locale)],
     },
-    twitter: { card: 'summary_large_image', title: text.title, description: text.social, images: [ogImage[locale]] },
+    twitter: { card: 'summary_large_image', title: text.title, description: text.social, images: [defaultImage(locale).url] },
     icons: {
       icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }, { url: '/favicon.ico', sizes: '32x32' }],
       shortcut: '/favicon.ico',
@@ -179,3 +175,6 @@ export function rootMetadata(locale: Locale, codes: SiteVerification = {}): Meta
     appleWebApp: { capable: true, title: 'Atlas', statusBarStyle: 'default' },
   };
 }
+
+/** The dispatch countries the /delivery description names, in its order: the same list the page prints (tariffRows). */
+export const deliveryDescriptionRegions = ['us', 'uk', 'cn', 'de', 'it', 'es'] as const;

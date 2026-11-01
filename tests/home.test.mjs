@@ -130,12 +130,12 @@ test('the home sections keep the anchors the header, the footer and other pages 
   assert.match(catalog, /<HomeExample\/>[\s\S]*<HowItWorks\/><DeliveryTariffs\/><TrustSection\/><HomeFaq\/>/);
 });
 
-test('the rates table opens by itself when the address names #tariffs', async () => {
+test('the home rates block keeps the #tariffs anchor and leads to /delivery for every country (stage 8)', async () => {
   const sections = await homeSource('app/home-sections.tsx');
   const tariffs = sections.slice(sections.indexOf('export function DeliveryTariffs'), sections.indexOf('export function TrustSection'));
-  assert.match(tariffs, /window\.location\.hash==='#tariffs'&&table\.current\)table\.current\.open=true/);
-  assert.match(tariffs, /addEventListener\('hashchange',show\)/);
-  assert.match(tariffs, /<details ref=\{table\} className="home-tariff-all"/);
+  assert.match(tariffs, /<section id="tariffs"/);
+  assert.match(tariffs, /<Link className="home-tariff-all" href="\/delivery">/);
+  assert.doesNotMatch(tariffs, /<details/);
 });
 
 test('the home page asks five questions and the FAQ structured data lists the same ones', async () => {

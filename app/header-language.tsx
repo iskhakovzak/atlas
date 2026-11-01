@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
+import {usePathname} from 'next/navigation';
 import {Check,ChevronDown,Globe} from 'lucide-react';
 import type {Locale} from '@/lib/market/i18n';
 import {ThemeToggle} from './theme-control';
@@ -21,13 +22,14 @@ const languages:{code:Locale;lang:string;name:string;script?:string;short:string
  */
 export function HeaderLanguage({locale,label,themeLabel,onChange}:{locale:Locale;label:string;themeLabel?:string;onChange:(locale:Locale)=>void}){
   const [open,setOpen]=useState(false);
+  const pathname=usePathname();
   // One menu per page (the header), so a fixed id: useId gave the server and the browser different ids on some pages.
   const wrap=useRef<HTMLDivElement>(null),trigger=useRef<HTMLButtonElement>(null),listId='atlas-lang-menu';
   const current=languages.find(item=>item.code===locale)??languages[0];
   useEffect(()=>{
     if(!open)return;
     // Focus the chosen language; Escape or a click outside closes the list (Escape returns focus to the button).
-    wrap.current?.querySelector<HTMLButtonElement>('[aria-current="true"]')?.focus();
+    wrap.current?.querySelector<HTMLElement>('[aria-current="true"]')?.focus();
     const outside=(event:PointerEvent)=>{if(!wrap.current?.contains(event.target as Node))setOpen(false)};
     const key=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();setOpen(false);trigger.current?.focus()}};
     document.addEventListener('pointerdown',outside);document.addEventListener('keydown',key);
@@ -35,7 +37,7 @@ export function HeaderLanguage({locale,label,themeLabel,onChange}:{locale:Locale
   },[open]);
   const move=(event:React.KeyboardEvent<HTMLDivElement>)=>{
     if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
-    const items=[...event.currentTarget.querySelectorAll<HTMLButtonElement>('button')],at=items.indexOf(document.activeElement as HTMLButtonElement);
+    const items=[...event.currentTarget.querySelectorAll<HTMLElement>('a.lang-option, button')],at=items.indexOf(document.activeElement as HTMLElement);
     const next=event.key==='Home'?0:event.key==='End'?items.length-1:(at+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;
     event.preventDefault();items[next]?.focus();
   };
@@ -43,12 +45,14 @@ export function HeaderLanguage({locale,label,themeLabel,onChange}:{locale:Locale
   // Only a known focus destination outside closes here; outside taps are handled by pointerdown above.
   return <div className="lang-menu" ref={wrap} onBlur={event=>{if(open&&event.relatedTarget&&!wrap.current?.contains(event.relatedTarget as Node))setOpen(false)}}>
     <button type="button" ref={trigger} className="lang-trigger" aria-expanded={open} aria-controls={listId} aria-label={`${label}: ${current.name}${current.script?' — '+current.script:''}`} title={label} onClick={()=>setOpen(value=>!value)} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();setOpen(true)}}}>
-      <Globe size={17} aria-hidden="true"/><span lang={current.lang}>{current.short}</span><ChevronDown size={14} aria-hidden="true" className="lang-chevron"/>
+      <Globe size={18} aria-hidden="true"/><span lang={current.lang}>{current.short}</span><ChevronDown size={14} aria-hidden="true" className="lang-chevron"/>
     </button>
     <div className="lang-menu-list" id={listId} role="group" aria-label={label} hidden={!open} onKeyDown={move}>
-      {languages.map(item=><button type="button" key={item.code} data-locale={item.code} aria-current={item.code===locale} onClick={()=>{onChange(item.code);setOpen(false);trigger.current?.focus()}}>
+      {/* Links to this page's ?lang= versions, so crawlers reach every language from every page (SEO audit, 1.11.2026);
+          a click still switches the language in place, as the buttons did. */}
+      {languages.map(item=><a className="lang-option" key={item.code} href={`${pathname||'/'}?lang=${item.code}`} hrefLang={item.lang==='uz-Latn'?'uz':item.lang} data-locale={item.code} aria-current={item.code===locale} onClick={event=>{event.preventDefault();onChange(item.code);setOpen(false);trigger.current?.focus()}}>
         <span lang={item.lang}><b>{item.name}</b>{item.script&&<span className="sr-only"> — {item.script}</span>}</span>{item.code===locale&&<Check size={16} aria-hidden="true"/>}
-      </button>)}
+      </a>)}
       {themeLabel&&<div className="lang-menu-row"><span>{themeLabel}</span><ThemeToggle locale={locale}/></div>}
     </div>
   </div>;

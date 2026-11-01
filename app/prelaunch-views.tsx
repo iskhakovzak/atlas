@@ -85,11 +85,11 @@ export function AnalyticsView() {
       </section>
       <section className="analytics-layout">
         <article className="surface status-report"><div className="section-heading"><h2>{t.funnel}</h2><span>{t.total(report.orders.length)}</span></div>{funnel.map((row) => { const width = report.orders.length && row.count ? Math.max(4, row.count / report.orders.length * 100) : 0; return <div className="status-row" key={row.key}><span>{row.label}</span><div><i style={{ width: `${width}%` }} /></div><b>{row.count}</b></div>; })}</article>
-        <article className="surface attention-report"><CircleAlert size={25} /><h2>{t.waiting}</h2><strong>{report.attention}</strong><p>{t.waitingText(money(report.finance.paymentStates.pending.amount))}</p><Link className="text-link" href="/operations">{t.operatorDecision(report.operator)} <ArrowRight size={15} /></Link></article>
+        <article className="surface attention-report"><CircleAlert size={24} /><h2>{t.waiting}</h2><strong>{report.attention}</strong><p>{t.waitingText(money(report.finance.paymentStates.pending.amount))}</p><Link className="text-link" href="/operations">{t.operatorDecision(report.operator)} <ArrowRight size={16} /></Link></article>
       </section>
       <section className="surface release-readiness"><div className="section-heading"><h2>{t.readiness}</h2><span className="status-badge">{t.control}</span></div><div className="readiness-grid">
         {readiness.map((item) => item.done ? <div key={item.label}><Check size={16} aria-hidden="true" /><span>{item.label}</span></div> : <div key={item.label} className="is-pending"><CircleAlert size={16} aria-hidden="true" /><span>{item.label} — <b>{item.note}</b></span></div>)}
-      </div><div className="notice warning"><ShieldCheck size={19} /><span>{t.notice}</span></div></section>
+      </div><div className="notice warning"><ShieldCheck size={18} /><span>{t.notice}</span></div></section>
     </>}
   </>;
 }

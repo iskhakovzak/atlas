@@ -10,7 +10,7 @@ test('a push says what the bell says: the status as the headline, the product un
   const [message] = pushMessages([notice('n1', { orderId: 'AT-1', code: 'status', params: { status: 5 } })], [order], 'ru');
   assert.equal(message.body, 'Anker Nano Charger');
   assert.notEqual(message.title, 'Статус заказа изменён');
-  assert.equal(message.url, '/orders#AT-1');
+  assert.equal(message.url, '/account/parcels/AT-1', 'a new stage opens the parcel (1 November 2026)');
   assert.equal(message.tag, 'atlas-n1');
   assert.equal(message.icon, 'https://cdn.example.com/a.png');
 });

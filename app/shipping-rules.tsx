@@ -121,7 +121,7 @@ export function ShippingRules(){
    </article>
    {g&&<article className="guarantee-card guarantee-card-on">
     <header><ShieldCheck size={20} aria-hidden="true"/><h4>{t.with.title}</h4></header>
-    <span className="guarantee-badge"><Star size={13} className="speed-option-star" aria-hidden="true"/>{t.with.badge}</span>
+    <span className="guarantee-badge"><Star size={14} className="speed-option-star" aria-hidden="true"/>{t.with.badge}</span>
     <ul>{t.with.items.map(item=><li key={item}>{item}</li>)}</ul>
     <p className="guarantee-price">{t.with.price(formatPercent(g.valuePercent??0,locale),high)}</p>
    </article>}

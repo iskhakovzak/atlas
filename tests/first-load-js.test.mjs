@@ -35,13 +35,13 @@ test('the "?" bubble (Radix Popover) loads on demand; until then the button look
   assert.match(tip, /onPointerDown=\{warmInfoTipPopover\} onFocus=\{warmInfoTipPopover\} onClick=\{\(\) => \{ void loadInfoTipPopover\(\)\.then\(setPressed, \(\) => \{\}\); \}\}/);
   // The attributes Radix renders on a closed PopoverTrigger, so CSS and assistive tech see the same button.
   for (const attribute of ['type="button"', 'className="info-tip"', 'aria-label={name}', 'aria-haspopup="dialog"', 'aria-expanded="false"', 'data-state="closed"', 'data-slot="popover-trigger"']) assert.ok(tip.includes(attribute), attribute);
-  assert.match(tip, /<CircleHelp size=\{17\} aria-hidden="true" \/>/);
+  assert.match(tip, /<CircleHelp size=\{18\} aria-hidden="true" \/>/);
   // Only a press swaps in the Radix button, open at once: a plain button that merely has focus is never replaced, so
   // focus does not drop to the page body when the code arrives.
   assert.doesNotMatch(tip, /useSyncExternalStore/);
   assert.match(tip, /if \(pressed\) return <pressed\.InfoTipPopover name=\{name\} defaultOpen>\{children\}<\/pressed\.InfoTipPopover>;/);
   const popover = source('components/info-tip-popover.tsx');
-  assert.match(popover, /<PopoverTrigger asChild><button type="button" className="info-tip" aria-label=\{name\}><CircleHelp size=\{17\} aria-hidden="true" \/><\/button><\/PopoverTrigger>/);
+  assert.match(popover, /<PopoverTrigger asChild><button type="button" className="info-tip" aria-label=\{name\}><CircleHelp size=\{18\} aria-hidden="true" \/><\/button><\/PopoverTrigger>/);
   assert.match(popover, /<PopoverContent className="info-tip-bubble" side="bottom" align="center" sideOffset=\{8\} collisionPadding=\{16\}>/);
 });
 
@@ -57,7 +57,7 @@ test('the client build keeps the bundler\'s own chunk split (no forced icons chu
 test('the consent sheet, the speed beacon and Impact come right after hydration; Impact is still mounted', () => {
   const layout = source('app/layout.tsx');
   for (const name of ['StorageNotice', 'PerformanceProbe', 'ImpactTracking']) assert.doesNotMatch(layout, new RegExp(`import \\{ ${name} \\}`), name + ' is not in the layout chunk');
-  assert.match(layout, /\{children\}<ShellExtras \/><StaleBuildReload \/><NativeShell \/><PressFeedback \/><\/MarketProvider>/);
+  assert.match(layout, /\{children\}<\/PageLang><ShellExtras \/><StaleBuildReload \/><NativeShell \/><PressFeedback \/><\/MarketProvider>/);
   const extras = source('app/shell-extras.tsx');
   // Requested once the store is subscribed, i.e. after hydration; the server and the hydration render draw nothing.
   assert.match(extras, /useSyncExternalStore\(subscribe,\(\)=>parts,\(\)=>null\)/);

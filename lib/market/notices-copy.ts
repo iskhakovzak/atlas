@@ -33,6 +33,8 @@ export type NoticesCopy = {
   newBadge: string;
   more: (count: number) => string;
   openOrder: string;
+  /** A stage, the tracking number: the link opens the parcel page (notice-panel.ts noticeTarget kind 'parcel'). */
+  openParcel: string;
   emptyTitle: string;
   emptyText: string;
   emptyFilter: string;
@@ -46,7 +48,7 @@ export const noticesCopy: Record<Locale, NoticesCopy> = /*@__PURE__*/withCyrilli
   ru: {
     title: 'Уведомления', unread: count => `${count} ${ruPlural(count, 'непрочитанное', 'непрочитанных', 'непрочитанных')}`, allRead: 'Всё прочитано',
     readAll: 'Отметить все прочитанными', filtersLabel: 'Показать', filters: { all: 'Все', unread: 'Непрочитанные', orders: 'По заказам' }, newBadge: 'Новое',
-    more: count => `Ещё ${count} ${ruPlural(count, 'обновление', 'обновления', 'обновлений')}`, openOrder: 'Открыть заказ',
+    more: count => `Ещё ${count} ${ruPlural(count, 'обновление', 'обновления', 'обновлений')}`, openOrder: 'Открыть заказ', openParcel: 'Открыть посылку',
     emptyTitle: 'Пока всё спокойно', emptyText: 'Здесь появятся изменения статусов, возвраты и вопросы по вашим заказам.', emptyFilter: 'Таких уведомлений нет.',
     orders: 'Мои заказы', settings: 'Настройки уведомлений',
     signin: { title: 'Войдите, чтобы открыть уведомления', text: 'Сообщения Atlas хранятся в вашем профиле.', action: 'Войти' }, loading: 'Загружаем уведомления…',
@@ -54,7 +56,7 @@ export const noticesCopy: Record<Locale, NoticesCopy> = /*@__PURE__*/withCyrilli
   uz: {
     title: 'Bildirishnomalar', unread: count => `${count} ta o‘qilmagan`, allRead: 'Hammasi o‘qilgan',
     readAll: 'Hammasini o‘qilgan deb belgilash', filtersLabel: 'Ko‘rsatish', filters: { all: 'Barchasi', unread: 'O‘qilmagan', orders: 'Buyurtmalar bo‘yicha' }, newBadge: 'Yangi',
-    more: count => `Yana ${count} ta yangilanish`, openOrder: 'Buyurtmani ochish',
+    more: count => `Yana ${count} ta yangilanish`, openOrder: 'Buyurtmani ochish', openParcel: 'Posilkani ochish',
     emptyTitle: 'Hozircha hammasi tinch', emptyText: 'Holat o‘zgarishlari, qaytarishlar va buyurtmalaringiz bo‘yicha savollar shu yerda ko‘rinadi.', emptyFilter: 'Bunday bildirishnomalar yo‘q.',
     orders: 'Buyurtmalarim', settings: 'Bildirishnoma sozlamalari',
     signin: { title: 'Bildirishnomalarni ochish uchun kiring', text: 'Atlas xabarlari profilingizda saqlanadi.', action: 'Kirish' }, loading: 'Bildirishnomalar yuklanmoqda…',
@@ -62,7 +64,7 @@ export const noticesCopy: Record<Locale, NoticesCopy> = /*@__PURE__*/withCyrilli
   en: {
     title: 'Notifications', unread: count => `${count} unread`, allRead: 'All caught up',
     readAll: 'Mark all as read', filtersLabel: 'Show', filters: { all: 'All', unread: 'Unread', orders: 'Orders' }, newBadge: 'New',
-    more: count => `${count} more ${count === 1 ? 'update' : 'updates'}`, openOrder: 'Open order',
+    more: count => `${count} more ${count === 1 ? 'update' : 'updates'}`, openOrder: 'Open order', openParcel: 'Open parcel',
     emptyTitle: 'All quiet for now', emptyText: 'Status changes, refunds and questions about your orders will appear here.', emptyFilter: 'No matching notifications.',
     orders: 'My orders', settings: 'Notification settings',
     signin: { title: 'Sign in to open notifications', text: 'Atlas messages are saved in your profile.', action: 'Sign in' }, loading: 'Loading notifications…',

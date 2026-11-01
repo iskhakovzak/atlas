@@ -92,19 +92,22 @@ test('customs charging less returns the rest to the balance; more waits for cons
   const { cart, customs, duty } = overAllowance();
   const placed = checkoutCart(cart, 'd2', cartSignature(cart.cart), false, now, customsVersion, undefined, undefined, undefined, tariff, customs, duty);
   const id = placed.orders[0].id;
-  const inTransit = { ...placed, orders: placed.orders.map((o) => ({ ...o, status: 4 })) };
-  assert.throws(() => advanceOrder(inTransit, id, 4), /недоступен/, 'not delivered before the duty is settled');
+  // "Таможня" and "В Ташкенте" are physical stages: the open duty does not hold them back, only "Доставлен" (stage 7).
+  const onTheWay = { ...placed, orders: placed.orders.map((o) => ({ ...o, status: 4 })) };
+  assert.equal(advanceOrder(advanceOrder(onTheWay, id, 4), id, 5).orders[0].transitStage, 'tashkent');
+  const inTransit = { ...placed, orders: placed.orders.map((o) => ({ ...o, status: 4, transitStage: 'tashkent' })) };
+  assert.throws(() => advanceOrder(inTransit, id, 6), /недоступен/, 'not delivered before the duty is settled');
   const lower = confirmCustomsDuty(inTransit, id, customs.estimateUsd / 2, now);
   assert.equal(lower.orders[0].customsSettlement.refund, duty - Math.ceil(customs.estimateUsd / 2 * tariff.fx));
   assert.equal(balanceOf(lower), lower.orders[0].customsSettlement.refund);
-  assert.equal(advanceOrder(lower, id, 4).orders[0].status, 5);
+  assert.equal(advanceOrder(lower, id, 6).orders[0].status, 5);
   const higher = confirmCustomsDuty(inTransit, id, customs.estimateUsd + 10, now);
   const extra = higher.orders[0].customsSettlement.extra;
   assert.ok(extra > 0);
   assert.equal(balanceOf(higher), 0);
-  assert.throws(() => advanceOrder(higher, id, 4));
+  assert.throws(() => advanceOrder(higher, id, 6));
   assert.throws(() => approveCustomsExtra(higher, id, extra + 1), /Сумма изменилась/);
   const approved = approveCustomsExtra(higher, id, extra, now);
-  assert.equal(advanceOrder(approved, id, 4).orders[0].status, 5);
+  assert.equal(advanceOrder(approved, id, 6).orders[0].status, 5);
   assert.equal(orderPayable(approved.orders[0]), approved.orders[0].quote.total);
 });

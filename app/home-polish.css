@@ -1,7 +1,0 @@
-/* Hero link form: the primary "paste a link → calculate" action. */
-
-/* Catalog card: price breakdown and honest action labels. */
-.find-breakdown > summary { cursor:pointer; color:var(--atlas-link,#255b45); font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:4px; }
-html[data-theme="dark"] .find-breakdown dt, html[data-theme="dark"] .find-breakdown p { color:var(--night-ink-2); }
-
-/* Popular stores: each chip opens the store directory filtered to that store. */

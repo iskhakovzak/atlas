@@ -44,7 +44,7 @@ type Field = "savedPostal" | "recipient" | "phone" | "address" | "postal";
 const fieldIds: Record<Field, string> = { savedPostal: "co-saved-postal", recipient: "co-recipient", phone: "co-phone", address: "co-address", postal: "co-postal" };
 /** Store refusals that repriced or marked the cart: the page shows what changed instead of an error. */
 const repricedCodes = new Set(["err_35", "err_36", "err_37", "err_38"]);
-const promoCodes = new Set(["err_86", "err_87", "err_88", "err_89", "err_90"]);
+const promoCodes = new Set(["err_87", "err_88", "err_89", "err_90", "err_91"]);
 
 const storeMoney = (amount: number, currency: string, locale: Locale) => {
   if (currency === "USD") return usdText(amount, locale);
@@ -175,11 +175,11 @@ export function CheckoutView() {
     try {
       const response = await fetch("/api/promo", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ code }) });
       const data = await response.json().catch(() => ({})) as { promo?: PromoPreview; error?: string; errorCode?: string };
-      if (!response.ok || !data.promo) { setPromo(null); setPromoError(data.errorCode ? serverError(locale, data.errorCode) : data.error ?? serverError(locale, "err_86")); return; }
+      if (!response.ok || !data.promo) { setPromo(null); setPromoError(data.errorCode ? serverError(locale, data.errorCode) : data.error ?? serverError(locale, "err_87")); return; }
       // The field gives way to the applied code: focus moves to that line at once (not to the top of the page or the skip link).
       flushSync(() => { setPromo(data.promo!); setPromoText(data.promo!.code); });
       document.getElementById("co-promo-applied")?.focus();
-    } catch { setPromoError(serverError(locale, "err_86")); }
+    } catch { setPromoError(serverError(locale, "err_87")); }
     finally { setPromoBusy(false); }
   }
 
@@ -432,7 +432,7 @@ export function CheckoutView() {
                 <input id="co-promo-input" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={40} placeholder={t.checkout.promo.placeholder} aria-invalid={Boolean(promoError || promoBelowMin) || undefined} aria-describedby="co-promo-hint" value={promoText} onChange={(event) => { setPromoText(event.target.value); setPromoError(""); if (promo) setPromo(null); }} />
                 <button type="submit" className="btn secondary" disabled={promoBusy || !promoText.trim()} aria-busy={promoBusy || undefined}>{promoBusy ? <Loader2 size={16} className="spin" aria-label={t.checkout.promo.checking} /> : t.checkout.promo.apply}</button>
               </div>
-              <small id="co-promo-hint" className={promoError || promoBelowMin ? "co-error" : ""} role={promoError || promoBelowMin ? "alert" : undefined}>{promoError || (promoBelowMin && promo?.minOrder ? serverError(locale, "err_89") + " " + t.checkout.promo.minOrder(formatSum(promo.minOrder, locale)) : t.checkout.promo.onlyService)}</small>
+              <small id="co-promo-hint" className={promoError || promoBelowMin ? "co-error" : ""} role={promoError || promoBelowMin ? "alert" : undefined}>{promoError || (promoBelowMin && promo?.minOrder ? serverError(locale, "err_90") + " " + t.checkout.promo.minOrder(formatSum(promo.minOrder, locale)) : t.checkout.promo.onlyService)}</small>
             </form>
             : <button type="button" className="text-button co-promo-open" onClick={() => { flushSync(() => setPromoOpen(true)); document.getElementById("co-promo-input")?.focus(); }}><Tag size={15} aria-hidden="true" />{t.checkout.promo.open}</button>}
         </div>}

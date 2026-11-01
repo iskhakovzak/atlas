@@ -1,7 +1,8 @@
 import {loginPath} from '../auth/return-to.ts';
 export type SessionStatus = 'loading' | 'guest' | 'authenticated' | 'error';
 // The cart and /cart/checkout are open to guests (redesign stage 6): the cart lives in the browser, sign-in is inside the checkout.
-export const memberViews = new Set(['account','favorites','orders','balance','notifications','identity','declaration','batch']);
+// The parcel-first profile (stage 7): documents, settings and parcel pages stay member-only.
+export const memberViews = new Set(['account','favorites','orders','balance','notifications','identity','declaration','documents','settings','parcel','batch']);
 export const adminViews = new Set(['operations','analytics','admin']);
 
 // ---------- Staff roles and permissions (shared by server and UI; no server imports here) ----------

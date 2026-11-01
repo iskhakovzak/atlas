@@ -9,11 +9,13 @@ import { performancePercentile } from "./performance.ts";
 export const vitalsSampleRate = 1;
 export const telemetryRetentionMs = 30 * 24 * 60 * 60 * 1000;
 
-const knownRoutes = new Set(["/", "/stores", "/customs", "/legal", "/login", "/order-by-link", "/cart", "/orders", "/account", "/notifications", "/balance", "/identity", "/declaration", "/favorites", "/admin", "/operations", "/analytics", "/batch-import"]);
+const knownRoutes = new Set(["/", "/stores", "/customs", "/legal", "/login", "/order-by-link", "/cart", "/orders", "/account", "/account/documents", "/account/settings", "/notifications", "/balance", "/identity", "/declaration", "/favorites", "/admin", "/operations", "/analytics", "/batch-import"]);
 
 /** Maps a pathname to a fixed route pattern; anything else (old links, typos, ids) becomes "other". */
 export function telemetryRoute(pathname: string): string {
   const path = pathname.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
+  // A parcel page carries an order number: kept as the pattern, never the number.
+  if (/^\/account\/parcels\/[^/]+$/.test(path)) return "/account/parcels/[id]";
   return knownRoutes.has(path) ? path : "other";
 }
 

@@ -333,15 +333,19 @@ try {
   for (const path of ["/cart", "/cart/checkout"]) await snapshot("guest", path);
   await open("/cart/checkout");
   await eventually("!!document.querySelector('.co-page h1') && (!!document.querySelector('.co-empty') || !!document.querySelector('.co-signin'))", "guest checkout: empty or with the sign-in block");
-  // Store directory: search goes to the address, a store card opens with the store's own link.
+  // Store directory: search goes to the address, a store leads to its own page (/stores/[slug], stage 8) with the store's link.
   await open("/stores?lang=ru");
   await eventually("document.querySelectorAll('.store-tile').length > 100", "store directory");
   await evaluate("(() => { const input = document.querySelector('.stores-search input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'zara'); input.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
   await eventually("new URLSearchParams(location.search).get('q') === 'zara' && [...document.querySelectorAll('.store-tile b')].some((b) => b.textContent === 'Zara')", "store search kept in the address");
   await evaluate("[...document.querySelectorAll('.store-tile')].find((tile) => tile.querySelector('b')?.textContent === 'Zara').click(), true");
-  await eventually("document.querySelector('.store-dialog[open] a.store-dialog-open')?.getAttribute('href') === 'https://zara.com'", "store card opens with the store link");
+  await eventually("location.pathname === '/stores/zara' && document.querySelector('.store-link-open')?.getAttribute('href') === 'https://zara.com'", "store tile opens the store page with the store link");
   await open("/stores?brand=zara&lang=ru");
-  await eventually("document.querySelector('.store-dialog[open] a.store-dialog-open')?.getAttribute('href') === 'https://zara.com'", "store deep link opens the card");
+  await eventually("location.pathname === '/stores/zara'", "an old ?brand= link opens the store page");
+  await snapshot("guest", "/stores/nike?lang=ru");
+  await eventually("!!document.querySelector('.store-head h1') && document.querySelectorAll('.catalog-results .pcard').length > 0", "store page lists the store's products");
+  await snapshot("guest", "/delivery?lang=ru");
+  await eventually("document.querySelectorAll('.delivery-country').length === 6 && !!document.querySelector('.delivery-calc-usd')", "delivery page: six countries and the calculator");
   await open("/order-by-link");
   // The guest opened an item by link earlier in this run, so the page may resume that draft (its link with "Replace
   // link") instead of an empty field; either way there is a way to give a link. Waited for, not read once.

@@ -1,13 +1,25 @@
 # Atlas
 
-> Atlas is a pre-release purchasing intermediary and logistics agent for customers in Uzbekistan, delivering to Tashkent. It helps customers find products from foreign stores, review variants, and receive a preliminary estimate of the cost delivered to Tashkent in Uzbek soum.
+> Atlas (atlasmarket.uz) is a pre-release purchasing intermediary and logistics agent delivering to Tashkent, Uzbekistan; it does not deliver elsewhere. It helps customers find products from foreign stores, review variants, and receive a preliminary estimate of the cost delivered to Tashkent in Uzbek soum.
+
+## Key facts (as of 2026-11-01)
+
+The figures below are shown on the home page, /delivery, /customs and /stores. The current tariff on the site wins if it differs.
+
+- Delivers only within Tashkent, Uzbekistan; totals are in Uzbek soum (UZS).
+- 215 supported stores in the US, UK, Europe and China; order by pasting a product link or from the catalog.
+- Bill: the item price plus one line, "Atlas service": a 9.98% fee and international delivery.
+- Delivery from the Atlas warehouse abroad: express $15.98 per kg (5–9 business days from the US, 7–9 from the UK, China, Germany, Italy and Spain), standard $13.98 per kg (9–14 business days). Store-to-warehouse shipping and customs add time.
+- Weight: the item with its box plus 0.3 kg of packaging once per parcel from one store; at least 1 kg per parcel. If the warehouse finds the parcel lighter, the difference goes back to the Atlas balance; a heavier parcel is charged only with the customer's consent.
+- Customs (personal courier parcels): duty-free up to $200 per recipient per calendar month; above that a single customs payment on the excess only (the calculator uses 20%, at least $2 per kg; see /customs for the dated lex.uz sources).
+- Optional "Atlas pays customs": 4.98% of the cart. Optional Atlas safe-arrival guarantee (not insurance): 2.9% of the parcel with delivery, 3.9% above $200.
+- The price is rechecked with the store when an item is added to the cart and again before checkout; the exchange rate is fixed at payment.
 
 ## What Atlas does
 
 - Shows a public catalog of direct-merchant products and categories.
 - Accepts supported product links and imports title, images, price, currency, dispatch country, category, weight estimate, and available variants when the store exposes them.
 - Lets an authenticated customer review colour, size, model, price, availability, recipient and delivery address before a simulated checkout.
-- Keeps item price, service/buyout fee, merchant shipping, international freight and reserve as separate quote lines.
 - Rechecks linked product price, currency and selected availability on the server before cart and checkout.
 
 ## What Atlas does not claim
@@ -20,22 +32,23 @@
 
 - [Home page (link estimate, tariffs, FAQ)](https://atlasmarket.uz/)
 - [Product catalog with search (`?q=`)](https://atlasmarket.uz/catalog)
-- [Store directory](https://atlasmarket.uz/stores)
+- [Store directory](https://atlasmarket.uz/stores); each store has its own page, `/stores/{store}` (for example [Nike](https://atlasmarket.uz/stores/nike)), with its catalog products and how to order from it
+- [Delivery rates by country, the duty-free allowance and a delivery calculator](https://atlasmarket.uz/delivery)
 - [Customs guidance](https://atlasmarket.uz/customs)
-- [Terms and privacy drafts](https://atlasmarket.uz/legal)
-- [Privacy policy](https://atlasmarket.uz/privacy)
-- [Terms of use (public offer, app terms)](https://atlasmarket.uz/terms)
+- [Terms and privacy drafts](https://atlasmarket.uz/legal?lang=ru)
+- [Privacy policy](https://atlasmarket.uz/privacy?lang=ru)
+- [Terms of use (public offer, app terms)](https://atlasmarket.uz/terms?lang=ru)
 - [Support](https://atlasmarket.uz/support)
 - [Mobile app (iOS and Android)](https://atlasmarket.uz/app)
 - [Account deletion instructions](https://atlasmarket.uz/delete-account)
 
-Every public page has Uzbek, Russian and English versions: add `?lang=uz`, `?lang=ru` or `?lang=en` (for example [https://atlasmarket.uz/customs?lang=ru](https://atlasmarket.uz/customs?lang=ru)). Without the parameter a page follows the visitor's saved or browser language and defaults to Uzbek. The legal documents themselves are drafted in Russian until the reviewed translations are ready.
+Every public page has Uzbek (Latin), Uzbek (Cyrillic), Russian and English versions: add `?lang=uz`, `?lang=oz`, `?lang=ru` or `?lang=en` (for example [https://atlasmarket.uz/customs?lang=ru](https://atlasmarket.uz/customs?lang=ru)). Without the parameter a page follows the visitor's saved or browser language and defaults to Uzbek. The legal documents themselves are drafted in Russian until the reviewed translations are ready, so their Russian version is the one to cite.
 
 ## Discovery and access
 
-The public catalog, store directory, customs guidance, legal, privacy, terms, support, app and account-deletion pages are crawlable. Account, order, passport, declaration, operator, API and other private paths require authentication and are excluded from public discovery.
+The public catalog, product pages, store directory and store pages, delivery rates, customs guidance, legal, privacy, terms, support, app and account-deletion pages are crawlable. Account, order, passport, declaration, operator, API and other private paths require authentication and are excluded from public discovery.
 
 ## Optional
 
-- [Sitemap](https://atlasmarket.uz/sitemap.xml): public pages
+- [Sitemap](https://atlasmarket.uz/sitemap.xml): public pages in every language
 - [Robots rules](https://atlasmarket.uz/robots.txt)
