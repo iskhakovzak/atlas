@@ -37,7 +37,10 @@ export async function GET(request:Request){try{
   let saleJob,batchJob;
   if(admin){const user=await identity();await requirePermission(user,'catalog.manage');[saleJob,batchJob]=await Promise.all([catalogSaleRunner(user).read(user.userId).then(publicSaleJob),readBatch(user.userId).then(row=>publicBatchJob(row?.job))]);}
   const [{document},currentPricing]=await Promise.all([readCatalog({backfill:!admin}),pricing()]);
-  return json(admin?{document,saleJob,batchJob,catalogFormat:'chunks-v2',storeHealth:await readStoreHealth()}:{...publicCatalog(document,currentPricing),pricing:withoutAuthor(currentPricing)});
+  if(admin)return json({document,saleJob,batchJob,catalogFormat:'chunks-v2',storeHealth:await readStoreHealth()});
+  // The public catalog is the same for every visitor (no session is read, nothing personal in it): browsers keep it a
+  // minute and may show it for ten more while they ask again (3 November 2026).
+  return Response.json({...publicCatalog(document,currentPricing),pricing:withoutAuthor(currentPricing)},{headers:{'Cache-Control':'public, max-age=60, stale-while-revalidate=600'}});
 }catch(error){return failure(error,request)}}
 export async function POST(request:Request){try{
   sameOrigin(request);const user=await identity();await requirePermission(user,'catalog.manage');

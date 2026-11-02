@@ -50,7 +50,8 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
   if(catalogRequest.current)return catalogRequest.current;
   const request=(async()=>{
    try{
-    const response=await fetch('/api/catalog',{cache:'no-store'});
+    // The public list is cached for a minute (app/api/catalog/route.ts); a retry after a failure asks the server again.
+    const response=await fetch('/api/catalog',{cache:force?'no-cache':'default'});
     if(!response.ok)throw Error('Catalog load failed');
     const data=await response.json() as {products:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>;pricing?:unknown};
     if(!Array.isArray(data.products)||!Array.isArray(data.collections))throw Error('Catalog response is invalid');
