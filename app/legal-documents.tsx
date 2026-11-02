@@ -15,17 +15,17 @@ const copy=/*@__PURE__*/withCyrillic({
   nav:["Публичная оферта","Конфиденциальность","Паспортные данные","Оплата и возвраты"],navLabel:"Содержание документов",doc:(n:number)=>`Документ ${n}`,
   titles:["Публичная оферта на посреднические и логистические услуги","Политика конфиденциальности","Согласие на обработку паспортных данных","Политика оплаты, отмены и возврата"],
   editionOf:(date:string)=>`Редакция от ${date}`,sub3:"Отдельное подтверждение перед вводом данных",sub4:"Провайдеры пока не подключены",sourcesTitle:"Нормативная основа для юридической проверки",
-  customsNotice:"Таможенные правила и предварительный калькулятор находятся отдельно.",customsLink:"Открыть таможенный раздел",ruOnly:""},
+  customsNotice:"Таможенные правила и предварительный калькулятор находятся отдельно.",customsLink:"Открыть таможенный раздел",licensesNotice:"Сайт и приложения Atlas используют открытое программное обеспечение (шрифты, React, Tesseract и другое); лицензии и уведомления собраны в одном файле.",licensesLink:"Лицензии стороннего ПО",ruOnly:""},
  uz:{overline:"HUQUQIY HUJJATLAR",title:"Atlas ishlash qoidalari.",description:"Atlas xarid bo‘yicha vositachi va logistika agenti sifatida ishlaydi. Bu yerda xizmat shartlari, komissiyalar, ma’lumotlarni qayta ishlash va qaytarish qoidalari jamlangan.",draft:"Rekvizitlar to‘ldirilishi va yurist tekshiruvigacha loyiha",language:"Hujjatlarning asosiy loyiha tahriri rus tilida tayyorlangan. O‘zbek va ingliz tillaridagi yuridik tahrirlar matn tasdiqlangandan keyin solishtirilishi kerak.",edition:"Tahrir",
   nav:["Ommaviy oferta","Maxfiylik","Pasport ma’lumotlari","To‘lov va qaytarish"],navLabel:"Hujjatlar mundarijasi",doc:(n:number)=>`Hujjat ${n}`,
   titles:["Vositachilik va logistika xizmatlari bo‘yicha ommaviy oferta","Maxfiylik siyosati","Pasport ma’lumotlarini qayta ishlashga rozilik","To‘lov, bekor qilish va qaytarish siyosati"],
   editionOf:(date:string)=>`Tahrir: ${date}`,sub3:"Ma’lumot kiritishdan oldin alohida tasdiq",sub4:"To‘lov provayderlari hali ulanmagan",sourcesTitle:"Yuridik tekshiruv uchun normativ asos",
-  customsNotice:"Bojxona qoidalari va dastlabki kalkulyator alohida bo‘limda.",customsLink:"Bojxona bo‘limini ochish",ruOnly:"Matn rus tilida"},
+  customsNotice:"Bojxona qoidalari va dastlabki kalkulyator alohida bo‘limda.",customsLink:"Bojxona bo‘limini ochish",licensesNotice:"Atlas sayti va ilovalari ochiq dasturiy ta’minotdan (shriftlar, React, Tesseract va boshqalar) foydalanadi; litsenziyalar va bildirishnomalar bitta faylda jamlangan.",licensesLink:"Uchinchi tomon dasturlari litsenziyalari",ruOnly:"Matn rus tilida"},
  en:{overline:"LEGAL DOCUMENTS",title:"Atlas terms and policies.",description:"Atlas acts as a purchasing intermediary and logistics agent. These documents cover the service terms, fees, data processing and refunds.",draft:"Draft pending company details and legal review",language:"The primary draft is currently in Russian. Legally reviewed Uzbek and English versions must be prepared after the governing text is approved.",edition:"Edition",
   nav:["Public offer","Privacy","Passport data","Payment and refunds"],navLabel:"Document contents",doc:(n:number)=>`Document ${n}`,
   titles:["Public offer for intermediary and logistics services","Privacy policy","Consent to processing passport data","Payment, cancellation and refund policy"],
   editionOf:(date:string)=>`Edition of ${date}`,sub3:"Separate confirmation before you enter details",sub4:"Payment providers not connected yet",sourcesTitle:"Legal basis for the review",
-  customsNotice:"Customs rules and the preliminary calculator are on a separate page.",customsLink:"Open the customs page",ruOnly:"Text in Russian"},
+  customsNotice:"Customs rules and the preliminary calculator are on a separate page.",customsLink:"Open the customs page",licensesNotice:"The Atlas site and apps use open-source software (fonts, React, Tesseract and more); their licences and notices are collected in one file.",licensesLink:"Third-party licences",ruOnly:"Text in Russian"},
 });
 export const legalCopy=copy;
 
@@ -135,5 +135,7 @@ export function LegalDocuments(){
   <RefundsDocument locale={locale}/>
   <LegalSources locale={locale}/>
   <div className="notice legal-customs-notice"><ShieldCheck/><span>{t.customsNotice} <Link href="/customs">{t.customsLink}</Link>.</span></div>
+  {/* Generated at build time by scripts/third-party-notices.mjs; a plain link, the file is not a page. */}
+  <div className="notice legal-customs-notice"><ShieldCheck/><span>{t.licensesNotice} <a href="/third-party-notices.txt">{t.licensesLink}</a>.</span></div>
  </>;
 }
