@@ -1,3 +1,4 @@
+import { productTitle } from "@/lib/market/product-name";
 import type { ReactNode } from "react";
 import { Check, Info, TriangleAlert } from "lucide-react";
 import { cartModelKey, cartColourOptions, serviceTitle, storeParcels, parcelServiceUnits, type CartItem, type Pricing } from "@/lib/market/domain";
@@ -66,8 +67,8 @@ export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, b
               return <div className={"review-row" + (issue ? " has-issue" : item.priceChange ? " has-change" : "")} role="row" key={item.id}>
                 <span role="cell" className="review-n">{numbers.get(item.id)}</span>
                 <span role="cell" className="review-item">
-                  {index === 0 ? <><span className="review-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span><span className="review-title"><span className="review-name">{item.product.name}</span>{sharedColour && <small className="review-colour">{sharedColour}</small>}</span></>
-                    : <span className="sr-only">{item.product.name}</span>}
+                  {index === 0 ? <><span className="review-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span><span className="review-title"><span className="review-name">{productTitle(item.product.name, item.product.brand)}</span>{sharedColour && <small className="review-colour">{sharedColour}</small>}</span></>
+                    : <span className="sr-only">{productTitle(item.product.name, item.product.brand)}</span>}
                 </span>
                 <span role="cell" className="review-variant">{sharedColour ? readableNikeSizeLabel(cartColourOptions(item.product)?.label ?? "") || shownVariant(item.variant) : shownVariant(item.variant, item.product.sourceOptions) || "—"}</span>
                 <span role="cell" className="review-num" data-label={r.columns.quantity}>{item.quantity}</span>

@@ -1,6 +1,7 @@
 import type { Notification, Order } from './domain.ts';
 import type { Locale } from './i18n.ts';
 import { renderNoticeRow, renderNotification } from './history-copy.ts';
+import { titleOf } from './product-name.ts';
 import { noticeTarget } from './notice-panel.ts';
 import { base64UrlDecode, isP256Point, type PushSubscriptionKeys } from './web-push.ts';
 
@@ -15,7 +16,7 @@ export type PushMessage = { title: string; body: string; url: string; tag: strin
 export function pushMessages(notices: Notification[], orders: Pick<Order, 'id' | 'product'>[], locale: Locale): PushMessage[] {
   return notices.slice(-3).map((notice) => {
     const order = notice.orderId ? orders.find((item) => item.id === notice.orderId) : undefined;
-    const text = renderNoticeRow(notice, locale, order?.product.name);
+    const text = renderNoticeRow(notice, locale, titleOf(order?.product));
     const image = order?.product.image;
     return {
       // A new stage leads with the parcel ("Посылка: Таможня"), the product's name under it: a bare "Таможня" on a

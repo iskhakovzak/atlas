@@ -56,7 +56,7 @@ import { countries, currencies, currencyForCountry, toUsd, paddedWeight, packagi
 import { describeSingleColorway } from "@/lib/market/variant-colorway";
 import { compareSizes } from "@/lib/market/size-order";
 import { brandForHost, heroStores, storeBrands, storefrontLabel, storefrontUrl } from "@/lib/market/store-brands";
-import { departmentLabel, displayBrand, withoutDepartment } from "@/lib/market/product-name";
+import { departmentLabel, displayBrand, displayOptionValue, productTitle } from "@/lib/market/product-name";
 import { browserStorage as catalogStorage, catalogItemHref, rememberPendingFavorite } from "@/lib/market/catalog-links";
 import { loginPath } from "@/lib/auth/return-to";
 import { dealCopy } from "@/lib/market/deal-copy";
@@ -204,11 +204,11 @@ function AxisPicker({ variants, chosen, k, tx, format, onChoose }: { variants: P
     const wide = shown.some(item => item.value.length > 6);
     const current = picks[axis.name];
     return <div className="variant-step vp-axis" key={axis.name} role="group" aria-label={label}>
-      <div className="vp-head"><b>{label}</b><span className={current ? undefined : "vp-hint"}>{current ?? (axis.kind === "size" ? tx("Выберите размер", "O‘lchamni tanlang", "Choose a size") : tx("Выберите", "Tanlang", "Choose"))}</span></div>
+      <div className="vp-head"><b>{label}</b><span className={current ? undefined : "vp-hint"}>{current ? displayOptionValue(current, axis.kind) : (axis.kind === "size" ? tx("Выберите размер", "O‘lchamni tanlang", "Choose a size") : tx("Выберите", "Tanlang", "Choose"))}</span></div>
       <div className={"variant-options " + (segmented ? "vp-seg" : "vp-chips" + (wide ? " vp-wide" : ""))}>{shown.map(item => {
         const only = variants.filter(option => axisValue(option, axis.name) === item.value);
         const lowest = only.map(option => option.price).filter((price): price is number => typeof price === "number" && price > 0).sort((a, b) => a - b)[0];
-        return <button type="button" key={item.value} title={item.value} aria-pressed={current === item.value} disabled={!item.open} aria-label={[item.value, item.open ? (lowest ? tx(`от ${format(lowest)}`, `${format(lowest)} dan`, `from ${format(lowest)}`) : "") : k.outOfStock].filter(Boolean).join(", ")} onClick={() => pick(axis.name, item.value)}><span>{item.value}</span></button>;
+        return <button type="button" key={item.value} title={item.value} aria-pressed={current === item.value} disabled={!item.open} aria-label={[displayOptionValue(item.value, axis.kind), item.open ? (lowest ? tx(`от ${format(lowest)}`, `${format(lowest)} dan`, `from ${format(lowest)}`) : "") : k.outOfStock].filter(Boolean).join(", ")} onClick={() => pick(axis.name, item.value)}><span>{displayOptionValue(item.value, axis.kind)}</span></button>;
       })}</div>
     </div>;
   })}</div>;
@@ -1171,7 +1171,8 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   const brandShown = displayBrand(brand, storeName, hostBrand?.focus === "marketplace" ? hostBrand.name : undefined);
   // "men"/"women" leave the shown title and join the brand line as a label (owner, 2 November 2026).
   const departmentText = (() => { const text = departmentLabel({ name, brand, facets: seed?.facets }, lang === "ru" || lang === "en" ? lang : "uz"); return lang === "oz" ? uzText(lang, text) : text; })();
-  const shownName = withoutDepartment(name, brand);
+  // Recased for display ("ADIDAS CRAZY LITE" → "Crazy Lite"); the stored name and the order keep the store's text.
+  const shownName = productTitle(name, brand);
   const brandLine = [brandShown && brandShown !== storeName ? brandShown : "", storeName, departmentText].filter(Boolean).join(" · ");
   // The store plate before the brand line, as on the catalog card; the verified mark only for the brand's own store.
   const officialMark = sourceHost ? officialListing({ store: sourceHost, brand, sourceUrl: source || undefined, sourceVariants: variants.map((variant) => ({ ...variant, sellerId: variant.sellerId })) as Product["sourceVariants"] }, hostBrand) : undefined;
@@ -1349,7 +1350,8 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
     const axesText = option ? listAxes.map(axis => { const value = axisValue(option, axis.name); return !value ? "" : axis.kind === "color" ? colourName(value) : axis.kind === "size" && value === option.size ? sizeDisplay(value) : value; }).filter(Boolean).join(" · ") : "";
     return axesText || (option?.size ? [option.color ? colourName(option.color) : "", sizeDisplay(option.size)].filter(Boolean).join(" · ") : option ? optionDisplay(variants).text(option) : label);
   };
-  const colourName = (color: string) => { const primary = describeSingleColorway(color).primary; return colourPrimaries.filter(value => value === primary).length === 1 ? primary : color.replace(/\//g, "/\u200b"); };
+  // Recased for display ("COLLEGIATE NAVY" → "Collegiate Navy"); the pick keeps the store's value.
+  const colourName = (color: string) => { const primary = describeSingleColorway(color).primary; return displayOptionValue(colourPrimaries.filter(value => value === primary).length === 1 ? primary : color, "color").replace(/\//g, "/\u200b"); };
   // One price on every tile says nothing: when all colours cost the same, the tiles show only the name (the price
   // stays in the button label and the total below; 27 October 2026).
   const colourPricesSame = variantDisplayPrices(variants).length <= 1;
@@ -1357,7 +1359,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   // Up to six colours with their own photos: tiles whose photo fills the tile, the name under it, filling the width.
   // More: the same tiles in one row that scrolls sideways, the chosen one kept in view. No photos: name chips.
   const colourMode = !colourPhotosDiffer ? "names" : variantColors.length > 6 ? "rail" : "tiles";
-  const colourHeading = (colourMode === "rail" && colourPeek) || selectedColor || c.selectColor;
+  const colourHeading = ((colourMode === "rail" && colourPeek) || selectedColor) ? displayOptionValue(((colourMode === "rail" && colourPeek) || selectedColor) as string, "color") : c.selectColor;
   // Sizes with a fit word ("M Tall", "XL Short") fall into labelled rows — Regular, Short, Tall — whose tiles carry
   // the size only, so "3XL Short" no longer has to fit a phone tile (29 October 2026). One fit: a single grid.
   const sizeGroups = (() => {
@@ -1810,7 +1812,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
                 <Stepper value={picked[variants[0].label]??1} max={maxFor(variants[0])} label={k.quantity} k={k} onChange={value=>setPickQuantity(variants[0].label,value)}/>
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
-                {variantColors.length>0&&<div className={"variant-step"+(variantColors.length>1?" lo-colours-main":"")}><div className="vp-head"><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span className={selectedColor||colourPeek?undefined:"vp-hint"}>{colourHeading}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:colourOptions}</div>}
+                {variantColors.length>0&&<div className={"variant-step"+(variantColors.length>1?" lo-colours-main":"")}><div className="vp-head"><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span className={selectedColor||colourPeek?undefined:"vp-hint"}>{colourHeading}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{displayOptionValue(describeSingleColorway(variantColors[0]).primary, "color")}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:colourOptions}</div>}
                 {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div className="vp-head"><b>{variantSizeLabel||c.size}</b><span className={selectedSize?undefined:"vp-hint"}>{selectedSize?(sizeDisplay(selectedSize)):sizeStep?c.selectSize:c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}><span className="lo-size-seg">{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}</span>{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a className="lo-size-chart" href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">{tx("Таблица adidas","adidas jadvali","adidas chart")}<ExternalLink size={14} aria-hidden="true"/></a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}{sizeGroups.length>1?<div className="lo-size-groups">{sizeGroups.map(group=><div className="lo-size-group" key={group.fit||"regular"}><small>{group.fit||tx("Обычные","Oddiy","Regular")}</small><div className="variant-options sizes vp-chips">{group.sizes.map(item=>sizeTile(item.size,item.base))}</div></div>)}</div>:<div className="variant-options sizes vp-chips">{variantSizes.map(size=>sizeTile(size))}</div>}{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
                   {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
                   <div className="nike-size-chart"><b>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</b>

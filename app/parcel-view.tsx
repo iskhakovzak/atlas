@@ -1,5 +1,6 @@
 "use client";
 
+import { productTitle } from "@/lib/market/product-name";
 import { useState } from "react";
 import Link from "@/components/site-link";
 import { ArrowLeft, ArrowRight, Check, FileCheck2, LifeBuoy, MapPin, Package, ScanLine, Truck } from "lucide-react";
@@ -137,7 +138,7 @@ function ParcelOrderRow({ order, locale, busy, run }: { order: Order; locale: Lo
   return <li className="pf-order" data-cancelled={order.cancelled || undefined}>
     <span className="pf-order-photo" aria-hidden="true"><ProductImage product={order.product} decorative locale={locale} size={160} /></span>
     <div className="pf-order-body">
-      <b className="pf-order-name">{order.product.name}</b>
+      <b className="pf-order-name">{productTitle(order.product.name, order.product.brand)}</b>
       <small>{[variant, `× ${order.quantity}`, order.id].filter(Boolean).join(" · ")}</small>
       <span className="pf-order-stage" data-state={order.cancelled ? "muted" : parcelStageOf(order) >= deliveredStage ? "ok" : "info"}><span className="sr-only">{t.parcel.orderStage}: </span>{stageName}</span>
     </div>
