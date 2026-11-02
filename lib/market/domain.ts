@@ -1405,9 +1405,10 @@ export function setCartDeliverySpeed(state: State, speed: DeliverySpeed, now = D
   if (!state.cart.length) throw Error("Корзина пуста.");
   return { ...state, cart: repriceCart(state.cart.map((item) => ({ ...item, deliverySpeed: speed })), now, config, customsHelpChosen(state)) };
 }
-/** The speed the cart is quoted at (all lines share it): standard for an empty cart, express for an older one without the field. */
+/** The speed the cart is quoted at (all lines share it): what the customer chose, else standard — a cart line saved without
+ * the field is quoted at standard too, so express is never picked for the customer (owner, 3 November 2026). */
 export function cartDeliverySpeed(cart: Pick<CartItem, "deliverySpeed">[]): DeliverySpeed {
-  return cart.find((item) => item.deliverySpeed)?.deliverySpeed ?? (cart.length ? legacyDeliverySpeed : defaultDeliverySpeed);
+  return cart.find((item) => item.deliverySpeed)?.deliverySpeed ?? defaultDeliverySpeed;
 }
 /**
  * Recalculate international delivery once per merchant parcel, and unknown store delivery once per store order.
@@ -1425,7 +1426,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
         item.quantity,
         storeShippingUsd(item.product),
         itemPricing,
-        item.deliverySpeed ?? legacyDeliverySpeed,
+        item.deliverySpeed ?? defaultDeliverySpeed,
       ),
     };
   });
@@ -1441,7 +1442,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
     const boxedTotal = contributions.reduce((sum, value) => sum + value, 0);
     const chargeableWeight = combinedShipmentWeight(boxedTotal);
     const countryPricing = pricingForCountry(config, next[indexes[0]].product.country);
-    const shippingTotal = Math.ceil(chargeableWeight * perKgSoumFor(countryPricing, next[indexes[0]].deliverySpeed ?? legacyDeliverySpeed));
+    const shippingTotal = Math.ceil(chargeableWeight * perKgSoumFor(countryPricing, next[indexes[0]].deliverySpeed ?? defaultDeliverySpeed));
     const reserveTotal = Math.ceil(shippingTotal * countryPricing.reserve);
     const deliveryMarginTotal = Math.round(shippingTotal * countryPricing.deliveryMargin);
     let shippingLeft = shippingTotal;
