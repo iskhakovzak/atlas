@@ -105,9 +105,9 @@ export function ProductGallery({ product, images, activeImage, onImageChange, lo
         {photos.length ? photos.map((photo, position) => <div className={`product-gallery-slide${loaded.includes(photo) || failed.includes(photo) ? '' : ' is-loading'}`} key={photo} aria-hidden={position !== index}>
           {!failed.includes(photo)
             // Merchant photos remain safe public HTTPS URLs, without proxying.
-            // eslint-disable-next-line @next/next/no-img-element
             // About 960 px (3.11.2026): eBay's next size up from 1000 was the 1600 px file (268 KB JPEG against 76 KB
             // WebP at 960). The first photo is the page's largest paint and is asked first.
+            // eslint-disable-next-line @next/next/no-img-element
             ? <img className="product-img" src={sizedImage(photo, 960)} alt={`${product.name} — ${copy.photo} ${position + 1}`} loading={position === 0 ? 'eager' : 'lazy'} fetchPriority={position === 0 ? 'high' : undefined} decoding="async" referrerPolicy="no-referrer" draggable={false} ref={el => { if (el?.complete && el.naturalWidth) markLoaded(photo); }} onLoad={() => markLoaded(photo)} onError={event => { if (!retryOriginal(event.currentTarget, photo)) setFailed(current => [...current, photo]); }}/>
             : <div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div>}
           {!loaded.includes(photo) && !failed.includes(photo) && <PhotoWait label={copy.loading}/>}
