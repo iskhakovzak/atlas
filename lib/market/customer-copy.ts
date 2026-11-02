@@ -166,6 +166,8 @@ export type AccountCopy = {
     restore: string; restored: (orders: number) => string;
     about: string; aboutVersion: (version: string, build: string) => string; aboutPlatform: Record<'ios' | 'android', string>; aboutLink: string;
   };
+  /** «Скачать мои данные» next to account deletion (3 November 2026): a JSON file from GET /api/account/export. */
+  dataExport: { lead: string; open: string; busy: string; done: string; failed: string };
   deletion: {
     title: string; lead: string; open: string; removed: string; removedList: string[]; kept: string; keptList: string[];
     blocked: (count: number) => string; blockedHint: string; orders: string; support: string; supportSubject: string;
@@ -395,6 +397,10 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
       restore: 'Восстановить покупки', restored: orders => `В Atlas нет встроенных покупок App Store и Google Play. Заказы (${orders}) и баланс восстановлены из вашего аккаунта.`,
       about: 'О приложении', aboutVersion: (version, build) => `Версия ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'Подробнее о приложении',
     },
+    dataExport: {
+      lead: 'Файл со всеми вашими данными в Atlas: профиль, способы входа, получатели, заказы и посылки, баланс, согласия, уведомления.',
+      open: 'Скачать мои данные', busy: 'Готовим файл…', done: 'Файл с данными скачан.', failed: 'Не удалось скачать данные. Повторите через минуту.',
+    },
     deletion: {
       title: 'Удалить аккаунт', lead: 'Аккаунт и личные данные будут удалены без возможности восстановления.', open: 'Удалить аккаунт',
       removed: 'Будет удалено', removedList: ['профиль и контакты', 'получатели и адреса', 'паспортные данные и ранее загруженные сканы', 'корзина и избранное', 'уведомления', 'способы входа', 'история обращений в поддержку'],
@@ -455,6 +461,10 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
       restore: 'Xaridlarni tiklash', restored: orders => `Atlasda App Store va Google Play ichki xaridlari yo‘q. Buyurtmalar (${orders}) va balans akkauntingizdan tiklandi.`,
       about: 'Ilova haqida', aboutVersion: (version, build) => `Versiya ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'Ilova haqida batafsil',
     },
+    dataExport: {
+      lead: 'Atlas’dagi barcha ma’lumotlaringiz fayli: profil, kirish usullari, qabul qiluvchilar, buyurtmalar va posilkalar, balans, roziliklar, bildirishnomalar.',
+      open: 'Ma’lumotlarimni yuklab olish', busy: 'Fayl tayyorlanmoqda…', done: 'Ma’lumotlar fayli yuklab olindi.', failed: 'Ma’lumotlarni yuklab bo‘lmadi. Bir daqiqadan so‘ng qayta urinib ko‘ring.',
+    },
     deletion: {
       title: 'Akkauntni o‘chirish', lead: 'Akkaunt va shaxsiy ma’lumotlar qaytarib bo‘lmaydigan tarzda o‘chiriladi.', open: 'Akkauntni o‘chirish',
       removed: 'O‘chiriladi', removedList: ['profil va kontaktlar', 'qabul qiluvchilar va manzillar', 'pasport ma’lumotlari va avval yuklangan skanlar', 'savat va sevimlilar', 'bildirishnomalar', 'kirish usullari', 'yordam xizmatiga murojaatlar tarixi'],
@@ -514,6 +524,10 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
       consents: 'Consents', consentsNone: 'Not recorded', consentsAccept: 'Accept', consentVersion: version => `edition ${version}`, consentDoc: { privacy: 'Privacy policy', terms: 'Terms of use' },
       restore: 'Restore purchases', restored: orders => `Atlas has no App Store or Google Play in-app purchases. Your orders (${orders}) and balance were restored from your account.`,
       about: 'About the app', aboutVersion: (version, build) => `Version ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'More about the app',
+    },
+    dataExport: {
+      lead: 'A file with all your data in Atlas: profile, sign-in methods, recipients, orders and parcels, balance, consents, notifications.',
+      open: 'Download my data', busy: 'Preparing the file…', done: 'Your data file was downloaded.', failed: 'Could not download your data. Try again in a minute.',
     },
     deletion: {
       title: 'Delete account', lead: 'The account and personal data will be deleted permanently.', open: 'Delete account',
