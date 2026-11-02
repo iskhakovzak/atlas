@@ -1,4 +1,5 @@
 "use client";
+import { productTitle, titleOf } from "@/lib/market/product-name";
 import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "@/components/site-link";
 import { InfoTip } from "@/components/info-tip";
@@ -1186,7 +1187,7 @@ function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports,
               <div className="og-model-head">
                 <span className="og-model-photo"><ProductImage product={model.product} decorative locale={locale} size={160} /></span>
                 <span className="og-model-main">
-                  <b className="og-model-name">{model.product.name}</b>
+                  <b className="og-model-name">{productTitle(model.product.name, model.product.brand)}</b>
                   {meta && <small>{meta}</small>}
                 </span>
                 {model.product.sourceUrl && <a className="order-x-link og-store-link" href={model.product.sourceUrl} target="_blank" rel="noopener noreferrer">{gc.openIn(storeShortName(store))}<ArrowUpRight size={14} aria-hidden="true" /></a>}
@@ -1729,7 +1730,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;if(open&&operations)revealActionOf.current=o.id;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
               <ProductImage product={o.product} decorative locale={state.communication.language} size={240} />
-               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{readableVariant(o.variant, o.product.sourceOptions)} · {o.quantity}</span>{operations && (() => {
+               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{productTitle(o.product.name, o.product.brand)}</b><span>{readableVariant(o.variant, o.product.sourceOptions)} · {o.quantity}</span>{operations && (() => {
                  const step = opsStep(o), idle = orderIdleDays(o, queueNow);
                  // The badge already says "Ожидает оплаты": no second line for it.
                  if (!step || step.key === "payment") return null;
@@ -1884,7 +1885,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <ProductImage product={o.product} decorative locale={state.communication.language} size={240} />
               </div>
               <div>
-                <h2>{o.product.name}</h2>
+                <h2>{productTitle(o.product.name, o.product.brand)}</h2>
                 <p>
                   {readableVariant(o.variant, o.product.sourceOptions)} · {o.quantity} {locale === "ru" ? "шт." : isUzbek(locale) ? uzText(locale, "dona") : "pcs"} · {o.product.country ?? (locale === "ru" ? "США" : isUzbek(locale) ? uzText(locale, "AQSh") : "USA")}
                 </p>
@@ -2903,8 +2904,8 @@ export function NotificationsView() {
             {groups.map(([item, ...history]) => <li key={item.id} id={"notice-" + item.id} tabIndex={-1} className={"notice-x" + (!item.read ? " unread" : "") + (linked === item.id ? " linked" : "")}>
               <span className="notice-x-icon" aria-hidden="true"><Bell size={18} /></span>
               <div className="notice-x-body">
-                <div className="notice-x-head"><h2>{renderNoticeRow(item, locale, item.orderId ? state.orders.find(order => order.id === item.orderId)?.product.name : undefined).title}</h2>{!item.read && <span className="notice-x-new">{c.newBadge}</span>}</div>
-                <p>{renderNoticeRow(item, locale, item.orderId ? state.orders.find(order => order.id === item.orderId)?.product.name : undefined).message}</p>
+                <div className="notice-x-head"><h2>{renderNoticeRow(item, locale, item.orderId ? titleOf(state.orders.find(order => order.id === item.orderId)?.product) : undefined).title}</h2>{!item.read && <span className="notice-x-new">{c.newBadge}</span>}</div>
+                <p>{renderNoticeRow(item, locale, item.orderId ? titleOf(state.orders.find(order => order.id === item.orderId)?.product) : undefined).message}</p>
                 <div className="notice-x-foot"><time dateTime={new Date(item.at).toISOString()}>{formatDateTime(item.at, locale)}</time>{item.orderId && (noticeTarget(item)?.kind === "parcel"
                   ? <Link className="order-x-link" href={parcelPath(item.orderId)}>{c.openParcel}<ArrowRight size={14} aria-hidden="true" /></Link>
                   : <Link className="order-x-link" href={"/orders#" + item.orderId}>{c.openOrder} {item.orderId}<ArrowRight size={14} aria-hidden="true" /></Link>)}</div>

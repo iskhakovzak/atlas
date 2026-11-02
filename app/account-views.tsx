@@ -1,5 +1,6 @@
 "use client";
 
+import { productTitle } from "@/lib/market/product-name";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "@/components/site-link";
@@ -341,7 +342,7 @@ function DeleteAccountDialog({ open, onClose, c, locale, state, onSupport }: { o
       </div>
       {blockers.length > 0 && <div className="notice warning delete-account-blocked">
         <p><b>{d.blocked(blockers.length)}</b> {d.blockedHint}</p>
-        <ul>{blockers.map(order => <li key={order.id}><Link href={`/orders#${order.id}`}>{order.id}</Link> · {order.product.name}</li>)}</ul>
+        <ul>{blockers.map(order => <li key={order.id}><Link href={`/orders#${order.id}`}>{order.id}</Link> · {productTitle(order.product.name, order.product.brand)}</li>)}</ul>
         <div className="delete-account-actions"><Link className="btn secondary" href="/orders">{d.orders}</Link><button type="button" className="btn secondary" onClick={onSupport}><MessageCircle size={16} aria-hidden="true" />{d.support}</button></div>
       </div>}
       {summary.orders.autoCancel > 0 && <p className="cabinet-note">{d.autoCancel(summary.orders.autoCancel)}</p>}

@@ -11,7 +11,7 @@ import { dealQuote } from '@/lib/market/deals';
 import { formatSum } from '@/lib/market/format';
 import { supportedLocale } from '@/lib/market/i18n';
 import { productLd } from '@/lib/seo/structured-data';
-import { displayBrand } from '@/lib/market/product-name';
+import { displayBrand, productTitle } from '@/lib/market/product-name';
 import { brandForHost } from '@/lib/market/store-brands';
 import { productPath } from '@/lib/seo/routes';
 // Rules split out of the layout CSS for the routes that use them, as /order-by-link imports them: the product page is the
@@ -56,7 +56,7 @@ export default async function Page({ params, searchParams }: Props) {
   const { product } = found;
   // The JSON-LD address is the canonical one: `?lang=` only when the page was asked in a language (app/route-metadata.ts).
   const requested = supportedLocale(typeof lang === 'string' ? lang : undefined) ?? undefined;
-  return <Marketplace view="products" crumb={product.name} crumbPath={productPath(product.id)}>
+  return <Marketplace view="products" crumb={productTitle(product.name, product.brand)} crumbPath={productPath(product.id)}>
     <JsonLd data={productLd({ id: product.id, name: product.name, brand: shownBrand(product), description: product.description, category: product.category, images: [product.image, ...(product.sourceImages ?? [])].filter((image): image is string => Boolean(image?.startsWith('https://'))), totalSoum: catalogSum(found) }, requested)} />
     <ProductOrder mode="catalog" product={product} />
   </Marketplace>;

@@ -1,4 +1,5 @@
 "use client";
+import { productTitle } from "@/lib/market/product-name";
 import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, ClipboardPaste, Info, Minus, Plus, ShoppingBag, Store, TriangleAlert, X } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
@@ -36,9 +37,9 @@ export function GuestProblems({ lines, locale, onDismiss }: { lines: GuestLine[]
     <p>{t.problemsHint}</p>
     <ul>{lines.map((line) => <li key={line.key}>
       <span className="guest-problem-photo"><ProductImage product={line.product} locale={locale} decorative size={120} /></span>
-      <span className="guest-problem-text"><b>{line.product.name}</b><small>{[shownVariant(line.variant, line.product.sourceOptions), t.problem(line.problem?.code)].filter(Boolean).join(" · ")}</small></span>
-      <Link className="btn secondary" href={guestLineHref(line)}>{t.openItem}<span className="sr-only">: {line.product.name}</span></Link>
-      <button type="button" className="icon-btn" aria-label={`${t.dismiss}: ${line.product.name}`} onClick={() => onDismiss(line.key)}><X size={16} aria-hidden="true" /></button>
+      <span className="guest-problem-text"><b>{productTitle(line.product.name, line.product.brand)}</b><small>{[shownVariant(line.variant, line.product.sourceOptions), t.problem(line.problem?.code)].filter(Boolean).join(" · ")}</small></span>
+      <Link className="btn secondary" href={guestLineHref(line)}>{t.openItem}<span className="sr-only">: {productTitle(line.product.name, line.product.brand)}</span></Link>
+      <button type="button" className="icon-btn" aria-label={`${t.dismiss}: ${productTitle(line.product.name, line.product.brand)}`} onClick={() => onDismiss(line.key)}><X size={16} aria-hidden="true" /></button>
     </li>)}</ul>
   </section>;
 }
@@ -82,12 +83,12 @@ export function GuestCartView() {
         {parcels.map((parcel) => <section className="basket-parcel" key={parcel.key} aria-label={parcel.title}>
           <h2 className="basket-parcel-title"><Store size={16} aria-hidden="true" /><span>{parcel.title}</span><small>{parcel.country}</small></h2>
           {parcel.items.map((item) => {
-            const name = [item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
+            const name = [productTitle(item.product.name, item.product.brand), shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
             return <article className="basket-item" key={item.id}>
               <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative size={240} /></div>
               <div className="basket-info">
                 {shownBrand(item.product.brand) && <p className="basket-brand">{shownBrand(item.product.brand)}</p>}
-                <h3 className="basket-name">{item.product.name}</h3>
+                <h3 className="basket-name">{productTitle(item.product.name, item.product.brand)}</h3>
                 {shownVariant(item.variant, item.product.sourceOptions) && <p className="basket-meta">{shownVariant(item.variant, item.product.sourceOptions)}</p>}
                 {item.product.sourceUrl && <p className="basket-meta"><a className="basket-source" href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.openStore}<ArrowUpRight size={14} aria-hidden="true" /></a></p>}
               </div>
@@ -98,7 +99,7 @@ export function GuestCartView() {
                   <output aria-live="polite">{item.quantity}</output>
                   <button type="button" aria-label={`${c.item.increase}: ${name}`} disabled={item.quantity >= maxGuestQuantity} onClick={() => guest.setQuantity(item.id, item.quantity + 1)}><Plus size={16} aria-hidden="true" /></button>
                 </div>
-                <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} instant onConfirm={async () => guest.remove([item.id])} />
+                <SafeDeleteButton label={c.item.remove} itemName={productTitle(item.product.name, item.product.brand)} locale={locale} instant onConfirm={async () => guest.remove([item.id])} />
               </div>
             </article>;
           })}

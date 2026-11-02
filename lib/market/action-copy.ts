@@ -2,6 +2,7 @@ import type { Locale } from './i18n.ts';
 import type { NextStep, NextStepKind } from './next-step.ts';
 import { formatSum, ruPlural } from './format.ts';
 import { withCyrillic } from './uz-cyrl.ts';
+import { productTitle } from './product-name.ts';
 
 /**
  * The words of "what waits for you" (owner, 1 November 2026: the mint strip under the header was "вообще не то").
@@ -123,7 +124,7 @@ export function shortProductName(name: string, max = 24): string {
 /** The card's three lines for a step: title, the line under it, and the button. */
 export function actionLines(step: NextStep, locale: Locale): { title: string; hint: string; button: string } {
   const t = actionCopy[locale] ?? actionCopy.ru;
-  const name = step.product ? shortProductName(step.product.name, 28) : '';
+  const name = step.product ? shortProductName(productTitle(step.product.name, step.product.brand), 28) : '';
   const what = step.kind === 'payment' && (step.lines ?? 1) > 1 ? t.items(step.items) : name;
   const amount = step.amount !== undefined && step.amount > 0 ? formatSum(step.amount, locale) : undefined;
   return {
@@ -137,6 +138,6 @@ export function actionLines(step: NextStep, locale: Locale): { title: string; hi
 export function actionToastOf(step: NextStep | null | undefined, locale: Locale): { text: string; action: string; href: string } | null {
   if (!step || step.kind === 'cart') return null;
   const t = actionCopy[locale] ?? actionCopy.ru;
-  const short = step.product ? shortProductName(step.product.name) : step.orderId ?? '';
+  const short = step.product ? shortProductName(productTitle(step.product.name, step.product.brand)) : step.orderId ?? '';
   return { text: t.toast[step.kind](short), action: t.toastAction[step.kind], href: step.href };
 }

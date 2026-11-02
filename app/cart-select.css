@@ -259,13 +259,11 @@ html:not([data-theme="dark"]) .cl-photo .product-img { mix-blend-mode: multiply;
 .cl-qty .basket-qty button::after { content: ""; position: absolute; inset: -6px 0; }
 .cl-qty .basket-qty output { min-width: 26px; font-size: 14px; }
 /* Heart, "save for later" and remove: 32 px ghost icons, each taking taps from a 44 px frame; the words stay for screen readers. */
-.cl-actions :is(.basket-fav, .basket-later, .remove-item) { position: relative; display: inline-grid; place-items: center; width: 32px; min-width: 32px; height: 32px; min-height: 32px; margin: 0; padding: 0; border: 0; border-radius: 9px; background: transparent; color: var(--home-muted); }
-.cl-actions :is(.basket-fav, .basket-later, .remove-item)::after { content: ""; position: absolute; inset: -6px; }
-.cl-actions :is(.basket-fav, .basket-later, .remove-item):hover:not(:disabled) { background: var(--home-soft); color: var(--home-ink); }
+.cl-actions :is(.basket-later, .remove-item) { position: relative; display: inline-grid; place-items: center; width: 32px; min-width: 32px; height: 32px; min-height: 32px; margin: 0; padding: 0; border: 0; border-radius: 9px; background: transparent; color: var(--home-muted); }
+.cl-actions :is(.basket-later, .remove-item)::after { content: ""; position: absolute; inset: -6px; }
+.cl-actions :is(.basket-later, .remove-item):hover:not(:disabled) { background: var(--home-soft); color: var(--home-ink); }
 .cl-actions .remove-item:not(.confirming):hover:not(:disabled) { color: #a33236; }
-.cl-actions :is(.basket-fav, .basket-later, .remove-item):focus-visible { outline: 2px solid var(--home-accent); outline-offset: 0; }
-.cl-actions .basket-fav.saved { border: 0; background: transparent; color: #c0392b; }
-.cl-actions .basket-fav.saved svg { fill: currentColor; }
+.cl-actions :is(.basket-later, .remove-item):focus-visible { outline: 2px solid var(--home-accent); outline-offset: 0; }
 .cl-actions :is(.basket-later, .remove-item:not(.confirming)) span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .cl-actions .remove-item.confirming { width: auto; padding: 0 8px; }
 .basket-item.cl.is-later > :not(.basket-select), .cl-variant.is-later > :not(.basket-select) { opacity: .62; }
@@ -293,7 +291,7 @@ html:not([data-theme="dark"]) .cl-photo .product-img { mix-blend-mode: multiply;
   .basket-group-head.cl { padding-bottom: 8px; }
   /* Quiet icons until the line is pointed at or focused; a saved heart stays in colour. */
   @media (hover: hover) and (pointer: fine) {
-    .cl-actions :is(.basket-later, .remove-item:not(.confirming), .basket-fav:not(.saved)) { opacity: .55; transition: opacity .15s ease; }
+    .cl-actions :is(.basket-later, .remove-item:not(.confirming)) { opacity: .55; transition: opacity .15s ease; }
     :is(.basket-item.cl, .cl-variant):is(:hover, :focus-within) .cl-actions > * { opacity: 1; }
   }
 }
@@ -303,7 +301,6 @@ html:not([data-theme="dark"]) .cl-photo .product-img { mix-blend-mode: multiply;
 html[data-theme="dark"] .cl-stock { color: #e8b05c; }
 html[data-theme="dark"] .cl-photo { background: radial-gradient(120% 110% at 50% 8%, #f6f3ec 0%, #e6e1d5 100%); }
 html[data-theme="dark"] .cl-photo .product-img { mix-blend-mode: multiply; }
-html[data-theme="dark"] .cl-actions .basket-fav.saved { color: #f08a7e; }
 html[data-theme="dark"] .cl-actions .remove-item:not(.confirming):hover:not(:disabled) { color: #ffb4a8; }
 html[data-theme="dark"] .cl-actions .remove-item:not(.confirming) { background-color: transparent; color: var(--home-muted); }
 html[data-theme="dark"] .cl-actions .remove-item:not(.confirming):hover:not(:disabled) { background-color: var(--home-soft); }

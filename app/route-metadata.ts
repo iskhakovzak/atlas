@@ -4,6 +4,7 @@ import {withCyrillic} from '../lib/market/uz-cyrl.ts';
 import { alternateOgLocales, defaultImage, ogLocale, pageMetadata } from '../lib/seo/metadata.ts';
 import { pageLanguageSet, type LanguageSet } from '../lib/seo/locales.ts';
 import { storeBrands } from '../lib/market/store-brands.ts';
+import { productTitle } from '../lib/market/product-name.ts';
 
 export type PublicPage = 'home' | 'catalog' | 'stores' | 'delivery' | 'customs' | 'legal' | 'privacy' | 'terms' | 'support' | 'app' | 'delete-account';
 const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', delivery: '/delivery', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
@@ -116,7 +117,10 @@ const productText: Record<Locale, (title: string, sum?: string) => string> = /*@
 /** A catalog product page (/catalog/p/[id]): its own title, description and photo, with the shared canonical/hreflang rules. */
 export function productMetadata(product: { id: string; name: string; brand?: string; image?: string }, sum: string | undefined, lang: string | undefined, fallback: Locale = 'uz'): Metadata {
   const brand = product.brand?.trim();
-  const title = brand && !product.name.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${product.name}` : product.name;
+  // The name as the page heading shows it: no department word, the brand once, recased ("adidas women ADIDAS CRAZY
+  // LITE AOP TANK Top" → "adidas Crazy Lite AOP Tank Top").
+  const name = productTitle(product.name, brand);
+  const title = brand && !name.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${name}` : name;
   return pageMetadata({
     path: '/catalog/p/' + encodeURIComponent(product.id),
     lang,

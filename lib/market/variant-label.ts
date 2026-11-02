@@ -4,6 +4,7 @@
 // then width, length and the like — "Black / White · Regular · 2XL". eBay's descriptive specifics (Department, Type,
 // Style, Material, Brand, MPN…) and placeholder values ("see description", "Not Available") never show.
 import { axisKind } from './variant-axes.ts';
+import { displayOptionValue } from './product-name.ts';
 
 type Option = { name: string; value: string };
 
@@ -36,13 +37,14 @@ export function variantSummary(variant = '', options?: readonly Option[]): strin
   const source = (named.length > 0 && (options?.length || labelIsNamed)) || !label
     ? [...(options ?? []), ...fromLabel.filter(item => !(options ?? []).some(option => clean(option.name) === clean(item.name)))]
     : [];
-  if (!source.length) return label.split(' · ').map(clean).filter(part => part && !emptyValue.test(part)).join(' · ');
+  // Values are recased for display ("xl" → "XL", "BLACK / WHITE" → "Black / White"; lib/market/product-name.ts).
+  if (!source.length) return label.split(' · ').map(clean).filter(part => part && !emptyValue.test(part)).map(part => displayOptionValue(part)).join(' · ');
   const seen = new Set<string>();
   const values = source
     .filter(option => isChoosingOption(option.name, option.value))
     .map((option, index) => ({ name: clean(option.name), value: clean(option.value).replace(/^"|"$/g, ''), index }))
     .sort((a, b) => rank(a.name) - rank(b.name) || a.index - b.index)
     .filter(option => { const key = option.value.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; })
-    .map(option => option.value);
+    .map(option => displayOptionValue(option.value, axisKind(option.name)));
   return values.join(' · ');
 }

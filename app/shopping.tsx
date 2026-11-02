@@ -1,6 +1,6 @@
 "use client";
 
-import { withoutDepartment } from "@/lib/market/product-name";
+import { productTitle, titleOf } from "@/lib/market/product-name";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, Bookmark, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Package, Plus, RotateCcw, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
@@ -37,9 +37,9 @@ const CartPicks = lazy(() => loadChunk(() => import("./cart-picks")).then((modul
 
 /** Favourites and removal in the cart: saving keeps the line; "save for later" saves and then removes it. */
 const keepCopy = /*@__PURE__*/withCyrillic({
-  ru: { save: "В избранное", saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removed: (name: string) => `Удалено из корзины: ${name}`, undo: "Вернуть", note: "Комментарий к заказу", noteShort: "Комментарий", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
-  uz: { save: "Saqlanganlarga", saved: "Saqlanganlarda", later: "Qoldirish", laterLabel: "Saqlanganlarga qoldirish", laterDone: "Saqlanganlarga qoldirildi", open: "Saqlanganlarni ochish", removed: (name: string) => `Savatdan olib tashlandi: ${name}`, undo: "Qaytarish", note: "Buyurtmaga izoh", noteShort: "Izoh", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
-  en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removed: (name: string) => `Removed from cart: ${name}`, undo: "Undo", note: "Order comment", noteShort: "Comment", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
+  ru: { saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removed: (name: string) => `Удалено из корзины: ${name}`, undo: "Вернуть", note: "Комментарий к заказу", noteShort: "Комментарий", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
+  uz: { saved: "Saqlanganlarda", later: "Qoldirish", laterLabel: "Saqlanganlarga qoldirish", laterDone: "Saqlanganlarga qoldirildi", open: "Saqlanganlarni ochish", removed: (name: string) => `Savatdan olib tashlandi: ${name}`, undo: "Qaytarish", note: "Buyurtmaga izoh", noteShort: "Izoh", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
+  en: { saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removed: (name: string) => `Removed from cart: ${name}`, undo: "Undo", note: "Order comment", noteShort: "Comment", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
 });
 import { useStickyFit } from "./sticky-fit";
 import { productGroups, shownVariant, storeName } from "./checkout-review";
@@ -74,7 +74,7 @@ function QuantityControl({ item, c, save, pending }: { item: CartItem; c: CartCo
   useEffect(() => () => { clearTimeout(timer.current); if (pending.get(id) === flushRef.current) pending.delete(id); }, [pending, id]);
   // Never more than the store reports left (when it reports a count at all).
   const max = Math.max(1, maxLineQuantity(item.product));
-  const optionName = [item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
+  const optionName = [productTitle(item.product.name, item.product.brand), shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
   function step(delta: number) {
     const next = Math.min(max, Math.max(1, value + delta));
     if (next === value) return;
@@ -196,7 +196,7 @@ export function CartView() {
   const pendingAdd = usePendingCartAdd(true, (result) => {
     const action = result.pending.action;
     if (result.status === "added") {
-      const name = action.type === "cart-add" ? action.product.name : action.items[0]?.product.name ?? "";
+      const name = action.type === "cart-add" ? productTitle(action.product.name, action.product.brand) : titleOf(action.items[0]?.product) ?? "";
       toast.success(pendingWords.addedItem(name, result.pending.units) + (result.speedKept ? " " + pendingWords.speedKept : ""));
       return;
     }
@@ -324,13 +324,12 @@ export function CartView() {
     // The toast closes on its button; if the restore did not go through, a new toast offers it again.
     if (!await act({ type: "cart-restore", ids }, { queue: true })) toast.error(kc.removed(name), { duration: 8000, action: { label: kc.undo, onClick: () => void restoreLines(ids, name) } });
   }
-  /** The heart (keeps the line) and "save for later" (saves, then removes), for a catalog product only. */
+  /** "Save for later" (saves to favourites, then removes), for a catalog product only. The separate heart left the
+   *  cart line (owner, 3 November 2026): «Отложить» already moves the item to favourites. */
   function keepActions(lines: CartItem[]) {
     const match = catalogMatch(lines[0]);
     if (!match) return null;
-    const saved = state.favorites.includes(match.id);
     return <>
-      <button type="button" className={"basket-fav" + (saved ? " saved" : "")} aria-pressed={saved} aria-label={kc.save} title={saved ? kc.saved : kc.save} disabled={Boolean(favoriteBusy)} aria-busy={favoriteBusy === match.id || undefined} onClick={() => void toggleFavorite(match.id)}><Heart size={18} aria-hidden="true" /></button>
       <button type="button" className="basket-later" aria-label={kc.laterLabel} title={kc.laterLabel} disabled={Boolean(favoriteBusy)} onClick={() => void saveForLater(lines, match.id)}><Bookmark size={16} aria-hidden="true" /><span>{kc.later}</span></button>
     </>;
   }
@@ -358,7 +357,7 @@ export function CartView() {
     if (match) { setPickedVariant(item.variant); setPicked(match); return; }
     if (item.product.sourceUrl) window.location.assign(`/order-by-link?url=${encodeURIComponent(item.product.sourceUrl)}`);
   }
-  const lineName = (item: CartItem) => [item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
+  const lineName = (item: CartItem) => [productTitle(item.product.name, item.product.brand), shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
 
   /** The store price as the shop shows it (× quantity), linked to the store page when there is one. */
   const storeLine = (item: CartItem) => {
@@ -376,7 +375,7 @@ export function CartView() {
 
   /**
    * One cart line (1 November 2026, owner: "скомпонуй как в каталоге … лишнего пространства нет"). Wide: one row —
-   * [tick] [photo 72] [name, one line · option · store price ↗ · Comment] [quantity] [sum] [♡ ⌑ 🗑]. Narrow (phones, a
+   * [tick] [photo 72] [name, one line · option · store price ↗ · Comment] [quantity] [sum] [⌑ 🗑]. Narrow (phones, a
    * narrow column): the sum beside the name and the quantity with the icons in a row under the text. Notes and an open
    * comment span the text column under it.
    */
@@ -385,9 +384,9 @@ export function CartView() {
     const issue = item.sourceIssue;
     return <article className={"basket-item cl" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id} onPointerEnter={catalogMatch(item) ? preloadProductSheet : undefined} onFocus={catalogMatch(item) ? preloadProductSheet : undefined}>
       {selectBox([item], s.selectLine(lineName(item)))}
-      <button type="button" className="cl-photo" aria-label={item.product.name} onClick={() => openLine(item)}><ProductImage product={item.product} locale={locale} decorative size={160} /></button>
+      <button type="button" className="cl-photo" aria-label={productTitle(item.product.name, item.product.brand)} onClick={() => openLine(item)}><ProductImage product={item.product} locale={locale} decorative size={160} /></button>
       <div className="cl-text">
-        <h3 className="cl-title"><button type="button" onClick={() => openLine(item)}><span>{withoutDepartment(item.product.name, item.product.brand)}</span></button></h3>
+        <h3 className="cl-title"><button type="button" onClick={() => openLine(item)}><span>{productTitle(item.product.name, item.product.brand)}</span></button></h3>
         {meta && <p className="cl-option">{meta}</p>}
         <div className="cl-sub"><p className="cl-store">{storeLine(item)}</p>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}{noteToggle(item)}</div>
       </div>
@@ -395,7 +394,7 @@ export function CartView() {
       <strong className="cl-sum">{formatSum(lineTotal(item), locale)}</strong>
       <div className="cl-actions">
         {keepActions([item])}
-        <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} instant onConfirm={() => removeWithUndo([item.id], item.product.name)} />
+        <SafeDeleteButton label={c.item.remove} itemName={productTitle(item.product.name, item.product.brand)} locale={locale} instant onConfirm={() => removeWithUndo([item.id], productTitle(item.product.name, item.product.brand))} />
       </div>
       {notes(item)}
       {renderNote(item)}
@@ -427,17 +426,17 @@ export function CartView() {
     const total = lines.reduce((sum, line) => sum + lineTotal(line), 0), units = lines.reduce((sum, line) => sum + line.quantity, 0);
     return <div className="basket-group" key={`group:${lead.id}`}>
       <article className="basket-item basket-group-head cl">
-        {selectBox(lines, s.selectGroup(lead.product.name))}
-        <button type="button" className="cl-photo" aria-label={lead.product.name} onClick={() => openLine(lead)}><ProductImage product={lead.product} locale={locale} decorative size={160} /></button>
+        {selectBox(lines, s.selectGroup(productTitle(lead.product.name, lead.product.brand)))}
+        <button type="button" className="cl-photo" aria-label={productTitle(lead.product.name, lead.product.brand)} onClick={() => openLine(lead)}><ProductImage product={lead.product} locale={locale} decorative size={160} /></button>
         <div className="cl-text">
-          <h3 className="cl-title"><button type="button" onClick={() => openLine(lead)}><span>{withoutDepartment(lead.product.name, lead.product.brand)}</span></button></h3>
+          <h3 className="cl-title"><button type="button" onClick={() => openLine(lead)}><span>{productTitle(lead.product.name, lead.product.brand)}</span></button></h3>
           {colour && <p className="cl-option">{colour}</p>}
           <p className="cl-store">{c.item.forQuantity(units)}</p>
         </div>
         <strong className="cl-sum">{formatSum(total, locale)}</strong>
         <div className="cl-actions">
           {keepActions(lines)}
-          <SafeDeleteButton label={kc.removeAll(lines.length)} itemName={lead.product.name} locale={locale} instant onConfirm={() => removeWithUndo(ids, lead.product.name)} />
+          <SafeDeleteButton label={kc.removeAll(lines.length)} itemName={productTitle(lead.product.name, lead.product.brand)} locale={locale} instant onConfirm={() => removeWithUndo(ids, productTitle(lead.product.name, lead.product.brand))} />
         </div>
       </article>
       <ul className="basket-variants cl-variants" aria-label={kc.variants}>{lines.map((item) => {
@@ -594,8 +593,8 @@ export function CartView() {
         <h2 id="basket-reorder-title">{c.empty.ordered}</h2>
         <ul>{reorders.map((order) => <li key={order.id}>
           <div className="basket-reorder-photo"><ProductImage product={order.product} locale={locale} decorative size={160} /></div>
-          <span className="basket-reorder-name">{order.product.name}</span>
-          <Link className="btn secondary" href={`/order-by-link?url=${encodeURIComponent(order.product.sourceUrl ?? "")}`}><RotateCcw size={16} aria-hidden="true" />{orderGroupCopy[locale].reorder}<span className="sr-only">: {order.product.name}</span></Link>
+          <span className="basket-reorder-name">{productTitle(order.product.name, order.product.brand)}</span>
+          <Link className="btn secondary" href={`/order-by-link?url=${encodeURIComponent(order.product.sourceUrl ?? "")}`}><RotateCcw size={16} aria-hidden="true" />{orderGroupCopy[locale].reorder}<span className="sr-only">: {productTitle(order.product.name, order.product.brand)}</span></Link>
         </li>)}</ul>
       </section>}
       {/* The catalog's picks, in the storefront's order; a card opens the product sheet. */}

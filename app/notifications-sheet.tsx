@@ -1,4 +1,5 @@
 'use client';
+import { titleOf } from "@/lib/market/product-name";
 import {ArrowRight,Bell,CheckCheck,FileText,Inbox,Link2,MessageCircle,Package,X} from 'lucide-react';
 import Link from '@/components/site-link';
 import {Sheet,SheetClose,SheetContent,SheetDescription,SheetTitle} from '@/components/ui/sheet';
@@ -85,7 +86,7 @@ export function NotificationsSheet({open,onOpenChange,bell}:{open:boolean;onOpen
         </ul></section>}
         {ready&&<section aria-labelledby="notice-panel-updates"><h3 id="notice-panel-updates">{p.updates}</h3>
           {!panel.updates.length?<div className="notice-panel-empty"><span aria-hidden="true"><Inbox size={24}/></span><b>{panel.total?p.nothing:c.emptyTitle}</b>{!panel.total&&<p>{c.emptyText}</p>}{!panel.total&&!panel.action.length&&<Link className="btn primary notice-panel-empty-cta" href="/order-by-link" onClick={close}><Link2 size={18} aria-hidden="true"/>{p.emptyCta}</Link>}</div>:<>{days.map(group=><div key={group.day} className="notice-panel-day">{days.length>1&&<h4>{p[group.day]}</h4>}<ul className="notice-panel-list">
-            {group.items.map((item)=>{const index=panel.updates.indexOf(item);const text=renderNoticeRow(item,locale,item.orderId?orderOf.get(item.orderId)?.product.name:undefined),target=noticeTarget(item);return <li key={item.id} className={'notice-panel-item'+(item.read?'':' unread')} style={row(panel.action.length+index)}>
+            {group.items.map((item)=>{const index=panel.updates.indexOf(item);const text=renderNoticeRow(item,locale,item.orderId?titleOf(orderOf.get(item.orderId)?.product):undefined),target=noticeTarget(item);return <li key={item.id} className={'notice-panel-item'+(item.read?'':' unread')} style={row(panel.action.length+index)}>
               <span className={'notice-panel-icon'+(item.orderId&&orderOf.get(item.orderId)?.product.image?' has-photo':'')} aria-hidden="true">{target?.kind==='document'?<FileText size={18}/>:target?.kind==='order'||target?.kind==='parcel'?<Package size={18}/>:target?.kind==='support'?<MessageCircle size={18}/>:<Bell size={18}/>}{item.orderId&&<OrderPhoto order={orderOf.get(item.orderId)}/>}</span>
               <div className="notice-panel-body">
                 <div className="notice-panel-top"><b>{!item.read&&<span className="notice-panel-dot"><span className="sr-only">{c.newBadge}</span></span>}{text.title}</b>{time(item.at,days.length>1)}</div>

@@ -5,6 +5,7 @@ import { noticeTarget, reasonCodes } from './notice-panel.ts';
 import { noticesCopy } from './notices-copy.ts';
 import { withCyrillic } from './uz-cyrl.ts';
 import { telegramSilent } from './telegram-state.ts';
+import { productTitle } from './product-name.ts';
 
 // Order notices in Telegram: the bot's words and the message built from the account's new notices.
 // The words hold no HTML: Uzbek Cyrillic is transliterated from the Latin copy and would turn <b> into <б>.
@@ -114,7 +115,7 @@ function noticeBlock(notice: Notification, orders: readonly Pick<Order, 'id' | '
   const t = telegramCopy[locale];
   const { title, message } = renderNotification(notice, locale);
   const order = notice.orderId ? orders.find((item) => item.id === notice.orderId) : undefined;
-  const about = notice.orderId ? (order ? `${clip(order.product.name, 60)} · ${notice.orderId}` : notice.orderId) : '';
+  const about = notice.orderId ? (order ? `${clip(productTitle(order.product.name, order.product.brand), 60)} · ${notice.orderId}` : notice.orderId) : '';
   return [
     isActionNotice(notice) ? `<i>${escapeHtml(t.action)}</i>` : '',
     `<b>${escapeHtml(clip(title, 120))}</b>`,
