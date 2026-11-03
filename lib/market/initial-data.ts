@@ -5,6 +5,7 @@ import {catalogFirstPage} from './catalog-first-page.ts';
 import type {CatalogItem,CatalogQuery} from './catalog-query.ts';
 import type {Locale} from './i18n.ts';
 import {publicCatalog} from './catalog-editor.ts';
+import {publicCatalogList} from './catalog-list.ts';
 import {catalogCountsBySlug,productStoreSlug,storeProductIds} from './store-pages.ts';
 import type {MerchantFind} from './catalog.ts';
 import type {Pricing} from './domain.ts';
@@ -73,7 +74,8 @@ export async function initialCatalogFirstPage(query:CatalogQuery,locale:Locale):
  if(query.page!==1)return null;
  try{
   const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
-  const {products,collections}=publicCatalog(document,pricing);
+  // The list the browser then loads (GET /api/catalog), so its cards take these over unchanged.
+  const {products,collections}=publicCatalogList(publicCatalog(document,pricing));
   return catalogFirstPage(products,collections,pricing,query,locale);
  }catch{return null}
 }
@@ -83,9 +85,18 @@ export async function initialCatalogFirstPage(query:CatalogQuery,locale:Locale):
  * tariff the page prices it with. Null when no published card has this id (the page answers 404). A database failure
  * is thrown, not turned into a 404: a product page must not drop out of search because one read failed.
  */
-export async function publicCatalogProduct(id:string):Promise<{product:MerchantFind;pricing:Pricing}|null>{
+/**
+ * Every sheet opened asks for one product (GET /api/catalog/<id>), and pricing the whole catalog for it costs as much as
+ * the list. The priced products are kept per process for half a minute and only while the catalog revision and the tariff
+ * are the ones they were priced with, so an edit or a new rate is seen on the next request (3 November 2026).
+ */
+const productMemoMs=30_000;
+let productMemo:{key:string;at:number;byId:Map<string,MerchantFind>}|null=null;
+export async function publicCatalogProduct(id:string,now=Date.now()):Promise<{product:MerchantFind;pricing:Pricing}|null>{
  const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
- const product=publicCatalog(document,pricing).products.find(item=>item.id===id);
+ const key=`${document.revision}:${JSON.stringify(pricing)}`;
+ if(!productMemo||productMemo.key!==key||now-productMemo.at>productMemoMs)productMemo={key,at:now,byId:new Map(publicCatalog(document,pricing,now).products.map(item=>[item.id,item]))};
+ const product=productMemo.byId.get(id);
  return product?{product,pricing:withoutAuthor(pricing)}:null;
 }
 
@@ -99,7 +110,7 @@ export async function publicCatalogProduct(id:string):Promise<{product:MerchantF
 export async function storeCatalog(slug:string):Promise<{seed:CatalogSeedValue|null;counts:Map<string,number>|null;productIds:string[];pricing:Pricing|null}>{
  try{
   const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
-  const catalog=publicCatalog(document,pricing);
+  const catalog=publicCatalogList(publicCatalog(document,pricing));
   return {seed:storeCatalogSeed(catalog,pricing,slug,productStoreSlug),counts:catalogCountsBySlug(catalog.products),productIds:storeProductIds(catalog.products,slug),pricing:withoutAuthor(pricing)};
  }catch{return {seed:null,counts:null,productIds:[],pricing:null}}
 }

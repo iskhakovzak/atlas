@@ -35,6 +35,11 @@ export type ProductDetailCopy = {
   added: (units: number) => string;
   checkout: string;
   close: string;
+  /** The sheet while the full product (options, photos) loads, and when it could not. */
+  loadingProduct: string;
+  loadFailed: string;
+  retry: string;
+  openPage: string;
   pricePending: string;
   /** A dated catalog card: the recorded price is shown as an estimate until the store is asked (one tap). */
   datedNote: (date: string) => string;
@@ -71,6 +76,10 @@ export const productDetailCopy: Record<Locale, ProductDetailCopy> = /*@__PURE__*
     added: units => units > 1 ? `Добавлено в корзину: ${units} шт.` : 'Добавлено в корзину',
     checkout: 'Оформить',
     close: 'Закрыть',
+    loadingProduct: 'Загружаем варианты и фото',
+    loadFailed: 'Не удалось загрузить товар. Проверьте подключение и повторите.',
+    retry: 'Повторить',
+    openPage: 'Открыть страницу товара',
     pricePending: 'уточняем…',
     datedNote: date => `Цена на ${date}. Сверим её и варианты с магазином — это несколько секунд.`,
     checkPrice: 'Сверить цену',
@@ -103,6 +112,10 @@ export const productDetailCopy: Record<Locale, ProductDetailCopy> = /*@__PURE__*
     added: units => units > 1 ? `Savatga qo‘shildi: ${units} dona` : 'Savatga qo‘shildi',
     checkout: 'Rasmiylashtirish',
     close: 'Yopish',
+    loadingProduct: 'Variantlar va suratlar yuklanmoqda',
+    loadFailed: 'Tovarni yuklab bo‘lmadi. Ulanishni tekshirib, qayta urinib ko‘ring.',
+    retry: 'Qayta urinish',
+    openPage: 'Tovar sahifasini ochish',
     pricePending: 'aniqlanmoqda…',
     datedNote: date => `Narx ${date} holatiga. Uni va variantlarni do‘kon bilan tekshiramiz — bir necha soniya.`,
     checkPrice: 'Narxni tekshirish',
@@ -135,6 +148,10 @@ export const productDetailCopy: Record<Locale, ProductDetailCopy> = /*@__PURE__*
     added: units => units > 1 ? `Added to cart: ${units} pcs` : 'Added to cart',
     checkout: 'Check out',
     close: 'Close',
+    loadingProduct: 'Loading options and photos',
+    loadFailed: 'Could not load the item. Check your connection and try again.',
+    retry: 'Try again',
+    openPage: 'Open the item page',
     pricePending: 'checking…',
     datedNote: date => `Price as of ${date}. We’ll check it and the options with the store — a few seconds.`,
     checkPrice: 'Check the price',

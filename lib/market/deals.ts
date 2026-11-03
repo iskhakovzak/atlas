@@ -1,6 +1,7 @@
 import { cartDeliverySpeed, defaultDeliverySpeed, price, storeShippingHoldUsd, storeShippingUsd, type CartItem, type DeliverySpeed, type Pricing, type Product } from './domain.ts';
 import { toUsd } from './world.ts';
 import { bundledMerchantFinds,type MerchantFind } from './catalog.ts';
+import { variantSummaryOf } from './catalog-summary.ts';
 export type DealFilters = {
   search: string; category: string; country: string; maxTotal: number;
   sort: 'discount' | 'total-asc' | 'total-desc';
@@ -26,9 +27,15 @@ export function catalogQuoteSpeed(cart: Pick<CartItem, 'deliverySpeed'>[]): Deli
 /** The lowest price of an option the store still sells, in USD; the product price when no option says less. */
 export function cheapestUsd(product: Product, pricing: Pricing) {
   const currency = product.sourceCurrency ?? 'USD';
-  const options = (product.sourceVariants ?? [])
-    .filter((variant) => variant.available && variant.availabilityKnown !== false && variant.quantity !== 0 && variant.price !== undefined && variant.price > 0)
-    .map((variant) => currency === 'USD' ? variant.price! : pricing.rates[currency] ? toUsd(variant.price!, currency, pricing.rates) : undefined)
+  // A catalog list product brings the lowest such price instead of its options (lib/market/catalog-summary.ts).
+  const summary = variantSummaryOf(product);
+  const prices = summary
+    ? (summary.lowestPrice !== undefined ? [summary.lowestPrice] : [])
+    : (product.sourceVariants ?? [])
+      .filter((variant) => variant.available && variant.availabilityKnown !== false && variant.quantity !== 0 && variant.price !== undefined && variant.price > 0)
+      .map((variant) => variant.price!);
+  const options = prices
+    .map((value) => currency === 'USD' ? value : pricing.rates[currency] ? toUsd(value, currency, pricing.rates) : undefined)
     .filter((usd): usd is number => usd !== undefined && Number.isFinite(usd));
   const lowest = options.length ? Math.min(...options) : undefined;
   return lowest !== undefined && lowest < product.usd ? Math.round(lowest * 100) / 100 : product.usd;
