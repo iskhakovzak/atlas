@@ -51,7 +51,7 @@ export function SiteFooter(){
    <li><Link href="/account">{c.footer.support}</Link></li>
   </ul></section>}
   <section className="home-footer-legal" aria-labelledby="footer-legal"><h2 id="footer-legal" className="home-footer-title">{c.footer.legal}</h2><ul>
-   <li><Link href="/terms">{routeTitle(locale,'terms')}</Link></li><li><Link href="/privacy">{c.footer.privacy}</Link></li><li><Link href="/legal">{c.footer.rules}</Link></li>
+   <li><Link href="/terms">{routeTitle(locale,'terms')}</Link></li><li><Link href="/privacy">{c.footer.privacy}</Link></li><li><Link href="/legal">{c.footer.rules}</Link></li><li><a href="/third-party-notices.txt">{c.footer.licenses}</a></li>
   </ul>
   {(legal.entityName||legal.inn||legalAddress)&&<p className="home-footer-entity">{[legal.entityName,legal.inn&&`${c.trust.inn}: ${legal.inn}`,legalAddress].filter(Boolean).join(' · ')}</p>}
   {!legal.entityName&&<MissingContent what="юрлицо, ИНН (STIR) и юридический адрес"/>}</section>

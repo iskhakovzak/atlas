@@ -1,5 +1,6 @@
 import { database, deferBackground, HttpError, json, persist, rateLimit, storedAccount } from "./server";
 import type { State } from "./domain";
+import { customerState } from "./customer-state";
 import { requestLocale, serverError } from "./i18n";
 import { consentVersion } from "./account-delete";
 import { botReply, telegramCopy, telegramMessagesFor, telegramSettingsPath, telegramSupportPath, welcomeMessage } from "./telegram-notices";
@@ -135,7 +136,7 @@ export async function toggleTelegramNotices(
   action: { enabled: boolean; language?: TelegramLanguage },
 ) {
   const now = Date.now(), value = current.state.communication;
-  const respond = (state: State, revision: number) => json({ state, revision });
+  const respond = (state: State, revision: number) => json({ state: customerState(state), revision });
   if (!action.enabled) {
     const next = setTelegramNotices(current.state, { kind: "off", reason: "customer", now });
     if (next === current.state) return respond(current.state, current.revision);
@@ -155,7 +156,7 @@ export async function toggleTelegramNotices(
       // Telegram lets a bot write only after Start: the site remembers the request, and Start within 30 minutes completes it.
       const pending = setTelegramNotices(current.state, { kind: "pending", now, language: action.language });
       await persist(userId, pending, current.revision, current.state);
-      return json({ error: serverError(requestLocale(request), "err_82"), errorCode: "err_82", state: pending, revision: current.revision + 1 }, 409);
+      return json({ error: serverError(requestLocale(request), "err_82"), errorCode: "err_82", state: customerState(pending), revision: current.revision + 1 }, 409);
     }
     throw new HttpError(503, "err_83");
   }

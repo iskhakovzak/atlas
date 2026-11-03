@@ -9,6 +9,7 @@ import {initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from '@/l
 import {cleanPassportNumber,cleanPinfl,type Product,type State} from '@/lib/market/domain';
 import {addCustomerLinkDraft,readStoredCatalogDocument} from '@/lib/market/catalog-server';
 import {customerPromoUses,findPromo,placeWithPromo,returnPromoUses} from '@/lib/market/promo-store';
+import {customerState} from '@/lib/market/customer-state';
 import {promoReturnable,promoReturns,type PromoRule} from '@/lib/market/promo';
 /**
  * The catalog's delivery record for a product link, read once per request and only when an action needs it.
@@ -71,7 +72,7 @@ export async function POST(request:Request){try{
     if(identityAction.documentId&&!owned)throw new HttpError(404, 'err_13');
     if(identityAction.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===identityAction.recipientProfileId))throw new HttpError(400, 'err_14');
   }
-  if(staleRevision(payload.revision,current.revision)){const locale=requestLocale(request);return json({error:locale==='ru'?'Данные изменились. Проверьте обновлённый заказ и повторите действие.':apiErrorMessage(409,locale),state:current.state,revision:current.revision},409)}
+  if(staleRevision(payload.revision,current.revision)){const locale=requestLocale(request);return json({error:locale==='ru'?'Данные изменились. Проверьте обновлённый заказ и повторите действие.':apiErrorMessage(409,locale),state:customerState(current.state),revision:current.revision},409)}
   // Telegram order notices: the route checks the attached Telegram, tests the bot and records the consent itself.
   if(parsed.data.type==='telegram-notify'){
     const {toggleTelegramNotices}=await import('@/lib/market/telegram-notices-server');
@@ -115,7 +116,7 @@ export async function POST(request:Request){try{
   // 2 November 2026). The cancel is already saved; a failed return is made good at the customer's next use of a code.
   const returning=promoReturns(current.state,next);
   if(returning.length)await returnPromoUses(database(),user.userId,returning).catch(error=>console.error('Promo use return failed',error));
-  if(refusal)return json({error:serverError(requestLocale(request),refusal),errorCode:refusal,state:next,revision:current.revision+1},409);
+  if(refusal)return json({error:serverError(requestLocale(request),refusal),errorCode:refusal,state:customerState(next),revision:current.revision+1},409);
   const addedProduct=parsed.data.type==='cart-add'?parsed.data.product:parsed.data.type==='cart-add-many'?parsed.data.items[0].product:undefined;
   if(addedProduct?.sourceUrl&&verifiedSource){
     deferBackground(addCustomerLinkDraft(addedProduct,verifiedSource,user),'Customer catalog draft sync failed');
@@ -141,5 +142,5 @@ export async function POST(request:Request){try{
     const rows=(['analytics','partners'] as const).map(category=>db.prepare('INSERT OR IGNORE INTO market_legal_consents (id,customer_id,document_key,document_version,accepted_at) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),user.userId,`cookies-${category}`,`${choice.version}:${choice[category]?'granted':'withdrawn'}:${at}`,at));
     try{await db.batch(rows)}catch(error){console.error('Cookie consent record failed',error)}
   }
-  return json({state:next,revision:current.revision+1})
+  return json({state:customerState(next),revision:current.revision+1})
 }catch(e){return failure(e,request)}}
