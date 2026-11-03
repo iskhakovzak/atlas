@@ -32,14 +32,9 @@ export function slimCatalogItem(item: CatalogItem): CatalogItem {
     ...(p.sourceCurrency ? { sourceCurrency: p.sourceCurrency } : {}),
     ...(p.confirmedAt !== undefined ? { confirmedAt: p.confirmedAt } : {}),
     ...(p.sourceSellerId ? { sourceSellerId: p.sourceSellerId } : {}),
-    // The «from» price and the official eBay store read the options' prices, stock and seller only.
-    ...(p.sourceVariants?.length ? { sourceVariants: p.sourceVariants.map((variant) => ({
-      label: variant.label, available: variant.available,
-      ...(variant.availabilityKnown !== undefined ? { availabilityKnown: variant.availabilityKnown } : {}),
-      ...(variant.quantity !== undefined ? { quantity: variant.quantity } : {}),
-      ...(variant.price !== undefined ? { price: variant.price } : {}),
-      ...(variant.sellerId ? { sellerId: variant.sellerId } : {}),
-    })) } : {}),
+    // The «from» price and the official eBay store read the options' summary only (lib/market/catalog-summary.ts).
+    ...(p.listing ? { listing: true } : {}),
+    ...(p.variantSummary ? { variantSummary: { ...(p.variantSummary.lowestPrice !== undefined ? { lowestPrice: p.variantSummary.lowestPrice } : {}), ...(p.variantSummary.priceSpread ? { priceSpread: true } : {}), ...(p.variantSummary.sellers ? { sellers: p.variantSummary.sellers } : {}) } } : {}),
   } as MerchantFind;
   return {
     product, store: item.store, usd: item.usd, referenceUsd: item.referenceUsd, discount: item.discount, savingsUsd: item.savingsUsd, holdUsd: item.holdUsd,

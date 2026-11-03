@@ -1,6 +1,7 @@
 import { quote, repriceCart, merchantParcelKey, type CartItem, type Pricing, type Product } from './domain.ts';
 import { dealQuote } from './deals.ts';
 import type { MerchantFind } from './catalog.ts';
+import { variantSummaryOf } from './catalog-summary.ts';
 import { brandForHost, storefrontLabel } from './store-brands.ts';
 import { normalizeSearch, wordMatches } from './catalog-synonyms.ts';
 import type { Locale } from './i18n.ts';
@@ -186,6 +187,8 @@ export function normalizeSize(raw: string | undefined) {
 }
 /** Sizes the store lists; a size the store marked unavailable is left out. */
 export function productSizes(product: Product) {
+  const summary = variantSummaryOf(product);
+  if (summary) return summary.sizes ?? [];
   const sizes = (product.sourceVariants ?? [])
     .filter((variant) => variant.available || variant.availabilityKnown === false)
     .map((variant) => normalizeSize(variant.size))
@@ -195,11 +198,19 @@ export function productSizes(product: Product) {
 
 /** Sizes the store reports as available now (a size of unknown availability is left out). */
 export function productStockSizes(product: Product) {
+  const summary = variantSummaryOf(product);
+  if (summary) return summary.stockSizes ?? [];
   const sizes = (product.sourceVariants ?? [])
     .filter((variant) => variant.available && variant.availabilityKnown !== false && variant.quantity !== 0)
     .map((variant) => normalizeSize(variant.size))
     .filter(Boolean);
   return [...new Set(sizes)].sort(compareSizes);
+}
+/** The options the store still sells have more than one price: the card writes «от» before the cheapest. */
+export function catalogPriceSpread(product: Product) {
+  const summary = variantSummaryOf(product);
+  if (summary) return summary.priceSpread === true;
+  return new Set((product.sourceVariants ?? []).filter((v) => v.available && v.availabilityKnown !== false && v.quantity !== 0).map((v) => v.price).filter((v) => v !== undefined)).size > 1;
 }
 const facetText = (value: unknown) => typeof value === 'string' && slugValue.test(value) ? [value] : [];
 /** Filter values of a product from its derived facets (`product.facets`, set at import); none when it has no facets yet. */

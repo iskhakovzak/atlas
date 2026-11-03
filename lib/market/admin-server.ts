@@ -4,6 +4,7 @@ import {database,HttpError,operatorAccounts,pricingAndPolicy,staffMembers,type A
 import {readCatalog} from './catalog-server';
 import {adminSettingsSchema,attentionFor,attentionItems,dashboardKpis,defaultAdminSettings,orderFunnel,parseAdminSettings,auditPageSize,type AdminSettings,type AttentionItem,type DashboardAccount,type DashboardKpis,type FunnelStage} from './admin-dashboard';
 import type {Permission} from './access';
+import {apiTimingSummary,type ApiTimingSummary} from './api-timing';
 import {statuses,type Pricing} from './domain';
 import type {OrderFinance} from './finance';
 import {buildInvestorSnapshot,hostOf,isExpenseKind,type InvestorSnapshot} from './investor-metrics';
@@ -126,6 +127,8 @@ export type SystemStatus={
  backup:{lastAt:number|null;records:number|null;checksum?:string};
  customerNotesTable:boolean;
  checkedAt:number;
+ /** /api/* handler timings of this server process (lib/market/api-timing.ts); absent from an older server. */
+ api?:ApiTimingSummary;
 };
 export async function systemStatus():Promise<SystemStatus>{
  const db=database(),started=Date.now();
@@ -148,6 +151,7 @@ export async function systemStatus():Promise<SystemStatus>{
   backup:{lastAt:backup?.created_at??null,records:backup?.record_count??null,checksum:backup?.checksum?.slice(0,12)},
   customerNotesTable:!!notes,
   checkedAt:Date.now(),
+  api:apiTimingSummary(),
  };
 }
 /** Everything the overview needs when the route already holds accounts, pricing and staff. */

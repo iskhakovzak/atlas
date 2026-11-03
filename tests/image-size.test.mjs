@@ -59,7 +59,7 @@ test('sizedSrcSet offers the half, two-thirds and full copies only when the stor
     'https://m.media-amazon.com/images/I/61OzkDt-WjL._AC_SL200_.jpg 200w, https://m.media-amazon.com/images/I/61OzkDt-WjL._AC_SL267_.jpg 267w, https://m.media-amazon.com/images/I/61OzkDt-WjL._AC_SL400_.jpg 400w');
   // A ⅔ copy that is the same file as a neighbour (an eBay photo saved at 400 px) is not listed twice.
   assert.equal(sizedSrcSet('https://i.ebayimg.com/images/g/x/s-l400.jpg', 600),
-    'https://i.ebayimg.com/images/g/x/s-l300.jpg 300w, https://i.ebayimg.com/images/g/x/s-l400.jpg 600w');
+    'https://i.ebayimg.com/images/g/x/s-l300.webp 300w, https://i.ebayimg.com/images/g/x/s-l400.webp 600w');
   assert.equal(sizedSrcSet('https://www.brooksrunning.com/on/demandware.static/-/x/shoe.png', 600), undefined);
   // Wolverine has one preset at or under 600 px: nothing to choose from.
   assert.equal(sizedSrcSet('https://thekit.wolverineworldwide.com/match/media_lookup/X?preset=dw-large', 600), undefined);

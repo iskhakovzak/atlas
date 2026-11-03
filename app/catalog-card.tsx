@@ -10,7 +10,7 @@ import { officialBadgeLabel, officialListing, officialStoreBrand, officialStoreT
 import { dealCopy } from '@/lib/market/deal-copy';
 import { catalogCopy, shortDate } from '@/lib/market/catalog-copy';
 import { InfoTip } from '@/components/info-tip';
-import { storeLabel, type CatalogItem } from '@/lib/market/catalog-query';
+import { catalogPriceSpread, storeLabel, type CatalogItem } from '@/lib/market/catalog-query';
 import type { Signal } from '@/lib/market/catalog-signals';
 import { formatPriceUsd, formatSum } from '@/lib/market/format';
 import { browserStorage, productPath, rememberPendingFavorite } from '@/lib/market/catalog-links';
@@ -19,6 +19,7 @@ import type { Locale } from '@/lib/market/i18n';
 import { brandForHost } from '@/lib/market/store-brands';
 import { departmentLabel, displayBrand, nameWithoutBrand, productTitle, upperFirst } from '@/lib/market/product-name';
 import { useMarket } from '@/lib/market/store';
+import { preloadCatalogProduct } from '@/lib/market/catalog-product-client';
 import { ProductImage } from './market-ui';
 import { Swatch } from './catalog-swatch';
 import { Money } from './money';
@@ -78,10 +79,12 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const hasRecordedPrice = needsPrice && product.sourcePrice !== undefined && Boolean(product.sourceCurrency);
   const category = cc.categories[product.category] ?? product.category;
   const costs = costsAt(item, speed, pricing);
-  const priceRange=new Set(product.sourceVariants?.filter(v=>v.available&&v.availabilityKnown!==false&&v.quantity!==0).map(v=>v.price).filter(v=>v!==undefined)).size>1;
+  const priceRange=catalogPriceSpread(product);
   const from=locale==='ru'?'от ':locale==='en'?'from ':'';
   const storePriceText = needsPrice ? (hasRecordedPrice ? fmt(product.sourcePrice!, product.sourceCurrency!) : cc.checkPrice) : (priceRange?from:'')+fmt(item.usd ?? product.usd, 'USD')+(priceRange&&locale!=='ru'&&locale!=='en'?' dan':'');
   const open = () => select(product);
+  // The sheet asks for the full product (options, photos) when it opens; a press on the card starts that a moment earlier.
+  const preload = () => preloadCatalogProduct(product);
   // "+" and "В корзину" open the product page (colour, size and the sum are chosen there, redesign stage 5): the sheet
   // over the catalog, or the page itself where the link is opened in a new tab or without scripts.
   const productHref = productPath(product.id);
@@ -118,7 +121,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
 
   if (variant === 'compact') {
     // The whole card is one button (phrasing content only, so spans), with the heart beside it, not inside.
-    return <article className="find-card find-card-compact" data-saved={saved || undefined}>
+    return <article className="find-card find-card-compact" data-saved={saved || undefined} onPointerDown={preload}>
       <button type="button" className="find-compact" onClick={open} aria-label={cc.open(name)} aria-describedby={costs ? priceId : undefined}>
         <span className="find-visual"><span className="find-photo"><ProductImage product={product} decorative locale={locale} /></span>{storeBadge}</span>
         <span className="find-content">
@@ -144,7 +147,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   // Only the shared-parcel note stays on the card (neutral): the allowance lives in the banner above the grid, the
   // size count on the colour line, an unconfirmed price in the "≈" and its date.
   const parcel = signals.find((signal) => signal.kind === 'parcel');
-  return <article className="pcard" data-stale={needsPrice || undefined} data-saved={saved || undefined}>
+  return <article className="pcard" data-stale={needsPrice || undefined} data-saved={saved || undefined} onPointerDown={preload}>
     <div className="pcard-visual">
       <span className="pcard-photo"><ProductImage product={product} decorative locale={locale} dims priority={priority} sizes={cardSizes} /></span>
       {storeBadge}

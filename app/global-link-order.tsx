@@ -10,6 +10,7 @@ import { useMarket } from "@/lib/market/store";
 import { signInPath } from "@/lib/market/access";
 import { catalogOrderVariants, type MerchantFind } from "@/lib/market/catalog";
 import { catalogLinkSeed, catalogLinkPrice, catalogLinkWeight } from "@/lib/market/link-order-context";
+import { loadCatalogProduct } from "@/lib/market/catalog-product-client";
 import {
   browserStorage,
   choicesFromAction,
@@ -332,7 +333,10 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   const dealOptions: ProductVariant[] = dealSeed ? communityFallbackOptions(dealSeed).map(item => ({ ...item, available: true })) : [];
   const dealBoxedWeight = dealSeed ? Math.max(0.1, communityEstimatedWeight(dealSeed) - 0.5) : undefined;
   /** The catalog card behind a link: the card itself in catalog mode, else the one `?catalog=` names (lib/market/link-order-context.ts). */
-  const seedFor = (link = requestedUrl): MerchantFind | undefined => catalogMode ? (link === requestedUrl ? product : undefined) : catalogLinkSeed(catalogProducts, catalogId, requestedUrl, link);
+  // `?catalog=`: the catalog list has no options or photos (lib/market/catalog-summary.ts); the full card is asked below
+  // and preferred once it is in, the list card stands in until then (and if that load fails).
+  const [linkCatalogFull, setLinkCatalogFull] = useState<MerchantFind | null>(null);
+  const seedFor = (link = requestedUrl): MerchantFind | undefined => catalogMode ? (link === requestedUrl ? product : undefined) : catalogLinkSeed(linkCatalogFull?.id === catalogId ? [linkCatalogFull] : catalogProducts, catalogId, requestedUrl, link);
   const seed = seedFor();
   const seedPrice = catalogLinkPrice(seed);
   const seedOptions: ProductVariant[] = seed ? catalogOrderVariants(seed) : [];
@@ -488,8 +492,10 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
 
   useEffect(()=>{
     let active=true;
-    // A catalog card brings its own data; the catalog list is still loaded for the rest of the site.
-    void loadCatalog().finally(()=>{if(active&&catalogId&&!catalogMode)setCatalogContextLoaded(catalogId)});
+    // A catalog card brings its own data; the catalog list is still loaded for the rest of the site. A `?catalog=` link
+    // waits for its full card too, so the automatic load below starts from its options and photos.
+    const full=catalogId&&!catalogMode?loadCatalogProduct(catalogId).then(found=>{if(active)setLinkCatalogFull(found)},()=>undefined):undefined;
+    void Promise.all([loadCatalog(),full]).finally(()=>{if(active&&catalogId&&!catalogMode)setCatalogContextLoaded(catalogId)});
     return()=>{active=false};
   },[catalogId,catalogMode,loadCatalog]);
 
