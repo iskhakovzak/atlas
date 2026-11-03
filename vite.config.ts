@@ -1,5 +1,5 @@
 import vinext from "vinext";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { sites } from "./build/sites-vite-plugin";
@@ -38,6 +38,23 @@ const localBindingConfig = {
         },
       ]
     : [],
+};
+
+// The VPS image serves hashed assets precompressed: brotli q11 and gzip 9 beside each file, read by vinext's static file
+// cache at boot (scripts/precompress-static.mjs, 3 November 2026). The Worker build leaves compression to the platform.
+const precompressStatic: Plugin = {
+  name: "atlas:precompress-static",
+  apply: "build",
+  writeBundle: {
+    sequential: true,
+    order: "post",
+    async handler(options) {
+      if (this.environment?.name !== "client" || !options.dir) return;
+      const { precompressStatic: run } = await import("./scripts/precompress-static.mjs");
+      const totals = await run(options.dir);
+      console.log(`  Precompressed ${totals.files} assets: ${totals.original} B -> br ${totals.br} B, gzip ${totals.gzip} B`);
+    },
+  },
 };
 
 export default defineConfig(async () => {
@@ -93,6 +110,7 @@ export default defineConfig(async () => {
       // Atlas runs its own sign-in (lib/auth); the Sites ChatGPT mock stays off.
       sites({ mockAuth: false }),
       ...cloudflarePlugin,
+      ...(vpsTarget ? [precompressStatic] : []),
     ],
   };
 });

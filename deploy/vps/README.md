@@ -27,6 +27,8 @@ Use a clean Git checkout, never copy local runtime folders or secrets. Build wit
 
 Keep the image workdir `/srv/atlas`. In the observed Linux build, `/app` caused the home page and `/app` route to silently resolve to the same generated page chunk. `scripts/check-vps-build.mjs` rejects that collision; the deployed image passed it and its actual homepage was checked. Re-check all assets, sign-in redirects, unauthenticated API refusal and a real product import before declaring a release complete. Schema migrations run once on startup; do not modify applied migration files.
 
+Since 3 November 2026 the VPS build (`ATLAS_DEPLOY_TARGET=vps npm run build`) writes brotli q11 and gzip 9 copies beside every hashed JS/CSS file (`scripts/precompress-static.mjs`); `vinext start` serves them with `Content-Encoding` and `Vary: Accept-Encoding`, and Caddy leaves already-encoded responses alone, so the Caddyfile needs no change. `scripts/check-vps-build.mjs` fails the image when the `.br` files are missing.
+
 For rollback, use a previously verified VPS image with the existing data/config mounts. Do not restore the old Sites DNS target as a data rollback: its demo data and secrets were intentionally removed.
 
 ## Backups and verification
