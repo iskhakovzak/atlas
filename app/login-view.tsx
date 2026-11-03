@@ -4,6 +4,7 @@ import {markSignedIn} from '@/lib/market/action-session';
 import {ArrowLeft,ArrowRight,ChevronRight,Loader2,Mail,MapPin,MessageCircle,Package,Send,ShieldCheck,Smartphone} from 'lucide-react';
 import {useMarket} from '@/lib/market/store';
 import {safeReturnTo} from '@/lib/auth/return-to';
+import {telegramUserFromHash,telegramUserFromMessage,telegramWidgetOrigin,telegramWidgetScript,type TelegramWidgetUser} from '@/lib/auth/telegram-widget';
 import {appleSignInNative,isNative,nativePlatform,openExternal} from '@/lib/native/bridge';
 import {beginHandoff} from '@/lib/native/pkce';
 import type {Locale} from '@/lib/market/i18n';
@@ -226,18 +227,30 @@ export function OtpLogin({channel,c,dev,onDone,onError,link=false}:{channel:'pho
  </form>;
 }
 
-declare global{interface Window{atlasTelegramAuth?:(user:Record<string,unknown>)=>void}}
-/** The Telegram Login Widget. With `link` the Telegram account is attached to the signed-in account instead of signing in. */
+/** The Telegram Login Widget. With `link` the Telegram account is attached to the signed-in account instead of signing in.
+ * Loaded without `data-onauth`: the widget would eval() it, which the CSP blocks (lib/auth/telegram-widget.ts). */
 export function TelegramLogin({bot,hint,onDone,onError,link=false}:{bot:string;hint:string;onDone:()=>void;onError:(code?:string)=>void;link?:boolean}){
  const holder=useRef<HTMLDivElement>(null);
  useEffect(()=>{
-  window.atlasTelegramAuth=user=>{void post('/api/auth/telegram',link?{...user,link:true}:user).then(({ok,data})=>ok?onDone():onError(data.error))};
+  let sent=false;
+  const auth=(user:TelegramWidgetUser)=>{if(sent)return;sent=true;void post('/api/auth/telegram',link?{...user,link:true}:user).then(({ok,data})=>{sent=false;if(ok)onDone();else onError(data.error)})};
+  // The redirect fallback returns with #tgAuthResult=…: read it before the widget, which drops it without data-onauth.
+  const returned=telegramUserFromHash(window.location.hash);
+  if(returned){history.replaceState(history.state,'',window.location.pathname+window.location.search+returned.hash);auth(returned.user)}
+  const target=holder.current;
+  const onMessage=(event:MessageEvent)=>{
+   if(event.origin!==telegramWidgetOrigin||!target)return;
+   const frame=target.querySelector('iframe');
+   if(!frame||event.source!==frame.contentWindow)return;
+   const user=telegramUserFromMessage(event.data);
+   if(user)auth(user);
+  };
+  window.addEventListener('message',onMessage);
   const script=document.createElement('script');
-  script.async=true;script.src='https://telegram.org/js/telegram-widget.js?22';
+  script.async=true;script.src=telegramWidgetScript;
   script.setAttribute('data-telegram-login',bot);script.setAttribute('data-size','large');script.setAttribute('data-radius','8');
-  script.setAttribute('data-onauth','atlasTelegramAuth(user)');
-  const target=holder.current;target?.replaceChildren(script);
-  return ()=>{target?.replaceChildren();delete window.atlasTelegramAuth};
+  target?.replaceChildren(script);
+  return ()=>{window.removeEventListener('message',onMessage);target?.replaceChildren()};
  },[bot,onDone,onError,link]);
  return <div className="login-telegram"><p>{hint}</p><div ref={holder} className="login-telegram-widget"/></div>;
 }
