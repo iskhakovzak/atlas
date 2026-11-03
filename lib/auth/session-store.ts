@@ -13,14 +13,18 @@ export type AuthDb={prepare(sql:string):AuthStatement;batch(statements:AuthState
 
 /**
  * Spends one attempt of a sign-in code challenge and, when the code is right, deletes the challenge.
- * Returns the challenge's target (address or phone) or throws code_expired / invalid_code.
+ * Returns the challenge's target (address or phone) or throws code_expired / invalid_code. When a wrong code
+ * spends the last attempt, `onExhausted` hears the target (the sign-in abuse monitor, lib/auth/abuse-alert.ts).
  */
-export async function consumeChallenge(db:AuthDb,input:{challengeId:string;channel:string;code:string;pepper:string;now:number}){
+export async function consumeChallenge(db:AuthDb,input:{challengeId:string;channel:string;code:string;pepper:string;now:number;onExhausted?:(target:string)=>void}){
  const {challengeId,channel,code,pepper,now}=input;
- const row=await db.prepare('UPDATE market_auth_challenges SET attempts=attempts+1 WHERE id=? AND kind=? AND expires_at>? AND attempts<? RETURNING target,secret')
-  .bind(challengeId,channel,now,MAX_CODE_ATTEMPTS).first<{target:string;secret:string}>();
+ const row=await db.prepare('UPDATE market_auth_challenges SET attempts=attempts+1 WHERE id=? AND kind=? AND expires_at>? AND attempts<? RETURNING target,secret,attempts')
+  .bind(challengeId,channel,now,MAX_CODE_ATTEMPTS).first<{target:string;secret:string;attempts:number}>();
  if(!row)throw new AuthError(400,'code_expired');
- if(!constantTimeEqual(await hashCode(challengeId,code,pepper),row.secret))throw new AuthError(400,'invalid_code');
+ if(!constantTimeEqual(await hashCode(challengeId,code,pepper),row.secret)){
+  if(row.attempts>=MAX_CODE_ATTEMPTS)input.onExhausted?.(row.target);
+  throw new AuthError(400,'invalid_code');
+ }
  // Deleting with RETURNING makes the code single-use even under concurrent submissions.
  const used=await db.prepare('DELETE FROM market_auth_challenges WHERE id=? RETURNING id').bind(challengeId).first();
  if(!used)throw new AuthError(400,'code_expired');

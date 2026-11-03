@@ -6,6 +6,9 @@ const [command, ...args] = process.argv.slice(2);
 if (!["dev", "build"].includes(command)) throw new Error("Expected dev or build.");
 // The passport OCR engine is served from public/ocr/ (copied from node_modules, not committed).
 await import("./copy-ocr-assets.mjs");
+// Licences of everything the site ships, served as /third-party-notices.txt (not committed either).
+const { writeThirdPartyNotices } = await import("./third-party-notices.mjs");
+writeThirdPartyNotices();
 const managedLinux = readExecutionProfile() === "managed-linux";
 
 if (managedLinux && command === "build") {

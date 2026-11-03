@@ -2,6 +2,7 @@ import {publicCatalog,type CatalogCollection,type CatalogDocument} from './catal
 import {withoutAuthor} from './pricing-equal.ts';
 import type {Pricing} from './domain.ts';
 import type {MerchantFind} from './catalog.ts';
+import {publicCatalogList} from './catalog-list.ts';
 
 /**
  * The public catalog a server page renders with (14.10.2026): /stores reads it on the server exactly as
@@ -18,7 +19,7 @@ export type CatalogSeedValue={products:MerchantFind[];collections:Array<CatalogC
 export const catalogSeedMaxChars=150_000;
 /** Null when the page should keep the previous behaviour: nothing published (the client shows its bundled fallback and the notice) or too large. */
 export function catalogSeed(document:CatalogDocument,pricing:Pricing,now=Date.now()):CatalogSeedValue|null{
- const seed:CatalogSeedValue={...publicCatalog(document,pricing,now),pricing:withoutAuthor(pricing)};
+ const seed:CatalogSeedValue={...publicCatalogList(publicCatalog(document,pricing,now)),pricing:withoutAuthor(pricing)};
  if(!seed.products.length)return null;
  return JSON.stringify(seed).length>catalogSeedMaxChars?null:seed;
 }

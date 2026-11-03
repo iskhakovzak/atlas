@@ -1,4 +1,4 @@
-import {env} from 'cloudflare:workers';
+import {env,waitUntil} from 'cloudflare:workers';
 import {headers} from 'next/headers';
 import {
  APPLE_STATE_COOKIE,AuthError,CODE_TTL_MS,HANDOFF_TTL_MS,LINK_TICKET_TTL_MS,OAUTH_STATE_COOKIE,OAUTH_TTL_MS,SESSION_COOKIE,SESSION_TTL_MS,
@@ -9,6 +9,7 @@ import {
 import {appleAuthorizeUrl,appleClientSecret,appleUserName,exchangeAppleCode,revokeAppleToken,verifyAppleIdTokenLive} from './apple';
 import {loginPath,safeReturnTo} from './return-to';
 import {consumeChallenge,detachLinkedMethod,renewSessionRow} from './session-store';
+import {limitName,maskContact,recordAbuse,watchedLimit,type AbuseEvent} from './abuse-alert';
 import {TG_ANIMATION_SETTING,TG_BOT_SETTING,TG_CHALLENGE_KINDS,TG_WELCOME_ANIMATION,TG_LOGIN_COOKIE,TG_LOGIN_TTL_MS,botCommands,botLinks,consentSubject,botText,classifyBotFailure,parseBotUpdate,validStartToken,type BotFailure,type TgChallengeKind} from './telegram-bot';
 
 // AuthError lives in core.ts (no parameter properties there, so tests load it); routes keep importing it from here.
@@ -51,10 +52,30 @@ export async function authMethods(request:Request){
  };
 }
 
-async function limit(name:string,max:number,windowMs:number){
+/**
+ * Counts one use of a sign-in limit; past `max` refuses with 429. With `request`, the first refusal of each window
+ * is reported as possible abuse (lib/auth/abuse-alert.ts); `contact` is the masked address or phone, if any.
+ */
+async function limit(name:string,max:number,windowMs:number,request?:Request,contact?:string){
  const now=Date.now(),key=`auth:${name}:${Math.floor(now/windowMs)}`;
  const row=await db().prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(key,now+windowMs).first<{count:number}>();
- if(!row||row.count>max)throw new AuthError(429,'too_many_requests');
+ if(!row||row.count>max){
+  if(request&&row?.count===max+1)reportAbuse(request,{kind:'rate_limit',limit:limitName(name),contact});
+  throw new AuthError(429,'too_many_requests');
+ }
+}
+/**
+ * Records a sign-in abuse signal after the answer is sent, and tells the owner through the import monitor's
+ * Telegram on the live site (ATLAS_IMPORT_MONITOR / ATLAS_MONITOR_TELEGRAM, lib/market/import-monitor-server.ts).
+ */
+function reportAbuse(request:Request,event:AbuseEvent){
+ if(!env.DB||!watchedLimit(event.limit))return;
+ const database=env.DB;
+ waitUntil((async()=>{
+  const monitor=await import('@/lib/market/import-monitor-server');
+  const live=monitor.importMonitorLive(request);
+  await recordAbuse({db:database,now:Date.now(),send:live?monitor.monitorDeps().send:undefined},event);
+ })().catch(error=>console.error('Sign-in abuse alert failed',String(error).slice(0,200))));
 }
 async function clientKey(request:Request){return (await sha256Hex('ip:'+(request.headers.get('cf-connecting-ip')?.trim().slice(0,80)||'unknown'))).slice(0,32)}
 
@@ -238,9 +259,10 @@ export async function startOtp(channel:OtpChannel,rawTarget:unknown,request:Requ
  const reviewCode=channel==='email'?parseReviewAccounts(env.ATLAS_REVIEW_ACCOUNTS).get(target):undefined;
  if(!configured[channel]()&&!dev&&!reviewCode)throw new AuthError(503,'method_unavailable');
  const targetKey=(await sha256Hex(channel+':'+target)).slice(0,32);
- await limit(`send:${targetKey}:10m`,3,10*60*1000);
- await limit(`send:${targetKey}:day`,10,24*60*60*1000);
- await limit(`send-ip:${await clientKey(request)}`,20,60*60*1000);
+ const masked=maskContact(channel,target);
+ await limit(`send:${targetKey}:10m`,3,10*60*1000,request,masked);
+ await limit(`send:${targetKey}:day`,10,24*60*60*1000,request,masked);
+ await limit(`send-ip:${await clientKey(request)}`,20,60*60*1000,request);
  const id=randomToken(18),code=reviewCode??randomCode(),now=Date.now();
  await cleanupAndAdd(db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
   .bind(id,channel,target,await hashCode(id,code,pepper()),now,now+CODE_TTL_MS),now);
@@ -270,13 +292,14 @@ export async function linkOtp(channel:OtpChannel,challengeId:unknown,code:unknow
 async function consumeOtp(channel:OtpChannel,challengeId:unknown,code:unknown,request:Request){
  if(typeof challengeId!=='string'||!/^[A-Za-z0-9_-]{24}$/.test(challengeId))throw new AuthError(400,'code_expired');
  if(typeof code!=='string'||!/^\d{6}$/.test(code))throw new AuthError(400,'invalid_code');
- await limit(`verify-ip:${await clientKey(request)}`,60,60*60*1000);
- return consumeChallenge(db(),{challengeId,channel,code,pepper:pepper(),now:Date.now()});
+ await limit(`verify-ip:${await clientKey(request)}`,60,60*60*1000,request);
+ return consumeChallenge(db(),{challengeId,channel,code,pepper:pepper(),now:Date.now(),
+  onExhausted:target=>reportAbuse(request,{kind:'wrong_codes',limit:'code-attempts',contact:maskContact(channel,target)})});
 }
 
 async function telegramUser(fields:TelegramFields,request:Request){
  if(!configured.telegram())throw new AuthError(503,'method_unavailable');
- await limit(`telegram-ip:${await clientKey(request)}`,30,60*60*1000);
+ await limit(`telegram-ip:${await clientKey(request)}`,30,60*60*1000,request);
  const verified=await verifyTelegramAuth(fields,env.TELEGRAM_BOT_TOKEN!);
  if(!verified)throw new AuthError(400,'telegram_invalid');
  return identityFor('telegram',verified.id,{name:verified.name});
@@ -306,7 +329,7 @@ async function oauthIntent(request:Request):Promise<ChallengeMeta&{link:boolean}
 /** The signed-in web view asks for a ticket before opening a link flow in the system browser. */
 export async function issueLinkTicket(request:Request){
  const user=await signedInUser();
- await limit(`ticket-ip:${await clientKey(request)}`,30,60*60*1000);
+ await limit(`ticket-ip:${await clientKey(request)}`,30,60*60*1000,request);
  const id=randomToken(18),now=Date.now();
  await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
   .bind(id,'link-ticket',serializeAuthUser(user),'',now,now+LINK_TICKET_TTL_MS).run();
@@ -340,7 +363,7 @@ export async function claimHandoff(input:{code:unknown;verifier:unknown},request
  const {code,verifier}=input;
  if(typeof code!=='string'||!/^[A-Za-z0-9_-]{24}$/.test(code))throw new AuthError(400,'code_expired');
  if(!isPkceValue(verifier))throw new AuthError(400,'handoff_invalid');
- await limit(`handoff-ip:${await clientKey(request)}`,60,60*60*1000);
+ await limit(`handoff-ip:${await clientKey(request)}`,60,60*60*1000,request);
  const row=await db().prepare("DELETE FROM market_auth_challenges WHERE id=? AND kind='handoff' AND expires_at>? RETURNING target,secret,return_to").bind(code,Date.now()).first<{target:string;secret:string;return_to:string|null}>();
  const user=row?parseAuthUser(row.target):null;
  if(!row||!user)throw new AuthError(400,'code_expired');
@@ -378,7 +401,7 @@ const googleRedirect=(request:Request)=>new URL('/api/auth/google/callback',requ
 
 export async function startGoogle(request:Request){
  if(!configured.google())throw new AuthError(503,'method_unavailable');
- await limit(`google-ip:${await clientKey(request)}`,30,60*60*1000);
+ await limit(`google-ip:${await clientKey(request)}`,30,60*60*1000,request);
  // ?link=1 attaches the Google address to the signed-in account instead of signing in.
  const intent=await oauthIntent(request);
  const state=randomToken(24),verifier=randomToken(48),nonce=randomToken(18),now=Date.now();
@@ -414,7 +437,7 @@ const appleRedirect=(request:Request)=>new URL('/api/auth/apple/callback',reques
 /** GET /api/auth/apple: the Services ID flow in a browser (also the one the apps open in the system browser). */
 export async function startApple(request:Request){
  if(!configured.apple())throw new AuthError(503,'method_unavailable');
- await limit(`apple-ip:${await clientKey(request)}`,30,60*60*1000);
+ await limit(`apple-ip:${await clientKey(request)}`,30,60*60*1000,request);
  const intent=await oauthIntent(request);
  const state=randomToken(24),nonce=randomToken(18),now=Date.now();
  await cleanupAndAdd(db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,?,?,?)')
@@ -451,7 +474,7 @@ export async function finishApple(request:Request){
 // ---------- Sign in with Apple inside the iOS app (the system sheet) ----------
 export async function startAppleNative(request:Request){
  if(!configured.appleNative())throw new AuthError(503,'method_unavailable');
- await limit(`apple-ip:${await clientKey(request)}`,30,60*60*1000);
+ await limit(`apple-ip:${await clientKey(request)}`,30,60*60*1000,request);
  const id=randomToken(18),nonce=randomToken(24),now=Date.now();
  await cleanupAndAdd(db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
   .bind(id,'apple-native',nonce,'',now,now+OAUTH_TTL_MS),now);
@@ -462,7 +485,7 @@ export type AppleNativeInput={challengeId:unknown;identityToken:unknown;authoriz
 export async function verifyAppleNative(input:AppleNativeInput,request:Request){
  if(!configured.appleNative())throw new AuthError(503,'method_unavailable');
  if(typeof input.challengeId!=='string'||!/^[A-Za-z0-9_-]{24}$/.test(input.challengeId)||typeof input.identityToken!=='string')throw new AuthError(400,'code_expired');
- await limit(`verify-ip:${await clientKey(request)}`,60,60*60*1000);
+ await limit(`verify-ip:${await clientKey(request)}`,60,60*60*1000,request);
  const current=input.link?await signedInUser():null;
  const row=await db().prepare("DELETE FROM market_auth_challenges WHERE id=? AND kind='apple-native' AND expires_at>? RETURNING target").bind(input.challengeId,Date.now()).first<{target:string}>();
  if(!row)throw new AuthError(400,'code_expired');
@@ -612,7 +635,7 @@ function browserSecret(request:Request){
 export async function startTelegramBot(request:Request,link:boolean){
  if(!configured.telegram())throw new AuthError(503,'method_unavailable');
  if(link)await signedInUser();
- await limit(`telegram-bot-start:${await clientKey(request)}`,60,60*60*1000);
+ await limit(`telegram-bot-start:${await clientKey(request)}`,60,60*60*1000,request);
  const token=randomToken(24),secret=browserSecret(request)??randomToken(32),now=Date.now();
  const kind:TgChallengeKind=link?'telegram-link':'telegram-bot';
  await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,NULL,?,?)')
@@ -624,7 +647,7 @@ export async function startTelegramBot(request:Request,link:boolean){
 /** The page asks whether the bot confirmed its token; once it has, this browser signs in (or attaches Telegram). */
 export async function checkTelegramBot(request:Request,token:unknown):Promise<{status:'pending'|'expired'|'linked'}|{status:'done';cookie:string}>{
  if(!validStartToken(token))throw new AuthError(400,'telegram_invalid');
- await limit(`telegram-bot-check:${await clientKey(request)}`,900,10*60*1000);
+ await limit(`telegram-bot-check:${await clientKey(request)}`,900,10*60*1000,request);
  const id=await sha256Hex(token);
  const row=await db().prepare(`SELECT kind,target,secret,expires_at FROM market_auth_challenges WHERE id=? AND kind IN (${TG_CHALLENGE_KINDS.map(()=>'?').join(',')})`)
   .bind(id,...TG_CHALLENGE_KINDS).first<{kind:TgChallengeKind;target:string;secret:string;expires_at:number}>();

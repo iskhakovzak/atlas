@@ -208,6 +208,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_94': 'Промокод с таким текстом уже есть. Придумайте другой.',
     'err_95': 'Промокоды временно недоступны. Оформите заказ без промокода или попробуйте позже.',
     'err_96': 'Вы уже использовали этот промокод: он действует один раз на покупателя.',
+    'err_97': 'Данные уже выгружались несколько раз за этот час. Попробуйте через час.',
     'err_55': 'Нельзя отключить собственный доступ.',
     'err_56': 'Основного администратора из настроек хостинга отключить нельзя.',
     'err_57': 'Заметки о клиентах пока недоступны: примените миграцию базы 0011.',
@@ -298,6 +299,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_94': 'Bunday matnli promokod allaqachon bor. Boshqasini o‘ylab toping.',
     'err_95': 'Promokodlar vaqtincha ishlamayapti. Buyurtmani promokodsiz rasmiylashtiring yoki keyinroq urinib ko‘ring.',
     'err_96': 'Bu promokoddan allaqachon foydalangansiz: u har bir xaridor uchun bir marta amal qiladi.',
+    'err_97': 'Ma’lumotlar bu soatda bir necha marta yuklab olindi. Bir soatdan so‘ng urinib ko‘ring.',
     'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
     'err_56': 'Hosting sozlamalaridagi asosiy administratorni o‘chirib bo‘lmaydi.',
     'err_57': 'Mijozlar haqidagi eslatmalar hozircha mavjud emas: 0011 migratsiyasini qo‘llang.',
@@ -388,6 +390,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_94': 'A promo code with this text already exists. Choose another one.',
     'err_95': 'Promo codes are temporarily unavailable. Check out without one or try again later.',
     'err_96': 'You have already used this promo code: it works once per customer.',
+    'err_97': 'Your data was already downloaded several times this hour. Try again in an hour.',
     'err_55': 'You cannot disable your own access.',
     'err_56': 'The primary administrator from the hosting settings cannot be disabled.',
     'err_57': 'Customer notes are not available yet: apply database migration 0011.',
@@ -431,25 +434,25 @@ export const navCopy: Record<Locale, NavCopy> = /*@__PURE__*/withCyrillic({
     balance: 'Balance', notifications: 'Notifications', favorites: 'Saved', documents: 'Documents', settings: 'Settings', theme: 'Theme', signOut: 'Sign out', needsAction: 'an order needs your action', passportNeeded: 'recipient’s passport needed' },
 });
 
-export type FooterCopy = { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; email: string; hours: string; pickup: string; theme: string; inn: string; dataSettings: string; taglineShort: string };
+export type FooterCopy = { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; email: string; hours: string; pickup: string; theme: string; inn: string; dataSettings: string; licenses: string; taglineShort: string };
 /** Footer words (every page), apart from the home page copy, which uses them as `footer` and `trust.inn`. */
 export const footerCopy: Record<Locale, FooterCopy> = /*@__PURE__*/withCyrillic({
   ru: {
       tagline: 'Atlas — сервис-посредник: выкупает товары в зарубежных магазинах и доставляет в Ташкент.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
       support: 'Поддержка в личном кабинете', rules: 'Все документы', privacy: 'Политика данных', customs: 'Таможня', faq: 'Частые вопросы',
       telegramSupport: 'Telegram-бот', telegramChannel: 'Telegram-канал', phone: 'Телефон', instagram: 'Instagram', email: 'Почта', hours: 'Часы работы', pickup: 'Пункт выдачи', theme: 'Тема',
-      inn: 'ИНН', dataSettings: 'Настройки данных', taglineShort: 'Магазины мира — с доставкой в Ташкент',
+      inn: 'ИНН', dataSettings: 'Настройки данных', licenses: 'Лицензии ПО', taglineShort: 'Магазины мира — с доставкой в Ташкент',
   },
   uz: {
       tagline: 'Atlas — vositachi xizmat: xorijiy do‘konlardan tovarlarni sotib olib, Toshkentga yetkazadi.', buyers: 'Xaridorlarga', contacts: 'Bog‘lanish', legal: 'Yuridik ma’lumotlar',
       support: 'Shaxsiy kabinetdagi yordam', rules: 'Barcha hujjatlar', privacy: 'Ma’lumotlar siyosati', customs: 'Bojxona', faq: 'Savollar',
       telegramSupport: 'Telegram-bot', telegramChannel: 'Telegram-kanal', phone: 'Telefon', instagram: 'Instagram', email: 'Pochta', hours: 'Ish vaqti', pickup: 'Topshirish punkti', theme: 'Mavzu',
-      inn: 'STIR', dataSettings: 'Ma’lumotlar sozlamalari', taglineShort: 'Dunyo do‘konlari — Toshkentga yetkazib beramiz',
+      inn: 'STIR', dataSettings: 'Ma’lumotlar sozlamalari', licenses: 'Dastur litsenziyalari', taglineShort: 'Dunyo do‘konlari — Toshkentga yetkazib beramiz',
   },
   en: {
       tagline: 'Atlas is a purchasing service: it buys items from international stores and delivers them to Tashkent.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
       support: 'Support in your account', rules: 'All documents', privacy: 'Privacy policy', customs: 'Customs', faq: 'FAQ',
       telegramSupport: 'Telegram bot', telegramChannel: 'Telegram channel', phone: 'Phone', instagram: 'Instagram', email: 'Email', hours: 'Working hours', pickup: 'Pickup point', theme: 'Theme',
-      inn: 'Tax ID (INN)', dataSettings: 'Data settings', taglineShort: 'Stores of the world, delivered to Tashkent',
+      inn: 'Tax ID (INN)', dataSettings: 'Data settings', licenses: 'Software licences', taglineShort: 'Stores of the world, delivered to Tashkent',
   },
 });

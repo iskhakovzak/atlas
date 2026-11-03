@@ -27,6 +27,8 @@ Use a clean Git checkout, never copy local runtime folders or secrets. Build wit
 
 Keep the image workdir `/srv/atlas`. In the observed Linux build, `/app` caused the home page and `/app` route to silently resolve to the same generated page chunk. `scripts/check-vps-build.mjs` rejects that collision; the deployed image passed it and its actual homepage was checked. Re-check all assets, sign-in redirects, unauthenticated API refusal and a real product import before declaring a release complete. Schema migrations run once on startup; do not modify applied migration files.
 
+Since 3 November 2026 the VPS build (`ATLAS_DEPLOY_TARGET=vps npm run build`) writes brotli q11 and gzip 9 copies beside every hashed JS/CSS file (`scripts/precompress-static.mjs`); `vinext start` serves them with `Content-Encoding` and `Vary: Accept-Encoding`, and Caddy leaves already-encoded responses alone, so the Caddyfile needs no change. `scripts/check-vps-build.mjs` fails the image when the `.br` files are missing.
+
 For rollback, use a previously verified VPS image with the existing data/config mounts. Do not restore the old Sites DNS target as a data rollback: its demo data and secrets were intentionally removed.
 
 ## Backups and verification
@@ -34,3 +36,20 @@ For rollback, use a previously verified VPS image with the existing data/config 
 `atlas-backup.timer` runs at 02:15 UTC with up to 120 s jitter, retaining seven days in `/opt/atlas/backups`. The backup includes an online SQLite snapshot (integrity checked), private objects and configuration; files are root-private. Object copying is not transactionally synchronized with database writes; pause document writes for a strict point-in-time restore. Off-server backup is not configured.
 
 Validated: 1160 tests, lint, default Worker build, VPS Linux build and chunk check; public HTTPS, www redirect, homepage/catalog/stores/cart/login, 82 page assets, API 401 without a session, missing asset 404 without year-long caching, signed background batch 200 with zero work. Real eBay import returned 82 variants; browser verified photos, stock, sizes and a color price change from $25 to $40. A real Nike import returned 80 variants. Hashed static assets return public, max-age=31536000, immutable. Full interactive Google sign-in to the operator account remains a manual verification; the provider redirect, PKCE and correct callback origin were verified. Test browser tabs and the temporary local/staging servers were closed.
+
+## Сторож сервера (3.11.2026)
+
+`atlas-watchdog.timer` каждые 2 минуты запускает `/opt/atlas/watchdog.py` (`deploy/vps/watchdog.py`). Он появился после аварии 3.11.2026: Redis другого проекта на общем сервере разросся до 10,6 ГБ памяти и 151 ГБ незавершённых снимков, диск заполнился, сайт перестал отвечать.
+
+- Диск занят больше чем на 85 %: удаляет снимки Redis `temp-*.rdb` и `temp-rewriteaof-*.aof` старше 2 часов, кэш сборок Docker старше 3 дней, старые образы и архивы Atlas, журнал больше 200 МБ. Базы, `dump.rdb`, `appendonly` и чужие контейнеры не трогает.
+- Atlas не ответил 3 проверки подряд: перезапускает `atlas-web`.
+- Шлёт в Telegram владельцу (тот же адрес, что у монитора импорта), не чаще раза в час на каждую проблему, и отдельно — когда проблема ушла:
+  - диск занят от 90 %;
+  - свободной памяти меньше 700 МБ (с тремя самыми тяжёлыми контейнерами);
+  - есть контейнер без лимита памяти;
+  - Atlas не отвечает.
+- `python3 /opt/atlas/watchdog.py --dry-run` показывает состояние и ничего не меняет.
+
+У контейнера Atlas стоит `oom_score_adj: -500`: при нехватке памяти ядро сначала завершает другие процессы.
+
+Скрипт выкатки (`deploy-vps.sh` в сессии ассистента) перед сборкой проверяет, что свободно не меньше 12 ГБ диска и 1,5 ГБ памяти. Выкатку он считает успешной, только если запущен именно новый образ. После выкатки чистит кэш сборок и старые образы.
