@@ -113,7 +113,9 @@ test('GET /api/catalog/<id>: one published product in full, cached like the list
   assert.match(route, /return Response\.json\(\{product:found\.product\},\{headers:\{'Cache-Control':publicCatalogCache\}\}\);/);
   assert.match(route, /catch\(error\)\{return failure\(error,request\)\}/);
   // The product page and the endpoint read the same full card; the sitemap reads the full catalog too.
-  assert.match(source('lib/market/initial-data.ts'), /const product=publicCatalog\(document,pricing\)\.products\.find\(item=>item\.id===id\);/);
+  assert.match(source('lib/market/initial-data.ts'), /byId:new Map\(publicCatalog\(document,pricing,now\)\.products\.map\(item=>\[item\.id,item\]\)\)/);
+  // Priced once per catalog revision and tariff, for at most half a minute.
+  assert.match(source('lib/market/initial-data.ts'), /productMemo\.key!==key\|\|now-productMemo\.at>productMemoMs/);
   // The pages' list (first page, seeds, store pages) is the same list the API serves.
   const data = source('lib/market/initial-data.ts');
   assert.match(data, /const \{products,collections\}=publicCatalogList\(publicCatalog\(document,pricing\)\);/);
