@@ -5,7 +5,7 @@ import { actionSchema } from '../lib/market/actions.ts';
 import { customsVersion } from '../lib/market/world.ts';
 import nextConfig from '../next.config.ts';
 import { applyCspRollback, contentSecurityPolicy, cspReportOnly, reportOnlyContentSecurityPolicy, rollbackContentSecurityPolicy } from '../lib/security/csp.ts';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 test('no customer action replaces the whole account document', () => {
   const forged = { ...blank(), entries: [{ id: 'x', orderId: 'AT-X', at: 1, amount: 50_000_000, debit: 'atlas-cash', credit: 'customer-credit', description: 'forged' }] };
@@ -50,11 +50,29 @@ test('the CSP lists exactly the sources Atlas pages use', () => {
     if (value === 'https:' || value === 'http:' || value === '*') assert.equal(name, 'img-src', `${name} ${value}`);
     if (value.includes('*.')) assert.equal(value, 'https://*.impactradius-event.com', `${name} ${value}`);
   }
+  // No other directive (a new worker-src, media-src … must be a deliberate change of this test).
+  assert.deepEqual([...directives.keys()], ['default-src', 'script-src', 'style-src', 'img-src', 'font-src', 'connect-src', 'frame-src', 'frame-ancestors', 'form-action', 'base-uri', 'object-src', 'report-uri']);
+});
+
+test('the passport OCR stays unused while the CSP blocks WebAssembly', () => {
+  // tesseract.js compiles WebAssembly in a blob: worker: both are blocked by the policy (lib/security/csp.ts).
+  const root = new URL('../', import.meta.url);
+  const users = [];
+  for (const dir of ['app', 'lib', 'components', 'hooks']) {
+    for (const file of readdirSync(new URL(dir + '/', root), { recursive: true })) {
+      const path = dir + '/' + file.replace(/\\/g, '/');
+      if (!/\.(ts|tsx)$/.test(path) || path === 'app/passport-ocr.ts') continue;
+      // Imports only (static or lazy), not comments that name the module.
+      if (/(?:from\s*|import\(\s*)['"][^'"]*(?:passport-ocr|tesseract\.js)['"]/.test(readFileSync(new URL(path, root), 'utf8'))) users.push(path);
+    }
+  }
+  if (users.length) assert.match(contentSecurityPolicy, /'wasm-unsafe-eval'/, `OCR is used by ${users.join(', ')}: allow WebAssembly and its worker in the CSP`);
 });
 
 test('ATLAS_CSP_REPORT_ONLY rolls pages back to report-only at request time', () => {
-  for (const on of ['1', 'true', 'TRUE', ' yes ', true]) assert.equal(cspReportOnly(on), true, String(on));
-  for (const off of [undefined, null, '', '0', 'false', 'no', 0, 1]) assert.equal(cspReportOnly(off), false, String(off));
+  // environment.json is JSON: `"1"`, `1` and `true` all mean the same to the operator who writes it in an emergency.
+  for (const on of ['1', 'true', 'TRUE', ' yes ', true, 1]) assert.equal(cspReportOnly(on), true, String(on));
+  for (const off of [undefined, null, '', '0', 'false', 'no', 0, 2, false, {}]) assert.equal(cspReportOnly(off), false, String(off));
   const headers = new Headers();
   applyCspRollback(headers);
   // The same policy, only its reports are marked: WebKit sends no `disposition` (lib/market/telemetry.ts).

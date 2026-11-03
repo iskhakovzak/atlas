@@ -14,6 +14,9 @@
 //   without data-onauth, which it would eval(): no 'unsafe-eval' (lib/auth/telegram-widget.ts).
 // - Google and Apple sign-in are top-level navigations through /api/auth/* (CSP does not restrict them), never scripts
 //   or frames; form-action still lists both (and Telegram) for a form that ends in their redirect.
+// - Not allowed on purpose: WebAssembly and blob: workers. The passport OCR (app/passport-ocr.ts, tesseract.js) is not used
+//   by any page today; wiring it back needs 'wasm-unsafe-eval' in script-src and `workerBlobURL: false` (or blob: in
+//   worker-src), or the policy blocks it (TODO.md).
 const impact = ["https://utt.impactcdn.com", "https://*.impactradius-event.com"];
 
 export const cspReportPath = "/api/telemetry";
@@ -45,9 +48,12 @@ export const contentSecurityPolicy = serialize(cspDirectives);
  */
 export const rollbackContentSecurityPolicy = serialize([["frame-ancestors", "'none'"], ["base-uri", "'self'"], ["object-src", "'none'"], ["report-uri", cspReportPath]]);
 
-/** `ATLAS_CSP_REPORT_ONLY=1` (or `true`) in the server environment rolls the policy back to report-only. */
+/**
+ * `ATLAS_CSP_REPORT_ONLY=1` (or `true`) in the server environment rolls the policy back to report-only. On the VPS the
+ * value comes from environment.json, where it may be written as a JSON number or boolean (`1`, `true`) as well as a string.
+ */
 export function cspReportOnly(value: unknown): boolean {
-  return value === true || (typeof value === "string" && /^(1|true|yes)$/i.test(value.trim()));
+  return value === true || value === 1 || (typeof value === "string" && /^(1|true|yes)$/i.test(value.trim()));
 }
 
 /**
