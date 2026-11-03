@@ -89,7 +89,7 @@ export type CartCopy = {
     issues: { currency: string; variant: string; price: string; unreachable: string; stock: string }; reload: string; checked: (time: string) => string;
   };
   /** `hint` says once that the services are outside the order total; the rows do not repeat it. */
-  services: { optional: string; hint: string; fixed: string; quote: string; /** A value-percent service (the safe-arrival guarantee, its own row of the parcel): the rate of the goods and delivery and the higher rate above the threshold; the amount stands beside it. */ percentRule: (rate: string, high: string | undefined) => string; highRule: (threshold: string, rate: string) => string; /** Under the guarantee: the most a loss of this parcel is compensated without it (claimLimit). */ uninsuredLimit: (limit: string) => string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
+  services: { optional: string; hint: string; fixed: string; quote: string; /** A value-percent service (the safe-arrival guarantee, its own row of the parcel): the rate of the goods and delivery and the higher rate above the threshold; the amount stands beside it. */ percentRule: (rate: string, high: string | undefined) => string; highRule: (threshold: string, rate: string) => string; /** "at least 25 000 soum per parcel" under a value-percent service with a minimum. */ minRule: (sum: string) => string; /** Under the guarantee: the most a loss of this parcel is compensated without it (claimLimit). */ uninsuredLimit: (limit: string) => string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
   summary: {
     title: string; balance: string; available: string; fromBalance: string; payable: string;
     assurance: string; continue: string; addByLink: string; outside: string;
@@ -195,7 +195,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     services: {
       optional: 'по желанию',
       hint: 'Отметьте пожелания — в сумму заказа они не входят. Оператор проверит возможность после приёмки; услугу выполнят только после показа точной суммы и вашего согласия.',
-      percentRule: (rate, high) => `${rate} от стоимости товаров и доставки${high ? ` (${high})` : ''}`, highRule: (threshold, rate) => `дороже ${threshold} — ${rate}`,
+      percentRule: (rate, high) => `${rate} от стоимости товаров и доставки${high ? ` (${high})` : ''}`, highRule: (threshold, rate) => `дороже ${threshold} — ${rate}`, minRule: sum => `не меньше ${sum} за посылку`,
       uninsuredLimit: limit => `Для этой посылки — до ${limit}.`,
       fixed: 'Тариф', quote: 'Цену назовёт оператор', quantity: 'Количество', required: 'обязательно',
       units: { package: 'посылка', item: 'шт.', day: 'день', photo: 'фото', 'half-hour': '30 мин' },
@@ -251,7 +251,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     services: {
       optional: 'ixtiyoriy',
       hint: 'Istaklaringizni belgilang — ular buyurtma summasiga kirmaydi. Operator qabuldan keyin imkoniyatni tekshiradi; xizmat faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajariladi.',
-      percentRule: (rate, high) => `Tovarlar va yetkazish qiymatining ${rate}${high ? ` (${high})` : ''}`, highRule: (threshold, rate) => `${threshold} dan qimmat bo‘lsa — ${rate}`,
+      percentRule: (rate, high) => `Tovarlar va yetkazish qiymatining ${rate}${high ? ` (${high})` : ''}`, highRule: (threshold, rate) => `${threshold} dan qimmat bo‘lsa — ${rate}`, minRule: sum => `posilka uchun kamida ${sum}`,
       uninsuredLimit: limit => `Bu posilka uchun — ${limit} gacha.`,
       fixed: 'Tarif', quote: 'Narxni operator aytadi', quantity: 'Miqdor', required: 'majburiy',
       units: { package: 'posilka', item: 'dona', day: 'kun', photo: 'foto', 'half-hour': '30 daqiqa' },
@@ -307,7 +307,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     services: {
       optional: 'optional',
       hint: 'Choose preferences — they are not part of the order total. An operator checks feasibility after intake; work starts only after the exact price is shown and you approve it.',
-      percentRule: (rate, high) => `${rate} of the goods and delivery${high ? ` (${high})` : ''}`, highRule: (threshold, rate) => `over ${threshold}: ${rate}`,
+      percentRule: (rate, high) => `${rate} of the goods and delivery${high ? ` (${high})` : ''}`, highRule: (threshold, rate) => `over ${threshold}: ${rate}`, minRule: sum => `at least ${sum} per parcel`,
       uninsuredLimit: limit => `For this parcel — up to ${limit}.`,
       fixed: 'Rate', quote: 'Operator will quote', quantity: 'Quantity', required: 'required',
       units: { package: 'package', item: 'item', day: 'day', photo: 'photo', 'half-hour': '30 min' },

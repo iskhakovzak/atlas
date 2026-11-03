@@ -1,4 +1,4 @@
-import { insuredDeliveryOf, parcelValueUsd, uninsuredLossPerKgUsd, valueServiceRate, type CartItem, type Order, type Quote, type ServiceOffering } from './domain.ts';
+import { insuredDeliveryOf, parcelValueUsd, uninsuredLossPerKgUsd, valueServiceAmounts, valueServiceRate, type CartItem, type Order, type Quote, type ServiceOffering } from './domain.ts';
 import { packagingKg } from './world.ts';
 import { catalogUrlKey } from './catalog-query.ts';
 
@@ -37,12 +37,13 @@ export function parcelRoomKg(lines: RoomLine[], minimum = 0.2) {
 type ValueLine = Pick<CartItem, 'product' | 'quantity'> & { quote: Pick<Quote, 'merchandise' | 'shipping' | 'deliveryMargin' | 'sourceShipping' | 'fx'> };
 /**
  * What a value-percent service (the Atlas safe-arrival guarantee) costs this parcel, soum: the rate follows the whole
- * parcel's value (the higher one above its threshold) and each line pays it on its own goods and delivery, rounded per
- * line as the server does (valueServiceFees). Shown before the box is ticked too.
+ * parcel's value (the higher one above its threshold, if the tariff sets one) and each line pays it on its own goods and
+ * delivery, rounded per line, never less than the service minimum for the parcel, as the server does (valueServiceFees).
+ * Shown before the box is ticked too.
  */
-export function guaranteeAmount(service: Pick<ServiceOffering, 'pricingMode' | 'valuePercent' | 'valuePercentHigh' | 'valueThresholdUsd'>, lines: ValueLine[], fx: number) {
+export function guaranteeAmount(service: Pick<ServiceOffering, 'pricingMode' | 'valuePercent' | 'valuePercentHigh' | 'valueThresholdUsd' | 'valueMinimumUzs'>, lines: ValueLine[], fx: number) {
   const rate = valueServiceRate(service, parcelValueUsd(lines, fx));
-  return lines.reduce((sum, line) => sum + Math.round((line.quote.merchandise + insuredDeliveryOf(line.quote)) * rate), 0);
+  return valueServiceAmounts(service, lines.map((line) => line.quote.merchandise + insuredDeliveryOf(line.quote)), rate).reduce((sum, value) => sum + value, 0);
 }
 
 /**
