@@ -1,4 +1,16 @@
 ## Скорость: фото товаров легче, публичный каталог без тяжёлых полей и с кэшем — 3 ноября 2026
+
+## 3.11.2026 — сторож сервера после аварии
+
+Redis проекта Funded Lime на общем VPS разросся до 10,6 ГБ памяти и 151 ГБ незавершённых снимков `temp-*.rdb`. Диск заполнился на 100 %, ядро по кругу завершало процессы, atlasmarket.uz перестал отвечать. Redis Funded Lime остановлен (`--restart=no`), его данные не тронуты.
+
+Сделано:
+- `deploy/vps/watchdog.py` и `atlas-watchdog.timer` (каждые 2 минуты): чистит диск, перезапускает Atlas, шлёт уведомления в Telegram;
+- `oom_score_adj: -500` у `atlas-web`;
+- скрипт выкатки проверяет диск и память перед сборкой и признаёт выкатку только при запущенном новом образе.
+
+Подробности — в `deploy/vps/README.md`.
+
 - **Фото** (`lib/market/image-size.ts`): eBay всегда просим в WebP (`s-l960.webp` вместо `.jpg`, тот же размер/кадр), adidas — `w_<px>,f_auto,q_auto` для «голых» оригиналов 2400 px (750–950 КБ JPEG → 7–20 КБ AVIF/WebP), у трансформации `w_840,h_840,f_auto…` только уменьшаем ширину/высоту. Shopify и Target Scene7 уже отдают WebP/AVIF по `Accept`, у Apple Scene7 `fmt=webp` даёт 404 — не трогаем. Откат на сохранённый адрес — прежний `retryOriginal`. Галерея (`app/product-gallery.tsx`) берёт ~960 px вместо 1000 (у eBay это был файл 1600 px), первое фото `fetchpriority="high"`. Замер на 5 фото eBay + 3 adidas: главное фото 3,50 МБ → 0,27 МБ, фото карточки 600 px 2,73 МБ → 0,12 МБ.
 - **`GET /api/catalog` без `admin=1`** отдаётся с `Cache-Control: public, max-age=60, stale-while-revalidate=600` (`publicCatalogCache` в `lib/market/catalog-list.ts`): ответ не читает сессию и одинаков для всех; `?admin=1` и ошибки — `no-store`; `middleware.ts` на `/api` не работает. Клиент (`lib/market/store.tsx`) читает список с `cache:'default'`, повтор после ошибки — `no-cache`.
 - **Список без тяжёлых полей** (`lib/market/catalog-list.ts`, `lib/market/catalog-summary.ts`): `publicCatalogList(publicCatalog(…))` убирает `sourceVariants`, `sourceImages`, `sourceColorwayImages`, `description`, `sourceGroupId/VariantScope/VariantsComplete`, ставит `listing: true` и `variantSummary` = {`sizes`, `stockSizes` (как `productSizes/productStockSizes`), `lowestPrice` (самая низкая цена доступного варианта в валюте магазина), `priceSpread` («от»), `sellers` (официальный магазин eBay)}. `productSizes`, `productStockSizes`, `cheapestUsd`, `catalogPriceSpread`, `officialStoreBrand` читают сводку у элемента списка (`variantSummaryOf`) и варианты у полного товара — результат одинаков (`tests/catalog-list.test.mjs`, на живых 510 товарах размеры совпали все). Цвета, фильтры, «Топ-цена» — из `facets`/`topDeal`, они в списке остаются. Тот же список — в первой странице `/catalog` (SSR), сидах `/stores` и `/stores/[slug]`. Живой каталог 510 товаров: 4 605 810 → 564 486 байт JSON (−88 %), brotli (q5) 195 → 62 КБ (на проде было 218 КБ br).
