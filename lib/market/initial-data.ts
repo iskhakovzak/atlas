@@ -5,6 +5,7 @@ import {catalogFirstPage} from './catalog-first-page.ts';
 import type {CatalogItem,CatalogQuery} from './catalog-query.ts';
 import type {Locale} from './i18n.ts';
 import {publicCatalog} from './catalog-editor.ts';
+import {publicCatalogList} from './catalog-list.ts';
 import {catalogCountsBySlug,productStoreSlug,storeProductIds} from './store-pages.ts';
 import type {MerchantFind} from './catalog.ts';
 import type {Pricing} from './domain.ts';
@@ -73,7 +74,8 @@ export async function initialCatalogFirstPage(query:CatalogQuery,locale:Locale):
  if(query.page!==1)return null;
  try{
   const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
-  const {products,collections}=publicCatalog(document,pricing);
+  // The list the browser then loads (GET /api/catalog), so its cards take these over unchanged.
+  const {products,collections}=publicCatalogList(publicCatalog(document,pricing));
   return catalogFirstPage(products,collections,pricing,query,locale);
  }catch{return null}
 }
@@ -99,7 +101,7 @@ export async function publicCatalogProduct(id:string):Promise<{product:MerchantF
 export async function storeCatalog(slug:string):Promise<{seed:CatalogSeedValue|null;counts:Map<string,number>|null;productIds:string[];pricing:Pricing|null}>{
  try{
   const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
-  const catalog=publicCatalog(document,pricing);
+  const catalog=publicCatalogList(publicCatalog(document,pricing));
   return {seed:storeCatalogSeed(catalog,pricing,slug,productStoreSlug),counts:catalogCountsBySlug(catalog.products),productIds:storeProductIds(catalog.products,slug),pricing:withoutAuthor(pricing)};
  }catch{return {seed:null,counts:null,productIds:[],pricing:null}}
 }

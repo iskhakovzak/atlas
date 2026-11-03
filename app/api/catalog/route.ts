@@ -12,6 +12,7 @@ import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError} from '@/lib/
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
 import {catalogMerchantRequest as merchantRequest} from '@/lib/importer/worker-fetch';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
+import {publicCatalogList,publicCatalogCache} from '@/lib/market/catalog-list';
 
 const ids=z.array(z.string().min(1).max(100)).min(1).max(100);
 /** Links per pasted batch; every link in it is read from its store at the same time. */
@@ -38,9 +39,10 @@ export async function GET(request:Request){try{
   if(admin){const user=await identity();await requirePermission(user,'catalog.manage');[saleJob,batchJob]=await Promise.all([catalogSaleRunner(user).read(user.userId).then(publicSaleJob),readBatch(user.userId).then(row=>publicBatchJob(row?.job))]);}
   const [{document},currentPricing]=await Promise.all([readCatalog({backfill:!admin}),pricing()]);
   if(admin)return json({document,saleJob,batchJob,catalogFormat:'chunks-v2',storeHealth:await readStoreHealth()});
-  // The public catalog is the same for every visitor (no session is read, nothing personal in it): browsers keep it a
-  // minute and may show it for ten more while they ask again (3 November 2026).
-  return Response.json({...publicCatalog(document,currentPricing),pricing:withoutAuthor(currentPricing)},{headers:{'Cache-Control':'public, max-age=60, stale-while-revalidate=600'}});
+  // The public list is the same for every visitor (no session is read, nothing personal in it) and leaves the options,
+  // galleries and descriptions to GET /api/catalog/<id> (lib/market/catalog-list.ts): browsers keep it a minute and
+  // may show it for ten more while they ask again (3 November 2026).
+  return Response.json({...publicCatalogList(publicCatalog(document,currentPricing)),pricing:withoutAuthor(currentPricing)},{headers:{'Cache-Control':publicCatalogCache}});
 }catch(error){return failure(error,request)}}
 export async function POST(request:Request){try{
   sameOrigin(request);const user=await identity();await requirePermission(user,'catalog.manage');
