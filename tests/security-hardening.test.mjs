@@ -5,7 +5,7 @@ import { actionSchema } from '../lib/market/actions.ts';
 import { customsVersion } from '../lib/market/world.ts';
 import nextConfig from '../next.config.ts';
 import { applyCspRollback, contentSecurityPolicy, cspReportOnly, reportOnlyContentSecurityPolicy, rollbackContentSecurityPolicy } from '../lib/security/csp.ts';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
 
 test('no customer action replaces the whole account document', () => {
   const forged = { ...blank(), entries: [{ id: 'x', orderId: 'AT-X', at: 1, amount: 50_000_000, debit: 'atlas-cash', credit: 'customer-credit', description: 'forged' }] };
@@ -58,7 +58,7 @@ test('the passport OCR stays unused while the CSP blocks WebAssembly', () => {
   // tesseract.js compiles WebAssembly in a blob: worker: both are blocked by the policy (lib/security/csp.ts).
   const root = new URL('../', import.meta.url);
   const users = [];
-  for (const dir of ['app', 'lib', 'components', 'hooks']) {
+  for (const dir of ['app', 'lib', 'components', 'hooks'].filter((d) => existsSync(new URL(d + '/', root)))) {
     for (const file of readdirSync(new URL(dir + '/', root), { recursive: true })) {
       const path = dir + '/' + file.replace(/\\/g, '/');
       if (!/\.(ts|tsx)$/.test(path) || path === 'app/passport-ocr.ts') continue;
