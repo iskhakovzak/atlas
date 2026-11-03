@@ -3,6 +3,7 @@ import { defineConfig, type Plugin } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { sites } from "./build/sites-vite-plugin";
+import { apiTiming } from "./build/api-timing-plugin";
 import { fileURLToPath } from "node:url";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
@@ -109,6 +110,8 @@ export default defineConfig(async () => {
       vinext(),
       // Atlas runs its own sign-in (lib/auth); the Sites ChatGPT mock stays off.
       sites({ mockAuth: false }),
+      // Every /api/* handler is timed in process memory for Admin → Система (build/api-timing-plugin.ts).
+      apiTiming(),
       ...cloudflarePlugin,
       ...(vpsTarget ? [precompressStatic] : []),
     ],
