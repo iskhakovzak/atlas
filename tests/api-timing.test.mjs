@@ -86,7 +86,8 @@ test('route pattern comes from the file path, never from a request', () => {
   assert.equal(apiRoutePattern('C:/Users/WS/Desktop/atlas-r7/app/api/import/route.ts'), '/api/import');
   assert.equal(apiRoutePattern('C:\\srv\\app\\api\\auth\\google\\callback\\route.ts?v=1'), '/api/auth/google/callback');
   assert.equal(apiRoutePattern('/app/app/api/orders/[id]/route.ts'), '/api/orders/[id]');
-  assert.equal(apiRoutePattern('/srv/atlas/app/(shop)/api/x/route.ts'), null);
+  assert.equal(apiRoutePattern('/srv/atlas/app/(shop)/api/x/route.ts'), '/api/x');
+  assert.equal(apiRoutePattern('/srv/atlas/app/shop/api/x/route.ts'), null);
   assert.equal(apiRoutePattern('/srv/atlas/app/api/(internal)/x/route.ts'), '/api/x');
   assert.equal(apiRoutePattern('/srv/atlas/app/catalog/page.tsx'), null);
   assert.equal(apiRoutePattern('/srv/atlas/lib/api/route.ts'), null);

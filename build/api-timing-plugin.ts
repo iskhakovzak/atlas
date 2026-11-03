@@ -11,9 +11,9 @@ const exported = new RegExp(`^export\\s+(?:async\\s+)?function\\s+(${METHODS.joi
 /** `/…/app/api/auth/google/callback/route.ts` → `/api/auth/google/callback`; anything else → null. */
 export function apiRoutePattern(id: string): string | null {
   const file = id.split("?")[0].replaceAll("\\", "/");
-  const match = /\/app(\/api(?:\/[^/]+)*)\/route\.(?:ts|tsx|js|jsx|mjs)$/.exec(file);
+  const match = /\/app((?:\/\([^/]+\))*\/api(?:\/[^/]+)*)\/route\.(?:ts|tsx|js|jsx|mjs)$/.exec(file);
   if (!match) return null;
-  // Route groups `(name)` are not part of the address.
+  // Route groups `(name)` are not part of the address, also before `api` (`app/(shop)/api/x` serves /api/x).
   return match[1].split("/").filter(segment => !/^\(.+\)$/.test(segment)).join("/") || "/api";
 }
 

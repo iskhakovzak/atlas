@@ -55,7 +55,7 @@ export function AdminSystem({data,copy,onChanged}:{data:AdminData;copy:{system:s
  </>;
 }
 
-const ms=(value:number)=>value>=1000?`${(value/1000).toFixed(value>=10000?0:1)} с`:`${value>=100?Math.round(value):value.toFixed(1)} мс`;
+const ms=(value:number)=>(value>=1000?`${(value/1000).toFixed(value>=10000?0:1)} с`:`${value>=100?Math.round(value):value.toFixed(1)} мс`).replace('.',',');
 /** /api/* handler time in this server process (lib/market/api-timing.ts): kept in memory, gone after a restart. */
 function ApiTimingTable({summary}:{summary:NonNullable<SystemStatus['api']>}){
  const minutes=Math.round(summary.windowMs/60000);
