@@ -1,8 +1,10 @@
+import { env } from "cloudflare:workers";
 import { NextResponse, type NextRequest } from "next/server";
 import { pageLocaleHeader, supportedLocale } from "@/lib/market/i18n";
 import { isPublicPath } from "@/lib/seo/locales";
 import { SESSION_COOKIE } from "@/lib/auth/core";
 import { storePageRedirect } from "@/lib/market/store-pages";
+import { applyCspRollback, cspReportOnly } from "@/lib/security/csp";
 
 /** Old document pages → their section of /account/documents (query kept, e.g. ?recipient=). */
 export const movedDocumentPages: Record<string, string> = { "/identity": "#passports", "/declaration": "#declarations" };
@@ -11,6 +13,20 @@ export const movedDocumentPages: Record<string, string> = { "/identity": "#passp
 // so crawlers that do not run scripts see the same text as the title. The browser then saves the
 // choice (lib/market/store.tsx). A client-sent header is always replaced, never trusted.
 export function middleware(request: NextRequest) {
+  return cspMode(route(request));
+}
+
+// The CSP from next.config.ts is enforced and fixed at build time. Rollback without a rebuild: `ATLAS_CSP_REPORT_ONLY=1`
+// in the server environment (environment.json on the VPS, then restart the container) makes every page report the full
+// policy and enforce only what cannot break a page (lib/security/csp.ts). An unreadable environment keeps enforcing.
+function cspMode(response: NextResponse) {
+  let reportOnly = false;
+  try { reportOnly = cspReportOnly((env as { ATLAS_CSP_REPORT_ONLY?: unknown }).ATLAS_CSP_REPORT_ONLY); } catch { /* enforce */ }
+  if (reportOnly) applyCspRollback(response.headers);
+  return response;
+}
+
+function route(request: NextRequest) {
   // The session cookie belongs to one host: www is sent to the main address so a customer is not signed out by it.
   if (request.nextUrl.hostname === "www.atlasmarket.uz") return NextResponse.redirect(new URL(request.nextUrl.pathname + request.nextUrl.search, "https://atlasmarket.uz"), 308);
   // Passports and declarations live on one page since 1 November 2026; old links and bookmarks keep working.

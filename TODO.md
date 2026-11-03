@@ -1,3 +1,11 @@
+## CSP в режиме блокировки — открытое (3 ноября 2026, feat/csp-enforce)
+- [ ] **После выкатки** несколько дней смотреть Администрирование → Система, область `csp`: записи без « (report-only)» — реально заблокированное. При поломке — `ATLAS_CSP_REPORT_ONLY=1` в `/opt/atlas/config/environment.json` и перезапуск `atlas-web` (без пересборки образа).
+- [ ] **Скрипты без `'unsafe-inline'`:** nonce на RSC-поток vinext, скрипт темы, `atlas-impact-bootstrap` и JSON-LD (vinext умеет брать nonce из заголовка CSP — `getScriptNonceFromHeaderSources`), затем `'strict-dynamic'`. Учесть, что Capacitor на Android вставляет свой мост в HTML встроенным скриптом.
+- [ ] **Тег Impact локально отвечает 403** (ORB блокирует ответ), поэтому домены, к которым он обращается после загрузки, не проверены вживую; если появятся отчёты `connect-src`/`script-src` с его хостами — добавить точечно.
+- [ ] **Виджет Telegram без `data-onauth`** проверен только до отрисовки iframe (локально бот не привязан к домену). Проверить вход и привязку Telegram через виджет на проде, если бот не подключён (обычно вход идёт через бота).
+- [ ] **`report-to`/Reporting API** не добавлены: Chrome при наличии `report-to` перестаёт слать `report-uri`, а `/api/telemetry` разбирает только `application/csp-report`. Добавлять вместе с разбором `application/reports+json`.
+- [ ] Отказ от cookies у оператора отдельно не проверен: выбор хранится в аккаунте, и обход оператора шёл с ранее принятым выбором.
+
 ## Проверка остатков релиза — открытое (1 ноября 2026, fix/verify-leftovers)
 - Плашка «Одной посылкой дешевле на … тыс.» на компьютере в одну строку на uz/en; на ru при 4 колонках (1440, ширина карточки ~217 px) текст длиннее строки и переносится на вторую — нужна ли короче формулировка для компьютера, решает владелец.
 - Страница товара после «В корзину»: выбор размера сбрасывается (кнопка снова «Выберите размер»), а заголовок шага ещё показывает прошлый размер («Размер: S») без отмеченной кнопки.
@@ -275,7 +283,7 @@
   - [ ] **После обновления `@fontsource-variable/manrope`** запустить `node scripts/wordmark-font.mjs` и посмотреть знак глазами. Свой разбор WOFF2 проверен только на текущей версии.
 - [x] **Хостинг: кеш `/_next/static/*`** — 11.10.2026: DNS перенесён в Cloudflare (регистратор webname.uz), сайт остаётся Sites. JS/CSS HTTP200 кешируются на год с immutable и brotli; ответы400–599 не сохраняются, Browser TTL Respect origin. Проверены MISS→HIT и повторные404/BYPASS/no-store; настройки и откат — ARCHITECTURE.md, «Cloudflare перед Sites». Защита старых вкладок из PR63 опубликована в Sites166 вместе с PR64.
 - [ ] HSTS `includeSubDomains` и `preload` — только когда все поддомены atlasmarket.uz отвечают по HTTPS; preload трудно отменить.
-- [ ] CSP пока `Report-Only`. Домены Impact (`utt.impactcdn.com`, `*.impactradius-event.com`) добавлены в `script-src`/`connect-src` 11.10.2026, иначе блокировка выключила бы трекинг. Перевести в блокирующий режим после того, как журнал ошибок (Администрирование → Система) несколько дней не показывает новых нарушений `CSP …`.
+- [x] ~~CSP пока `Report-Only`.~~ 3.11.2026: включена блокировка (`lib/security/csp.ts`, ветка `feat/csp-enforce`), откат — `ATLAS_CSP_REPORT_ONLY=1` и перезапуск контейнера; открытое — в разделе «CSP в режиме блокировки». Домены Impact (`utt.impactcdn.com`, `*.impactradius-event.com`) добавлены в `script-src`/`connect-src` 11.10.2026, иначе блокировка выключила бы трекинг. Перевести в блокирующий режим после того, как журнал ошибок (Администрирование → Система) несколько дней не показывает новых нарушений `CSP …`.
 - [ ] **Тег Impact не грузится**: `https://utt.impactcdn.com/P-A7926226-1901-4a82-b369-ac46d499149f1.js` отвечает 403 Access denied (11.10.2026, с Referer сайта тоже). Учёт партнёрских переходов и показов сейчас не работает. Проверить в кабинете Impact, что сайт одобрен и тег опубликован, или взять оттуда актуальную ссылку; адрес — `lib/market/impact-tracking.ts`.
 - [ ] Лабораторный LCP на телефоне завышают ~70 JS-чанков (около 30 — иконки по 0,5 КБ) и 46 SVG бегущей строки, запрошенные до первой отрисовки; в реальном браузере LCP = FCP (водяной знак «atlas» рисуется вместе с первым кадром).
   - 14.10.2026: маски строки вне экрана запрашиваются после гидратации (J8), окно, «?» и помощники оболочки вынесены из ранней загрузки (J2, J3, J7). Общий чанк иконок (J4) отменён по замеру — см. пункт J4 в «JS первой загрузки» выше. Ранняя загрузка главной: 80 файлов / 289,5 КБ gzip → 74 / 249,4.
@@ -761,9 +769,9 @@ The user explicitly requested the partner tracking code in the main homepage hea
 - [x] Removed the `import-legacy` action (a customer could write their own balance, paid orders and staff fields).
 - [x] Rate limits on `/api/actions` (60 a minute; 40 store checks per 10 minutes) and passport uploads (20 a day per account).
 - [x] Order numbers have 12 hex digits; the operational tables and books never overwrite another customer's order with the same number.
-- [x] `X-Frame-Options: DENY` while the CSP is report-only.
+- [x] `X-Frame-Options: DENY` while the CSP is report-only (kept for older browsers after the CSP was enforced on 3 November 2026).
 - [x] Administration → Система warns when `ATLAS_AUTH_SECRET` is not set.
-- [ ] Enforce the CSP (now report-only) once nonces replace the inline scripts; then `frame-ancestors` takes over from `X-Frame-Options`.
+- [x] Enforce the CSP — done 3 November 2026 with `'unsafe-inline'` kept for scripts; nonces are still open (section «CSP в режиме блокировки»).
 - [ ] `/api/actions` still returns the text of internal exceptions to the customer as a 400 message; map them to stable codes.
 - [x] Staff roles in `market_staff_directory` grant nothing: only `ATLAS_OPERATOR_EMAIL` is an operator. — Сделано 6 октября 2026: роли дают права с серверной проверкой (`lib/market/access.ts`, `STAFF_ROLES.md`).
 - [ ] `payment-demo` lets a customer mark their own order paid, and the books count it as paid; remove it when a payment provider is connected.
@@ -876,7 +884,7 @@ Checked `main` at `fedd1e7` (the squash of #8), then fixed the findings on `fix/
 - [x] `/customs` and `/legal` render their text in place in the server HTML (each page now passes its view to the shell; no hidden Suspense copy, duplicated `h1` or ids).
 - [x] `/analytics` light theme: the attention card keeps its dark background (`.surface.attention-report`).
 - [x] Security headers from the Worker (`next.config.ts`): `nosniff`, referrer policy, `Permissions-Policy`, HSTS; CSP and `frame-ancestors` report-only, with reports in the operator error log.
-- [ ] Enforce the CSP (switch to `Content-Security-Policy`) once production shows no unexpected `csp` reports under Administration → System; first confirm that nothing legitimate (for example a Sites dashboard preview) frames the site.
+- [x] Enforce the CSP (switch to `Content-Security-Policy`) — done 3 November 2026 after a local crawl found no violation (the Telegram widget eval was fixed); the site is not hosted on Sites any more, nothing legitimate frames it.
 - [x] Contrast reaches WCAG AA in both themes (`--night-faint` raised to `#88938d`, light-theme floor in `customer.css`); the dark header favourites icon; 24 px tap targets for breadcrumbs and text links; long store names wrap on phones.
 - [ ] `/legal` still shows "Заполнить до запуска" in eight places and the documents exist only in Russian: needs the company details and a reviewed Uzbek version.
 - [x] `smoke:ui` follows the redesigned home (and checks the 404 page); `smoke:auth` skips the live import with `ATLAS_SMOKE_SKIP_LIVE_IMPORT=1` and says so.

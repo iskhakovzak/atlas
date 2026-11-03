@@ -1,5 +1,6 @@
 import { requestJson, sameOrigin } from '@/lib/market/server';
 import { parseCspReport, parseTelemetry, vitalsSampleRate } from '@/lib/market/telemetry';
+import { cspReportOnlyQuery } from '@/lib/security/csp';
 import { pruneTelemetry, recordClientErrors, recordClientProblem, recordVitals, telemetryAllowed } from '@/lib/market/telemetry-store';
 
 const accepted = () => new Response(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
     if (!csp) sameOrigin(request);
     if (body === null || !(await telemetryAllowed(request))) return accepted();
     if (csp) {
-      const report = parseCspReport(body);
+      const report = parseCspReport(body, { reportOnly: new URL(request.url).search.slice(1).split('&').includes(cspReportOnlyQuery) });
       if (report) await recordClientProblem('csp', report.message, { route: report.route, ...(report.source ? { source: report.source } : {}) });
     } else {
       const payload = parseTelemetry(body);
