@@ -48,9 +48,21 @@ export function AdminSystem({data,copy,onChanged}:{data:AdminData;copy:{system:s
    <div className="admin-system-actions"><button type="button" className="btn primary" disabled={!!busy||!dirty} onClick={()=>void saveThresholds()}>{busy==='settings'?'Сохраняем…':'Сохранить пороги'}</button><button type="button" className="btn secondary" disabled={!!busy} onClick={()=>setThresholds(defaultAdminSettings.attention)}>По умолчанию</button>{data.adminSettings?.updatedAt?<span className="micro">Изменено {dateTime(data.adminSettings.updatedAt)}{data.adminSettings.managedBy?` · ${data.adminSettings.managedBy}`:''}</span>:null}</div>
    <h3 className="admin-subhead">{copy.errors}</h3>
    {data.errors.length?<div className="admin-scroll"><table className="admin-grid admin-errors"><thead><tr><th>Область</th><th>Сообщение</th><th className="num">Повторов</th><th className="num">Последний раз</th></tr></thead><tbody>{data.errors.slice(0,10).map(error=><tr key={error.id}><td><b>{error.area}</b>{error.route&&<small>{error.route}</small>}</td><td className="admin-cell-text">{error.message}</td><td className="num">{error.count&&error.count>1?`×${error.count}`:'1'}</td><td className="num"><time dateTime={new Date(error.lastSeen??error.createdAt).toISOString()}>{dateTime(error.lastSeen??error.createdAt)}</time></td></tr>)}</tbody></table></div>:<p className="micro">{copy.clear}</p>}
+   {status?.api&&<ApiTimingTable summary={status.api}/>}
    <div className="notice"><ShieldCheck/><span>Экспорт доступен только администратору, содержит контрольную сумму и фиксируется в журнале. Паспортные файлы не включаются. Режима обслуживания нет: механизм не реализован.</span></div>
   </section>
   <PerformanceSummary field={data.vitals??null}/>
+ </>;
+}
+
+const ms=(value:number)=>(value>=1000?`${(value/1000).toFixed(value>=10000?0:1)} с`:`${value>=100?Math.round(value):value.toFixed(1)} мс`).replace('.',',');
+/** /api/* handler time in this server process (lib/market/api-timing.ts): kept in memory, gone after a restart. */
+function ApiTimingTable({summary}:{summary:NonNullable<SystemStatus['api']>}){
+ const minutes=Math.round(summary.windowMs/60000);
+ return <>
+  <h3 className="admin-subhead">Скорость API</h3>
+  <p className="micro">Последние {minutes} мин в этом процессе сервера (с {dateTime(summary.since)}); время до ответа обработчика, без записи в базу. После перезапуска сервера счёт начинается заново.</p>
+  {summary.routes.length?<div className="admin-scroll"><table className="admin-grid admin-api-timing"><thead><tr><th>Маршрут</th><th className="num">Запросов</th><th className="num">p50</th><th className="num">p95</th><th className="num">Макс.</th><th className="num">Ошибок 5xx</th></tr></thead><tbody>{summary.routes.map(row=><tr key={row.method+' '+row.route}><td><b>{row.method}</b> {row.route}{row.sampled<row.count&&<small>p50/p95 по последним {row.sampled}</small>}</td><td className="num">{row.count}</td><td className="num">{ms(row.p50)}</td><td className="num">{ms(row.p95)}</td><td className="num">{ms(row.max)}</td><td className="num">{row.errors||'—'}</td></tr>)}</tbody></table></div>:<p className="micro">Запросов к API за это время не было.</p>}
  </>;
 }
 
