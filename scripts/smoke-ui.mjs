@@ -3,8 +3,23 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
 
-const baseUrl = new URL(process.argv[2] ?? "http://127.0.0.1:8787/");
+const args = process.argv.slice(2);
+const baseUrl = new URL(args.find((value) => !value.startsWith("--")) ?? "http://127.0.0.1:8787/");
 if (!/^https?:$/.test(baseUrl.protocol)) throw Error("Expected an HTTP URL");
+// --a11y-only: just the accessibility and contrast pass (works on an empty local database).
+const a11yOnly = args.includes("--a11y-only");
+// ATLAS_A11Y_STRICT=1 also fails on "serious" findings (contrast among them); by default only "critical" ones fail.
+const a11yStrict = process.env.ATLAS_A11Y_STRICT === "1";
+
+// axe-core is not a dependency of its own: it comes with eslint-plugin-jsx-a11y (dev). Without it the pass is skipped.
+const { createRequire } = await import("node:module");
+const { readFileSync } = await import("node:fs");
+let axeSource = null;
+try {
+  axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
+} catch {
+  process.stdout.write("Accessibility pass skipped: axe-core is not installed.\n");
+}
 
 const candidates = [
   process.env.ATLAS_BROWSER_PATH,
@@ -123,6 +138,8 @@ try {
     "document.readyState === 'complete' && document.documentElement.lang === 'ru' && document.querySelector('.home-hero h1') !== null",
     "home page in Russian",
   );
+  let productPath = null;
+  if (!a11yOnly) {
   if (!(await evaluate("!!document.querySelector('.home-hero input')")))
     throw Error("Home link calculator is missing");
   // Catalog filter: the count depends on the catalog, so only check that a category narrows it
@@ -137,6 +154,7 @@ try {
   await eventually(`new URLSearchParams(location.search).get('cat') === 'shoes' && ${count} > 0 && ${count} < ${total}`, "catalog category filter");
   // A card opens the product page as a sheet over the catalog, at the product's own address (redesign stage 5).
   if (await evaluate("!!document.querySelector('.pcard-title a')")) {
+    productPath = await evaluate("document.querySelector('.pcard-title a').getAttribute('href')");
     await evaluate("document.querySelector('.pcard-title a').click()");
     await eventually("!!document.querySelector('.pd-sheet .pd') && location.pathname.startsWith('/catalog/p/')", "product sheet at its own address");
     await evaluate("document.querySelector('.pd-sheet-actions .sheet-close')?.click()");
@@ -168,10 +186,43 @@ try {
   );
   await evaluate("location.assign('/e2e-missing-page')");
   await eventually("document.querySelector('main h1')?.textContent?.includes('Страница не найдена')", "localized 404 page");
+  }
+
+  // Accessibility (3 November 2026): axe-core (WCAG 2.1 A/AA rules) on the main pages, then the colour-contrast rule
+  // alone with the dark theme on. "critical" findings fail the smoke; "serious" ones (contrast among them) are
+  // printed, and fail too with ATLAS_A11Y_STRICT=1.
+  const a11yFailures = [];
+  if (axeSource) {
+    const pages = [["/?lang=ru", "home"], ["/catalog?lang=ru", "catalog"], ...(productPath ? [[productPath, "product"]] : []), ["/cart?lang=ru", "cart"], ["/order-by-link?lang=ru", "order by link"], ["/legal?lang=ru", "legal"], ["/privacy?lang=ru", "privacy"]];
+    const summary = [];
+    for (const [path, label] of pages) {
+      for (const theme of ["light", "dark"]) {
+        // The theme the site keeps (next-themes, "atlas-theme"), set before the page loads: no colour transitions mid-scan.
+        await evaluate(`localStorage.setItem("atlas-theme", ${JSON.stringify(theme)}), location.assign(${JSON.stringify(path)}), true`);
+        await eventually(`document.readyState === 'complete' && document.documentElement.dataset.theme === ${JSON.stringify(theme)} && !!document.querySelector('main h1')`, `${label} (${theme}) for the accessibility pass`);
+        await sleep(600); // hydration and late images settle before the scan
+        // Runtime.evaluate is not bound by the page's CSP: no eval() in the page, no CSP report from the scan itself.
+        if (!(await evaluate("!!window.axe"))) await evaluate(axeSource + ";true");
+        const options = theme === "light"
+          ? { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] }, resultTypes: ["violations"] }
+          : { runOnly: { type: "rule", values: ["color-contrast"] }, resultTypes: ["violations"] };
+        const violations = await evaluate(`axe.run(document, ${JSON.stringify(options)}).then((result) => result.violations.map((item) => ({ id: item.id, impact: item.impact, help: item.help, count: item.nodes.length, targets: item.nodes.slice(0, 3).map((node) => node.target.join(" ")) })))`);
+        for (const item of violations) {
+          const line = `${label} (${theme}): ${item.impact} ${item.id} ×${item.count} — ${item.help} [${item.targets.join(", ")}]`;
+          summary.push(line);
+          if (item.impact === "critical" || (a11yStrict && item.impact === "serious")) a11yFailures.push(line);
+        }
+      }
+    }
+    await evaluate("localStorage.removeItem('atlas-theme'), true");
+    process.stdout.write(summary.length ? `Accessibility findings (${summary.length}):\n  ${summary.join("\n  ")}\n` : "Accessibility: no axe-core findings on the main pages, light and dark contrast included.\n");
+  }
   if (cdp.errors.length)
     throw Error(`Browser exceptions: ${cdp.errors.join(" | ")}`);
-  process.stdout.write(
-    "UI smoke passed: Russian home and link calculator, catalog filter, guest navigation gates and cart, legal, guest link order and 404.\n",
+  if (a11yFailures.length) throw Error(`Accessibility failures (${a11yFailures.length}):\n${a11yFailures.join("\n")}`);
+  process.stdout.write(a11yOnly
+    ? "Accessibility smoke passed.\n"
+    : "UI smoke passed: Russian home and link calculator, catalog filter, guest navigation gates and cart, legal, guest link order, 404 and accessibility.\n",
   );
 } finally {
   cdp?.close();
