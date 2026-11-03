@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { parseCspReport, parseTelemetry, scrubMessage, summarizeVitals, telemetryRoute } from '../lib/market/telemetry.ts';
 
 test('routes are fixed patterns: no query strings, ids or unknown paths', () => {
@@ -42,6 +43,12 @@ test('CSP reports keep the directive, the blocked origin and the route only', ()
   assert.deepEqual(report, { message: 'CSP img-src: https://tracker.example', route: '/cart', source: 'https://atlasmarket.uz/_next/x.js' });
   assert.equal(parseCspReport({ 'csp-report': { 'violated-directive': 'script-src-elem', 'document-uri': 'https://atlasmarket.uz/', 'blocked-uri': 'inline' } }).message, 'CSP script-src-elem: inline');
   assert.equal(parseCspReport({ nothing: true }), null);
+  // A report sent by the report-only rollback says so; an enforced (blocked) one does not.
+  assert.equal(parseCspReport({ 'csp-report': { 'effective-directive': 'connect-src', 'document-uri': 'https://atlasmarket.uz/', 'blocked-uri': 'https://x.example/a', disposition: 'report' } }).message, 'CSP connect-src: https://x.example (report-only)');
+  assert.equal(parseCspReport({ 'csp-report': { 'effective-directive': 'connect-src', 'document-uri': 'https://atlasmarket.uz/', 'blocked-uri': 'https://x.example/a', disposition: 'enforce' } }).message, 'CSP connect-src: https://x.example');
+  // WebKit leaves `disposition` out: the report-only policy's report-uri marks its reports instead.
+  assert.equal(parseCspReport({ 'csp-report': { 'effective-directive': 'connect-src', 'document-uri': 'https://atlasmarket.uz/', 'blocked-uri': 'https://x.example/a' } }, { reportOnly: true }).message, 'CSP connect-src: https://x.example (report-only)');
+  assert.match(readFileSync(new URL('../app/api/telemetry/route.ts', import.meta.url), 'utf8'), /parseCspReport\(body, \{ reportOnly: new URL\(request\.url\)\.search\.slice\(1\)\.split\('&'\)\.includes\(cspReportOnlyQuery\) \}\)/);
 });
 
 test('field speed is summarized as p75 per route, busiest first', () => {

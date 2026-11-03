@@ -67,7 +67,7 @@ export function parseTelemetry(input: unknown): { errors: ClientError[]; vitals?
 }
 
 /** Reads a `report-uri` CSP violation report (`application/csp-report`). */
-export function parseCspReport(input: unknown): { message: string; route: string; source?: string } | null {
+export function parseCspReport(input: unknown, options?: { reportOnly?: boolean }): { message: string; route: string; source?: string } | null {
   const report = input && typeof input === "object" ? (input as Record<string, unknown>)["csp-report"] : null;
   if (!report || typeof report !== "object") return null;
   const field = (name: string) => { const value = (report as Record<string, unknown>)[name]; return typeof value === "string" ? value : ""; };
@@ -80,7 +80,10 @@ export function parseCspReport(input: unknown): { message: string; route: string
   let route = "other";
   try { route = telemetryRoute(new URL(field("document-uri")).pathname); } catch { /* keep "other" */ }
   const source = field("source-file") ? scrubMessage(field("source-file"), 200) : undefined;
-  return { message: scrubMessage(`CSP ${directive}: ${target}`), route, ...(source ? { source } : {}) };
+  // The policy is enforced (lib/security/csp.ts): a report means something was blocked, unless the report-only rollback
+  // sent it (its report-uri says so; Chromium and Firefox also send `disposition`). Both kinds are kept apart in the log.
+  const mode = options?.reportOnly || field("disposition") === "report" ? " (report-only)" : "";
+  return { message: scrubMessage(`CSP ${directive}: ${target}${mode}`), route, ...(source ? { source } : {}) };
 }
 
 export type VitalsRow = { route: string; device: string; ttfb_ms: number | null; fcp_ms: number | null; lcp_ms: number | null; inp_ms: number | null; cls: number | null };
