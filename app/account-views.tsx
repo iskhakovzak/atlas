@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "@/components/site-link";
 import { InfoTip } from "@/components/info-tip";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Bell, Check, Cookie, FileCheck2, Heart, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Settings2, Shield, ShoppingBag, Trash2, UserCog, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Bell, Check, Cookie, Download, FileCheck2, Heart, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Settings2, Shield, ShoppingBag, Trash2, UserCog, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { isServedRegion } from "@/lib/market/addresses";
@@ -247,6 +247,41 @@ function CookieSettingRow({ locale }: { locale: Locale }) {
   </button>;
 }
 
+/**
+ * «Скачать мои данные» (3 November 2026): GET /api/account/export as a JSON file. Fetched first, so a refusal (the hourly
+ * limit, a lost session) shows as a toast instead of being saved as the file.
+ */
+function DataExportRow({ c, locale }: { c: AccountCopy; locale: Locale }) {
+  const [busy, setBusy] = useState(false);
+  const t = c.dataExport;
+  async function download() {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/account/export", { cache: "no-store", credentials: "same-origin" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { errorCode?: string; error?: string };
+        toast.error((data.errorCode ? serverError(locale, data.errorCode) : undefined) ?? data.error ?? t.failed);
+        return;
+      }
+      const name = /filename="([^"]+)"/.exec(res.headers.get("content-disposition") ?? "")?.[1] ?? "atlas-data.json";
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      toast.success(t.done);
+    } catch { toast.error(t.failed); }
+    finally { setBusy(false); }
+  }
+  return <div className="cabinet-delete-row cabinet-export-row">
+    <p className="cabinet-muted">{t.lead}</p>
+    <button type="button" className="cabinet-text-btn" disabled={busy} onClick={() => void download()}><Download size={16} aria-hidden="true" />{busy ? t.busy : t.open}</button>
+  </div>;
+}
+
 /** Settings rows the stores expect in the app: help, legal documents, consents, "restore purchases", about, sign out, delete. */
 function SettingsCard({ c, locale, state, ready, act, refresh, onSignOut, onSupport }: SettingsProps) {
   const [native, setNative] = useState(false);
@@ -290,6 +325,7 @@ function SettingsCard({ c, locale, state, ready, act, refresh, onSignOut, onSupp
           <p className="cabinet-setting-sub">{c.settings.consents}</p>
           {consents.length ? <ul className="cabinet-consents">{consents.map(item => <li key={item.key}><b>{c.settings.consentDoc[item.key]}</b><small>{c.settings.consentVersion(item.version)} · {formatLongDate(item.acceptedAt, locale)}</small></li>)}</ul> : <p className="cabinet-muted">{c.settings.consentsNone}</p>}
           {missing.length > 0 && <button type="button" className="btn secondary" disabled={!ready} onClick={() => void act({ type: "consent-accept", documents: [...consentDocuments], version: consentVersion })}>{c.settings.consentsAccept}</button>}
+          <DataExportRow c={c} locale={locale} />
           <div className="cabinet-delete-row">
             <p className="cabinet-muted">{c.deletion.lead}</p>
             <button type="button" className="cabinet-text-btn cabinet-delete-open" onClick={() => setDeleting(true)}><Trash2 size={16} aria-hidden="true" />{c.deletion.open}</button>

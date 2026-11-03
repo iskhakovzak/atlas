@@ -1,0 +1,6 @@
+# gitleaks (3.11.2026, v8.30.1, full history): reviewed false positives, by fingerprint.
+# The public web key target.com sends from every browser (identifies the storefront, not an account):
+565692d96ec9c73f864e1800b7aa4a8f3a98a391:lib/importer/target.ts:generic-api-key:19
+# Test fixtures: a made-up PKCE verifier and placeholder strings the export test asserts are absent.
+13778280dd6286dc5bd6747c39c6f3fad46f03ce:tests/auth-apple.test.mjs:generic-api-key:134
+77c4a97e21158905e2eef6474167e52426931eef:tests/account-export.test.mjs:generic-api-key:61

@@ -42,6 +42,8 @@ npm run smoke:ui -- http://127.0.0.1:8787/
 
 It launches an installed Chrome/Edge headlessly, opens the Russian home page (`/?lang=ru`) and checks the link calculator, the catalog category filter, the guest header, the legal page, guest link ordering (the estimate works without signing in) and the localized 404 page. Set ATLAS_BROWSER_PATH when the browser is installed elsewhere.
 
+Then it runs axe-core (WCAG 2.1 A/AA, from the installed eslint-plugin-jsx-a11y dependency; skipped when absent) on the home, catalog, product, cart, order-by-link, legal and privacy pages, and the colour-contrast rule again with the dark theme. Critical findings fail the run; serious ones (contrast included) are printed and fail too with ATLAS_A11Y_STRICT=1. `npm run smoke:ui -- http://127.0.0.1:8787/ --a11y-only` runs only that pass (useful on an empty local database, where the catalog filter check has nothing to filter).
+
 For the full guest/member access and responsive UI audit against the portable development server:
 
 ~~~
