@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { catalogFirstPage, firstPageEager, firstPageHigh, slimCatalogItem } from '../lib/market/catalog-first-page.ts';
+import { catalogListProduct } from '../lib/market/catalog-list.ts';
 import { applyCatalogQuery, catalogItems, emptyCatalogQuery, paginate, readCatalogQuery } from '../lib/market/catalog-query.ts';
 import { catalogCopy } from '../lib/market/catalog-copy.ts';
 import { searchWords } from '../lib/market/catalog-synonyms.ts';
@@ -34,15 +35,20 @@ test('the server page is the browser page: same products in the same order, page
 });
 
 test('each card carries only what the card shows, much less than the product', () => {
-  const [item] = catalogItems([find(3)], tariff);
+  // The server page renders the public list (lib/market/catalog-list.ts), as the browser does after it.
+  const [item] = catalogItems([catalogListProduct(find(3, { sourceVariants: [{ label: 'US 9', size: 'US 9', available: true, price: 40, sellerId: 'Seller' }, { label: 'US 10', size: 'US 10', available: true, price: 41 }] }))], tariff);
   const slim = slimCatalogItem(item);
   for (const key of ['id', 'name', 'brand', 'category', 'image', 'sourceUrl', 'usd']) assert.equal(slim.product[key], item.product[key], key);
   assert.equal(slim.costs.total, item.costs.total, 'the sum in soum');
   assert.equal(slim.discount, item.discount);
   assert.deepEqual(slim.sizes, item.sizes);
+  assert.deepEqual(slim.sizes, ['9', '10']);
   assert.equal(slim.product.sourceImages, undefined);
+  assert.equal(slim.product.sourceVariants, undefined);
   assert.equal(slim.product.declarationDescription, undefined);
-  assert.deepEqual(Object.keys(slim.product.sourceVariants[0]).sort(), ['available', 'label', 'price']);
+  // The «from» price and the official eBay store read the summary: the lowest price, the spread and the sellers only.
+  assert.equal(slim.product.listing, true);
+  assert.deepEqual(slim.product.variantSummary, { lowestPrice: 40, priceSpread: true, sellers: ['seller'] });
   assert.ok(JSON.stringify(slim).length * 2 < JSON.stringify(item).length, `${JSON.stringify(slim).length} vs ${JSON.stringify(item).length}`);
   const page = catalogFirstPage(products, [], tariff, emptyCatalogQuery, 'ru');
   assert.ok(JSON.stringify(page).length < 24 * 1200, `${JSON.stringify(page).length} characters for 24 cards`);

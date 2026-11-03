@@ -1,5 +1,6 @@
 import type { Product } from './domain.ts';
 import type { CatalogFacets } from './catalog-facets.ts';
+import type { CatalogVariantSummary } from './catalog-summary.ts';
 import {communityCatalogProducts} from './community-deals.ts';
 
 // Editorial snapshots from the linked official US product pages, not an inventory feed.
@@ -11,6 +12,9 @@ export type MerchantFind = Product & {
   /** The operator confirmed stock themselves (for example by opening the store page) without a store response. */ confirmedAt?: number;
   /** Filter facets derived on the server from the store's data (lib/market/catalog-facets.ts). */ facets?: CatalogFacets;
   /** «Топ-цена»: among the catalogue's best ~12 % deals, set by the server (lib/market/top-deal.ts). */ topDeal?: true;
+  /** A public list entry without options, gallery and description (lib/market/catalog-summary.ts): the full product
+   *  is GET /api/catalog/<id>. */ listing?: true;
+  /** A list entry's stand-in for its options (lib/market/catalog-summary.ts). */ variantSummary?: CatalogVariantSummary;
 };
 export function catalogOrderVariants(product:Product){
   if(product.sourceVariants?.length)return product.sourceVariants;

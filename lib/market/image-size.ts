@@ -3,7 +3,11 @@
 // the URL schemes below only; any other address comes back unchanged. The saved address never changes: this is
 // display only, and ProductImage falls back to the original when the smaller copy fails to load. Each rule was
 // checked against the live servers (11.10.2026): Walmart ignores odnWidth, Salesforce stores (demandware) answer
-// ?sw= with a much heavier PNG and Samsung only knows fixed presets, so those are left as they are.
+// ?sw= with a much heavier PNG and Samsung only knows fixed presets, so those are left as they are. 3.11.2026: eBay is
+// asked for WebP (s-l640.webp is about a third lighter than s-l640.jpg) and adidas for a width with the automatic format
+// (the bare address is a 2400 px JPEG of 750 KB; w_960,f_auto is 10-20 KB of AVIF/WebP). Shopify and Scene7 (Target)
+// already pick WebP/AVIF from the browser's Accept header, and Apple's Scene7 has no WebP (fmt=webp answers 404), so
+// their format is left alone.
 
 const EBAY_SIZES = [140, 225, 300, 400, 500, 640, 960, 1600];
 // Demo products saved before 11.10.2026 keep their .jpg address (the files stay in public/images); the .webp copy
@@ -25,13 +29,31 @@ export function sizedImage(src: string, px: number): string {
     url.pathname = path;
     return url.toString();
   }
-  // eBay: fixed sizes in the file name, "s-l1600.jpg"; never larger than the saved one.
+  // eBay: fixed sizes in the file name, "s-l1600.jpg"; never larger than the saved one. The same name with .webp is the
+  // same photo in WebP (checked on the live server, 3.11.2026); a browser that cannot show it falls back to the saved
+  // .jpg (retryOriginal).
   if (host === 'i.ebayimg.com') {
     const match = url.pathname.match(/\/s-l(\d+)\.(jpe?g|png|webp)$/i);
     if (!match) return src;
-    const want = EBAY_SIZES.find((value) => value >= size) ?? 1600;
-    if (want >= Number(match[1])) return src;
-    url.pathname = url.pathname.replace(/\/s-l\d+\./i, `/s-l${want}.`);
+    const want = Math.min(EBAY_SIZES.find((value) => value >= size) ?? 1600, Number(match[1]));
+    url.pathname = url.pathname.replace(/\/s-l\d+\.(?:jpe?g|png|webp)$/i, `/s-l${want}.webp`);
+    return url.toString();
+  }
+  // adidas (Cloudinary): "/images/<transformation>/<hash>/<file>" or the bare "/images/<hash>/<file>" (the 2400 px
+  // original). A bare one gets a width with the automatic format and quality; a transformation with the automatic
+  // format keeps its settings and only its width (and the height beside it, in proportion) shrinks, never grows.
+  if (host === 'assets.adidas.com' && url.pathname.startsWith('/images/')) {
+    const first = url.pathname.split('/')[2] ?? '';
+    if (/^[0-9a-f]{32}_[0-9a-z]+$/i.test(first)) {
+      url.pathname = url.pathname.replace(/^\/images\//, `/images/w_${size},f_auto,q_auto/`);
+      return url.toString();
+    }
+    const width = Number(first.match(/(?:^|,)w_(\d+)(?=,|$)/)?.[1]);
+    if (!width || width <= size || !/(?:^|,)f_auto(?=,|$)/.test(first)) return src;
+    const height = Number(first.match(/(?:^|,)h_(\d+)(?=,|$)/)?.[1]);
+    const next = first.replace(/(^|,)w_\d+(?=,|$)/, `$1w_${size}`)
+      .replace(/(^|,)h_\d+(?=,|$)/, (_whole, lead: string) => `${lead}h_${Math.round(height * size / width)}`);
+    url.pathname = url.pathname.replace('/images/' + first + '/', '/images/' + next + '/');
     return url.toString();
   }
   // Nike: the first path segment is a named transformation ("t_web_pdp_535_v2", "t_default"); a plain width replaces
