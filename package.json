@@ -16,6 +16,7 @@
     "e2e": "node --experimental-strip-types scripts/e2e.mjs",
     "catalog:refresh": "node scripts/catalog-refresh.mjs",
     "importer:check": "node --experimental-strip-types scripts/check-merchant-imports.mjs",
+    "perf:budget": "node scripts/perf-budget.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
