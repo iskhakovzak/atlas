@@ -14,7 +14,7 @@ import {useSwipeClose} from './use-swipe-close';
 import {PhotoWait} from './product-gallery';
 import {SumHero} from './product-detail';
 import {useFullCatalogProduct} from '@/lib/market/catalog-product-client';
-import {sizedImage} from '@/lib/market/image-size';
+import {retryOriginal,sizedImage} from '@/lib/market/image-size';
 import {departmentLabel,displayBrand,productTitle} from '@/lib/market/product-name';
 import {brandForHost,storefrontLabel} from '@/lib/market/store-brands';
 import {officialBadgeLabel,officialListing,officialStoreText} from '@/lib/market/official-stores';
@@ -86,7 +86,7 @@ function ProductWaiting({product,failed,retry,locale}:{product:Product;failed:bo
       <div className="pd-media"><div className="pd-gallery"><div className="product-gallery product-gallery-compact"><div className="product-gallery-frame"><div className="product-gallery-stage">
         <div className={'product-gallery-slide'+(photoReady?'':' is-loading')}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {product.image&&<img className="product-img" src={sizedImage(product.image,960)} alt="" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" draggable={false} ref={image=>{if(image?.complete&&image.naturalWidth)setPhotoReady(true)}} onLoad={()=>setPhotoReady(true)} onError={()=>setPhotoReady(true)}/>}
+          {product.image&&<img className="product-img" src={sizedImage(product.image,960)} alt="" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" draggable={false} ref={image=>{if(image?.complete&&image.naturalWidth)setPhotoReady(true)}} onLoad={()=>setPhotoReady(true)} onError={event=>{if(!retryOriginal(event.currentTarget,product.image))setPhotoReady(true)}}/>}
           {!photoReady&&<PhotoWait label={t.loadingProduct}/>}
         </div>
       </div></div></div></div></div>
