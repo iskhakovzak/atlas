@@ -5,6 +5,7 @@
 // server for customs only (the account shows and exports their last digits, as everywhere else). No Cloudflare imports.
 import { balanceOf, type State } from "./domain.ts";
 import { buyerParcels } from "./parcels.ts";
+import { customerState } from "./customer-state.ts";
 
 export const ACCOUNT_EXPORT_FORMAT = "atlas-account-export/1";
 
@@ -55,12 +56,7 @@ export function buildAccountExport(input: AccountExportInput) {
     profile,
     signInMethods: input.signInMethods,
     balance: { amount: balanceOf(state), entries: state.entries },
-    orders: state.orders.map((order) => {
-      const copy: Partial<typeof order> = { ...order };
-      delete copy.staffNotes;
-      delete copy.assignment;
-      return copy;
-    }),
+    orders: customerState(state).orders,
     parcels: buyerParcels(state.orders).map((parcel) => ({
       id: parcel.id, createdAt: parcel.createdAt, stage: parcel.stage ?? null, awaitingPayment: parcel.awaitingPayment,
       orderIds: parcel.orders.map((order) => order.id), ...(parcel.delivery ? { delivery: parcel.delivery } : {}),
