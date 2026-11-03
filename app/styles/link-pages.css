@@ -1430,3 +1430,11 @@ html[data-theme="dark"] .lo-page .variant-options.vp-seg button:not([aria-presse
 html[data-theme="dark"] .lo-page .variant-options.vp-seg button:hover:not(:disabled):not([aria-pressed="true"]) { background: rgba(255, 255, 255, .08); }
 @media (prefers-reduced-motion: reduce) { .lo-page .variant-options:is(.vp-chips, .vp-seg) button { transition: none; } }
 html[data-theme="dark"] .lo-page .variant-step > div.vp-head > span:not(.vp-hint) { color: var(--night-ink); }
+
+/* The catalog sheet while the full product loads (app/product-sheet.tsx ProductWaiting, 3 November 2026): the option
+   chips' outline under the sum, and the retry when the load failed. */
+.pd-waiting-pick { display: flex; flex-wrap: wrap; gap: var(--space-2); padding-top: var(--space-4); border-top: 1px solid var(--line); }
+.pd-waiting-pick > .lo-skel { width: 64px; height: 40px; border-radius: var(--r-control); }
+.pd-waiting-pick > .lo-skel:first-child { width: 100%; height: 14px; max-width: 160px; margin-bottom: var(--space-1); }
+.pd-waiting-failed { display: grid; gap: var(--space-3); color: var(--text-2); }
+.pd-waiting-failed p { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin: 0; }

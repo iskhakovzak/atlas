@@ -7,6 +7,7 @@ import { catalogCountsBySlug, productStoreSlug, storeProductIds } from '../lib/m
 import { collectionPage } from '../lib/seo/structured-data.ts';
 import { productPath } from '../lib/seo/routes.ts';
 import { initialCatalog, publicCatalog } from '../lib/market/catalog-editor.ts';
+import { publicCatalogList } from '../lib/market/catalog-list.ts';
 import { tariff } from '../lib/market/domain.ts';
 
 const root = new URL('../', import.meta.url);
@@ -18,7 +19,9 @@ test('the seed is what GET /api/catalog answers: the public catalog and the tari
   const pricing = { ...tariff, managedBy: 'operator@example.com' };
   const seed = catalogSeed(document, pricing, now);
   assert.ok(seed);
-  assert.deepEqual({ products: seed.products, collections: seed.collections }, publicCatalog(document, pricing, now));
+  // The public list (3 November 2026): no options, galleries or descriptions (lib/market/catalog-list.ts).
+  assert.deepEqual({ products: seed.products, collections: seed.collections }, publicCatalogList(publicCatalog(document, pricing, now)));
+  assert.ok(seed.products.every((product) => product.listing === true && product.sourceVariants === undefined && product.sourceImages === undefined));
   assert.equal('managedBy' in seed.pricing, false);
   assert.ok(seed.products.length > 0);
   assert.ok(JSON.stringify(seed).length <= catalogSeedMaxChars);

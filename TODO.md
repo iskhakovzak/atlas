@@ -14,7 +14,21 @@
 - [ ] **Паспорта и ПИНФЛ — на сервере в Узбекистане** до запуска реальных заказов (банку нужен реестр с ПИНФЛ получателя). По ст. 27¹ Закона «О персональных данных» в ред. ЗРУ-1125 обязательно в РУз только биометрия, генетика, абоненты связи; паспорт и ПИНФЛ за рубежом — только при условиях статьи; локальное хранение снимает вопрос.
 - [ ] Остаток лимита и пошлина: калькулятор считает сам; запрос API в Таможенный комитет (обращение 05, `outputs/legal/2026-10-29-zaprosy-elektronno/`) и вопрос Globbing о данных экспресс-деклараций.
 
+## Скорость: brotli, время API, бюджет — открытое (3 ноября 2026, perf/static-br-api-timing)
+- Выкатка: образ собрать из `deploy/vps/Dockerfile` как обычно (precompress идёт внутри `npm run build` при `ATLAS_DEPLOY_TARGET=vps`, `check-vps-build.mjs` проверяет `.br`). После выката проверить `curl -sI -H 'Accept-Encoding: br' https://atlasmarket.uz/_next/static/<файл>.js` → `content-encoding: br`, `cache-control: …immutable`. Caddy менять не нужно.
+- Время `/api/*` — только до возврата ответа и только в памяти процесса: сбрасывается при перезапуске контейнера; потоковые ответы (если появятся) считаются до заголовков. Нужна долговременная статистика — отдельная задача (без записи на каждый запрос, например сброс сводки раз в N минут).
+- Бюджет Lighthouse задан от локальной сборки; на проде (TLS, реальная задержка) цифры будут другими — после выката прогнать `npm run perf:budget -- https://atlasmarket.uz --runs 3` один раз и при необходимости завести отдельные пороги для прода. Главный остаток по скорости — FCP ~4,8 с в мобильной симуляции (85 файлов JS/CSS на главной, CSS 279 КБ без сжатия).
+- Проверка ревьюером 3.11.2026: один прогон Lighthouse по `/catalog` на пустой локальной базе дал CLS 0,722 (повтор — 0,000). Если всплеск повторится с реальным каталогом, бюджет начнёт падать на CLS: разобрать, что сдвигается при холодной загрузке каталога. `npm run dev` с плагином Cloudflare в рабочей папке, где `node_modules` — ссылка на другую папку, падает на `Denied ID …woff2?url` (файл шрифта вне корня проекта; на `main` не сравнивалось, изменения ветки шрифты не трогают); dev с `ATLAS_DEPLOY_TARGET=vps` работает, замер API в нём проверен.
+- `.css` из `_next/static/css/<имя>.<хеш>.css` получают ETag по времени файла (у vinext хеш ищется только после «-»); на кэш не влияет (`immutable`), но 304 после пересборки не будет.
+
 ## Безопасность и данные — 3 ноября 2026 (feat/security-privacy-hygiene, по аудиту советов из рилсов)
+
+## 3.11.2026 — после аварии сервера
+
+- **Funded Lime (его сессия).** Redis `prop-deskos-redis-1` остановлен, в нём 66 ключей примерно на 10 ГБ. Запущенный контейнер был создан до ADR-0066: без `mem_limit` и `maxmemory`. Нужно почистить данные, пересоздать контейнер по `compose.yml` и вернуть `--restart`. У всех контейнеров `prop-deskos-*` нет лимита памяти, сторож напоминает об этом раз в сутки.
+- **Уведомления сторожа и монитора импорта.** Владельцу нужно привязать Telegram к аккаунту оператора или задать `ATLAS_MONITOR_TELEGRAM`. Сейчас адрес не находится, поэтому уведомления не уходят.
+- **Шторка товара.** `GET /api/catalog/<id>` отвечает на проде примерно за 1,4 с: `readCatalog` каждый раз читает документ целиком. Кэш стоит только на пересчёт цен. Стоит кэшировать по ревизии без чтения документа.
+
 - [x] Неиспользуемые `components/ui/*` и их 12 пакетов удалены; `npm audit fix` без `--force` (lockfile без node_modules, `npm ci --dry-run` и `npm ls` проходят).
 - [x] Срабатывания лимитов входа (429) и 5 неверных кодов подряд — в `market_operational_errors` (area `auth`) и в Telegram владельца через монитор импорта (не чаще раза в час).
 - [x] «Скачать мои данные» — `GET /api/account/export` и кнопка в настройках; упоминание в политике (ru).
@@ -485,7 +499,6 @@ Sites154 опубликован: source e96dc890af3ba8a3b658e7e9ef41f2451ee8f73f
 
 # Atlas TODO and known limitations
 
-
 ## Общая механика импорта — 9 октября 2026
 
 Подготовлен релиз поверх опубликованной версии 152: optional точные product/seller/offer/color IDs, native дочерние ссылки, независимые параметры, галереи и полнота группы. Клиент и сервер сохраняют цену конкретного предложения; новые добавления из поддерживаемых магазинов не обходят проверку ручным флагом. Неизвестное наличие и нулевые остатки не допускаются. Админский пакетный импорт автоматически публикует только полные подтверждённые группы и сохраняет неполные в очереди повторной проверки; скрытие останавливает автоматическое управление.
@@ -508,13 +521,11 @@ Sites154 опубликован: source e96dc890af3ba8a3b658e7e9ef41f2451ee8f73f
 
 The reported group had no photos in the version-149 import response. Image extraction now supports thumbnail images and primary group photo fields, and creates exact-child colour galleries. Customer loading retains all eBay galleries when the original link selects one colour. Each chosen cart line rewrites var to its own sourceVariantId while preserving affiliate parameters; stock/price/identity checks remain. adidas men's US footwear offers US/UK/EU display using the official adidas chart, preserving the original seller size/ID and not applying Nike, women's or unrecognized charts. Existing optional schemas and D1 remain unchanged. 742 tests, lint (existing unused Choice warning), TypeScript and Worker build passed. Regression covers gallery colour separation, affiliate URL rewriting and brand/gender size gates. Verify actual colour photographs after publication; a sparse missing-image log records only field keys/types and image hostnames, never credentials or upstream bodies. Native runtime, accounts and orders are unchanged.
 
-
 ## Full eBay group for customer and operator — 8 October 2026
 
 The user requested every in-stock colour/size from a seller group in both customer link ordering and admin catalog import. Official Browse group JSON now has a separate finite 8 MB body budget; OAuth/single-item limits remain unchanged at 32 KB/1 MB. Existing timeouts, exact group identity, 250-variant limit and safe images remain. Unknown-stock, known-unavailable and explicit zero-quantity variants are excluded from selectable eBay groups. Each returned option retains its ID, seller dimensions, price, photo and stock data. An explicit var selects its child by selectedVariantId; customer source-colour filtering exempts exact supported eBay hosts, so sibling colours remain selectable. Other stores retain their colour-bound links. Operator importDraft already preserves the shared group's full variant matrix.
 
 The preceding exact-child fix remains a fail-safe if a group request cannot be read; normal groups are always requested first. The initial 9eb2eaf source/archive was prepared but not saved/deployed; this broader group release replaces it. No migration, pricing formula, secret or real order changes. Tests include >1 MB successful colour/size group, operator draft preservation, customer eBay colour exposure versus Nike/lookalike hosts, unknown/sold-out/zero-quantity exclusion, and an oversized >8 MB fail-safe that never substitutes a parent child. 739 tests pass; complete final lint, TypeScript/build and deployed actual-user-link checks before claiming production success.
-
 
 ## eBay explicit variation / group failure fix — 8 October 2026
 
@@ -522,11 +533,9 @@ User listing 157751149633?var=459304625551 (including affiliate parameters) repr
 
 Regression tests cover an oversized group with an explicit matching child and rejection of a parent with the same oversized group. All 738 tests pass; final lint, TypeScript/build and a fresh deployed check of the actual user URL remain required before claiming fixed. No account/order/D1/environment changes. Deploy with the Sites hosting workflow from this current release checkout and preserve Impact and current features. This preparation snapshot does not itself confirm publication; root handoff records final deployment evidence.
 
-
 ## Impact head verification follow-up — 8 October 2026
 
 The user explicitly requested the partner tracking code in the main homepage head for Impact Add Website verification. RootLayout now emits script#atlas-impact-bootstrap in the server-rendered head with the exact partner script URL and both requested commands. This defines atlasStartImpactTracking; current consent still controls its invocation and external loading, and native shells remain excluded. The original queue-style bootstrap gains only a duplicate-load ID. Existing client bootstrap calls the head initializer when available and retains its earlier fallback. A new VM regression verifies static URL visibility, no load on head evaluation, both commands after start and no duplicate load. All 736 tests pass; final lint (zero errors; one existing unused Choice warning), TypeScript and Worker build passed before this follow-up publishes. Version 147 remains the last confirmed deployed version until the next successful deployment is recorded.
-
 
 ## Import33 / Impact release — 8 October 2026
 
@@ -536,7 +545,6 @@ The user explicitly requested the partner tracking code in the main homepage hea
 - [ ] Publish the prepared release and record the succeeded deployment/version/source; final lint/build required.
 - [ ] Repair the older audit-ui synthetic guest-navigation harness timeout; targeted release flows pass but the broad audit does not.
 - [ ] Obtain reliable approved merchant data for blocked US pages and missing prices; 17 representative public-page merchants plus eBay API are confirmed, not all 33. Unknown stock remains unconfirmed. Test further live product/variant coverage and authenticated hosted operator/customer flows without changing real orders.
-
 
 
 ## Кабинет, вход и скорость — 7 октября 2026
@@ -1459,7 +1467,6 @@ Regional warning made neutral: a first Tashkent request does not imply US was ra
 - Временный DNS-only для корня был проверен и откачен: публичные DNS вернули IP Sites, но Chrome на этом ПК продолжил получать ERR_CONNECTION_RESET; ECH=true принудительно сбрасывался, ECH=false давал 200. Эксперимент короткий, записи ECH и кеш Chrome во время опыта отдельно не проверены, поэтому не доказывает неэффективность схемы после полного истечения кеша. Исходный CNAME Proxied восстановлен; авторитетный DNS вернул адреса Cloudflare, шлюз ответил 415.
 - ECH: на проверенном подключении запрос с профилем Chrome 119 и ECH завершается сбросом TLS, а тот же профиль с `ECH=false` отвечает 200. Chrome 116 и Safari также отвечают 200. Контрольный тест 31 октября с остановленной службой Cloudflared дал те же результаты; служба восстановлена, шлюз ответил 415 на пустой POST. Cloudflare Radar отобразил страницу из своей сети. Зона Cloudflare Free публикует ECH; интерфейс отключения на этом тарифе отсутствует. Требуется проверить доступность с других сетей и согласовать решение, не ослабляя TLS и не меняя DNS без решения владельца. Импортный туннель `gw` не обслуживает главную страницу.
 - Разобрать периодические ошибки обновления курса ЦБ и отдельные 404 старых JS-файлов, видимые в рабочих журналах. Главная и основные страницы с проверенного подключения отвечали 200, проверка с другого источника была недоступна; причина жалоб пока не установлена.
-
 
 ## После переключения на VPS — 31 октября 2026
 - Перенос завершён: боевой Node runtime, пустая база, ключи, DNS/HTTPS и автозапуск настроены; старые демоданные и R2 Sites удалены, доступ Sites закрыт. Экспорт прежних данных больше не требуется по решению владельца.

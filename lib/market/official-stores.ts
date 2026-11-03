@@ -2,6 +2,7 @@ import type { Product } from './domain.ts';
 import type { Locale } from './i18n.ts';
 import { isUzbek } from './i18n.ts';
 import { uzText } from './uz-cyrl.ts';
+import { variantSummaryOf } from './catalog-summary.ts';
 
 /**
  * eBay sellers that are the brand itself, each checked against the store's own contact page (never guessed from a
@@ -15,7 +16,9 @@ export function officialStoreBrand(product: { store?: string } & Pick<Product, '
   let host = product.store ?? '';
   try { if (product.sourceUrl) host = new URL(product.sourceUrl).hostname; } catch { /* the store field stands */ }
   if (!/(^|\.)ebay\.[a-z.]+$/i.test(host.replace(/^www\./, ''))) return undefined;
-  const sellers = new Set([product.sourceSellerId, ...(product.sourceVariants ?? []).map((variant) => variant.sellerId)].filter((value): value is string => Boolean(value)).map((value) => value.toLowerCase()));
+  // A catalog list product brings its options' sellers instead of the options (lib/market/catalog-summary.ts).
+  const optionSellers = variantSummaryOf(product)?.sellers ?? (product.sourceVariants ?? []).map((variant) => variant.sellerId);
+  const sellers = new Set([product.sourceSellerId, ...optionSellers].filter((value): value is string => Boolean(value)).map((value) => value.toLowerCase()));
   if (sellers.size !== 1) return undefined;
   return officialEbaySellers[[...sellers][0]];
 }

@@ -1,0 +1,11 @@
+[Unit]
+Description=Atlas host watchdog: disk, memory, container limits, site health
+After=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+Nice=5
+TimeoutStartSec=900
+ExecStart=/usr/bin/python3 /opt/atlas/watchdog.py
+User=root

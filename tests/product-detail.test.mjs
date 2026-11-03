@@ -82,7 +82,9 @@ test('wiring: the catalog opens the shared product page in place, without asking
   assert.match(source('app/product-detail.tsx'), /<details className="pd-breakdown" open>/);
   const sheet = source('app/product-sheet.tsx');
   // The shown product stays on the sheet while it slides away (2 November 2026).
-  assert.match(sheet, /<ProductOrder key=\{[^}]+\} mode="catalog" product=\{view as MerchantFind\} chosenVariant=\{variant\} inSheet\/>/);
+  // A list card is completed from GET /api/catalog/<id> first (3 November 2026); the page's frame waits meanwhile.
+  assert.match(sheet, /const \{full,failed,retry\}=useFullCatalogProduct\(view as MerchantFind\|null\);/);
+  assert.match(sheet, /\{full\n\s+\? <ProductOrder key=\{[^}]+\} mode="catalog" product=\{full as MerchantFind\} chosenVariant=\{variant\} inSheet\/>\n\s+: <ProductWaiting product=\{view\} failed=\{failed\} retry=\{retry\}/);
   assert.match(sheet, /const view=product\?\?shown;/);
   assert.doesNotMatch(sheet, /Tabs/);
   const card = source('app/catalog-card.tsx');
