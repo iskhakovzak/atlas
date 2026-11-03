@@ -63,13 +63,16 @@ export const serviceOfferingSchema = z.object({
   feeUzs: amount.max(20_000_000).default(0),
   countryPrices: z.record(z.string().min(1).max(80), amount.max(20_000_000)).default({}),
   /**
-   * "value-percent" (since 10 October 2026, parcel insurance): this share of the parcel's goods and delivery (owner,
-   * 10.10.2026: 2.9%), or `valuePercentHigh` (3.9%) once the parcel with its delivery is worth more than `valueThresholdUsd`.
+   * "value-percent" (since 10 October 2026, the safe-arrival guarantee): this share of the parcel's goods and delivery
+   * (owner, 3.11.2026: 3.9% for every parcel, at least `valueMinimumUzs` = 25 000 soum per store parcel). An operator may
+   * still set `valuePercentHigh` once the parcel with its delivery is worth more than `valueThresholdUsd`.
    * Counted into the order total.
    */
   valuePercent: z.number().finite().min(0).max(0.5).optional(),
   valuePercentHigh: z.number().finite().min(0).max(0.5).optional(),
   valueThresholdUsd: z.number().finite().min(0).max(100_000).optional(),
+  /** The least a store parcel pays for a value-percent service, soum; split over its lines by value. Optional for old settings. */
+  valueMinimumUzs: amount.max(20_000_000).optional(),
   enabled: z.boolean().default(false),
   required: z.boolean().default(false),
 });
@@ -89,7 +92,7 @@ const defaultServiceOfferings: ServiceOffering[] = [
   { id: "storage-extension", title: { ru: "Дополнительное хранение", uz: "Qo‘shimcha saqlash", en: "Extended storage" }, description: { ru: "Запросить дополнительные дни хранения; условия подтвердит оператор.", uz: "Qo‘shimcha saqlash kunlarini so‘rash; shartlarni operator tasdiqlaydi.", en: "Request extra storage days; an operator will confirm the terms." }, requestStage: "warehouse", unit: "day", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
   { id: "return-to-store", title: { ru: "Возврат продавцу", uz: "Sotuvchiga qaytarish", en: "Return to merchant" }, description: { ru: "Запрос на возврат зависит от правил магазина, срока и стоимости обратной доставки.", uz: "Qaytarish do‘kon qoidalari, muddat va qayta yetkazish narxiga bog‘liq.", en: "A return depends on the store's policy, deadline and return-shipping cost." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
   { id: "package-disposal", title: { ru: "Утилизация посылки", uz: "Posilkani utilizatsiya qilish", en: "Package disposal" }, description: { ru: "Запрос на утилизацию после подтверждения владельца и условий склада.", uz: "Egasi va ombor shartlari tasdiqlangach utilizatsiya so‘rovi.", en: "A disposal request, subject to owner confirmation and warehouse rules." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
-  { id: "shipping-insurance", title: { ru: "Гарантия сохранности Atlas", uz: "Atlas saqlash kafolati", en: "Atlas safe-arrival guarantee" }, description: { ru: "100 % возмещения при утере или порче. Без гарантии: $15 за кг при утере, $3 за кг при порче. Это не страхование.", uz: "Yo‘qolish yoki shikastlanishda 100 % qoplanadi. Kafolatsiz: yo‘qolsa kg uchun $15, shikastlansa kg uchun $3. Bu sug‘urta emas.", en: "100% compensation for loss or damage. Without the guarantee: $15 per kg for loss, $3 per kg for damage. This is not insurance." }, requestStage: "checkout", unit: "package", pricingMode: "value-percent", feeUzs: 0, countryPrices: {}, valuePercent: 0.029, valuePercentHigh: 0.039, valueThresholdUsd: 200, enabled: true, required: false },
+  { id: "shipping-insurance", title: { ru: "Гарантия сохранности Atlas", uz: "Atlas saqlash kafolati", en: "Atlas safe-arrival guarantee" }, description: { ru: "100 % возмещения при утере или порче. Без гарантии: $15 за кг при утере, $3 за кг при порче. Это не страхование.", uz: "Yo‘qolish yoki shikastlanishda 100 % qoplanadi. Kafolatsiz: yo‘qolsa kg uchun $15, shikastlansa kg uchun $3. Bu sug‘urta emas.", en: "100% compensation for loss or damage. Without the guarantee: $15 per kg for loss, $3 per kg for damage. This is not insurance." }, requestStage: "checkout", unit: "package", pricingMode: "value-percent", feeUzs: 0, countryPrices: {}, valuePercent: 0.039, valueMinimumUzs: 25_000, enabled: true, required: false },
 ];
 export const productSchema = z.object({
   id: z.string(),
@@ -411,6 +414,25 @@ export function validateServiceCatalog(services: ServiceOffering[]) {
   }
   return services;
 }
+/**
+ * What each line of one store parcel pays for a value-percent service, soum: `rate` on its own goods and delivery, rounded
+ * per line; when the parcel's sum is under the service minimum, the minimum is split over the lines by that value instead
+ * (the last line takes the rounding).
+ */
+export function valueServiceAmounts(service: Pick<ServiceOffering, "valueMinimumUzs">, bases: number[], rate: number) {
+  const amounts = bases.map((base) => Math.round(base * rate));
+  const minimum = service.valueMinimumUzs ?? 0;
+  const total = amounts.reduce((sum, value) => sum + value, 0);
+  const value = bases.reduce((sum, base) => sum + base, 0);
+  if (!(rate > 0) || total >= minimum || value <= 0) return amounts;
+  let left = minimum;
+  return bases.map((base, index) => {
+    if (index === bases.length - 1) return left;
+    const share = Math.round(minimum * base / value);
+    left -= share;
+    return share;
+  });
+}
 /** The rate a value-percent service takes for a parcel worth `valueUsd`; 0 for other pricing modes. */
 export function valueServiceRate(service: Pick<ServiceOffering, "pricingMode" | "valuePercent" | "valuePercentHigh" | "valueThresholdUsd">, valueUsd: number) {
   if (service.pricingMode !== "value-percent") return 0;
@@ -421,19 +443,24 @@ export function valueServiceRate(service: Pick<ServiceOffering, "pricingMode" | 
 }
 /** The insurance entry saved before 10 October 2026 was locked off ("Недоступно, пока…"); it becomes the owner's terms. */
 const lockedInsuranceDescription = "Недоступно, пока не подтверждены страховщик, покрытие, исключения и порядок выплат.";
-/** The first insurance rates (2% of the goods, 3% above $200) became 2.9% / 3.9% of goods and delivery (owner, 10.10.2026). */
-const firstInsuranceRates = (service: ServiceOffering) => service.valuePercent === 0.02 && service.valuePercentHigh === 0.03;
+/**
+ * Rates the owner has replaced: the first insurance (2% of the goods, 3% above $200) and the guarantee of 10.10.2026
+ * (2.9% / 3.9% above $200). Both become 3.9% for every parcel with a 25 000 soum minimum (owner, 3.11.2026); rates an
+ * operator set by hand stay.
+ */
+const replacedGuaranteeRates = (service: ServiceOffering) => service.valueMinimumUzs === undefined
+  && ((service.valuePercent === 0.02 && service.valuePercentHigh === 0.03) || (service.valuePercent === 0.029 && service.valuePercentHigh === 0.039 && service.valueThresholdUsd === 200));
 /** Selling insurance needs an insurer's licence: since 13.10.2026 the service is «Гарантия сохранности Atlas», and a saved "insurance" wording is replaced. */
 const insuranceWording = /страх|sug.?urta|insur/i;
 const notInsurance = /не страхование|sug‘urta emas|not insurance/i;
 const insuranceWorded = (service: ServiceOffering) => [service.title.ru, service.title.uz, service.title.en, service.description.ru, service.description.uz, service.description.en].some((text) => insuranceWording.test(text ?? "") && !notInsurance.test(text ?? ""));
 function upgradeServiceCatalog(services: ServiceOffering[]) {
   const insurance = defaultServiceOfferings.find((service) => service.id === "shipping-insurance")!;
-  if (!services.some((service) => service.id === insurance.id && (service.description.ru === lockedInsuranceDescription || firstInsuranceRates(service) || insuranceWorded(service)))) return services;
+  if (!services.some((service) => service.id === insurance.id && (service.description.ru === lockedInsuranceDescription || replacedGuaranteeRates(service) || insuranceWorded(service)))) return services;
   return services.map((service) => {
     if (service.id !== insurance.id) return service;
     if (service.description.ru === lockedInsuranceDescription) return insurance;
-    const rates = firstInsuranceRates(service) ? { valuePercent: insurance.valuePercent, valuePercentHigh: insurance.valuePercentHigh } : {};
+    const rates = replacedGuaranteeRates(service) ? { valuePercent: insurance.valuePercent, valuePercentHigh: undefined, valueThresholdUsd: undefined, valueMinimumUzs: insurance.valueMinimumUzs } : {};
     const wording = insuranceWorded(service) ? { title: insurance.title, description: insurance.description } : {};
     return { ...service, ...rates, ...wording };
   });
@@ -1204,7 +1231,8 @@ type ValueLine = Pick<CartItem, "product" | "quantity"> & { quote: Pick<Quote, "
 export const parcelValueUsd = (lines: ValueLine[], fx = tariff.fx) =>
   Math.round(lines.reduce((sum, line) => sum + line.product.usd * line.quantity + insuredDeliveryOf(line.quote) / (line.quote.fx ?? fx), 0) * 100) / 100;
 /**
- * Each line's value-percent fees (owner, 10.10.2026: insurance 2.9% of the parcel's goods and delivery, 3.9% above $200).
+ * Each line's value-percent fees (owner, 3.11.2026: the guarantee is 3.9% of the parcel's goods and delivery, at least
+ * 25 000 soum per parcel; valueServiceAmounts).
  * A store parcel takes the service when any of its lines chose it; the rate follows the whole parcel's value and each line
  * pays that rate on its own goods and delivery. Lines left for later make their own parcel, as in delivery (repriceCart).
  */
@@ -1222,10 +1250,11 @@ export function valueServiceFees<T extends Pick<CartItem, "id" | "product" | "qu
     for (const service of services) {
       if (!lines.some((line) => (line.requestedServiceIds ?? []).includes(service.id))) continue;
       const rate = valueServiceRate(service, value);
-      for (const line of lines) {
+      const amounts = valueServiceAmounts(service, lines.map((line) => line.quote.merchandise + insuredDeliveryOf(line.quote)), rate);
+      lines.forEach((line, index) => {
         const delivery = insuredDeliveryOf(line.quote);
-        fees.set(line.id, [...(fees.get(line.id) ?? []), { id: service.id, amount: Math.round((line.quote.merchandise + delivery) * rate), rate, delivery }]);
-      }
+        fees.set(line.id, [...(fees.get(line.id) ?? []), { id: service.id, amount: amounts[index], rate, delivery }]);
+      });
     }
   }
   return fees;

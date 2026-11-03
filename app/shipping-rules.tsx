@@ -6,7 +6,7 @@ import {useMarket} from "@/lib/market/store";
 import {pickLocale} from "@/lib/market/uz-cyrl";
 import {insuranceServiceId} from "@/lib/market/domain";
 import {courierAllowanceUsd} from "@/lib/market/customs";
-import {formatPercent,formatUsd} from "@/lib/market/format";
+import {formatPercent,formatSum,formatUsd} from "@/lib/market/format";
 
 // Company rules shown on /customs: the safe-arrival guarantee and compensation, items that cannot be shipped, and the
 // Uzbekistan limits. Informational only: the guarantee itself is chosen per parcel in the cart (a value-percent
@@ -19,6 +19,7 @@ const copy={
   without:{title:"Без гарантии",items:["Утеря — $15 за кг оплачиваемого веса, не больше стоимости товара","Порча — $3 за кг"],price:"Без доплаты"},
   with:{title:"С гарантией сохранности Atlas",badge:"Рекомендуем для дорогих вещей",items:["Утеря и порча — до 100% стоимости товара и доставки","Обязательство Atlas, а не страхование"],price:(rate:string,high:string)=>`${rate} от посылки с доставкой${high?"; "+high:""}`},
   high:(usd:string,rate:string)=>`дороже ${usd} — ${rate}`,
+  min:(sum:string)=>`не меньше ${sum} за посылку`,
   recalc:"Если цена товара после выкупа изменится, плата за гарантию пересчитается по той же ставке от разницы.",
   claims:"Об утере сообщите в «Моих заказах», когда посылка отправлена в Ташкент; о порче — в течение 14 дней после получения. Возмещение зачисляем на баланс Atlas.",
   insNote:"По желанию — отмечается в корзине у каждой посылки.",insTerms:"Условия — ",insTermsLink:"оферта, раздел 6.1",
@@ -48,6 +49,7 @@ const copy={
   without:{title:"Kafolatsiz",items:["Yo‘qolsa — to‘lanadigan vaznning har kg uchun $15, tovar narxidan oshmaydi","Shikastlansa — har kg uchun $3"],price:"Qo‘shimcha to‘lovsiz"},
   with:{title:"Atlas saqlash kafolati bilan",badge:"Qimmat buyumlar uchun tavsiya etamiz",items:["Yo‘qolish va shikast — tovar va yetkazish qiymatining 100% gacha","Atlas majburiyati, sug‘urta emas"],price:(rate:string,high:string)=>`Yetkazish bilan posilka qiymatining ${rate}${high?"; "+high:""}`},
   high:(usd:string,rate:string)=>`${usd} dan qimmat bo‘lsa — ${rate}`,
+  min:(sum:string)=>`posilka uchun kamida ${sum}`,
   recalc:"Xariddan keyin tovar narxi o‘zgarsa, kafolat narxi farqdan o‘sha stavka bo‘yicha qayta hisoblanadi.",
   claims:"Yo‘qolgani haqida posilka Toshkentga jo‘natilgach «Buyurtmalarim»da xabar bering; shikast haqida — olganingizdan keyin 14 kun ichida. Qoplash Atlas balansiga o‘tkaziladi.",
   insNote:"Ixtiyoriy — savatda har bir posilka uchun belgilanadi.",insTerms:"Shartlar — ",insTermsLink:"oferta, 6.1-bo‘lim",
@@ -77,6 +79,7 @@ const copy={
   without:{title:"Without the guarantee",items:["Loss — $15 per billable kg, up to the item price","Damage — $3 per kg"],price:"No extra charge"},
   with:{title:"With the Atlas safe-arrival guarantee",badge:"Recommended for valuable items",items:["Loss and damage — up to 100% of goods and delivery","Atlas’s own obligation, not insurance"],price:(rate:string,high:string)=>`${rate} of the parcel with delivery${high?"; "+high:""}`},
   high:(usd:string,rate:string)=>`over ${usd} — ${rate}`,
+  min:(sum:string)=>`at least ${sum} per parcel`,
   recalc:"If the item price changes after purchase, the guarantee fee is recalculated on the difference at the same rate.",
   claims:"Report a loss in My orders once the parcel has left for Tashkent, and damage within 14 days of receipt. Compensation goes to your Atlas balance.",
   insNote:"Optional — tick it per parcel in the cart.",insTerms:"Terms: ",insTermsLink:"public offer, section 6.1",
@@ -106,9 +109,9 @@ export function ShippingRules(){
  const {state,pricing}=useMarket();
  const locale=state.communication.language;
  const t=pickLocale(copy,locale);
- // The guarantee as the cart sells it: its rate, and the higher rate above the threshold when the tariff sets one.
+ // The guarantee as the cart sells it: its rate, its minimum per parcel and a higher rate above a threshold when the tariff sets them.
  const g=pricing.serviceCatalog.find(service=>service.id===insuranceServiceId&&service.enabled);
- const high=g&&g.valuePercentHigh!==undefined&&g.valueThresholdUsd!==undefined&&g.valuePercentHigh!==g.valuePercent?t.high(formatUsd(g.valueThresholdUsd,locale),formatPercent(g.valuePercentHigh,locale)):"";
+ const high=g?[g.valueMinimumUzs?t.min(formatSum(g.valueMinimumUzs,locale)):"",g.valuePercentHigh!==undefined&&g.valueThresholdUsd!==undefined&&g.valuePercentHigh!==g.valuePercent?t.high(formatUsd(g.valueThresholdUsd,locale),formatPercent(g.valuePercentHigh,locale)):""].filter(Boolean).join("; "):"";
  const allowance=formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale);
  return <section className="surface customs-text" id="shipping-rules" aria-labelledby="shipping-rules-title">
   <h2 id="shipping-rules-title">{t.title}</h2>

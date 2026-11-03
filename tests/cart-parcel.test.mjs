@@ -41,13 +41,20 @@ test('parcel room never changes the billed weight when it is used up', () => {
 const guarantee = tariff.serviceCatalog.find((service) => service.id === 'shipping-insurance');
 const quoted = (usd, merchandise, shipping, extra = {}) => ({ quantity: 1, product: { usd }, quote: { merchandise, shipping, deliveryMargin: 0, sourceShipping: 0, weight: 1, ...extra } });
 
-test('guarantee amount: the parcel rate on each line’s goods and delivery, rounded per line', () => {
+test('guarantee amount: 3.9% of each line’s goods and delivery, rounded per line, at least the parcel minimum', () => {
   const fx = 12_000;
-  // $100 of goods + 600 000 soum delivery = $150: under the $200 threshold, 2.9%.
-  assert.equal(guaranteeAmount(guarantee, [quoted(100, 1_200_000, 600_000)], fx), Math.round(1_800_000 * 0.029));
-  // Two lines worth $250 together: the higher 3.9% on each.
+  // $100 of goods + 600 000 soum delivery: 3.9%, over the 25 000 soum minimum.
+  assert.equal(guaranteeAmount(guarantee, [quoted(100, 1_200_000, 600_000)], fx), Math.round(1_800_000 * 0.039));
+  // Two lines: the same rate on each.
   const lines = [quoted(100, 1_200_000, 300_000), quoted(100, 1_200_000, 300_000)];
   assert.equal(guaranteeAmount(guarantee, lines, fx), 2 * Math.round(1_500_000 * 0.039));
+  // A cheap parcel: 3.9% of 160 000 soum is 6 240, so it pays the minimum.
+  assert.equal(guaranteeAmount(guarantee, [quoted(5, 60_000, 100_000)], fx), 25_000);
+  assert.equal(guaranteeAmount(guarantee, [quoted(5, 60_000, 100_000), quoted(5, 60_000, 50_000)], fx), 25_000);
+  // A tariff with a higher rate above a threshold still applies it.
+  const tiered = { ...guarantee, valuePercent: 0.029, valuePercentHigh: 0.039, valueThresholdUsd: 200, valueMinimumUzs: undefined };
+  assert.equal(guaranteeAmount(tiered, [quoted(100, 1_200_000, 600_000)], fx), Math.round(1_800_000 * 0.029));
+  assert.equal(guaranteeAmount(tiered, lines, fx), 2 * Math.round(1_500_000 * 0.039));
   // Not a value-percent service: nothing.
   assert.equal(guaranteeAmount({ pricingMode: 'operator-quote' }, lines, fx), 0);
 });

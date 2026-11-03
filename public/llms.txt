@@ -12,7 +12,7 @@ The figures below are shown on the home page, /delivery, /customs and /stores. T
 - Delivery from the Atlas warehouse abroad: express $15.98 per kg (5–9 business days from the US, 7–9 from the UK, China, Germany, Italy and Spain), standard $13.98 per kg (9–14 business days). Store-to-warehouse shipping and customs add time.
 - Weight: the item with its box plus 0.3 kg of packaging once per parcel from one store; at least 1 kg per parcel. If the warehouse finds the parcel lighter, the difference goes back to the Atlas balance; a heavier parcel is charged only with the customer's consent.
 - Customs (personal courier parcels): duty-free up to $200 per recipient per calendar month; above that a single customs payment on the excess only (the calculator uses 20%, at least $2 per kg; see /customs for the dated lex.uz sources).
-- Optional "Atlas pays customs": 4.98% of the cart. Optional Atlas safe-arrival guarantee (not insurance): 2.9% of the parcel with delivery, 3.9% above $200.
+- Optional "Atlas pays customs": 4.98% of the cart. Optional Atlas safe-arrival guarantee (not insurance): 3.9% of the parcel with delivery, at least 25,000 soum per parcel.
 - The price is rechecked with the store when an item is added to the cart and again before checkout; the exchange rate is fixed at payment.
 
 ## What Atlas does

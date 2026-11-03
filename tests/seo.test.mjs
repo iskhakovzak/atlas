@@ -176,7 +176,7 @@ test('llms.txt key facts match the tariff, customs and store constants', () => {
   const llms = source('public/llms.txt');
   const guarantee = tariff.serviceCatalog.find((service) => service.id === 'shipping-insurance');
   const percent = (share) => `${+(share * 100).toFixed(2)}%`;
-  for (const fact of [`$${deliveryPerKgUsd} per kg`, `$${standardDeliveryPerKgUsd} per kg`, `${percent(atlasServiceFee)} fee`, `${percent(customsHelpShare)} of the cart`, `${percent(guarantee.valuePercent)} of the parcel`, `${percent(guarantee.valuePercentHigh)} above $${guarantee.valueThresholdUsd}`, `up to $${courierAllowanceUsd} per recipient`, `${packagingKg} kg of packaging`, `${storeBrands.length} supported stores`, '?lang=oz', 'delivering to Tashkent'])
+  for (const fact of [`$${deliveryPerKgUsd} per kg`, `$${standardDeliveryPerKgUsd} per kg`, `${percent(atlasServiceFee)} fee`, `${percent(customsHelpShare)} of the cart`, `${percent(guarantee.valuePercent)} of the parcel`, `at least ${guarantee.valueMinimumUzs.toLocaleString('en-US')} soum per parcel`, `up to $${courierAllowanceUsd} per recipient`, `${packagingKg} kg of packaging`, `${storeBrands.length} supported stores`, '?lang=oz', 'delivering to Tashkent'])
     assert.ok(llms.includes(fact), fact);
   assert.doesNotMatch(llms, /separate quote lines/, 'the bill shows one "Atlas service" line since PR #48');
 });

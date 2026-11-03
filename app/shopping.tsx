@@ -490,10 +490,13 @@ export function CartView() {
       .finally(() => { if (serviceDraftsRef.current[parcelKey] === next) { const rest = { ...serviceDraftsRef.current }; delete rest[parcelKey]; setDrafts(rest); } });
   }
 
-  /** "over $200: 3,9%" when a value-percent service takes a higher rate above its threshold. */
-  const highRate = (service: (typeof checkoutServices)[number]) => service.valuePercentHigh !== undefined && service.valueThresholdUsd !== undefined && service.valuePercentHigh !== service.valuePercent
-    ? c.services.highRule(formatUsd(service.valueThresholdUsd, locale), formatPercent(service.valuePercentHigh, locale))
-    : undefined;
+  /** "at least 25 000 soum per parcel" and "over $200: 4,9%" when a value-percent service sets a minimum or a higher rate. */
+  const highRate = (service: (typeof checkoutServices)[number]) => [
+    service.valueMinimumUzs ? c.services.minRule(formatSum(service.valueMinimumUzs, locale)) : undefined,
+    service.valuePercentHigh !== undefined && service.valueThresholdUsd !== undefined && service.valuePercentHigh !== service.valuePercent
+      ? c.services.highRule(formatUsd(service.valueThresholdUsd, locale), formatPercent(service.valuePercentHigh, locale))
+      : undefined,
+  ].filter(Boolean).join("; ") || undefined;
 
   /**
    * The Atlas safe-arrival guarantee (a value-percent service) as its own row of the parcel, not folded with the warehouse
