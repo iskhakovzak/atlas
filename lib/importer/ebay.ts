@@ -89,14 +89,19 @@ export function ebayEndUserContext(config: EbayBrowseConfig) {
 export class EbayListingUnavailableError extends Error {
   readonly stage: EbayImportStage;
   readonly status?: number;
+  readonly listingSoldOut: boolean;
 
-  constructor(message = 'Объявление eBay больше недоступно. Проверьте ссылку или выберите другое объявление.', stage: EbayImportStage = 'item_data', status?: number) {
+  constructor(message = 'Объявление eBay больше недоступно. Проверьте ссылку или выберите другое объявление.', stage: EbayImportStage = 'item_data', status?: number, listingSoldOut = false) {
     super(message);
     this.name = 'EbayListingUnavailableError';
     this.stage = stage;
     this.status = status;
+    this.listingSoldOut = listingSoldOut;
   }
 }
+
+export const isConfirmedEbaySoldOut = (error: unknown) =>
+  error instanceof EbayListingUnavailableError && error.status === 200 && error.listingSoldOut;
 
 export class EbayManualReviewError extends Error {
   readonly stage: EbayImportStage;
@@ -409,7 +414,7 @@ function availability(item: EbayItem) {
   const estimates = Array.isArray(item.estimatedAvailabilities) ? item.estimatedAvailabilities : [];
   const statuses = estimates.map(value => clean(record(value)?.estimatedAvailabilityStatus, 40).toUpperCase()).filter(Boolean);
   if (statuses.some(value => value === 'IN_STOCK' || value === 'LIMITED_STOCK')) return {known: true, available: true};
-  if (statuses.length && statuses.every(value => value === 'OUT_OF_STOCK')) return {known: true, available: false};
+  if (statuses.length && statuses.length === estimates.length && statuses.every(value => value === 'OUT_OF_STOCK')) return {known: true, available: false};
   return {known: false, available: true};
 }
 
@@ -620,7 +625,10 @@ function mapSingleItem(item: EbayItem, listingId: string, url: URL, shipToCountr
   const title = clean(item.title, 140);
   const images = itemImages(item, url.href);
   const status = availability(item);
-  if (status.known && !status.available) throw new EbayListingUnavailableError(undefined, 'item_data', 200);
+  if (status.known && !status.available) {
+    const standalone = itemId === `v1|${listingId}|0` && !item.primaryItemGroup;
+    throw new EbayListingUnavailableError(undefined, 'item_data', 200, standalone);
+  }
   if (!title || !price || !price.currency) throw new EbayManualReviewError('eBay не вернул полные данные объявления.', 'item_data', 200);
   const brand = clean(item.brand, 80) || undefined;
   const aspects = listingAspects([item]);
@@ -742,12 +750,13 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
     }
     throw error;
   }
-  const items = Array.isArray(group.items) ? group.items.map(record).filter((value): value is EbayItem => Boolean(value)) : [];
+  const groupItems = Array.isArray(group.items) ? group.items : [];
+  const items = groupItems.map(record).filter((value): value is EbayItem => Boolean(value));
   const exactItems = items.filter(value => variationId(value, listingId) !== undefined);
   if (exactItems.length && exactItems.every(value => {
     const state = availability(value);
     return state.known && !state.available;
-  })) throw new EbayListingUnavailableError(undefined, 'variation_group', 200);
+  })) throw new EbayListingUnavailableError(undefined, 'variation_group', 200, exactItems.length === groupItems.length);
   const parentPrice = priceFor(item);
   const groupPrice = exactItems.map(priceFor).find((value): value is NonNullable<typeof value> => Boolean(value));
   const currency = groupPrice?.currency ?? parentPrice?.currency;

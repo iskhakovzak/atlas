@@ -5,6 +5,7 @@ import {tariff,sourceVariantSchema,sourceColorwayGallerySchema,type Pricing,type
 import {dedupeSafeImages,inferProductCategory,safeImage,type Extracted} from '../importer/extract.ts';
 import {isManualEntryStoreHost,isSupportedStoreHost} from '../importer/stores.ts';
 import {isOrderableVariant} from '../importer/variant-normalization.ts';
+import {isConfirmedEbaySoldOut} from '../importer/ebay.ts';
 import {estimateBoxedWeight} from './weight.ts';
 import {topDealIds,topDealPriceFresh} from './top-deal.ts';
 import {catalogFacetsSchema,catalogFacetsVersion,categoryFromFacets,deriveCatalogFacets,weightForFacets,type CatalogFacets} from './catalog-facets.ts';
@@ -410,18 +411,25 @@ export const catalogLiveRefreshGap=30*60*1000;
  * Watched cards of the page a customer just loaded live, when their last confirmed check is older than the gap:
  * the customer's fresh answer becomes the card's (owner, 30 October 2026: the catalog said $43, the store $27).
  */
-export function catalogEntriesForLiveSource(document:CatalogDocument,sourceUrl:string,now=Date.now()){
+export function catalogEntriesForLiveSource(document:CatalogDocument,sourceUrl:string,now=Date.now(),confirmedSoldOut=false){
   let canonical:string;
   try{canonical=canonicalCatalogUrl(sourceUrl)}catch{return []}
   return document.entries.filter(entry=>{
     if(!isWatchedCatalogEntry(entry)||isManualCatalogSource(entry.draft.sourceUrl))return false;
     try{if(canonicalCatalogUrl(entry.draft.sourceUrl)!==canonical)return false}catch{return false}
-    return now-(entry.refresh?.lastSuccessAt??entry.draft.checkedAt)>=catalogLiveRefreshGap;
+    const lastCheck=entry.refresh?.lastSuccessAt??entry.draft.checkedAt;
+    return confirmedSoldOut?Boolean(entry.published)&&lastCheck<=now:now-lastCheck>=catalogLiveRefreshGap;
   });
 }
 
 function resolveAvailabilityReports(document:CatalogDocument,id:string,now:number){
   document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);
+}
+
+function hideSoldOutCatalogEntry(document:CatalogDocument,entry:CatalogEntry,now:number){
+  if(entry.published){delete entry.published;delete entry.publishedAt;entry.autoHiddenAt=now;entry.autoHideReason='source-sold-out'}
+  else if(!isWatchedCatalogEntry(entry)){delete entry.autoHiddenAt;delete entry.autoHideReason}
+  resolveAvailabilityReports(document,entry.id,now);
 }
 
 function refreshError(value:unknown){
@@ -467,9 +475,7 @@ export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,f
   if(!availableVariantCount){
     entry.draft=candidate;
     entry.refresh={...successBase,status:'sold-out'};
-    if(entry.published){delete entry.published;delete entry.publishedAt;entry.autoHiddenAt=now;entry.autoHideReason='source-sold-out'}
-    else if(!isWatchedCatalogEntry(entry)){delete entry.autoHiddenAt;delete entry.autoHideReason}
-    resolveAvailabilityReports(next,id,now);
+    hideSoldOutCatalogEntry(next,entry,now);
     next.revision++;
     return {document:catalogDocumentSchema.parse(next),outcome:'sold-out'};
   }
@@ -490,13 +496,21 @@ export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,f
   return {document:catalogDocumentSchema.parse(next),outcome:'available'};
 }
 
-/** A fetch failure is never evidence that a product has sold out. */
+/** Only an explicit result covering the whole listing can turn an unsuccessful import into a stock observation. */
 export function markCatalogRefreshFailed(current:CatalogDocument,id:string,error:unknown,now=Date.now()):{document:CatalogDocument;outcome:ScheduledRefreshOutcome}{
   const next=structuredClone(current),entry=next.entries.find(item=>item.id===id);
   if(!entry)return {document:catalogDocumentSchema.parse(next),outcome:'skipped'};
+  const lastError=refreshError(error);
+  if(isConfirmedEbaySoldOut(error)){
+    entry.draft.variants=entry.draft.variants.map(variant=>({...variant,available:false,availabilityKnown:true,stockQuantity:undefined,stockMoreThan:undefined}));
+    entry.draft.lastCheckError=lastError;
+    entry.refresh={...entry.refresh,status:'sold-out',lastError,lastAttemptAt:now,lastSuccessAt:now,nextCheckAt:now+catalogRefreshInterval,availableVariantCount:0,consecutiveFailures:0};
+    hideSoldOutCatalogEntry(next,entry,now);
+    next.revision++;
+    return {document:catalogDocumentSchema.parse(next),outcome:'sold-out'};
+  }
   const consecutiveFailures=Math.min(100,(entry.refresh?.consecutiveFailures??0)+1);
   const retry=Math.min(catalogRefreshInterval,catalogRefreshRetryBase*2**Math.min(5,consecutiveFailures-1));
-  const lastError=refreshError(error);
   entry.refresh={...entry.refresh,lastAttemptAt:now,nextCheckAt:now+retry,status:'failed',lastError,consecutiveFailures};
   entry.draft.lastCheckError=lastError;
   next.revision++;

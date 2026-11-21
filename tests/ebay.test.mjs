@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {clearEbayTokenCacheForTests, EbayBrowseApiError, EbayManualReviewError, fetchEbayProduct} from '../lib/importer/ebay.ts';
+import {clearEbayTokenCacheForTests, EbayBrowseApiError, EbayListingUnavailableError, EbayManualReviewError, fetchEbayProduct, isConfirmedEbaySoldOut} from '../lib/importer/ebay.ts';
 import {fetchProduct, ManualEntryFallbackError} from '../lib/importer/fetch.ts';
 import {variantsForSourceColor} from '../lib/importer/link-selection.ts';
 import {importDraft} from '../lib/market/catalog-editor.ts';
@@ -230,7 +230,7 @@ test('parent recovery rejects unrelated group data and keeps a sold-out group un
       if (path.endsWith('/get_item_by_legacy_id')) return json({errors:[{errorId:11001}]},400);
       return json({items:[item]});
     };
-    await assert.rejects(fetchEbayProduct(`https://www.ebay.com/itm/${listingId}`, credentials, fetcher), unrelated ? /запрошенного объявления/ : /больше недоступно/);
+    await assert.rejects(fetchEbayProduct(`https://www.ebay.com/itm/${listingId}`, credentials, fetcher), unrelated ? /запрошенного объявления/ : isConfirmedEbaySoldOut);
   }
 });
 
@@ -305,5 +305,17 @@ test('an ended or unavailable eBay listing is not converted into the manual orde
     buyingOptions: ['FIXED_PRICE'],
     estimatedAvailabilities: [{estimatedAvailabilityStatus: 'OUT_OF_STOCK'}],
   }});
-  await assert.rejects(fetchProduct(`https://www.ebay.com/itm/${listingId}`, Object.assign(fetcher, {ebayBrowseConfig: () => credentials})), /больше недоступно/i);
+  await assert.rejects(fetchProduct(`https://www.ebay.com/itm/${listingId}`, Object.assign(fetcher, {ebayBrowseConfig: () => credentials})), isConfirmedEbaySoldOut);
+});
+
+test('an unavailable eBay child or partial group cannot hide the whole listing', async () => {
+  clearEbayTokenCacheForTests();
+  const child = ebayItem({variationId:'9002',size:'9',amount:28,availability:'OUT_OF_STOCK'});
+  const differentListing = {...child,itemId:'v1|999999999999|9003'};
+  const source = `https://www.ebay.com/itm/${listingId}`;
+  const detailOnly = createEbayApiMock({initialItem:child});
+  const partialGroup = createEbayApiMock({items:[child,differentListing]});
+  const rejectsStockChange = error => error instanceof EbayListingUnavailableError && !isConfirmedEbaySoldOut(error);
+  await assert.rejects(fetchEbayProduct(source+'?var=9002',credentials,detailOnly.fetcher),rejectsStockChange);
+  await assert.rejects(fetchEbayProduct(source,credentials,partialGroup.fetcher),rejectsStockChange);
 });

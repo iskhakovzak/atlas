@@ -1,0 +1,11 @@
+[Unit]
+Description=Schedule bounded Atlas catalog stock checks
+
+[Timer]
+OnBootSec=90s
+OnUnitInactiveSec=2min
+AccuracySec=10s
+Unit=atlas-catalog-stock.service
+
+[Install]
+WantedBy=timers.target
