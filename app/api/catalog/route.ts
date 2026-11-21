@@ -2,18 +2,18 @@ import {publicBatchJob} from '@/lib/market/catalog-batch';
 import {publicSaleJob} from '@/lib/market/catalog-sale';
 import {importFailureText,invalidLinkText,readForImport,handOverManual,manualNote,storePageUrl,readStoreHealth,mapMerchantConcurrent,processCatalogBatch} from '@/lib/market/catalog-import-server';
 import {readBatch,startBatch,controlBatch,claimBatch,finishBatch} from '@/lib/market/catalog-batch-server';
-import {withoutAuthor} from '@/lib/market/pricing-equal';
 import {z} from 'zod';
 import {identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing,rateLimit} from '@/lib/market/server';
 import {catalogSaleRunner,validatedSaleSource} from '@/lib/market/catalog-sale-server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
-import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,publicCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize,markCatalogRefreshFailed} from '@/lib/market/catalog-editor';
+import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize,markCatalogRefreshFailed} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError} from '@/lib/importer/fetch';
 import {isConfirmedEbaySoldOut} from '@/lib/importer/ebay';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
 import {catalogMerchantRequest as merchantRequest} from '@/lib/importer/worker-fetch';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
-import {publicCatalogList,publicCatalogCache} from '@/lib/market/catalog-list';
+import {publicCatalogCache} from '@/lib/market/catalog-list';
+import {loadPublicCatalogList} from '@/lib/market/public-catalog-server';
 
 const ids=z.array(z.string().min(1).max(100)).min(1).max(100);
 /** Links per pasted batch; every link in it is read from its store at the same time. */
@@ -36,14 +36,21 @@ const commandSchema=z.discriminatedUnion('kind',[
 ]);
 export async function GET(request:Request){try{
   const admin=new URL(request.url).searchParams.get('admin')==='1';
-  let saleJob,batchJob;
-  if(admin){const user=await identity();await requirePermission(user,'catalog.manage');[saleJob,batchJob]=await Promise.all([catalogSaleRunner(user).read(user.userId).then(publicSaleJob),readBatch(user.userId).then(row=>publicBatchJob(row?.job))]);}
-  const [{document},currentPricing]=await Promise.all([readCatalog({backfill:!admin}),pricing()]);
-  if(admin)return json({document,saleJob,batchJob,catalogFormat:'chunks-v2',storeHealth:await readStoreHealth()});
+  if(admin){
+    const user=await identity();
+    await requirePermission(user,'catalog.manage');
+    const [{document},saleJob,batchJob,storeHealth]=await Promise.all([
+      readCatalog(),
+      catalogSaleRunner(user).read(user.userId).then(publicSaleJob),
+      readBatch(user.userId).then(row=>publicBatchJob(row?.job)),
+      readStoreHealth(),
+    ]);
+    return json({document,saleJob,batchJob,catalogFormat:'chunks-v2',storeHealth});
+  }
   // The public list is the same for every visitor (no session is read, nothing personal in it) and leaves the options,
   // galleries and descriptions to GET /api/catalog/<id> (lib/market/catalog-list.ts): browsers keep it a minute and
   // may show it for ten more while they ask again (3 November 2026).
-  return Response.json({...publicCatalogList(publicCatalog(document,currentPricing)),pricing:withoutAuthor(currentPricing)},{headers:{'Cache-Control':publicCatalogCache}});
+  return Response.json(await loadPublicCatalogList(),{headers:{'Cache-Control':publicCatalogCache}});
 }catch(error){return failure(error,request)}}
 export async function POST(request:Request){try{
   sameOrigin(request);const user=await identity();await requirePermission(user,'catalog.manage');

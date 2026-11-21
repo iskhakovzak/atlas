@@ -529,7 +529,7 @@ export function reportCatalogAvailability(current:CatalogDocument,input:{product
   next.revision++;
   return catalogDocumentSchema.parse(next);
 }
-export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.now()){
+export function publicCatalog(document:Readonly<CatalogDocument>,pricing:Pricing,now=Date.now()){
   const products:MerchantFind[]=document.entries.flatMap(entry=>{
     const d=entry.published;if(!d)return [];
     const issues=catalogIssues(d,now,pricing.rates);

@@ -19,6 +19,7 @@ const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boole
 
 // One isolate's in-flight imports and recent walls (lib/importer/import-flight.ts); D1 keeps the positive cache.
 const flights = createImportFlights();
+let nextCacheCleanupAt = 0;
 // Rate-limit keys carry their minute, so expired rows never count: they are cleared on about one request in 50
 // (by chance, not by a per-isolate counter: a short-lived isolate may never reach its 50th request).
 
@@ -96,15 +97,14 @@ export async function POST(request: Request) {
         return failed(wall);
       }
       if ((!cacheOnly && fresh) || isAmazonUsUrl(new URL(sourceUrl))) return undefined;
-      const cached = await db.prepare('SELECT payload,expires_at,updated_at FROM market_import_cache WHERE url=? AND expires_at>?')
-        .bind(sourceUrl, Date.now()).first<{ payload: string; expires_at: number; updated_at: number }>();
-      if (!cached) return undefined;
       try {
-        return json({ ...JSON.parse(cached.payload), fetchedAt: cached.updated_at, expiresAt: cached.expires_at, cached: true });
+        const cached = await db.prepare('SELECT payload,expires_at,updated_at FROM market_import_cache WHERE url=? AND expires_at>?')
+          .bind(sourceUrl, Date.now()).first<{ payload: string; expires_at: number; updated_at: number }>();
+        if (cached) return json({ ...JSON.parse(cached.payload), fetchedAt: cached.updated_at, expiresAt: cached.expires_at, cached: true });
       } catch {
-        // Ignore malformed cache entries and fetch a fresh merchant response.
-        return undefined;
+        // A cache fault is a miss. A live import still has to pass its rate limits before contacting the store.
       }
+      return undefined;
     };
     // A short link is not a page yet: it is expanded (a request) only after the rate limit is charged.
     const short = isShortLink(new URL(sourceUrl));
@@ -190,12 +190,21 @@ export async function POST(request: Request) {
     // Only the request that asked the store writes the cache; a follower got the same answer.
     if (leader && !liveLocationRequired) {
       const cacheStarted = performance.now();
-      // The write and the clean-up of expired pages in one round trip.
-      await db.batch([
-        db.prepare('INSERT INTO market_import_cache (url,payload,expires_at,updated_at) VALUES (?,?,?,?) ON CONFLICT(url) DO UPDATE SET payload=excluded.payload,expires_at=excluded.expires_at,updated_at=excluded.updated_at')
-          .bind(url, JSON.stringify(data), expiresAt, fetchedAt),
-        db.prepare('DELETE FROM market_import_cache WHERE expires_at < ?').bind(fetchedAt),
-      ]);
+      try {
+        // Save before replying so an immediate cart add can reuse the verified snapshot.
+        await db.prepare('INSERT INTO market_import_cache (url,payload,expires_at,updated_at) VALUES (?,?,?,?) ON CONFLICT(url) DO UPDATE SET payload=excluded.payload,expires_at=excluded.expires_at,updated_at=excluded.updated_at WHERE excluded.updated_at>=market_import_cache.updated_at')
+          .bind(url, JSON.stringify(data), expiresAt, fetchedAt).run();
+        if (fetchedAt >= nextCacheCleanupAt) {
+          nextCacheCleanupAt = fetchedAt + 60_000;
+          // Cleanup is advisory: reads already exclude expired rows. Yield before running it on the VPS SQLite adapter.
+          const cleanup = new Promise<void>(resolve => setTimeout(resolve, 0)).then(() =>
+            db.prepare('DELETE FROM market_import_cache WHERE url IN (SELECT url FROM market_import_cache WHERE expires_at < ? ORDER BY expires_at LIMIT 500)')
+              .bind(fetchedAt).run());
+          deferBackground(cleanup, 'Import cache expiry cleanup failed');
+        }
+      } catch (error) {
+        console.error('Import cache write failed', error instanceof Error ? error.name : 'unknown');
+      }
       timings.cacheWrite = performance.now() - cacheStarted;
       // A catalog card of this page takes the fresh price too (at most every 30 minutes), after the answer is sent.
       deferBackground(import('@/lib/market/catalog-refresh').then(({ refreshCatalogFromLiveImport }) => refreshCatalogFromLiveImport(url, { data }, fetchedAt)), 'Catalog live refresh failed');

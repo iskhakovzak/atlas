@@ -37,8 +37,8 @@ test('nothing published or a catalog too large to inline: the page loads it in t
 
 test('the server reads the seed as the API does; /stores passes it on, /catalog only its first page', () => {
   const data = source('lib/market/initial-data.ts');
-  assert.match(data, /export async function initialPublicCatalog\(\):Promise<CatalogSeedValue\|null>\{\n try\{\n  const \[\{document\},pricing\]=await Promise\.all\(\[readCatalog\(\{backfill:true\}\),currentPricing\(\)\]\);\n  return catalogSeed\(document,pricing\);\n \}catch\{return null\}\n\}/);
-  assert.match(source('app/api/catalog/route.ts'), /const \[\{document\},currentPricing\]=await Promise\.all\(\[readCatalog\(\{backfill:!admin\}\),pricing\(\)\]\);/);
+  assert.match(data, /const \{catalog,pricing\}=await loadPublicCatalog\(\);\s*return catalogSeedFromList\(catalog\.list\(\),pricing\);/);
+  assert.match(source('app/api/catalog/route.ts'), /await loadPublicCatalogList\(\)/);
   // /catalog keeps loading the whole catalog in the browser: inlined, Lighthouse's mobile simulation scored it 79 instead
   // of 85 (14.10.2026). Since 2 November 2026 only the first page's cards are in the HTML (tests/catalog-first-page.test.mjs).
   const catalogPage = source('app/catalog/page.tsx');
@@ -95,5 +95,5 @@ test('the store page lists its products from the whole catalog, and its seed is 
   const page = source('app/stores/[slug]/page.tsx');
   assert.match(page, /const itemPaths = productIds\.map\(productPath\);/);
   assert.doesNotMatch(page, /seed \? catalogItems/);
-  assert.match(source('lib/market/initial-data.ts'), /seed:storeCatalogSeed\(catalog,pricing,slug,productStoreSlug\)/);
+  assert.match(source('lib/market/initial-data.ts'), /seed:storeCatalogSeed\(list,pricing,slug,productStoreSlug\)/);
 });
