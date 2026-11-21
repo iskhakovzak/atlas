@@ -62,6 +62,24 @@ test('one axis only: sizes, sorted, no other rows', () => {
   assert.equal(resolveVariant(items, axes, pickAxis(items, axes, {}, 'Size', 'M'))?.label, 'M');
 });
 
+test('Shopify size and style do not add a second composite size to the picker', () => {
+  const items = [
+    {id:'1', size:'S', style:'Lined', price:88, available:true},
+    {id:'2', size:'S', style:'Sheer', price:95, available:true},
+    {id:'3', size:'M', style:'Lined', price:92, available:false},
+    {id:'4', size:'M', style:'Sheer', price:98, available:true},
+  ].map(item => ({
+    ...item, label:`${item.size} / ${item.style}`, size:`${item.size} / ${item.style}`, sizeLabel:'Size / Style', availabilityKnown:true,
+    options:[{name:'Size',value:item.size},{name:'Style',value:item.style}],
+  }));
+  const axes = variantAxes(items);
+  assert.deepEqual(axes.map(axis => axis.name), ['Size', 'Style']);
+  const size = pickAxis(items, axes, {}, 'Size', 'S');
+  assert.equal(resolveVariant(items, axes, size), undefined);
+  assert.equal(resolveVariant(items, axes, pickAxis(items, axes, size, 'Style', 'Sheer'))?.price, 95);
+  assert.deepEqual(picksOf(resolveVariant(items, axes, pickAxis(items, axes, {}, 'Size', 'M')), axes), {Size:'M', Style:'Sheer'});
+});
+
 test('Zara-like colour and size fields: two axes, the picks of an option round-trip', () => {
   const items = [];
   for (const color of ['Black', 'Ecru']) for (const size of ['XS', 'S', 'M']) items.push({ label: `${color} · ${size}`, color, size, sizeLabel: 'Size', price: color === 'Ecru' ? 229.9 : 199.9, available: !(color === 'Ecru' && size === 'XS'), availabilityKnown: true });
