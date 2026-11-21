@@ -62,7 +62,7 @@ async function writeCatalog(next:CatalogDocument,previous:string|null,user:{user
 }
 
 /** `backfill` only from read-only paths: a background facet write would make a concurrent editor's CAS fail. */
-export async function readCatalog(options?:{backfill?:boolean}){
+export async function readCatalog(options?:{backfill?:boolean}):Promise<{raw:string|null;document:CatalogDocument}>{
   const {raw,document}=await readCatalogSnapshot(options);
   return {raw,document:structuredClone(document)};
 }
