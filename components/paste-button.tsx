@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { ClipboardPaste, Loader2 } from 'lucide-react';
 import { isUzbek, type Locale } from '@/lib/market/i18n';
 import { uzText } from '@/lib/market/uz-cyrl';
-import { extractSharedLink } from '@/lib/market/shared-link';
+import { orderLinkIn } from '@/lib/market/clipboard-link';
 import { toast } from '@/lib/market/toast';
 import { isNative, readClipboardAfterTap } from '@/lib/native/bridge';
 
@@ -30,7 +30,7 @@ export function PasteButton({ targetId, locale, onPaste, disabled = false, multi
       // Do not replace text entered while a permission prompt was open, or a field on another page.
       if (!field?.isConnected || field.value !== before || field.disabled) return;
       if (!text) { toast.message(hint); return; }
-      onPaste(multiline ? [before?.trim(), text].filter(Boolean).join('\n') : extractSharedLink(text) || text);
+      onPaste(multiline ? [before?.trim(), text].filter(Boolean).join('\n') : orderLinkIn(text) || text);
     } catch { toast.message(hint); }
     finally {
       pending.current = false; setReading(false);

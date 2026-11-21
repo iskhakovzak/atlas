@@ -20,3 +20,13 @@ test('misses, failures and non-cached responses never become previews', async ()
     async () => { throw new Error('offline'); },
   ]) assert.equal(await readImportCachePreview('https://example.com/item', fetcher), null);
 });
+
+test('a replaced link can abort its outstanding cache preview', async () => {
+  const controller = new AbortController();
+  const preview = readImportCachePreview('https://example.com/item', (_path, {signal}) => {
+    assert.equal(signal, controller.signal);
+    return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason), {once: true}));
+  }, controller.signal);
+  controller.abort();
+  assert.equal(await preview, null);
+});

@@ -56,7 +56,6 @@ export function createCatalogSaleRunner(deps:Dependencies){
   if(row.job.status!=='running'||row.job.leaseUntil>now()||(row.job.retryAt??0)>now())return row.job;
   const job=structuredClone(row.job);job.leaseUntil=now()+180_000;job.leaseId=uuid();job.pauseRequested=false;
   if(!await store.write(owner,job,row.raw))return await read(owner);
-  const claimed=JSON.stringify(catalogSaleJobSchema.parse(job));
   const retry=(error:unknown)=>{job.consecutiveErrors=(job.consecutiveErrors??0)+1;job.failed++;job.status=job.consecutiveErrors<3?'running':'paused';job.retryAt=now()+15_000*2**(job.consecutiveErrors-1);job.message=(error instanceof Error?error.message:'Не удалось сохранить товар.').slice(0,500);};
   try{
    if(!job.pending.length&&!job.discoveryDone){
@@ -78,12 +77,15 @@ export function createCatalogSaleRunner(deps:Dependencies){
    if(!job.pending.length&&job.discoveryDone)job.status='completed';
   }catch(error){retry(error);}
   job.updatedAt=now();job.leaseUntil=0;
-  // A pause from another tab may arrive while the current listing is being saved.
-  let previous=claimed;const latest=await store.read(owner);
-  if(latest?.raw!==claimed){if(!latest||latest.job.id!==job.id||latest.job.leaseId!==job.leaseId)return latest?.job;previous=latest.raw;if(latest.job.pauseRequested&&job.status!=='completed')job.status='paused';}
-  job.pauseRequested=false;
-  if(!await store.write(owner,job,previous))return await read(owner);
-  return job;
+  // A pause or resume can race with the final CAS. Keep the completed results on the same lease.
+  for(let attempt=0;attempt<3;attempt++){
+   const latest=await store.read(owner);
+   if(!latest||latest.job.id!==job.id||latest.job.leaseId!==job.leaseId)return latest?.job;
+   const finished:CatalogSaleJob={...job,principal:latest.job.principal,pauseRequested:false,
+    status:latest.job.pauseRequested&&job.status!=='completed'?'paused':job.status};
+   if(await store.write(owner,finished,latest.raw))return finished;
+  }
+  return await read(owner);
  }
  return {read,start,control,step};
 }

@@ -45,6 +45,37 @@ test('ShopSimon native HTML product JSON preserves size stock and individual cen
   assert.notEqual(extractProduct(html.replace('"active":"USD"','"active":"bad"'),f.sourceUrl).method,'Shopify public product JSON');
 });
 
+test('Oh Polly US supplies native prices, stock and photos for the exact variant', async () => {
+  const source = 'https://us.ohpolly.com/products/darla-mini-dress';
+  assert.equal(allowedUrl(source).href, source);
+  assert.equal(isSupportedStoreHost('other.ohpolly.com'), false);
+  assert.equal(sameMerchantRedirect(new URL(source), new URL(source.replace('us.', 'www.'))), false);
+  const requests = [];
+  const found = await fetchProduct(source + '?variant=41', async input => {
+    const url = new URL(input);
+    requests.push(url.pathname + url.search);
+    assert.equal(url.hostname, 'us.ohpolly.com');
+    assert.equal(url.searchParams.get('country'), 'US');
+    if (url.pathname === '/cart.js') return Response.json({currency: 'USD'});
+    assert.equal(url.pathname, '/products/darla-mini-dress.js');
+    return Response.json({
+      id: 5, title: 'Darla Mini Dress', vendor: 'Oh Polly', handle: 'darla-mini-dress', options: [{name:'Size'}, {name:'Style'}],
+      images:['https://cdn.shopify.com/dress.jpg', 'https://cdn.shopify.com/inside.jpg'],
+      variants:[
+        {id:41, title:'M / Lined', option1:'M', option2:'Lined', price:8800, available:true},
+        {id:42, title:'L / Sheer', option1:'L', option2:'Sheer', price:9200, available:false},
+      ],
+    });
+  });
+  assert.deepEqual(requests.sort(), ['/cart.js?country=US', '/products/darla-mini-dress.js?country=US']);
+  assert.equal(found.country, 'США');
+  assert.equal(found.currency, 'USD');
+  assert.equal(found.price, 88);
+  assert.equal(found.selectedVariantId, '41');
+  assert.equal(found.images.length, 2);
+  assert.deepEqual(found.variants.map(v => [v.id, v.price, v.available, v.availabilityKnown]), [['41',88,true,true], ['42',92,false,true]]);
+});
+
 test('Vans exact parent offer and gallery complement its separately published size group', () => {
   const f=fixture('vans-public-group');
   const result=applyMerchantProfile(extractProduct(ld({'@graph':f.products}),f.sourceUrl),f.sourceUrl);

@@ -1,7 +1,7 @@
 /** Read only a previously cached snapshot; this request must never start a merchant fetch. */
-export async function readImportCachePreview(url: string, fetcher: typeof fetch = fetch): Promise<{title?: string; brand?: string; images: string[]} | null> {
+export async function readImportCachePreview(url: string, fetcher: typeof fetch = fetch, signal?: AbortSignal): Promise<{title?: string; brand?: string; images: string[]} | null> {
   try {
-    const response = await fetcher('/api/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, credentials: 'same-origin', body: JSON.stringify({url, cacheOnly: true})});
+    const response = await fetcher('/api/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, credentials: 'same-origin', body: JSON.stringify({url, cacheOnly: true}), signal});
     if (!response.ok || response.status === 204) return null;
     const data = await response.json() as Record<string, unknown>;
     if (!data || data.cached !== true) return null;

@@ -167,7 +167,9 @@ test('the cron worker signs its own path; the site accepts it and refuses it for
 test('wiring: the import route reports live attempts, skips the warm-up, and always opens the manual form', () => {
   const route = readFileSync(new URL('../app/api/import/route.ts', import.meta.url), 'utf8');
   assert.match(route, /manualEntryAvailable: true, orderByHand: canManuallyEnter, monitored/);
-  assert.match(route, /if \(leader\) \{/);
+  assert.match(route, /async \(\{outcome, checkedAt\}\) => \{[\s\S]*?kind: 'ok', quiet: warm/);
+  const flights = readFileSync(new URL('../lib/importer/import-flight.ts', import.meta.url), 'utf8');
+  assert.match(flights, /if \(inFlight\.get\(key\) === entry\) \{\s+remember\(key, outcome\);\s+await onChecked\?\.\(check\)/);
   assert.match(route, /!isSupportedStoreHost\(host\) && !warm\) monitorImport/);
   assert.match(route, /replay: true/);
   const clipboard = readFileSync(new URL('../app/use-clipboard-link.ts', import.meta.url), 'utf8');

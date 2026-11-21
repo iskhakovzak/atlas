@@ -108,7 +108,7 @@ const shopSubdomains = new Set(['mango.com','hm.com','uniqlo.com','nike.com','ad
 // the SSRF boundary.
 // The US storefronts of these brands live on their own subdomain (found by the live store check, 10 October 2026).
 const localizedHosts = new Set(['en.zalando.de', 'usa.tommy.com', 'us.puma.com', 'www2.hm.com',
-  'en.aboutyou.de', 'us.burberry.com', 'store.google.com', 'shop.lululemon.com', 'us.louisvuitton.com', 'us.nothing.tech', 'us.pandora.net', 'www.usa.philips.com', 'electronics.sony.com']);
+  'en.aboutyou.de', 'us.burberry.com', 'store.google.com', 'shop.lululemon.com', 'us.louisvuitton.com', 'us.nothing.tech', 'us.ohpolly.com', 'us.pandora.net', 'www.usa.philips.com', 'electronics.sony.com']);
 // Public product documents some storefronts load from a separate API host (no credentials, exact product id).
 const storeApiHosts = new Set(['api.victoriassecret.com', 'redsky.target.com']);
 

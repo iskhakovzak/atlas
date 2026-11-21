@@ -108,6 +108,94 @@ test('cache cleanup cannot delay a verified response or its cart snapshot', {tim
   }
 });
 
+test('a completed warm check speeds up an automatic open, while retry and old results are rechecked', async t => {
+  const h = routeHarness(), {POST} = await h.route(importPath);
+  t.after(() => h.db.sqlite.close());
+  let now = Date.now();
+  t.mock.method(Date, 'now', () => now);
+  const url = 'https://www.hoka.com/products/warm-open-regression';
+  const calls = mockMerchant(t, url);
+
+  const warm = await (await shopperImport(h, POST, {url, warm: true})).json();
+  assert.equal(warm.fetchedAt, now);
+  assert.deepEqual(calls, [url, url + '.js']);
+
+  const preview = await (await shopperImport(h, POST, {url, cacheOnly: true})).json();
+  assert.deepEqual(preview, {
+    title: warm.title, brand: warm.brand, images: ['https://cdn.shopify.com/example.jpg'], cached: true,
+  });
+  now += 10_000;
+  const opened = await (await shopperImport(h, POST, {url: url + '?utm_source=shop', fresh: true, reuseRecent: true})).json();
+  assert.equal(opened.cached, true);
+  assert.equal(opened.fetchedAt, warm.fetchedAt);
+  assert.equal(opened.variants[0].price, 42);
+  assert.equal(calls.length, 2);
+
+  const retry = await (await shopperImport(h, POST, {url, fresh: true})).json();
+  assert.equal(retry.cached, false);
+  assert.equal(retry.fetchedAt, now);
+  assert.equal(calls.length, 4);
+
+  now += 15_001;
+  const expired = await (await shopperImport(h, POST, {url, fresh: true, reuseRecent: true})).json();
+  assert.equal(expired.cached, false);
+  assert.equal(expired.fetchedAt, now);
+  assert.equal(calls.length, 6);
+  await h.settle();
+});
+
+test('a follower waits for the verified snapshot and receives the same check time', async t => {
+  const h = routeHarness(), {POST} = await h.route(importPath);
+  t.after(() => h.db.sqlite.close());
+  const url = 'https://www.hoka.com/products/cache-followers-regression';
+  const calls = mockMerchant(t, url);
+  const originalPrepare = h.db.prepare;
+  let releaseCache, notifyStore, notifyFollower;
+  let cacheWrites = 0, rateChecks = 0, followerDone = false;
+  const gate = new Promise(resolve => { releaseCache = resolve; });
+  const cacheStarted = new Promise(resolve => { notifyStore = resolve; });
+  const followerCharged = new Promise(resolve => { notifyFollower = resolve; });
+  h.db.prepare = sql => {
+    const stmt = originalPrepare(sql);
+    if (/^INSERT INTO market_import_cache/.test(sql)) return {...stmt, bind: (...args) => {
+      const bound = stmt.bind(...args);
+      return {...bound, run: async () => { cacheWrites++; notifyStore(); await gate; return bound.run(); }};
+    }};
+    if (/^INSERT INTO market_rate_limits/.test(sql)) return {...stmt, bind: (...args) => {
+      const bound = stmt.bind(...args);
+      return {...bound, first: async () => {
+        const row = await bound.first();
+        if (++rateChecks === 4) notifyFollower();
+        return row;
+      }};
+    }};
+    return stmt;
+  };
+  const warm = shopperImport(h, POST, {url, warm: true});
+  await cacheStarted;
+  const opened = shopperImport(h, POST, {url, fresh: true, reuseRecent: true}).then(result => {
+    followerDone = true;
+    return result;
+  });
+  try {
+    await followerCharged;
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(followerDone, false);
+    assert.equal(calls.length, 2);
+  } finally {
+    releaseCache();
+    await h.settle();
+  }
+  const [first, second] = await Promise.all([warm, opened]);
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  const pair = await Promise.all([first.json(), second.json()]);
+  assert.deepEqual(pair[0], pair[1]);
+  assert.equal(h.db.sqlite.prepare('SELECT updated_at FROM market_import_cache WHERE url=?').get(url).updated_at, pair[0].fetchedAt);
+  assert.equal(cacheWrites, 1);
+  await h.settle();
+});
+
 test('a successful fresh import clears the wall and a superseded failure cannot restore it', async () => {
   let now = 1000;
   const flights = createImportFlights({clock: () => now});
@@ -127,6 +215,21 @@ test('a successful fresh import clears the wall and a superseded failure cannot 
   rejectDelayed(blocked());
   await delayed;
   assert.equal(flights.recentFailure('page'), undefined);
+});
+
+test('a superseded fetch cannot write an older observation after its replacement', async () => {
+  let now = 1000;
+  const flights = createImportFlights({clock: () => now, followerWaitMs: 10});
+  const saved = [];
+  const save = async ({outcome, checkedAt}) => saved.push({price: outcome.data.price, checkedAt});
+  let release;
+  const slow = flights.run('page', () => new Promise(resolve => { release = resolve; }), save);
+  now += 10;
+  await flights.run('page', async () => ({sourceUrl: 'page', price: 60, warnings: []}), save);
+  now += 10;
+  release({sourceUrl: 'page', price: 50, warnings: []});
+  await slow;
+  assert.deepEqual(saved, [{price: 60, checkedAt: 1010}]);
 });
 
 test('simultaneous imports share the store answer for an unavailable eBay listing', async () => {

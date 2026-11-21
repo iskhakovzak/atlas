@@ -2,10 +2,12 @@ import {storeCountryLabelForUrl} from '@/lib/market/store-brands';
 import {desktopStoreUrl,expandShortLink} from '@/lib/importer/short-links';
 import {mergeStoreHealth,storeHealthKey,type StoreHealth,type StoreReadOutcome} from '@/lib/market/store-health';
 import {database,HttpError,pricing} from '@/lib/market/server';
-import {persistCatalog} from '@/lib/market/catalog-server';
-import {canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,isManualCatalogSource,applyAutomaticCatalogImport} from '@/lib/market/catalog-editor';
+import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
+import {canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,isManualCatalogSource,applyAutomaticCatalogImport,sameCatalogGroup} from '@/lib/market/catalog-editor';
 import type {CatalogDraft,CatalogDocument} from '@/lib/market/catalog-editor';
-import {fetchProduct,ManualEntryFallbackError,describeImportDiagnostic} from '@/lib/importer/fetch';
+import type {Pricing} from '@/lib/market/domain';
+import {fetchProduct,ManualEntryFallbackError,describeImportDiagnostic,validateManualSourceUrl} from '@/lib/importer/fetch';
+import {canonicalProductUrl} from '@/lib/importer/source-identity';
 import type {Extracted} from '@/lib/importer/extract';
 import {catalogMerchantRequest as merchantRequest} from '@/lib/importer/worker-fetch';
 const catalogImportConcurrency=8;
@@ -17,6 +19,8 @@ export function invalidLinkText(error:unknown){
   return error instanceof Error&&error.message.startsWith('Используйте')?error.message:'Это не ссылка на страницу товара. Нужна HTTPS-ссылка поддерживаемого магазина.';
 }
 type ImportOutcome={url:string;status:'saved'|'failed';manual?:boolean;id?:string;published?:boolean;note?:string;reason?:string;importFailureReason?:CatalogDraft['importFailureReason'];storeReadMs?:number};
+type CatalogActor={userId:string;email:string};
+type ImportRead=Awaited<ReturnType<typeof readForImport>>;
 /** Read one store page; never throws for recoverable merchant failures — those become a reviewable draft. */
 export async function readForImport(sourceUrl:string,collectionIds:string[],country:string){
   let data:Extracted|undefined,sourceUnavailable=false,failureMessage='',failureReason:CatalogDraft['importFailureReason']='unknown';
@@ -43,13 +47,14 @@ export async function readForImport(sourceUrl:string,collectionIds:string[],coun
   return {draft,sourceUnavailable,failureMessage,failureReason,manual};
 }
 /** A manual card is the operator's to fill in and publish: the scheduler and automatic publication leave it alone. */
-export function handOverManual(document:{entries:{id:string;autoManaged?:boolean}[]},id:string){
+function handOverManual(document:{entries:{id:string;autoManaged?:boolean}[]},id:string){
   const entry=document.entries.find(item=>item.id===id);if(entry)entry.autoManaged=false;
 }
-export const manualNote='Ручной ввод: откройте карточку и заполните её со страницы магазина.';
+const manualNote='Ручной ввод: откройте карточку и заполните её со страницы магазина.';
 /** A phone's share link (m.zara.com) or a store short link (a.co, amzn.to, ebay.us) reads as the store page, as for customers. */
 export async function storePageUrl(value:string){
-  try{return desktopStoreUrl(await expandShortLink(new URL(value.trim()))).href}catch{return value}
+  const url=desktopStoreUrl(await expandShortLink(validateManualSourceUrl(value.trim())));
+  return canonicalProductUrl(url.href);
 }
 export async function readStoreHealth():Promise<StoreHealth>{
   try{const row=await database().prepare('SELECT value FROM market_settings WHERE key=?').bind(storeHealthKey).first<{value:string}>();return row?JSON.parse(row.value) as StoreHealth:{}}catch{return {}}
@@ -75,36 +80,93 @@ export async function mapMerchantConcurrent<T>(urls:string[],task:(url:string)=>
  return results;
 }
 
-export async function processCatalogBatch(document:CatalogDocument,raw:string|null,user:{userId:string;email:string},command:{urls:string[];collectionIds:string[];country:string}){
-      if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
-      const urls=[...new Set(command.urls.map(value=>value.trim()).filter(Boolean))];
-      // Every store is read at the same time; the catalog is written once, so the operator sees one revision and one result list.
-      const reads=await mapMerchantConcurrent(urls,async(url):Promise<ImportOutcome|{url:string;sourceUrl:string;read:Awaited<ReturnType<typeof readForImport>>;storeReadMs:number}>=>{
-        let sourceUrl:string;
-        try{sourceUrl=canonicalCatalogUrl(await storePageUrl(url))}catch(error){return {url,status:'failed',reason:invalidLinkText(error)}}
-        const startedAt=Date.now();
-        try{
-          const read=await readForImport(sourceUrl,command.collectionIds,command.country);
-          // A store that answered nothing usable leaves no empty card: the link stays in the field with the reason.
-          if(read.sourceUnavailable&&!read.draft.name&&!read.manual)return {url,status:'failed',reason:read.failureMessage||'Магазин не отдал данные товара.',importFailureReason:read.failureReason,storeReadMs:Date.now()-startedAt};
-          return {url,sourceUrl,read,storeReadMs:Date.now()-startedAt};
-        }
-        catch(error){return {url,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error),storeReadMs:Date.now()-startedAt}}
-      });
-      const currentPricing=await pricing();
-      const results:ImportOutcome[]=[];let saved=0;
-      for(const item of reads){
-        if('status' in item){results.push(item);continue}
-        try{
-          const outcome=applyAutomaticCatalogImport(document,item.read.draft,Date.now(),currentPricing.rates);saved++;
-          if(item.read.manual){handOverManual(document,outcome.id);results.push({url:item.url,storeReadMs:item.storeReadMs,status:'saved',id:outcome.id,published:false,note:manualNote,manual:true});continue}
-          results.push({url:item.url,storeReadMs:item.storeReadMs,status:'saved',...outcome,...(item.read.sourceUnavailable?{importFailureReason:item.read.failureReason}:{})});
-        }catch(error){results.push({url:item.url,storeReadMs:item.storeReadMs,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error)})}
+function validateCollections(document:CatalogDocument,ids:string[]){
+  if(ids.some(id=>!document.collections.some(collection=>collection.id===id)))throw new HttpError(400,'err_33');
+}
+
+// A merchant read can outlast an unrelated catalog update. Retry only the CAS, with the same store observation.
+async function saveImport<T>(initial:CatalogDocument,user:CatalogActor,action:string,collectionIds:string[],apply:(document:CatalogDocument,removed:CatalogDraft[],rates:Pricing['rates'])=>{result:T;saved:number;failed?:number}){
+  const {rates}=await pricing();
+  for(let attempt=0;;attempt++){
+    const {document,raw}=await readCatalog();
+    validateCollections(document,collectionIds);
+    const ids=new Set(document.entries.map(entry=>entry.id));
+    const removed=initial.entries.filter(entry=>!ids.has(entry.id)).map(entry=>entry.draft);
+    const {result,saved,failed}=apply(document,removed,rates);
+    if(!saved)return {document,result};
+    document.revision++;
+    try{
+      await persistCatalog(document,raw,user,action,failed===undefined?undefined:{count:saved,failed});
+      return {document,result};
+    }catch(error){
+      if(!(error instanceof HttpError&&error.status===409)||attempt>=2)throw error;
+    }
+  }
+}
+
+function applyImportRead(document:CatalogDocument,removed:CatalogDraft[],read:ImportRead,rates:Pricing['rates']){
+  const draft=read.draft;
+  if(removed.some(previous=>sameCatalogGroup(previous,draft)))throw new HttpError(409,'Карточка удалена во время импорта. Добавьте ссылку заново, если её нужно восстановить.');
+  const hasLaterCheck=document.entries.some(entry=>{
+    const checkedAt=entry.refresh?.status==='sold-out'?Math.max(entry.draft.checkedAt,entry.refresh.lastSuccessAt??0):entry.draft.checkedAt;
+    return checkedAt>draft.checkedAt&&sameCatalogGroup(entry.draft,draft);
+  });
+  if(hasLaterCheck)throw new HttpError(409,'Карточка уже получила более свежие данные магазина. Обновите каталог.');
+  const outcome=applyAutomaticCatalogImport(document,draft,Date.now(),rates);
+  if(read.manual){
+    handOverManual(document,outcome.id);
+    return {id:outcome.id,published:false,note:manualNote,manual:true};
+  }
+  return {...outcome,...(read.sourceUnavailable?{note:read.failureMessage.slice(0,500),importFailureReason:read.failureReason}:{})};
+}
+
+export function saveCatalogItem(initial:CatalogDocument,user:CatalogActor,read:ImportRead){
+  return saveImport(initial,user,'catalog.import',read.draft.collectionIds,(document,removed,rates)=>({
+    result:applyImportRead(document,removed,read,rates),saved:1,
+  }));
+}
+
+export async function processCatalogBatch(initial:CatalogDocument,user:CatalogActor,command:{urls:string[];collectionIds:string[];country:string}){
+  validateCollections(initial,command.collectionIds);
+  const urls=[...new Set(command.urls.map(value=>value.trim()).filter(Boolean))];
+  const bySource=new Map<string,Promise<ImportRead>>();
+  const reads=await mapMerchantConcurrent(urls,async(url):Promise<ImportOutcome|{url:string;read:ImportRead;storeReadMs?:number}>=>{
+    let sourceUrl:string;
+    try{sourceUrl=canonicalCatalogUrl(await storePageUrl(url))}catch(error){return {url,status:'failed',reason:invalidLinkText(error)}}
+    const startedAt=Date.now();
+    const pending=bySource.get(sourceUrl);
+    const reading=pending??readForImport(sourceUrl,command.collectionIds,command.country);
+    if(!pending)bySource.set(sourceUrl,reading);
+    const duration=()=>pending?undefined:Date.now()-startedAt;
+    try{
+      const read=await reading;
+      // A source without usable product data leaves no blank draft, except for known manual-entry stores.
+      if(read.sourceUnavailable&&!read.draft.name&&!read.manual)return {url,status:'failed',reason:read.failureMessage||'Магазин не отдал данные товара.',importFailureReason:read.failureReason,storeReadMs:duration()};
+      return {url,read,storeReadMs:duration()};
+    }catch(error){return {url,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error),storeReadMs:duration()}}
+  });
+  const {document,result:results}=await saveImport(initial,user,'catalog.import-batch',command.collectionIds,(current,removed,rates)=>{
+    const applied=new Map<ImportRead,Omit<ImportOutcome,'url'|'storeReadMs'>>();
+    let saved=0;
+    const result=reads.map((item):ImportOutcome=>{
+      if('status' in item)return item;
+      let outcome=applied.get(item.read);
+      if(!outcome){
+        try{outcome={status:'saved',...applyImportRead(current,removed,item.read,rates)};saved++;}
+        catch(error){outcome={status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error)};}
+        applied.set(item.read,outcome);
       }
-      if(saved){document.revision++;await persistCatalog(document,raw,user,'catalog.import-batch',{count:saved,failed:results.length-saved});}
-      // Dead or malformed links say nothing about the store; only reads count (lib/market/store-health.ts).
-      await recordStoreHealth(results.filter(item=>!item.manual).flatMap((item):(StoreReadOutcome & {durationMs?:number})[]=>item.status==='failed'
-        ?(item.importFailureReason||item.storeReadMs!==undefined?[{url:item.url,result:'failed',reason:item.reason,durationMs:item.storeReadMs}]:[])
-        :[{url:item.url,result:item.importFailureReason||(!item.published&&item.note)?'partial':'ok',reason:item.importFailureReason??item.note,durationMs:item.storeReadMs}]),user.userId);
-      return {document,results};
+      return {url:item.url,storeReadMs:item.storeReadMs,...outcome};
+    });
+    return {result,saved,failed:result.filter(item=>item.status==='failed').length};
+  });
+  // Only actual attempts count toward store health. A failed catalog save is not a failed store read.
+  await recordStoreHealth(reads.flatMap((item,index):(StoreReadOutcome & {durationMs?:number})[]=>{
+    if(item.storeReadMs===undefined)return [];
+    if('status' in item)return [{url:item.url,result:'failed',reason:item.reason,durationMs:item.storeReadMs}];
+    if(item.read.manual)return [];
+    const outcome=results[index];
+    return [{url:item.url,result:item.read.sourceUnavailable||(outcome.status==='saved'&&!outcome.published&&outcome.note)?'partial':'ok',reason:item.read.sourceUnavailable?item.read.failureReason:outcome.note,durationMs:item.storeReadMs}];
+  }),user.userId);
+  return {document,results};
 }
