@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {account,database,identity,sameOrigin,requestJson,json,failure,HttpError,rateLimit} from '@/lib/market/server';
 import {promoErrors,promoPreview,promoProblem,promoReturnable} from '@/lib/market/promo';
-import {customerPromoUses,findPromo,returnPromoUses} from '@/lib/market/promo-store';
+import {customerPromoUses,findPromo,reconcilePromoUses} from '@/lib/market/promo-store';
 
 /**
  * The checkout page asks whether a promo code exists and may be used now (redesign stage 6). Signed-in customers only,
@@ -21,9 +21,8 @@ export async function POST(request:Request){try{
   // cancelled in full is given back here first. The customer is told plainly that the code was already theirs (err_96).
   if(rule?.oncePerCustomer){
     const used=await customerPromoUses(database(),rule.id,user.userId);
-    let stale:string[]=[];
-    if(used.length){stale=promoReturnable((await account(user)).state,used);if(stale.length)await returnPromoUses(database(),user.userId,stale).catch(error=>console.error('Promo use return failed',error))}
-    rule={...rule,usedByCustomer:used.length>stale.length};
+    const returnable=used.length?promoReturnable((await account(user)).state,used):[];
+    rule=await reconcilePromoUses(database(),rule,user.userId,used,returnable);
   }
   const problem=promoProblem(rule,Date.now());
   if(problem===promoErrors.alreadyUsed)throw new HttpError(409,problem);

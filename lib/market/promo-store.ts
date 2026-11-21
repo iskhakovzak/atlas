@@ -86,6 +86,22 @@ export async function returnPromoUses(db: PromoDb, userId: string, batchIds: str
   return returned;
 }
 
+/** Repair missed returns after a saved cancellation, then read the current cap and the customer's remaining uses. */
+export async function reconcilePromoUses(db: PromoDb, rule: PromoRule, userId: string, used: string[], returnable: string[]): Promise<PromoRule | null> {
+  if (returnable.length) {
+    try {
+      await returnPromoUses(db, userId, returnable);
+      const current = await findPromo(db, rule.code);
+      return current?.oncePerCustomer
+        ? { ...current, usedByCustomer: (await customerPromoUses(db, current.id, userId)).length > 0 }
+        : current;
+    } catch (error) {
+      console.error('Promo use return failed', error);
+    }
+  }
+  return { ...rule, usedByCustomer: used.length > 0 };
+}
+
 /** The server's promo calculation and the orders it applies to. */
 export type PromoUse = {
   rule: Pick<PromoRule, 'id' | 'code' | 'kind' | 'value' | 'minOrder' | 'oncePerCustomer'>;

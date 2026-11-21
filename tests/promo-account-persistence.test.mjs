@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { openAtlasDatabase } from '../scripts/vps-bindings.mjs';
-import { commitPromoAccount, savePromo, findPromo } from '../lib/market/promo-store.ts';
+import { commitPromoAccount, customerPromoUses, savePromo, findPromo, reconcilePromoUses } from '../lib/market/promo-store.ts';
+import { promoProblem, promoReturnable } from '../lib/market/promo.ts';
 
 const now = 1_800_000_000_000;
 const terms = { code: 'ATOMIC', kind: 'fixed', value: 5000, maxUses: 1, active: true, oncePerCustomer: true };
@@ -158,4 +159,19 @@ test('the database applies a per-customer limit enabled while checkout was under
   assert.equal((await loadAccount(db)).revision, 1);
   assert.equal((await findPromo(db, code.code)).uses, 1);
   assert.equal(await records(db), 1);
+});
+
+test('repairing a cancelled use also makes a fully booked code available immediately', async (t) => {
+  const { db, code } = await setup(t);
+  await createAccount(db);
+  const first = checkout(code);
+  assert.deepEqual(await commitPromoAccount(db, first.use, first.account, now), { saved: true });
+  const capped = await findPromo(db, code.code);
+  assert.equal(promoProblem(capped, now), 'err_89');
+  const used = await customerPromoUses(db, code.id, first.use.userId);
+  const cancelled = { orders: [{ promo: { id: code.id }, batchId: first.use.batchId, cancelled: true, status: 0 }] };
+  const current = await reconcilePromoUses(db, capped, first.use.userId, used, promoReturnable(cancelled, used));
+  assert.equal(current.uses, 0);
+  assert.equal(current.usedByCustomer, false);
+  assert.equal(promoProblem(current, now), undefined);
 });

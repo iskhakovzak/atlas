@@ -8,7 +8,7 @@ import {codedActionError,editorialShippingFor,prepareAction,staleRevision,type E
 import {initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from '@/lib/market/catalog-editor';
 import {cleanPassportNumber,cleanPinfl,type Product,type State} from '@/lib/market/domain';
 import {addCustomerLinkDraft,readStoredCatalogDocument} from '@/lib/market/catalog-server';
-import {customerPromoUses,findPromo,returnPromoUses} from '@/lib/market/promo-store';
+import {customerPromoUses,findPromo,reconcilePromoUses,returnPromoUses} from '@/lib/market/promo-store';
 import {customerState} from '@/lib/market/customer-state';
 import {promoReturnable,promoReturns,type PromoRule} from '@/lib/market/promo';
 /**
@@ -68,18 +68,9 @@ export async function POST(request:Request){try{
     return json({state:customerState(current.state),revision:current.revision});
   }
   if(staleRevision(payload.revision,current.revision)){const locale=requestLocale(request);return json({error:locale==='ru'?'Данные изменились. Проверьте обновлённый заказ и повторите действие.':apiErrorMessage(409,locale),state:customerState(current.state),revision:current.revision},409)}
-  // Reconcile a missed return after cancellation, then read both the account's uses and the global cap again.
-  let loadedPromo=promoRead;
-  if(promoRead?.usedBatches?.length){
-    const stale=promoReturnable(current.state,promoRead.usedBatches);
-    if(stale.length){
-      try{
-        await returnPromoUses(database(),user.userId,stale);
-        loadedPromo=await readPromo(promoRead.code);
-      }catch(error){console.error('Promo use return failed',error)}
-    }
-  }
-  const promo=loadedPromo?.usedBatches?{...loadedPromo,usedByCustomer:loadedPromo.usedBatches.length>0}:loadedPromo;
+  const promo=promoRead?.usedBatches
+    ?await reconcilePromoUses(database(),promoRead,user.userId,promoRead.usedBatches,promoReturnable(current.state,promoRead.usedBatches))
+    :promoRead;
   // Telegram order notices: the route checks the attached Telegram, tests the bot and records the consent itself.
   if(parsed.data.type==='telegram-notify'){
     const {toggleTelegramNotices}=await import('@/lib/market/telegram-notices-server');

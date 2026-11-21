@@ -66,9 +66,12 @@ const promoList = await request("/api/promo-codes", { email: operatorEmail });
 const booked = promoList.promos.find(promo => promo.code === promoCode);
 assert.equal(booked.uses, 1);
 assert.equal(booked.discountTotal, promoAmount);
-const usedUp = await fetch(new URL("/api/promo", base), { method: "POST", headers: { ...auth(customerEmail), "Content-Type": "application/json", Origin: base.origin }, body: JSON.stringify({ code: promoCode }) });
-// The code check answers the same 404 err_87 for unknown, expired and used-up codes (nothing to learn by trying codes).
-assert.equal(usedUp.status, 404, "a code with one use is used up after the order");
+const promoCheck = (email) => fetch(new URL("/api/promo", base), { method: "POST", headers: { ...auth(email), "Content-Type": "application/json", Origin: base.origin }, body: JSON.stringify({ code: promoCode }) });
+const alreadyUsed = await promoCheck(customerEmail);
+assert.equal(alreadyUsed.status, 409);
+assert.equal((await alreadyUsed.json()).errorCode, "err_96");
+const usedUp = await promoCheck(operatorEmail);
+assert.equal(usedUp.status, 404, "another account sees the ordinary unavailable-code response");
 assert.equal((await usedUp.json()).errorCode, "err_87");
 const orderId = account.state.orders[0].id;
 assert.equal(account.state.orders[0].payment.status, "pending");
