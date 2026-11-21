@@ -221,15 +221,59 @@ test('route: a save refused with 409 gives the use and its record back', async (
   assert.equal((await listPromos(db)).find((item) => item.id === code.id).discountTotal, 40_000, 'the admin total is the record written with the use');
 });
 
-test('route: the same checkout key counts one use', async () => {
+test('route: concurrent requests with the same checkout key have one reservation owner', async () => {
   const db = fakeD1();
   const code = await savePromo(db, promoInputSchema.parse({ code: 'route', kind: 'fixed', value: 50_000, maxUses: 5, active: true }), 'operator@atlas.local', now);
   let saves = 0;
   const results = await Promise.all([1, 2, 3].map(() => placeWithPromo(db, use(code.id, 'same-key'), async () => ++saves, now)));
-  assert.ok(results.every((result) => !result.usedUp));
+  assert.equal(results.filter(result => !result.usedUp).length, 1);
+  assert.ok(results.filter(result => result.usedUp).every(result => result.code === 'err_4'));
+  assert.equal(saves, 1, 'only the reservation owner may save');
   assert.equal((await findPromo(db, 'ROUTE')).uses, 1);
   assert.equal(redemptions(db, code.id).n, 1);
   assert.equal(redemptions(db, code.id).total, 40_000);
+});
+
+test('route: a retry cannot win account CAS and leave its discount uncounted when the reservation owner fails', async () => {
+  const db = fakeD1();
+  db.sqlite.exec('CREATE TABLE test_account (revision INTEGER); INSERT INTO test_account VALUES (0); CREATE TABLE test_orders (id TEXT PRIMARY KEY);');
+  const code = await savePromo(db, promoInputSchema.parse({ code: 'race', kind: 'fixed', value: 50_000, maxUses: 1, active: true }), 'operator@atlas.local', now);
+  let release, entered;
+  const gate = new Promise(resolve => { release = resolve; });
+  const saving = new Promise(resolve => { entered = resolve; });
+  const save = async () => {
+    const result = db.sqlite.prepare('UPDATE test_account SET revision=revision+1 WHERE revision=0').run();
+    if (!result.changes) throw Object.assign(new Error('revision conflict'), { status: 409 });
+    db.sqlite.prepare('INSERT INTO test_orders VALUES (?)').run('AT-race');
+    return 'saved';
+  };
+  const original = placeWithPromo(db, use(code.id, 'same-key'), async () => { entered(); await gate; return save(); }, now)
+    .then(value => ({ value }), error => ({ error }));
+  await saving;
+  const retry = await placeWithPromo(db, use(code.id, 'same-key'), save, now);
+  release();
+  const result = await original;
+  assert.deepEqual(retry, { usedUp: true, code: 'err_4' });
+  assert.equal(result.error, undefined);
+  assert.deepEqual(result.value, { usedUp: false, value: 'saved' });
+  assert.equal(db.sqlite.prepare('SELECT COUNT(*) n FROM test_orders').get().n, 1);
+  assert.equal((await findPromo(db, 'RACE')).uses, 1);
+  assert.equal(redemptions(db, code.id).n, 1);
+  assert.equal(redemptions(db, code.id).total, 40_000);
+});
+
+test('route: a global checkout-key collision cannot book a different customer or code', async () => {
+  const db = fakeD1();
+  const first = await savePromo(db, promoInputSchema.parse({ code: 'first', kind: 'fixed', value: 50_000, active: true }), 'operator@atlas.local', now);
+  const other = await savePromo(db, promoInputSchema.parse({ code: 'other', kind: 'fixed', value: 50_000, active: true }), 'operator@atlas.local', now);
+  await placeWithPromo(db, use(first.id, 'collision'), async () => 'first', now);
+  let saved = false;
+  assert.deepEqual(await placeWithPromo(db, { ...use(other.id, 'collision'), userId: 'email:other@atlas.local' }, async () => { saved = true; }, now), { usedUp: true, code: 'err_4' });
+  assert.equal(saved, false);
+  assert.equal((await findPromo(db, 'FIRST')).uses, 1);
+  assert.equal((await findPromo(db, 'OTHER')).uses, 0);
+  assert.equal(redemptions(db, first.id).n, 1);
+  assert.equal(redemptions(db, other.id).n, 0);
 });
 
 test('route: the last use goes to one checkout, the next one is refused with err_89 and nothing is saved', async () => {
@@ -276,7 +320,7 @@ test('once per customer: on for a new code, off for codes made before migration 
   assert.equal(promoProblem({ ...rule(), oncePerCustomer: true, usedByCustomer: true, endsAt: now }, now), 'err_88', 'dates first');
 });
 
-test('once per customer: a second checkout of the same account is refused (err_96), others and the same key are not', async () => {
+test('once per customer: a second checkout is refused; a completed retry passes without a new promo use', async () => {
   const db = fakeD1();
   const code = await savePromo(db, promoInputSchema.parse({ code: 'once', kind: 'fixed', value: 50_000, maxUses: 10, active: true }), 'operator@atlas.local', now);
   assert.deepEqual(await placeWithPromo(db, buyer('email:a@atlas.local', code.id, 'a1'), async () => 'saved', now), { usedUp: false, value: 'saved' });
@@ -285,8 +329,8 @@ test('once per customer: a second checkout of the same account is refused (err_9
   assert.deepEqual(await placeWithPromo(db, buyer('email:a@atlas.local', code.id, 'a2'), async () => { saved = true; }, now), { usedUp: true, code: 'err_96' });
   assert.equal(saved, false, 'the refused checkout is not saved');
   assert.equal(redemptions(db, code.id).n, 1, 'and leaves no record');
-  // The lost answer of the first checkout, sent again with its key: the same checkout, nothing more counted.
-  assert.deepEqual(await placeWithPromo(db, buyer('email:a@atlas.local', code.id, 'a1'), async () => 'again', now), { usedUp: false, value: 'again' });
+  // The API detects the completed key in canonical state and passes no new use on a lost-answer retry.
+  assert.deepEqual(await placeWithPromo(db, null, async () => 'again', now), { usedUp: false, value: 'again' });
   assert.deepEqual(await placeWithPromo(db, buyer('email:b@atlas.local', code.id, 'b1'), async () => 'b', now), { usedUp: false, value: 'b' });
   assert.equal((await findPromo(db, 'ONCE')).uses, 2);
   // A code without the option: the same account may use it again.

@@ -6,6 +6,7 @@ import {applyOptimistic,isOptimistic,withPending,type OptimisticAction} from './
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import type {Action} from './actions';
 import {reloadAfterErrorCodes,screenLocale,serverError,setLocaleCookie,supportedLocale,type Locale} from './i18n';
+import {explicitLanguageReplacement} from './language-url';
 import type {SessionStatus} from './access';
 import {type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
@@ -199,6 +200,8 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
   setState(s=>({...s,communication:{...s.communication,language:next}}));
   try{localStorage.setItem('atlas-language',next)}catch{}
   setLocaleCookie(next);
+  // Keep an explicit ?lang= version aligned with the new preference; otherwise a refresh would switch it back.
+  try{const href=explicitLanguageReplacement(window.location.href,next);if(href)window.history.replaceState(window.history.state,'',href)}catch{/* language preference still applies when history is unavailable */}
  },[]);
  // One object per change, not per render: the ~70 screens that call useMarket() re-render only when something they read changed.
  const value=useMemo(()=>({sessionHint,catalogProducts,catalogReady,collections,catalogError,loadCatalog,catalogSeed,adoptCatalog,state,pricing,policy,siteContent,setSiteContent,ready,status,error,user,setLocale,act,lastActionError,refresh}),[sessionHint,catalogProducts,catalogReady,collections,catalogError,loadCatalog,catalogSeed,adoptCatalog,state,pricing,policy,siteContent,setSiteContent,ready,status,error,user,setLocale,act,lastActionError,refresh]);

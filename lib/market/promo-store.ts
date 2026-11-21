@@ -115,8 +115,9 @@ export type PromoUse = { codeId: string; code: string; userId: string; batchId: 
  * before the orders are saved, and both are taken back when the save fails (a stale revision, a failed write), so the
  * admin's «Скидок выдано» and the use count always agree with the orders the books see.
  * - The record goes first (INSERT OR IGNORE, one per checkout key); the count rises only when that row is this call's new
- *   one and the code is still on, in its dates and under its cap; otherwise the new row is removed again. Two requests
- *   with the same key count one use; two customers taking the last use cannot both get it.
+ *   one and the code is still on, in its dates and under its cap; otherwise the new row is removed again. A collision
+ *   with an existing reservation returns a revision conflict without saving: its creator alone owns the count and
+ *   rollback. A completed checkout is detected by the route's canonical checkoutKeys and passes no new use here.
  * - «Один раз на покупателя»: the count also needs no other unreturned record of this account for the code, in the same
  *   statement, so two checkouts of one customer paying at once cannot both take it.
  * - `usedUp`: the code could not be counted and nothing was saved; `code` says why — this customer already used it
@@ -139,6 +140,10 @@ export async function placeWithPromo<T>(db: PromoDb, use: PromoUse | null | unde
     db.prepare('DELETE FROM market_promo_redemptions WHERE id=? AND changes()=0').bind(id),
   ]);
   const fresh = inserted.meta.changes === 1;
+  // Another request owns this key. Letting this request save could make it win the account CAS; the original
+  // request would then lose and undo the only redemption/count for the successfully placed discounted order.
+  // This also refuses a global batch-key collision belonging to another customer or code.
+  if (!fresh) return { usedUp: true, code: 'err_4' };
   if (fresh && counted.meta.changes !== 1) {
     if (!use.oncePerCustomer) return { usedUp: true, code: promoErrors.usedUp };
     // Why it was refused: another unreturned use of this account wins over the general «used up».

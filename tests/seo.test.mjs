@@ -41,7 +41,7 @@ test('internal links keep the ?lang of a language version, only for public pages
 
 test('the language menu is made of links to the ?lang versions of the page', () => {
   const menu = source('app/header-language.tsx');
-  assert.match(menu, /<a className="lang-option"[^>]*href=\{`\$\{pathname\|\|'\/'\}\?lang=\$\{item\.code\}`\}/);
+  assert.match(menu, /<a className="lang-option"[^>]*href=\{languageSwitchHref\(/);
   assert.match(menu, /hrefLang=/);
   assert.match(menu, /event\.preventDefault\(\);onChange\(item\.code\)/, 'a click still switches in place');
   assert.match(source('components/site-link.tsx'), /withLang\(given, usePageLang\(\)\)/);
