@@ -92,6 +92,17 @@ test('sizes from different US stores match and sort naturally', () => {
   assert.deepEqual(productSizes(products[1]), ['9', '12']);
 });
 
+test('discount lookup keeps the first record matching id, listing and price', () => {
+  const product = item('sale', {usd:40});
+  const records = [
+    {...product, sourceUrl:'https://www.nike.com/t/other', referenceUsd:200},
+    {...product, usd:45, referenceUsd:200},
+    {...product, referenceUsd:80},
+    {...product, referenceUsd:100},
+  ];
+  assert.equal(catalogItems([product], tariff, records)[0].discount, 50);
+});
+
 test('filters combine, and each facet counts with the other filters applied', () => {
   const shoes = { ...emptyCatalogQuery, categories: ['Обувь'] };
   assert.deepEqual(applyCatalogQuery(items, shoes, context).map((entry) => entry.product.id).sort(), ['runner', 'trail']);

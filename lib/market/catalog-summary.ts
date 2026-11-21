@@ -6,6 +6,8 @@
  * comes from GET /api/catalog/<id> when its sheet opens (lib/market/catalog-product-client.ts); the product page
  * /catalog/p/[id] renders the full one on the server. No imports: the card, the query and the deal helpers all read it.
  */
+export const homeCatalogTeaserSize = 8;
+
 export type CatalogVariantSummary = {
   /** productSizes of the full product: the sizes the store lists, normalised and ordered. */
   sizes?: string[];

@@ -325,6 +325,8 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   const catalogMode = mode === "catalog" && Boolean(product?.sourceUrl);
   const requestedUrl = catalogMode ? product!.sourceUrl! : searchParams.get("url") ?? "";
   const catalogId = catalogMode ? product!.id : searchParams.get("catalog") ?? "";
+  const autoLoadKey = `${catalogId}:${requestedUrl}`;
+  const catalogContextKey = !catalogMode && catalogId && requestedUrl ? autoLoadKey : "";
   const isSourcedFlow = Boolean(requestedUrl);
   // A community deal in the catalog keeps its deal options, as its old order link (findOrderUrl) did.
   const dealSeed = catalogMode
@@ -333,9 +335,9 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   const dealOptions: ProductVariant[] = dealSeed ? communityFallbackOptions(dealSeed).map(item => ({ ...item, available: true })) : [];
   const dealBoxedWeight = dealSeed ? Math.max(0.1, communityEstimatedWeight(dealSeed) - 0.5) : undefined;
   /** The catalog card behind a link: the card itself in catalog mode, else the one `?catalog=` names (lib/market/link-order-context.ts). */
-  // `?catalog=`: the catalog list has no options or photos (lib/market/catalog-summary.ts); the full card is asked below
-  // and preferred once it is in, the list card stands in until then (and if that load fails).
-  const [linkCatalogFull, setLinkCatalogFull] = useState<MerchantFind | null>(null);
+  // A `?catalog=` link uses its full card or falls back to the catalog summary when the detail request fails.
+  const [linkCatalog, setLinkCatalog] = useState<{ key: string; full: MerchantFind | null } | null>(null);
+  const linkCatalogFull = linkCatalog?.key === catalogContextKey ? linkCatalog.full : null;
   const seedFor = (link = requestedUrl): MerchantFind | undefined => catalogMode ? (link === requestedUrl ? product : undefined) : catalogLinkSeed(linkCatalogFull?.id === catalogId ? [linkCatalogFull] : catalogProducts, catalogId, requestedUrl, link);
   const seed = seedFor();
   const seedPrice = catalogLinkPrice(seed);
@@ -470,14 +472,12 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
     focusLinkField.current = false;
     document.getElementById("source-url")?.focus();
   }, [showSourceForm]);
-  const autoLoadKey=`${catalogId}:${requestedUrl}`;
   // A catalog card shown from its stored data has nothing to wait for (seedReady).
   const [autoLoadStarted,setAutoLoadStarted]=useState(()=>seedReady?autoLoadKey:"");
   // From the first frame until the store answers the page keeps its shape: the product stays, the rest waits in placeholders.
   const checking=busy||(Boolean(requestedUrl)&&autoLoadStarted!==autoLoadKey);
   // A store link already copied lights up "Вставить" and is fetched in the background (app/use-clipboard-link.ts).
   const clip = useClipboardLink(requestedUrl, !catalogMode);
-  const [catalogContextLoaded,setCatalogContextLoaded]=useState<string|null>(()=>catalogId&&!catalogMode?null:catalogId);
   // Drafts are kept per page address (link, catalog card or deal) on this device: lib/market/link-order-draft.ts.
   const dealId=dealSeed?.id??"";
   const draftKey=draftKeyFor({pageUrl:requestedUrl,catalogId,dealId});
@@ -490,14 +490,21 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   // customer tried to add it (or an earlier try left one), so /order-by-link never brings back a card only browsed.
   const [addTriedFor,setAddTriedFor]=useState("");
 
-  useEffect(()=>{
-    let active=true;
-    // A catalog card brings its own data; the catalog list is still loaded for the rest of the site. A `?catalog=` link
-    // waits for its full card too, so the automatic load below starts from its options and photos.
-    const full=catalogId&&!catalogMode?loadCatalogProduct(catalogId).then(found=>{if(active)setLinkCatalogFull(found)},()=>undefined):undefined;
-    void Promise.all([loadCatalog(),full]).finally(()=>{if(active&&catalogId&&!catalogMode)setCatalogContextLoaded(catalogId)});
-    return()=>{active=false};
-  },[catalogId,catalogMode,loadCatalog]);
+  useEffect(() => {
+    if (!catalogContextKey) return;
+    let active = true;
+    async function loadContext() {
+      let full: MerchantFind | null = null;
+      try { full = await loadCatalogProduct(catalogId); }
+      catch {
+        // A list already loaded by the provider is reused. Only a failed detail request may need the list.
+        if (active) await loadCatalog();
+      }
+      if (active) setLinkCatalog({ key: catalogContextKey, full });
+    }
+    void loadContext();
+    return () => { active = false; };
+  }, [catalogContextKey, catalogId, loadCatalog]);
 
   // Opening the page without a link brings back the unfinished draft the customer was last working on, at its own address
   // (so back, forward and reload keep it), and says so. A link the customer started typing, or "Next item", clears that
@@ -1111,7 +1118,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   useEffect(() => {
     const loadKey=autoLoadKey;
     // After this page's saved draft was looked at: a fresh one is shown as it was, any other is reloaded with the choice.
-    if (!requestedUrl || (catalogId&&catalogContextLoaded!==catalogId) || draftDecidedFor !== draftKey || automaticallyLoaded.current === loadKey) return;
+    if (!requestedUrl || (catalogContextKey && linkCatalog?.key !== catalogContextKey) || draftDecidedFor !== draftKey || automaticallyLoaded.current === loadKey) return;
     setAutoLoadStarted(loadKey);
     // A catalog card shown from its stored data is not asked again on opening; an earlier choice from this device is
     // applied to its options at once (the effect above, on a finished "load").
@@ -1132,7 +1139,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
     void load(requestedUrl);
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedUrl, catalogId, catalogContextLoaded, draftDecidedFor, draftKey, seedReady, datedCatalog]);
+  }, [requestedUrl, catalogContextKey, linkCatalog?.key, draftDecidedFor, draftKey, seedReady, datedCatalog]);
   // The options the customer chose, with quantities: from the option buttons, or the typed option.
   const picks: [string, number][] = variants.length
     ? Object.entries(picked).filter(([label]) => variants.some(item => item.label === label))

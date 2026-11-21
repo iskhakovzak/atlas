@@ -16,7 +16,7 @@ import {mergeSiteContent,type SiteContentView} from './site-content-schema';
 import {withCyrillic,htmlLang} from './uz-cyrl.ts';
 /** "operator" = full admin access. "role" and "permissions" come from the staff directory for other staff (lib/market/access.ts). */
 export type AccountUser={name:string;email:string;contact?:string;method?:'email'|'phone'|'telegram'|'google'|'apple';operator:boolean;role?:string;permissions?:string[];createdAt:number};
-type Store={/** The request carried a session cookie (unverified): the header and private pages show their signed-in shape while the account loads. Display only — the server checks everything. */sessionHint:boolean;catalogProducts:MerchantFind[];/** The public catalog request finished (with or without data). */catalogReady:boolean;collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:(force?:boolean)=>Promise<void>;/** Internal (<CatalogSeed>): the server catalog this provider has taken over, and how it takes one over. */catalogSeed:CatalogSeedValue|null;adoptCatalog:(seed:CatalogSeedValue)=>void;state:State;pricing:Pricing;policy:Policy;/** Contacts, legal entity, payment methods, reviews, parcel photos: the admin document merged with the code defaults (server-rendered, no flicker). */siteContent:SiteContentView;/** The admin form replaces the document after a successful save so the footer updates without a reload. */setSiteContent:(next:SiteContentView)=>void;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;/** `queue`: wait for the action in flight instead of being dropped (cart checkboxes and services clicked in a row). */act:(action:Action,options?:{queue?:boolean})=>Promise<boolean>;/** Why the last refused action was refused (server error code and text), until the next success. */lastActionError:()=>{code?:string;message?:string}|null;refresh:()=>Promise<void>};
+type Store={/** The request carried a session cookie (unverified): the header and private pages show their signed-in shape while the account loads. Display only — the server checks everything. */sessionHint:boolean;catalogProducts:MerchantFind[];/** The public catalog request finished (with or without data). */catalogReady:boolean;collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:(force?:boolean)=>Promise<void>;applyPublicPricing:(value:unknown)=>void;/** Internal (<CatalogSeed>): the server catalog this provider has taken over, and how it takes one over. */catalogSeed:CatalogSeedValue|null;adoptCatalog:(seed:CatalogSeedValue)=>void;state:State;pricing:Pricing;policy:Policy;/** Contacts, legal entity, payment methods, reviews, parcel photos: the admin document merged with the code defaults (server-rendered, no flicker). */siteContent:SiteContentView;/** The admin form replaces the document after a successful save so the footer updates without a reload. */setSiteContent:(next:SiteContentView)=>void;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;/** `queue`: wait for the action in flight instead of being dropped (cart checkboxes and services clicked in a row). */act:(action:Action,options?:{queue?:boolean})=>Promise<boolean>;/** Why the last refused action was refused (server error code and text), until the next success. */lastActionError:()=>{code?:string;message?:string}|null;refresh:()=>Promise<void>};
 const Context=createContext<Store|null>(null);
 /** The catalog a server page rendered with (lib/market/catalog-seed.ts), for the components under its <CatalogSeed>. */
 const CatalogSeedContext=createContext<CatalogSeedValue|null>(null);
@@ -45,6 +45,10 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
  const serverState=useRef<State|null>(null),pending=useRef<{action:OptimisticAction}[]>([]),pricingRef=useRef<Pricing>(initialPricing??tariff);
  useEffect(()=>{pricingRef.current=pricing},[pricing]);
  const showServer=useCallback((server:State)=>{serverState.current=server;setState(pending.current.length?withPending(server,pending.current.map(item=>item.action),pricingRef.current):server)},[]);
+ const applyPublicPricing=useCallback((value:unknown)=>{
+  const publicPricing=pricingSchema.safeParse(value);
+  if(publicPricing.success)setPricing(previous=>nextPricing(previous,publicPricing.data));
+ },[]);
  const loadCatalog=useCallback((force=false)=>{
   if(force)catalogLoaded.current=false;
   if(catalogLoaded.current)return Promise.resolve();
@@ -61,14 +65,13 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
     setCatalogProducts(data.products);
     setCatalogError('');
     setCollections(data.collections);
-    const publicPricing=pricingSchema.safeParse(data.pricing);
-    if(publicPricing.success)setPricing(previous=>nextPricing(previous,publicPricing.data));
+    applyPublicPricing(data.pricing);
    }catch{setCatalogError(marketMessages[localeRef.current].catalogLoad)}
    finally{catalogRequest.current=null;setCatalogReady(true)}
   })();
   catalogRequest.current=request;
   return request;
- },[]);
+ },[applyPublicPricing]);
  // A page rendered with the server catalog (<CatalogSeed>) hands it over once hydrated: the same data the request would have brought.
  const adoptCatalog=useCallback((seed:CatalogSeedValue)=>{
   catalogLoaded.current=true;
@@ -204,7 +207,7 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
   try{const href=explicitLanguageReplacement(window.location.href,next);if(href)window.history.replaceState(window.history.state,'',href)}catch{/* language preference still applies when history is unavailable */}
  },[]);
  // One object per change, not per render: the ~70 screens that call useMarket() re-render only when something they read changed.
- const value=useMemo(()=>({sessionHint,catalogProducts,catalogReady,collections,catalogError,loadCatalog,catalogSeed,adoptCatalog,state,pricing,policy,siteContent,setSiteContent,ready,status,error,user,setLocale,act,lastActionError,refresh}),[sessionHint,catalogProducts,catalogReady,collections,catalogError,loadCatalog,catalogSeed,adoptCatalog,state,pricing,policy,siteContent,setSiteContent,ready,status,error,user,setLocale,act,lastActionError,refresh]);
+ const value=useMemo(()=>({sessionHint,catalogProducts,catalogReady,collections,catalogError,loadCatalog,applyPublicPricing,catalogSeed,adoptCatalog,state,pricing,policy,siteContent,setSiteContent,ready,status,error,user,setLocale,act,lastActionError,refresh}),[sessionHint,catalogProducts,catalogReady,collections,catalogError,loadCatalog,applyPublicPricing,catalogSeed,adoptCatalog,state,pricing,policy,siteContent,setSiteContent,ready,status,error,user,setLocale,act,lastActionError,refresh]);
  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 /**

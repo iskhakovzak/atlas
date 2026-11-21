@@ -14,6 +14,7 @@ import {catalogMerchantRequest as merchantRequest} from '@/lib/importer/worker-f
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 import {publicCatalogCache} from '@/lib/market/catalog-list';
 import {loadPublicCatalogList} from '@/lib/market/public-catalog-server';
+import {homeCatalogPreview} from '@/lib/market/catalog-teaser';
 
 const ids=z.array(z.string().min(1).max(100)).min(1).max(100);
 /** Links per pasted batch; every link in it is read from its store at the same time. */
@@ -35,7 +36,8 @@ const commandSchema=z.discriminatedUnion('kind',[
   z.object({kind:z.literal('collection'),collection:collectionSchema}),
 ]);
 export async function GET(request:Request){try{
-  const admin=new URL(request.url).searchParams.get('admin')==='1';
+  const params=new URL(request.url).searchParams;
+  const admin=params.get('admin')==='1';
   if(admin){
     const user=await identity();
     await requirePermission(user,'catalog.manage');
@@ -46,6 +48,10 @@ export async function GET(request:Request){try{
       readStoreHealth(),
     ]);
     return json({document,saleJob,batchJob,catalogFormat:'chunks-v2',storeHealth});
+  }
+  if(params.get('view')==='home'){
+    const {products,pricing}=await loadPublicCatalogList();
+    return Response.json(homeCatalogPreview(products,pricing),{headers:{'Cache-Control':publicCatalogCache}});
   }
   // The public list is the same for every visitor (no session is read, nothing personal in it) and leaves the options,
   // galleries and descriptions to GET /api/catalog/<id> (lib/market/catalog-list.ts): browsers keep it a minute and
