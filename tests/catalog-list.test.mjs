@@ -94,11 +94,11 @@ test('the public list of the real catalog: every product listed, collections kep
 test('GET /api/catalog: the public list is cached a minute; the operator view and errors are not', () => {
   assert.equal(publicCatalogCache, 'public, max-age=60, stale-while-revalidate=600');
   const route = source('app/api/catalog/route.ts');
-  assert.match(route, /if\(admin\)return json\(\{document,saleJob,batchJob,catalogFormat:'chunks-v2',storeHealth:await readStoreHealth\(\)\}\);/);
-  assert.match(route, /return Response\.json\(\{\.\.\.publicCatalogList\(publicCatalog\(document,currentPricing\)\),pricing:withoutAuthor\(currentPricing\)\},\{headers:\{'Cache-Control':publicCatalogCache\}\}\);/);
+  assert.match(route, /return json\(\{document,saleJob,batchJob,catalogFormat:'chunks-v2',storeHealth\}\);/);
+  assert.match(route, /return Response\.json\(await loadPublicCatalogList\(\),\{headers:\{'Cache-Control':publicCatalogCache\}\}\);/);
   // The public answer reads no session: nothing in it belongs to one visitor.
   const publicPart = route.slice(route.indexOf('export async function GET'), route.indexOf('export async function POST'));
-  assert.match(publicPart, /if\(admin\)\{const user=await identity\(\);/);
+  assert.match(publicPart, /if\(admin\)\{\s*const user=await identity\(\);\s*await requirePermission\(user,'catalog.manage'\);/);
   assert.equal(publicPart.match(/identity\(\)/g).length, 1, 'only the operator branch asks who is there');
   // The middleware leaves API routes alone, so it cannot replace the header.
   assert.match(source('middleware.ts'), /matcher: \["\/\(\(\?!api\/\|_next\/\|\.\*\\\\\.\[a-zA-Z0-9\]\+\$\)\.\*\)"\]/);
@@ -112,15 +112,11 @@ test('GET /api/catalog/<id>: one published product in full, cached like the list
   assert.match(route, /if\(!found\)throw new HttpError\(404,'Товар каталога не найден\.'\);/);
   assert.match(route, /return Response\.json\(\{product:found\.product\},\{headers:\{'Cache-Control':publicCatalogCache\}\}\);/);
   assert.match(route, /catch\(error\)\{return failure\(error,request\)\}/);
-  // The product page and the endpoint read the same full card; the sitemap reads the full catalog too.
-  assert.match(source('lib/market/initial-data.ts'), /byId:new Map\(publicCatalog\(document,pricing,now\)\.products\.map\(item=>\[item\.id,item\]\)\)/);
-  // Priced once per catalog revision and tariff, for at most half a minute.
-  assert.match(source('lib/market/initial-data.ts'), /productMemo\.key!==key\|\|now-productMemo\.at>productMemoMs/);
-  // The pages' list (first page, seeds, store pages) is the same list the API serves.
+  // The product page and endpoint both read the full projection. The list uses the compact projection.
   const data = source('lib/market/initial-data.ts');
-  assert.match(data, /const \{products,collections\}=publicCatalogList\(publicCatalog\(document,pricing\)\);/);
-  assert.match(data, /const catalog=publicCatalogList\(publicCatalog\(document,pricing\)\);/);
-  assert.match(source('lib/market/catalog-seed.ts'), /publicCatalogList\(publicCatalog\(document,pricing,now\)\)/);
+  assert.match(data, /const product=catalog\.product\(id\);/);
+  assert.match(data, /const \{products,collections,pricing\}=await loadPublicCatalogList\(\);/);
+  assert.match(source('app/catalog/p/[id]/page.tsx'), /publicCatalogProduct\(id\)/);
 });
 
 test('the sheet and ?catalog= links load the full product once, and a failed load is asked again', async () => {

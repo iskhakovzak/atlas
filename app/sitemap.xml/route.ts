@@ -9,9 +9,8 @@ import { storeBrands } from '@/lib/market/store-brands';
 
 async function catalogPages(): Promise<SitemapEntry[]> {
   if (!seoRoutes.productPages && !seoRoutes.storePages) return [];
-  const [{ readCatalog }, { publicCatalog }, { pricing }] = await Promise.all([import('@/lib/market/catalog-server'), import('@/lib/market/catalog-editor'), import('@/lib/market/server')]);
-  const [{ document }, currentPricing] = await Promise.all([readCatalog(), pricing()]);
-  const products = publicCatalog(document, currentPricing).products;
+  const { loadPublicCatalogList } = await import('@/lib/market/public-catalog-server');
+  const { products } = await loadPublicCatalogList({backfill:false});
   const counts = catalogCountsBySlug(products);
   // Only the store pages that are indexed (lib/market/store-pages.ts): the others answer `noindex` and stay out.
   const stores = seoRoutes.storePages ? storeBrands.filter((brand) => storePageIndexable(brand, counts.get(brand.key) ?? 0)).map((brand) => ({ slug: brand.key })) : [];

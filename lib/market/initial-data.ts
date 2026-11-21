@@ -1,11 +1,9 @@
-import {database,pricing as currentPricing} from './server.ts';
-import {readCatalog} from './catalog-server.ts';
-import {catalogSeed,storeCatalogSeed,type CatalogSeedValue} from './catalog-seed.ts';
+import {database} from './server.ts';
+import {catalogSeedFromList,storeCatalogSeed,type CatalogSeedValue} from './catalog-seed.ts';
 import {catalogFirstPage} from './catalog-first-page.ts';
 import type {CatalogItem,CatalogQuery} from './catalog-query.ts';
 import type {Locale} from './i18n.ts';
-import {publicCatalog} from './catalog-editor.ts';
-import {publicCatalogList} from './catalog-list.ts';
+import {loadPublicCatalog,loadPublicCatalogList} from './public-catalog-server';
 import {catalogCountsBySlug,productStoreSlug,storeProductIds} from './store-pages.ts';
 import type {MerchantFind} from './catalog.ts';
 import type {Pricing} from './domain.ts';
@@ -59,8 +57,8 @@ export async function initialSettings():Promise<{pricing:Pricing|null;siteConten
  */
 export async function initialPublicCatalog():Promise<CatalogSeedValue|null>{
  try{
-  const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
-  return catalogSeed(document,pricing);
+  const {catalog,pricing}=await loadPublicCatalog();
+  return catalogSeedFromList(catalog.list(),pricing);
  }catch{return null}
 }
 
@@ -73,9 +71,7 @@ export async function initialPublicCatalog():Promise<CatalogSeedValue|null>{
 export async function initialCatalogFirstPage(query:CatalogQuery,locale:Locale):Promise<CatalogItem[]|null>{
  if(query.page!==1)return null;
  try{
-  const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
-  // The list the browser then loads (GET /api/catalog), so its cards take these over unchanged.
-  const {products,collections}=publicCatalogList(publicCatalog(document,pricing));
+  const {products,collections,pricing}=await loadPublicCatalogList();
   return catalogFirstPage(products,collections,pricing,query,locale);
  }catch{return null}
 }
@@ -85,19 +81,10 @@ export async function initialCatalogFirstPage(query:CatalogQuery,locale:Locale):
  * tariff the page prices it with. Null when no published card has this id (the page answers 404). A database failure
  * is thrown, not turned into a 404: a product page must not drop out of search because one read failed.
  */
-/**
- * Every sheet opened asks for one product (GET /api/catalog/<id>), and pricing the whole catalog for it costs as much as
- * the list. The priced products are kept per process for half a minute and only while the catalog revision and the tariff
- * are the ones they were priced with, so an edit or a new rate is seen on the next request (3 November 2026).
- */
-const productMemoMs=30_000;
-let productMemo:{key:string;at:number;byId:Map<string,MerchantFind>}|null=null;
 export async function publicCatalogProduct(id:string,now=Date.now()):Promise<{product:MerchantFind;pricing:Pricing}|null>{
- const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
- const key=`${document.revision}:${JSON.stringify(pricing)}`;
- if(!productMemo||productMemo.key!==key||now-productMemo.at>productMemoMs)productMemo={key,at:now,byId:new Map(publicCatalog(document,pricing,now).products.map(item=>[item.id,item]))};
- const product=productMemo.byId.get(id);
- return product?{product,pricing:withoutAuthor(pricing)}:null;
+ const {catalog,pricing}=await loadPublicCatalog({now});
+ const product=catalog.product(id);
+ return product?{product,pricing}:null;
 }
 
 /**
@@ -109,8 +96,8 @@ export async function publicCatalogProduct(id:string,now=Date.now()):Promise<{pr
  */
 export async function storeCatalog(slug:string):Promise<{seed:CatalogSeedValue|null;counts:Map<string,number>|null;productIds:string[];pricing:Pricing|null}>{
  try{
-  const [{document},pricing]=await Promise.all([readCatalog({backfill:true}),currentPricing()]);
-  const catalog=publicCatalogList(publicCatalog(document,pricing));
-  return {seed:storeCatalogSeed(catalog,pricing,slug,productStoreSlug),counts:catalogCountsBySlug(catalog.products),productIds:storeProductIds(catalog.products,slug),pricing:withoutAuthor(pricing)};
+  const {catalog,pricing}=await loadPublicCatalog();
+  const list=catalog.list();
+  return {seed:storeCatalogSeed(list,pricing,slug,productStoreSlug),counts:catalogCountsBySlug(list.products),productIds:storeProductIds(list.products,slug),pricing};
  }catch{return {seed:null,counts:null,productIds:[],pricing:null}}
 }

@@ -1,4 +1,5 @@
 import {ManualEntryFallbackError} from './fetch.ts';
+import {EbayListingUnavailableError} from './ebay.ts';
 import type {Extracted} from './extract.ts';
 
 export type ImportOutcome = {ok: true; data: Extracted} | {ok: false; error: unknown};
@@ -16,8 +17,8 @@ export const freshRetryGapMs = 15_000;
  * Per-isolate bookkeeping for /api/import, keyed by the canonical product URL.
  * - In flight: a second request for a URL that is being fetched waits for that answer instead of asking the store
  *   again. It waits at most until the first request is `followerWaitMs` old (a Worker may cancel the first request
- *   with its client), then fetches itself and is the one later requests wait for. Only a store answer is shared (the product, or a ManualEntryFallbackError); a timeout or a network error
- *   of the first request is not, the follower then asks on its own.
+ *   with its client), then fetches itself and is the one later requests wait for. A known store answer is shared
+ *   (including an unavailable eBay listing). A timeout or network error lets the follower ask on its own.
  * - Negative: a store that answered with a wall or an incomplete page is not asked again for `negativeTtlMs`
  *   (`recentFailure(key, withinMs)` lets a fresh import through sooner, see freshRetryGapMs).
  * Nothing here is shared between isolates or persisted; D1 keeps the positive cache.
@@ -28,7 +29,11 @@ export function createImportFlights({followerWaitMs = 26_000, negativeTtlMs = 90
   const inFlight = new Map<string, {promise: Promise<ImportOutcome>; started: number}>();
   const negative = new Map<string, {at: number; until: number; error: ManualEntryFallbackError}>();
   const remember = (key: string, outcome: ImportOutcome) => {
-    if (outcome.ok || !(outcome.error instanceof ManualEntryFallbackError) || !negativeReasons.has(outcome.error.reason ?? '')) return;
+    if (outcome.ok) {
+      negative.delete(key);
+      return;
+    }
+    if (!(outcome.error instanceof ManualEntryFallbackError) || !negativeReasons.has(outcome.error.reason ?? '')) return;
     if (negative.size >= maxNegative) {
       const now = clock();
       for (const [stored, entry] of negative) if (entry.until <= now) negative.delete(stored);
@@ -48,7 +53,7 @@ export function createImportFlights({followerWaitMs = 26_000, negativeTtlMs = 90
     inFlight.set(key, entry);
     try {
       const outcome = await entry.promise;
-      remember(key, outcome);
+      if (inFlight.get(key) === entry) remember(key, outcome);
       return {outcome, leader: true};
     } finally {
       if (inFlight.get(key) === entry) inFlight.delete(key);
@@ -77,7 +82,7 @@ export function createImportFlights({followerWaitMs = 26_000, negativeTtlMs = 90
         let timer: number | undefined;
         const waited = await Promise.race([running.promise, new Promise<undefined>(resolve => { timer = setTimeout(resolve, waitMs) as unknown as number; })]);
         clearTimeout(timer);
-        if (waited && (waited.ok || waited.error instanceof ManualEntryFallbackError && !['timeout', 'network'].includes(waited.error.reason))) return {outcome: waited, leader: false};
+        if (waited && (waited.ok || waited.error instanceof EbayListingUnavailableError || waited.error instanceof ManualEntryFallbackError && !['timeout', 'network'].includes(waited.error.reason))) return {outcome: waited, leader: false};
       }
       return lead(key, load);
     },

@@ -4,15 +4,18 @@ import type {Product} from './domain';
 import type {Extracted} from '../importer/extract';
 import {prepareCatalogStorage,decodeCatalogStorage,catalogStorageChunkKeys,CatalogCapacityError} from './catalog-storage';
 
-// The last catalog this isolate read, keyed by the stored head. Chunk generations are immutable and a changed catalog
-// gets a new head, so the same head means the same document: no chunk reads and no schema check again. Callers get a
-// copy, since some of them edit the document before saving it.
-let lastRead:{head:string;document:CatalogDocument}|undefined;
-export async function readStoredCatalogDocument(value:string,db=database()){
-  if(lastRead?.head===value)return structuredClone(lastRead.document);
+// A catalog generation is immutable. Share the parsed snapshot for public reads and clone it for writers.
+type StoredCatalog={db:ReturnType<typeof database>;head:string;document:CatalogDocument;synchronized:boolean};
+let lastRead:StoredCatalog|undefined;
+async function storedCatalog(value:string,db:ReturnType<typeof database>){
+  if(lastRead?.db===db&&lastRead.head===value)return lastRead;
   const document=await readCatalogChunks(value,db);
-  lastRead={head:value,document};
-  return structuredClone(document);
+  const loaded={db,head:value,document,synchronized:false};
+  lastRead=loaded;
+  return loaded;
+}
+export async function readStoredCatalogDocument(value:string,db=database()){
+  return structuredClone((await storedCatalog(value,db)).document);
 }
 async function readCatalogChunks(value:string,db:ReturnType<typeof database>){
   const keys=catalogStorageChunkKeys(value),chunks=new Map<string,string>();
@@ -60,6 +63,12 @@ async function writeCatalog(next:CatalogDocument,previous:string|null,user:{user
 
 /** `backfill` only from read-only paths: a background facet write would make a concurrent editor's CAS fail. */
 export async function readCatalog(options?:{backfill?:boolean}){
+  const {raw,document}=await readCatalogSnapshot(options);
+  return {raw,document:structuredClone(document)};
+}
+
+/** Internal snapshot for public projections. Callers that edit a catalog need readCatalog instead. */
+export async function readCatalogSnapshot(options?:{backfill?:boolean}):Promise<{raw:string|null;document:Readonly<CatalogDocument>}>{
   const result=await readCatalogOnce();
   if(options?.backfill)scheduleCatalogFacetBackfill(result.document);
   return result;
@@ -68,15 +77,23 @@ async function readCatalogOnce(){
   const db=database();
   for(let attempt=0;attempt<2;attempt++){
     const row=await db.prepare("SELECT value FROM market_settings WHERE key='catalog'").first<{value:string}>();
-    const current=row?await readStoredCatalogDocument(row.value,db):initialCatalog();
+    const stored=row?await storedCatalog(row.value,db):undefined;
+    const current=stored?.document??initialCatalog();
+    if(stored&&(stored.synchronized||current.bundledSyncDisabled))return {raw:stored.head,document:current};
     const synced=synchronizeBundledCatalog(current);
-    if(row&&!synced.added&&!synced.updated)return {raw:row.value,document:synced.document};
+    if(stored&&!synced.added&&!synced.updated){
+      stored.synchronized=true;
+      return {raw:stored.head,document:current};
+    }
     const result=await writeCatalog(synced.document,row?.value??null,{userId:'atlas.catalog.sync',email:''});
-    if(result.changed)return {raw:result.value,document:synced.document};
+    if(result.changed){
+      lastRead={db,head:result.value,document:synced.document,synchronized:true};
+      return {raw:result.value,document:synced.document};
+    }
   }
   const row=await db.prepare("SELECT value FROM market_settings WHERE key='catalog'").first<{value:string}>();
   if(!row)return {raw:null,document:initialCatalog()};
-  return {raw:row.value,document:await readStoredCatalogDocument(row.value,db)};
+  return {raw:row.value,document:(await storedCatalog(row.value,db)).document};
 }
 // ---------- Facet backfill ----------
 // Cards published before filter facets existed (or derived by an older rule set) get them in the background, a bounded
@@ -111,7 +128,7 @@ export async function backfillCatalogFacets(now=Date.now()){
       }}));
     }
     for(let attempt=0;attempt<3;attempt++){
-      const latest=await readCatalogOnce();
+      const latest=await readCatalog();
       const changed=applyCatalogFacetBackfill(latest.document,[...plan.offline,...plan.network],store);
       if(!changed)return {changed:0,read:store.size};
       try{await persistCatalog(latest.document,latest.raw,facetBackfillActor,'catalog.facets.backfill',{changed,read:store.size});return {changed,read:store.size}}
