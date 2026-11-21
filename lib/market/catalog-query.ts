@@ -251,8 +251,14 @@ export type CatalogItem = Omit<ReturnType<typeof dealQuote>, 'product'> & {
  * store discount: by default the products themselves, so an imported snapshot's discount shows too.
  */
 export function catalogItems(products: MerchantFind[], pricing: Pricing, records: MerchantFind[] = products): CatalogItem[] {
+  const recordsById = new Map<string, MerchantFind[]>();
+  for (const record of records) {
+    const matches = recordsById.get(record.id);
+    if (matches) matches.push(record);
+    else recordsById.set(record.id, [record]);
+  }
   const items: CatalogItem[] = products.map((product) => {
-    const deal = dealQuote(product, pricing, records);
+    const deal = dealQuote(product, pricing, recordsById.get(product.id) ?? []);
     const usd = deal.costs ? deal.costs.merchandise / pricing.fx : undefined;
     const addedAt = product.addedAt ?? (Date.parse(product.observedOn ?? '') || 0);
     const checkedAt = product.sourceCheckedAt ?? (Date.parse(product.observedOn ?? '') || 0);

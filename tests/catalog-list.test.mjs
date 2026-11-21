@@ -144,5 +144,8 @@ test('the sheet and ?catalog= links load the full product once, and a failed loa
   } finally { globalThis.fetch = realFetch; }
   const link = source('app/global-link-order.tsx');
   assert.match(link, /catalogLinkSeed\(linkCatalogFull\?\.id === catalogId \? \[linkCatalogFull\] : catalogProducts, catalogId, requestedUrl, link\)/);
-  assert.match(link, /void Promise\.all\(\[loadCatalog\(\),full\]\)\.finally/);
+  assert.match(link, /const catalogContextKey = !catalogMode && catalogId && requestedUrl \? autoLoadKey : ""/);
+  assert.match(link, /if \(!catalogContextKey\) return;[\s\S]+?try \{ full = await loadCatalogProduct\(catalogId\); \}\s*catch \{[\s\S]+?if \(active\) await loadCatalog\(\);/);
+  assert.equal(link.match(/\bloadCatalog\(\)/g)?.length, 1, 'the list is fetched only as the detail failure fallback');
+  assert.match(link, /catalogContextKey && linkCatalog\?\.key !== catalogContextKey/);
 });

@@ -7,8 +7,9 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import type { Product } from '@/lib/market/domain';
 import { useMarket } from '@/lib/market/store';
 import { catalogCopy } from '@/lib/market/catalog-copy';
-import { applyCatalogQuery, catalogItems, emptyCatalogQuery } from '@/lib/market/catalog-query';
-import { courierAllowanceUsd } from '@/lib/market/customs';
+import { catalogItems } from '@/lib/market/catalog-query';
+import { homeCatalogTeaserSize } from '@/lib/market/catalog-summary';
+import { rankedHomeCatalog, type HomeCatalogPreview } from '@/lib/market/catalog-teaser';
 import type { Locale } from '@/lib/market/i18n';
 import { CatalogCard } from './catalog-card';
 import { preloadProductSheet } from './product-sheet-lazy';
@@ -24,12 +25,15 @@ const countFrom = 12;
  * is the storefront's: the operator's position, then a confirmed price, then the larger discount. Phones swipe the row;
  * wider screens also get ‹ › buttons when it overflows.
  */
-export function CatalogTeaser({ select }: { select: (product: Product) => void }) {
+export function CatalogTeaser({ select, preview }: { select: (product: Product) => void; preview: HomeCatalogPreview | null }) {
   const { state, pricing, ready, act, catalogProducts } = useMarket();
   const locale = state.communication.language as Locale, cc = catalogCopy[locale];
   const [saving] = useState<string | null>(null);
-  const items = useMemo(() => applyCatalogQuery(catalogItems(catalogProducts, pricing), emptyCatalogQuery, { dutyLimitUsd: courierAllowanceUsd }), [catalogProducts, pricing]);
-  const shown = items.slice(0, 8);
+  const { shown, total } = useMemo(() => {
+    if (preview) return { shown: catalogItems(preview.products, pricing), total: preview.total };
+    const items = rankedHomeCatalog(catalogProducts, pricing);
+    return { shown: items.slice(0, homeCatalogTeaserSize), total: items.length };
+  }, [catalogProducts, pricing, preview]);
   const trackId = useId();
   const track = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: true, scrolls: false });
@@ -64,7 +68,7 @@ export function CatalogTeaser({ select }: { select: (product: Product) => void }
     <div className="home-rail-head">
       <div><h2 id="finds-title">{cc.teaserTitle}</h2><p>{cc.teaserIntro}</p></div>
       {edges.scrolls && <span className="home-rail-pager"><button type="button" className="icon-btn" aria-label={cc.teaserPrev} aria-controls={trackId} disabled={edges.start} onClick={() => page(-1)}><ChevronLeft size={20} aria-hidden="true" /></button><button type="button" className="icon-btn" aria-label={cc.teaserNext} aria-controls={trackId} disabled={edges.end} onClick={() => page(1)}><ChevronRight size={20} aria-hidden="true" /></button></span>}
-      <Link className="home-rail-all" href="/catalog">{items.length >= countFrom ? cc.viewAll(items.length) : cc.viewAllShort}<ArrowRight size={16} aria-hidden="true" /></Link>
+      <Link className="home-rail-all" href="/catalog">{total >= countFrom ? cc.viewAll(total) : cc.viewAllShort}<ArrowRight size={16} aria-hidden="true" /></Link>
     </div>
     <div className="home-rail-track" id={trackId} ref={track} onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>{shown.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select} variant="compact" saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)} />)}</div>
   </section></TooltipProvider>;

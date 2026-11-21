@@ -1,5 +1,7 @@
 'use client';
 import {lazy,Suspense,useEffect,useRef,useState} from 'react';
+import {homeCatalogTeaserSize} from '@/lib/market/catalog-summary';
+import type {HomeCatalogPreview} from '@/lib/market/catalog-teaser';
 import type {Product} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
 import {DeliveryTariffs,HomeExample,HomeFaq,HomeHero,HowItWorks,TrustSection} from './home-sections';
@@ -29,10 +31,32 @@ const anchors=new Set(['how','tariffs','trust','faq','bill','example']);
 // it on wide screens, and a rail of real catalog products with their sums in soum. Then how it works (3 steps), rates in
 // short, money and guarantees (3 cards) and five questions. The atmosphere stays behind the first screen only.
 export function HomeCatalog(){
- const {catalogProducts,catalogReady,loadCatalog}=useMarket();
- useEffect(()=>{void loadCatalog()},[loadCatalog]);
+ const {catalogProducts,catalogReady,catalogError,loadCatalog,applyPublicPricing}=useMarket();
+ const [preview,setPreview]=useState<HomeCatalogPreview|null>(null);
+ const fullReady=catalogReady&&!catalogError;
+ useEffect(()=>{
+  if(fullReady)return;
+  const controller=new AbortController();
+  async function loadPreview(){
+   try{
+    const response=await fetch('/api/catalog?view=home',{signal:controller.signal});
+    if(!response.ok)throw Error('Home catalog load failed');
+    const data=await response.json() as HomeCatalogPreview;
+    if(!Array.isArray(data.products)||!Number.isSafeInteger(data.total)||data.total<0||data.products.length!==Math.min(data.total,homeCatalogTeaserSize))throw Error('Home catalog response is invalid');
+    if(controller.signal.aborted)return;
+    applyPublicPricing(data.pricing);
+    setPreview(data);
+   }catch{
+    if(!controller.signal.aborted)void loadCatalog();
+   }
+  }
+  void loadPreview();
+  return ()=>controller.abort();
+ },[fullReady,loadCatalog,applyPublicPricing]);
  const [selected,setSelected]=useState<Product|null>(null);
- const showTeaser=catalogReady&&catalogProducts.length>=teaserMinimum;
+ const previewForRail=fullReady?null:preview;
+ const railReady=catalogReady||previewForRail!==null;
+ const showTeaser=railReady&&(previewForRail?.total??catalogProducts.length)>=teaserMinimum;
  // The rail's chunk has arrived (or no rail comes), so the sections below it are in their final place.
  const [teaserLoaded,setTeaserLoaded]=useState(false);
  useEffect(()=>{if(!showTeaser)return;let live=true;void loadTeaser().then(()=>{if(live)setTeaserLoaded(true)},()=>{if(live)setTeaserLoaded(true)});return ()=>{live=false}},[showTeaser]);
@@ -40,18 +64,19 @@ export function HomeCatalog(){
  // section named in the address once, without animation.
  const rescrolled=useRef(false);
  useEffect(()=>{
-  if(rescrolled.current||!catalogReady||(showTeaser&&!teaserLoaded))return;
+  if(rescrolled.current||!railReady||(showTeaser&&!teaserLoaded))return;
   rescrolled.current=true;
-  const id=decodeURIComponent(window.location.hash.slice(1));
+  let id:string;
+  try{id=decodeURIComponent(window.location.hash.slice(1))}catch{return}
   if(!anchors.has(id))return;
   const frame=requestAnimationFrame(()=>document.getElementById(id)?.scrollIntoView({block:'start',behavior:'instant'}));
   return ()=>cancelAnimationFrame(frame);
- },[catalogReady,showTeaser,teaserLoaded]);
+ },[railReady,showTeaser,teaserLoaded]);
  return <>
   <div className="home-top">
    <HomeHero/>
    {/* No products (an empty catalog) — no rail and no gap. */}
-   {!catalogReady?<RailSkeleton/>:showTeaser&&<Suspense fallback={<RailSkeleton/>}><CatalogTeaser select={setSelected}/></Suspense>}
+   {!railReady?<RailSkeleton/>:showTeaser&&<Suspense fallback={<RailSkeleton/>}><CatalogTeaser select={setSelected} preview={previewForRail}/></Suspense>}
    <HomeExample/>
   </div>
   <HowItWorks/><DeliveryTariffs/><TrustSection/><HomeFaq/>
