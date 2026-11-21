@@ -1,4 +1,4 @@
-import { normalizePromoCode, promoErrors, type PromoInput, type PromoKind, type PromoRule } from './promo.ts';
+import { normalizePromoCode, promoErrors, promoProblem, type PromoInput, type PromoKind, type PromoRule } from './promo.ts';
 
 /**
  * Promo codes in D1 (migration 0017): `market_promo_codes` holds the codes with their use count, and
@@ -86,76 +86,57 @@ export async function returnPromoUses(db: PromoDb, userId: string, batchIds: str
   return returned;
 }
 
-/**
- * Counts one use, only while the code is on, inside its dates and under its cap: one statement, so two customers
- * placing the last allowed order at the same moment cannot both get it. False when it may not be used.
- */
-export async function reservePromo(db: PromoDb, id: string, now = Date.now()): Promise<boolean> {
-  const result = await db.prepare('UPDATE market_promo_codes SET uses=uses+1, updated_at=? WHERE id=? AND active=1 AND (starts_at IS NULL OR starts_at<=?) AND (ends_at IS NULL OR ends_at>?) AND (max_uses IS NULL OR uses<max_uses)').bind(now, id, now, now).run();
-  return result.meta.changes === 1;
-}
+/** The server's promo calculation and the orders it applies to. */
+export type PromoUse = {
+  rule: Pick<PromoRule, 'id' | 'code' | 'kind' | 'value' | 'minOrder' | 'oncePerCustomer'>;
+  userId: string;
+  batchId: string;
+  orderIds: string[];
+  discount: number;
+};
 
-/** Gives back a use counted for an order that was then not saved (the account changed meanwhile, a write failed). */
-export async function releasePromo(db: PromoDb, id: string): Promise<void> {
-  await db.prepare('UPDATE market_promo_codes SET uses=uses-1 WHERE id=? AND uses>0').bind(id).run();
-}
-
-/** The checkout that used the code (one row per checkout key; repeating it changes nothing). */
-export async function recordRedemption(db: PromoDb, value: { codeId: string; code: string; userId: string; batchId: string; orderIds: string[]; discount: number }, now = Date.now()): Promise<void> {
-  await db.prepare('INSERT OR IGNORE INTO market_promo_redemptions (id,code_id,code,user_id,batch_id,order_ids,discount,created_at) VALUES (?,?,?,?,?,?,?,?)')
-    .bind('RED-' + crypto.randomUUID().slice(0, 8).toUpperCase(), value.codeId, value.code, value.userId, value.batchId, JSON.stringify(value.orderIds.slice(0, 50)), value.discount, now).run();
-}
-
-/** One checkout that uses a code: who, which checkout key (the batch), its orders and the discount they carry;
- *  `oncePerCustomer` when the code works once per customer account (checked again inside the counting statement). */
-export type PromoUse = { codeId: string; code: string; userId: string; batchId: string; orderIds: string[]; discount: number; oncePerCustomer?: boolean };
+/** A validated canonical account document; the caller retains parsing and post-save side effects. */
+export type PromoAccountCommit = { userId: string; revision: number; serialized: string };
 
 /**
- * Places a checkout that uses a code (POST /api/actions): the use is counted and its record written in one transaction
- * before the orders are saved, and both are taken back when the save fails (a stale revision, a failed write), so the
- * admin's «Скидок выдано» and the use count always agree with the orders the books see.
- * - The record goes first (INSERT OR IGNORE, one per checkout key); the count rises only when that row is this call's new
- *   one and the code is still on, in its dates and under its cap; otherwise the new row is removed again. A collision
- *   with an existing reservation returns a revision conflict without saving: its creator alone owns the count and
- *   rollback. A completed checkout is detected by the route's canonical checkoutKeys and passes no new use here.
- * - «Один раз на покупателя»: the count also needs no other unreturned record of this account for the code, in the same
- *   statement, so two checkouts of one customer paying at once cannot both take it.
- * - `usedUp`: the code could not be counted and nothing was saved; `code` says why — this customer already used it
- *   (err_96) or it is used up, switched off or out of its dates (err_89).
+ * Commit the account revision, code count and redemption in one database transaction. Each following statement
+ * runs only if its predecessor wrote a row. The account write checks current eligibility and the terms used for
+ * the calculation, because the operator may edit a code while checkout is checking merchant prices.
  */
-export async function placeWithPromo<T>(db: PromoDb, use: PromoUse | null | undefined, save: () => Promise<T>, now = Date.now()): Promise<{ usedUp: true; code: string } | { usedUp: false; value: T }> {
-  if (!use || !db.batch) return { usedUp: false, value: await save() };
-  const id = 'RED-' + crypto.randomUUID().slice(0, 8).toUpperCase();
-  const mine = 'EXISTS (SELECT 1 FROM market_promo_redemptions WHERE id=?)';
-  const [inserted, counted] = await db.batch([
-    db.prepare('INSERT OR IGNORE INTO market_promo_redemptions (id,code_id,code,user_id,batch_id,order_ids,discount,created_at) VALUES (?,?,?,?,?,?,?,?)')
-      .bind(id, use.codeId, use.code, use.userId, use.batchId, JSON.stringify(use.orderIds.slice(0, 50)), use.discount, now),
-    // The per-customer clause names columns of migration 0018 only for a code that has the option (so they exist).
-    use.oncePerCustomer
-      ? db.prepare(`UPDATE market_promo_codes SET uses=uses+1, updated_at=? WHERE id=? AND ${mine} AND active=1 AND (starts_at IS NULL OR starts_at<=?) AND (ends_at IS NULL OR ends_at>?) AND (max_uses IS NULL OR uses<max_uses) AND (once_per_customer=0 OR NOT EXISTS (SELECT 1 FROM market_promo_redemptions r WHERE r.code_id=market_promo_codes.id AND r.user_id=? AND r.returned_at IS NULL AND r.id<>?))`)
-        .bind(now, use.codeId, id, now, now, use.userId, id)
-      : db.prepare(`UPDATE market_promo_codes SET uses=uses+1, updated_at=? WHERE id=? AND ${mine} AND active=1 AND (starts_at IS NULL OR starts_at<=?) AND (ends_at IS NULL OR ends_at>?) AND (max_uses IS NULL OR uses<max_uses)`)
-        .bind(now, use.codeId, id, now, now),
-    // The count did not rise (the statement before changed no row): this call's record is removed again.
-    db.prepare('DELETE FROM market_promo_redemptions WHERE id=? AND changes()=0').bind(id),
+export async function commitPromoAccount(db: PromoDb, use: PromoUse, account: PromoAccountCommit, now = Date.now()): Promise<{ saved: true } | { saved: false; code: string }> {
+  if (!db.batch) throw new Error('Atomic promo persistence requires database batch support');
+  if (account.userId !== use.userId) throw new Error('Promo account ownership mismatch');
+  const { rule } = use;
+  // An undefined flag means the code was read on the pre-0018 schema. Otherwise check the live flag even if it was off.
+  const hasCustomerLimit = rule.oncePerCustomer !== undefined;
+  const customerLimit = hasCustomerLimit
+    ? 'AND (c.once_per_customer=0 OR NOT EXISTS (SELECT 1 FROM market_promo_redemptions r WHERE r.code_id=c.id AND r.user_id=? AND r.returned_at IS NULL))'
+    : '';
+  const [saved] = await db.batch([
+    db.prepare(`UPDATE market_accounts SET state=?, revision=revision+1, updated_at=? WHERE user_id=? AND revision=?
+      AND NOT EXISTS (SELECT 1 FROM market_promo_redemptions WHERE batch_id=?)
+      AND EXISTS (SELECT 1 FROM market_promo_codes c WHERE c.id=? AND c.code=? AND c.kind=? AND c.value=?
+        AND c.min_order IS ? AND c.active=1
+        AND (c.starts_at IS NULL OR c.starts_at<=?) AND (c.ends_at IS NULL OR c.ends_at>?)
+        AND (c.max_uses IS NULL OR c.uses<c.max_uses) ${customerLimit})`)
+      .bind(account.serialized, now, account.userId, account.revision, use.batchId,
+        rule.id, rule.code, rule.kind, rule.value, rule.minOrder ?? null, now, now, ...(hasCustomerLimit ? [use.userId] : [])),
+    db.prepare('UPDATE market_promo_codes SET uses=uses+1, updated_at=? WHERE id=? AND changes()=1').bind(now, rule.id),
+    db.prepare('INSERT INTO market_promo_redemptions (id,code_id,code,user_id,batch_id,order_ids,discount,created_at) SELECT ?,?,?,?,?,?,?,? WHERE changes()=1')
+      .bind('RED-' + crypto.randomUUID(), rule.id, rule.code, use.userId, use.batchId, JSON.stringify(use.orderIds.slice(0, 50)), use.discount, now),
   ]);
-  const fresh = inserted.meta.changes === 1;
-  // Another request owns this key. Letting this request save could make it win the account CAS; the original
-  // request would then lose and undo the only redemption/count for the successfully placed discounted order.
-  // This also refuses a global batch-key collision belonging to another customer or code.
-  if (!fresh) return { usedUp: true, code: 'err_4' };
-  if (fresh && counted.meta.changes !== 1) {
-    if (!use.oncePerCustomer) return { usedUp: true, code: promoErrors.usedUp };
-    // Why it was refused: another unreturned use of this account wins over the general «used up».
-    const other = await db.prepare('SELECT 1 AS mine FROM market_promo_redemptions WHERE code_id=? AND user_id=? AND returned_at IS NULL LIMIT 1').bind(use.codeId, use.userId).first<{ mine: number }>().catch(() => null);
-    return { usedUp: true, code: other ? promoErrors.alreadyUsed : promoErrors.usedUp };
+  if (saved.meta.changes === 1) return { saved: true };
+  // A stale account or competing/legacy key asks the client to refresh; never touch its owner's record.
+  const current = await db.prepare('SELECT revision FROM market_accounts WHERE user_id=?').bind(account.userId).first<{ revision: number }>();
+  if (!current || current.revision !== account.revision) return { saved: false, code: 'err_4' };
+  const collision = await db.prepare('SELECT 1 AS found FROM market_promo_redemptions WHERE batch_id=?').bind(use.batchId).first();
+  if (collision) return { saved: false, code: 'err_4' };
+  const latest = await findPromo(db, rule.code);
+  if (!latest || latest.id !== rule.id || latest.kind !== rule.kind || latest.value !== rule.value || (latest.minOrder ?? null) !== (rule.minOrder ?? null)) {
+    return { saved: false, code: promoErrors.changed };
   }
-  try { return { usedUp: false, value: await save() }; }
-  catch (error) {
-    if (fresh) await db.batch([
-      db.prepare(`UPDATE market_promo_codes SET uses=uses-1 WHERE id=? AND uses>0 AND ${mine}`).bind(use.codeId, id),
-      db.prepare('DELETE FROM market_promo_redemptions WHERE id=?').bind(id),
-    ]).catch((release) => console.error('Promo use release failed', release));
-    throw error;
+  if (latest.oncePerCustomer) {
+    latest.usedByCustomer = Boolean(await db.prepare('SELECT 1 AS found FROM market_promo_redemptions WHERE code_id=? AND user_id=? AND returned_at IS NULL LIMIT 1').bind(rule.id, use.userId).first());
   }
+  return { saved: false, code: promoProblem(latest, now) ?? promoErrors.changed };
 }

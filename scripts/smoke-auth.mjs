@@ -54,9 +54,18 @@ const preview = await request("/api/promo", { method: "POST", body: { code: prom
 assert.equal(preview.promo.code, promoCode);
 const promoAmount = promoDiscount(preview.promo, account.state.cart).total;
 assert.ok(promoAmount > 0);
-await apply({ type: "checkout", key: crypto.randomUUID(), signature: cartSignature(account.state.cart), useBalance: false, expectedCredit: 0, consentVersion: customsVersion, delivery, promoCode, promoDiscount: promoAmount });
+const checkoutAction = { type: "checkout", key: crypto.randomUUID(), signature: cartSignature(account.state.cart), useBalance: false, expectedCredit: 0, consentVersion: customsVersion, delivery, promoCode, promoDiscount: promoAmount };
+const checkoutRevision = account.revision;
+await apply(checkoutAction);
 assert.equal(account.state.orders[0].quote.promoDiscount, promoAmount);
 assert.equal(account.state.orders[0].promo.code, promoCode);
+const replay = await request("/api/actions", { method: "POST", body: { action: checkoutAction, revision: checkoutRevision } });
+assert.equal(replay.revision, account.revision);
+assert.deepEqual(replay.state.orders.map(order => order.id), account.state.orders.map(order => order.id));
+const promoList = await request("/api/promo-codes", { email: operatorEmail });
+const booked = promoList.promos.find(promo => promo.code === promoCode);
+assert.equal(booked.uses, 1);
+assert.equal(booked.discountTotal, promoAmount);
 const usedUp = await fetch(new URL("/api/promo", base), { method: "POST", headers: { ...auth(customerEmail), "Content-Type": "application/json", Origin: base.origin }, body: JSON.stringify({ code: promoCode }) });
 // The code check answers the same 404 err_87 for unknown, expired and used-up codes (nothing to learn by trying codes).
 assert.equal(usedUp.status, 404, "a code with one use is used up after the order");

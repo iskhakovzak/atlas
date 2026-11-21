@@ -404,7 +404,7 @@ export function applyAction(
       // with no duty for this recipient the customs fee is not in the bill.
       const billed = withCustomsHelpFor(checkoutLines(s.cart), customs, pricing.fx);
       // A promo code: the stored one with this text, on, in its dates, under its cap and above its minimum. The count
-      // itself is taken by the route when the order is saved (lib/market/promo-store.ts reservePromo).
+      // is recorded by the route in the same transaction as the order (lib/market/promo-store.ts).
       let promo: Parameters<typeof checkoutCart>[12];
       if (a.promoCode) {
         const rule = extras.promo;
