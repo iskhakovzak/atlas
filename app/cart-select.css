@@ -237,6 +237,8 @@ html:not([data-theme="dark"]) .cl-photo .product-img { mix-blend-mode: multiply;
 .cl-variant-name { overflow: hidden; color: var(--home-ink); font-size: 14px; font-weight: 600; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
 .cl-variant > .cl-text { gap: 1px; }
 .cl-text > .cl-option, .cl-text .cl-store { overflow: hidden; margin: 0; color: var(--home-muted); font-size: 13px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+/* A long merchant colour must not hide the size at the end of a cart option on phones. */
+.cl-text > .cl-option, .cl-variant-name { white-space: normal; overflow-wrap: anywhere; overflow: visible; }
 /* The store price, "for later" and "Comment" on one line. */
 .cl-sub { display: flex; align-items: center; gap: 4px 12px; min-width: 0; }
 .cl-sub > .cl-store { flex: 0 1 auto; min-width: 0; }

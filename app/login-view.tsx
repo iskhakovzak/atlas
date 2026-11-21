@@ -108,6 +108,7 @@ export function LoginView(){
  const {status,state,pricing}=useMarket();
  const c=copy[state.communication.language as Locale]??copy.ru;
  const [returnTo,setReturnTo]=useState('/');
+ const [returnReady,setReturnReady]=useState(false);
  const [methods,setMethods]=useState<Methods|null>(null);
  const [failed,setFailed]=useState(false);
  const [tab,setTab]=useState<Tab|null>(null);
@@ -116,7 +117,7 @@ export function LoginView(){
 
  useEffect(()=>{
   const params=new URLSearchParams(window.location.search);
-  queueMicrotask(()=>{setReturnTo(safeReturnTo(params.get('return_to')));const failed=params.get('error');if(failed==='google'||failed==='apple')setError(c.errors[failed])});
+  queueMicrotask(()=>{setReturnTo(safeReturnTo(params.get('return_to')));setReturnReady(true);const failed=params.get('error');if(failed==='google'||failed==='apple')setError(c.errors[failed])});
   fetch('/api/auth/methods',{credentials:'same-origin'}).then(response=>response.ok?response.json() as Promise<Methods>:Promise.reject(new Error(String(response.status)))).then(value=>{
    setMethods(value);
    // With Telegram, Google and Apple off and a single other method, its form opens at once.
@@ -128,7 +129,7 @@ export function LoginView(){
  // Signed in by any method: the "signed in" screen shows at once while the page heads back.
  const [signedIn,setSignedIn]=useState(false);
  const done=useCallback(()=>{setSignedIn(true);markSignedIn();window.location.replace(returnTo)},[returnTo]);
- useEffect(()=>{if(status==='authenticated')window.location.replace(returnTo)},[status,returnTo]);
+ useEffect(()=>{if(status==='authenticated'&&returnReady)window.location.replace(returnTo)},[status,returnTo,returnReady]);
 
  // Signed in: a check draws itself while the page heads back (app/motion.css, "Sign-in screens").
  if(status==='authenticated'||signedIn)return <section className="surface login-card login-done" role="status" aria-live="polite">

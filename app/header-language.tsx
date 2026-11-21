@@ -1,9 +1,10 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {usePathname} from 'next/navigation';
+import {usePathname,useSearchParams} from 'next/navigation';
 import {Check,ChevronDown,Globe} from 'lucide-react';
 import type {Locale} from '@/lib/market/i18n';
 import {ThemeToggle} from './theme-control';
+import {languageSwitchHref} from '@/lib/market/language-url';
 
 /**
  * Each language names itself in its own script. The menu shows the names only (owner, 14.10.2026): "O‘zbekcha" and
@@ -23,6 +24,9 @@ const languages:{code:Locale;lang:string;name:string;script?:string;short:string
 export function HeaderLanguage({locale,label,themeLabel,onChange}:{locale:Locale;label:string;themeLabel?:string;onChange:(locale:Locale)=>void}){
   const [open,setOpen]=useState(false);
   const pathname=usePathname();
+  const search=useSearchParams();
+  const [pageAddress,setPageAddress]=useState<string|null>(null);
+  const openMenu=()=>{setPageAddress(window.location.pathname+window.location.search+window.location.hash);setOpen(true)};
   // One menu per page (the header), so a fixed id: useId gave the server and the browser different ids on some pages.
   const wrap=useRef<HTMLDivElement>(null),trigger=useRef<HTMLButtonElement>(null),listId='atlas-lang-menu';
   const current=languages.find(item=>item.code===locale)??languages[0];
@@ -44,13 +48,13 @@ export function HeaderLanguage({locale,label,themeLabel,onChange}:{locale:Locale
   // iOS/WebKit blurs the focused choice to null before dispatching a touch click on another button.
   // Only a known focus destination outside closes here; outside taps are handled by pointerdown above.
   return <div className="lang-menu" ref={wrap} onBlur={event=>{if(open&&event.relatedTarget&&!wrap.current?.contains(event.relatedTarget as Node))setOpen(false)}}>
-    <button type="button" ref={trigger} className="lang-trigger" aria-expanded={open} aria-controls={listId} aria-label={`${label}: ${current.name}${current.script?' — '+current.script:''}`} title={label} onClick={()=>setOpen(value=>!value)} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();setOpen(true)}}}>
+    <button type="button" ref={trigger} className="lang-trigger" aria-expanded={open} aria-controls={listId} aria-label={`${label}: ${current.name}${current.script?' — '+current.script:''}`} title={label} onClick={()=>{if(open)setOpen(false);else openMenu()}} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();openMenu()}}}>
       <Globe size={18} aria-hidden="true"/><span lang={current.lang}>{current.short}</span><ChevronDown size={14} aria-hidden="true" className="lang-chevron"/>
     </button>
     <div className="lang-menu-list" id={listId} role="group" aria-label={label} hidden={!open} onKeyDown={move}>
       {/* Links to this page's ?lang= versions, so crawlers reach every language from every page (SEO audit, 1.11.2026);
           a click still switches the language in place, as the buttons did. */}
-      {languages.map(item=><a className="lang-option" key={item.code} href={`${pathname||'/'}?lang=${item.code}`} hrefLang={item.lang==='uz-Latn'?'uz':item.lang} data-locale={item.code} aria-current={item.code===locale} onClick={event=>{event.preventDefault();onChange(item.code);setOpen(false);trigger.current?.focus()}}>
+      {languages.map(item=><a className="lang-option" key={item.code} href={languageSwitchHref(pageAddress??`${pathname||'/'}${search?.size?'?'+search.toString():''}`,item.code)} hrefLang={item.lang==='uz-Latn'?'uz':item.lang} data-locale={item.code} aria-current={item.code===locale} onClick={event=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();onChange(item.code);setOpen(false);trigger.current?.focus()}}>
         <span lang={item.lang}><b>{item.name}</b>{item.script&&<span className="sr-only"> — {item.script}</span>}</span>{item.code===locale&&<Check size={16} aria-hidden="true"/>}
       </a>)}
       {themeLabel&&<div className="lang-menu-row"><span>{themeLabel}</span><ThemeToggle locale={locale}/></div>}

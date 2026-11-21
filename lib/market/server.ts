@@ -8,6 +8,7 @@ import {apiErrorMessage,requestLocale,serverError} from './i18n';
 import {translateDomainError} from './domain-errors.ts';
 import {hasNewNotice,shouldNotifyTelegram} from './telegram-state';
 import {emailVerifiedSignIn,hasPermission,resolveAccess,type Permission,type StaffAccess,type StaffRole,type StaffStatus} from './access';
+import {commitPromoAccount,type PromoUse} from './promo-store';
 export type {Permission,StaffAccess,StaffRole,StaffStatus};
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
 export function deferBackground(task:Promise<unknown>,label:string){waitUntil(task.catch(error=>console.error(label,error)))}
@@ -61,12 +62,18 @@ export async function account(user:{userId:string;platformUserId?:string|null;di
 // `notify`: this write is Atlas's (POST /api/operations on the live site), so new notices also go to the customer's
 // Telegram when they turned that on. Never set for the customer's own actions or for projection syncs.
 // `push`: the same Atlas write on any deployment: browser subscriptions belong to the site they were made on.
-export async function persist(id:string,state:State,revision:number,previous?:State,options:{notify?:boolean;push?:boolean}={}){
+export async function persist(id:string,state:State,revision:number,previous?:State,options:{notify?:boolean;push?:boolean;promoUse?:PromoUse|null}={}){
  const serialized=JSON.stringify(state);if(serialized.length>1000000)throw new HttpError(413, 'err_3');
  // A document the next read cannot parse would lock the customer out of the account: refuse to save it.
  try{parseState(serialized)}catch(error){throw new Error('Refused to save an account state that does not parse: '+(error as Error).message.slice(0,400))}
- const now=Date.now(),result=await database().prepare('UPDATE market_accounts SET state=?, revision=revision+1, updated_at=? WHERE user_id=? AND revision=?').bind(serialized,now,id,revision).run();
- if(!result.meta.changes)throw new HttpError(409, 'err_4');
+ const now=Date.now();
+ if(options.promoUse){
+  const result=await commitPromoAccount(database(),options.promoUse,{userId:id,revision,serialized},now);
+  if(!result.saved)throw new HttpError(409,result.code);
+ }else{
+  const result=await database().prepare('UPDATE market_accounts SET state=?, revision=revision+1, updated_at=? WHERE user_id=? AND revision=?').bind(serialized,now,id,revision).run();
+  if(!result.meta.changes)throw new HttpError(409, 'err_4');
+ }
  deferBackground(syncLatestOperationalProjection(id,previous),'Operational projection sync failed');
  // The cheap check first: the Telegram code loads only when there is something to send.
  if(previous&&shouldNotifyTelegram(options.notify,previous,state,now)){

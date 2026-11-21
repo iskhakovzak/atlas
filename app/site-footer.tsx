@@ -1,4 +1,6 @@
 'use client';
+import {useSyncExternalStore} from 'react';
+import {usePathname,useSearchParams} from 'next/navigation';
 import {ArrowUpRight} from 'lucide-react';
 import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
@@ -6,9 +8,16 @@ import {ThemeToggle} from './theme-control';
 import {footerCopy,navCopy,routeTitle,type Locale} from '@/lib/market/i18n';
 import {pickLocale} from '@/lib/market/uz-cyrl';
 import {consentOpenEvent} from '@/lib/market/cookie-consent';
+import {languageSwitchHref} from '@/lib/market/language-url';
 import './footer.css';
 
 const isDev=(import.meta as {env?:{DEV?:boolean}}).env?.DEV===true;
+function subscribeHash(update:()=>void){
+ window.addEventListener('hashchange',update);
+ return ()=>window.removeEventListener('hashchange',update);
+}
+const currentHash=()=>window.location.hash;
+const emptyHash=()=>'';
 /** Dev-only marker for business data that is not filled yet; production renders nothing. */
 export function MissingContent({what}:{what:string}){
  if(!isDev)return null;
@@ -17,6 +26,8 @@ export function MissingContent({what}:{what:string}){
 
 export function SiteFooter(){
  const {siteContent,state,setLocale}=useMarket();
+ const pathname=usePathname(),search=useSearchParams(),hash=useSyncExternalStore(subscribeHash,currentHash,emptyHash);
+ const languageAddress=(pathname||'/')+(search?.size?'?'+search.toString():'')+hash;
  const locale=state.communication.language as Locale,c={footer:footerCopy[locale],nav:navCopy[locale],trust:{inn:footerCopy[locale].inn}};
  const {contacts,legal}=siteContent;
  const pickup=(contacts.pickupAddress?pickLocale(contacts.pickupAddress,locale):undefined);
@@ -60,7 +71,7 @@ export function SiteFooter(){
    <span className="home-footer-copy" suppressHydrationWarning>© {new Date().getFullYear()} Atlas</span>
    {/* Cookies can be changed or withdrawn at any time: opens the consent card with its switches (app/storage-notice.tsx). */}
    <button type="button" className="home-footer-consent" onClick={()=>window.dispatchEvent(new Event(consentOpenEvent))}>{c.footer.dataSettings}</button>
-   <span className="home-footer-langs" role="group" aria-label={c.nav.language}>{languages.map(item=><a key={item.code} href={`?lang=${item.code}`} lang={item.lang} hrefLang={item.lang==='uz-Latn'?'uz':item.lang} aria-label={item.name} aria-current={item.code===locale||undefined} onClick={event=>{event.preventDefault();setLocale(item.code)}}>{item.short}</a>)}</span>
+   <span className="home-footer-langs" role="group" aria-label={c.nav.language}>{languages.map(item=><a key={item.code} href={languageSwitchHref(languageAddress,item.code)} lang={item.lang} hrefLang={item.lang==='uz-Latn'?'uz':item.lang} aria-label={item.name} aria-current={item.code===locale||undefined} onClick={event=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();setLocale(item.code)}}>{item.short}</a>)}</span>
    <span className="home-footer-theme"><span className="sr-only">{c.footer.theme}</span><ThemeToggle locale={locale}/></span>
   </div>
  </footer>;

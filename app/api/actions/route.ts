@@ -8,7 +8,7 @@ import {codedActionError,editorialShippingFor,prepareAction,staleRevision,type E
 import {initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from '@/lib/market/catalog-editor';
 import {cleanPassportNumber,cleanPinfl,type Product,type State} from '@/lib/market/domain';
 import {addCustomerLinkDraft,readStoredCatalogDocument} from '@/lib/market/catalog-server';
-import {customerPromoUses,findPromo,placeWithPromo,returnPromoUses} from '@/lib/market/promo-store';
+import {customerPromoUses,findPromo,reconcilePromoUses,returnPromoUses} from '@/lib/market/promo-store';
 import {customerState} from '@/lib/market/customer-state';
 import {promoReturnable,promoReturns,type PromoRule} from '@/lib/market/promo';
 /**
@@ -57,22 +57,20 @@ export async function POST(request:Request){try{
     identityAction?.documentId?database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first():undefined,
     promoCode?rateLimit(`${user.userId}:promo`,30,10*60_000).then(()=>readPromo(promoCode)).catch(error=>{if(error instanceof HttpError)throw error;console.error('Promo code read failed',error);return null}):undefined,
   ]);
-  // «Один раз на покупателя»: a use whose checkout this account has already cancelled in full but that was not given back
-  // (the return after that save failed) is returned now, so it never blocks the customer (owner, 2 November 2026).
-  let promo:PromoRule|null|undefined=promoRead;
-  if(promoRead?.usedBatches){
-    const {usedBatches,...rule}=promoRead;
-    const stale=promoReturnable(current.state,usedBatches);
-    if(stale.length)await returnPromoUses(database(),user.userId,stale).catch(error=>console.error('Promo use return failed',error));
-    promo={...rule,usedByCustomer:usedBatches.length>stale.length};
-  }
   if(status==='blocked')throw new HttpError(403, 'err_11');
   if(status==='review'&&['checkout','payment-demo','payment-demo-batch','extra-charge-pay'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
   if(identityAction){
     if(identityAction.documentId&&!owned)throw new HttpError(404, 'err_13');
     if(identityAction.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===identityAction.recipientProfileId))throw new HttpError(400, 'err_14');
   }
+  // A reply may be lost after the order was saved. A retry receives the saved state, even with the earlier revision.
+  if(parsed.data.type==='checkout'&&current.state.checkoutKeys.includes(parsed.data.key)){
+    return json({state:customerState(current.state),revision:current.revision});
+  }
   if(staleRevision(payload.revision,current.revision)){const locale=requestLocale(request);return json({error:locale==='ru'?'Данные изменились. Проверьте обновлённый заказ и повторите действие.':apiErrorMessage(409,locale),state:customerState(current.state),revision:current.revision},409)}
+  const promo=promoRead?.usedBatches
+    ?await reconcilePromoUses(database(),promoRead,user.userId,promoRead.usedBatches,promoReturnable(current.state,promoRead.usedBatches))
+    :promoRead;
   // Telegram order notices: the route checks the attached Telegram, tests the bot and records the consent itself.
   if(parsed.data.type==='telegram-notify'){
     const {toggleTelegramNotices}=await import('@/lib/market/telegram-notices-server');
@@ -106,12 +104,10 @@ export async function POST(request:Request){try{
     throw e;
   }
   // The promo code's use is counted only for a checkout that places its orders now (not a repeated key, not a refusal):
-  // the use and its record are written together before the save, so the cap holds when several customers pay at once,
-  // and both are given back if the save fails (lib/market/promo-store.ts placeWithPromo).
-  const placedBatch=action.type==='checkout'&&!refusal&&promo&&!current.state.checkoutKeys.includes(action.key)?next.orders.filter(order=>order.batchId===action.key&&order.promo):[];
-  const use=placedBatch.length&&promo&&action.type==='checkout'?{codeId:promo.id,code:promo.code,userId:user.userId,batchId:action.key,orderIds:placedBatch.map(order=>order.id),discount:placedBatch.reduce((sum,order)=>sum+(order.quote.promoDiscount??0),0),oncePerCustomer:promo.oncePerCustomer===true}:null;
-  const placed=await placeWithPromo(database(),use,()=>persist(user.userId,next,current.revision,current.state));
-  if(placed.usedUp)throw new HttpError(409,placed.code);
+  // The use, its record and the canonical account CAS commit in one transaction, so a crash cannot orphan a use.
+  const placedBatch=action.type==='checkout'&&!refusal&&promo?next.orders.filter(order=>order.batchId===action.key&&order.promo):[];
+  const use=placedBatch.length&&promo&&action.type==='checkout'?{rule:promo,userId:user.userId,batchId:action.key,orderIds:placedBatch.map(order=>order.id),discount:placedBatch.reduce((sum,order)=>sum+(order.quote.promoDiscount??0),0)}:null;
+  await persist(user.userId,next,current.revision,current.state,{promoUse:use});
   // A checkout with a code whose orders are now all cancelled before the purchase gives its use back, once (owner,
   // 2 November 2026). The cancel is already saved; a failed return is made good at the customer's next use of a code.
   const returning=promoReturns(current.state,next);

@@ -85,6 +85,14 @@ html[data-theme="dark"] .consent-switch > span::after { background: #eef0eb; }
   body:has(.mobile-nav):has(.consent-card) .site-main { padding-bottom: calc(var(--atlas-mobile-nav-clearance, 64px) + 150px); }
   body:has(.mobile-nav):has(.consent-card) main.site-main:is([data-view="link"]:has(.lo-sticky), [data-view="cart"]:has(.basket-sticky)) { padding-bottom: calc(var(--atlas-mobile-nav-clearance, 64px) + 230px); }
 }
+@media (max-width: 380px) {
+  .consent-card { gap: 0; padding: 12px; }
+  .consent-head { display: block; }
+  .consent-icon { display: none; }
+  .consent-panel ul { margin-top: 8px; }
+  .consent-actions { margin-top: 10px; }
+  .consent-customise { margin: 4px 0 -4px; }
+}
 /* Phones: a toast rises above the bottom bars, where the card is; the card steps aside while one is up and comes back
    after it (a filter fade, since the entrance animation holds the opacity). */
 @media (max-width: 760px) {

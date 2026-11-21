@@ -54,12 +54,24 @@ const preview = await request("/api/promo", { method: "POST", body: { code: prom
 assert.equal(preview.promo.code, promoCode);
 const promoAmount = promoDiscount(preview.promo, account.state.cart).total;
 assert.ok(promoAmount > 0);
-await apply({ type: "checkout", key: crypto.randomUUID(), signature: cartSignature(account.state.cart), useBalance: false, expectedCredit: 0, consentVersion: customsVersion, delivery, promoCode, promoDiscount: promoAmount });
+const checkoutAction = { type: "checkout", key: crypto.randomUUID(), signature: cartSignature(account.state.cart), useBalance: false, expectedCredit: 0, consentVersion: customsVersion, delivery, promoCode, promoDiscount: promoAmount };
+const checkoutRevision = account.revision;
+await apply(checkoutAction);
 assert.equal(account.state.orders[0].quote.promoDiscount, promoAmount);
 assert.equal(account.state.orders[0].promo.code, promoCode);
-const usedUp = await fetch(new URL("/api/promo", base), { method: "POST", headers: { ...auth(customerEmail), "Content-Type": "application/json", Origin: base.origin }, body: JSON.stringify({ code: promoCode }) });
-// The code check answers the same 404 err_87 for unknown, expired and used-up codes (nothing to learn by trying codes).
-assert.equal(usedUp.status, 404, "a code with one use is used up after the order");
+const replay = await request("/api/actions", { method: "POST", body: { action: checkoutAction, revision: checkoutRevision } });
+assert.equal(replay.revision, account.revision);
+assert.deepEqual(replay.state.orders.map(order => order.id), account.state.orders.map(order => order.id));
+const promoList = await request("/api/promo-codes", { email: operatorEmail });
+const booked = promoList.promos.find(promo => promo.code === promoCode);
+assert.equal(booked.uses, 1);
+assert.equal(booked.discountTotal, promoAmount);
+const promoCheck = (email) => fetch(new URL("/api/promo", base), { method: "POST", headers: { ...auth(email), "Content-Type": "application/json", Origin: base.origin }, body: JSON.stringify({ code: promoCode }) });
+const alreadyUsed = await promoCheck(customerEmail);
+assert.equal(alreadyUsed.status, 409);
+assert.equal((await alreadyUsed.json()).errorCode, "err_96");
+const usedUp = await promoCheck(operatorEmail);
+assert.equal(usedUp.status, 404, "another account sees the ordinary unavailable-code response");
 assert.equal((await usedUp.json()).errorCode, "err_87");
 const orderId = account.state.orders[0].id;
 assert.equal(account.state.orders[0].payment.status, "pending");
