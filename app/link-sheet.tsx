@@ -5,8 +5,8 @@ import {ArrowRight,Link2,ListPlus,Loader2,Search,Store,X} from 'lucide-react';
 import Link from '@/components/site-link';
 import {PasteButton} from '@/components/paste-button';
 import {Sheet,SheetClose,SheetContent,SheetDescription,SheetTitle} from '@/components/ui/sheet';
-import {validateSource} from '@/lib/market/domain';
-import {looksLikeLink,normalizeProductLink} from '@/lib/market/shared-link';
+import {orderLinkIn} from '@/lib/market/clipboard-link';
+import {looksLikeLink} from '@/lib/market/shared-link';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
 import {withCyrillic} from '@/lib/market/uz-cyrl';
 import {useSwipeClose} from './use-swipe-close';
@@ -41,11 +41,11 @@ export function LinkSheet({open,onOpenChange,locale,member}:{open:boolean;onOpen
   const change=(next:boolean)=>{if(!next){setError('');setSearch('');setBusy(false)}onOpenChange(next)};
   const swipe=useSwipeClose(()=>change(false));
   const leave=()=>{leaving.current=true;change(false)};
-  function go(value:string){
+  function go(value:string,showInvalid=true){
     const raw=value.trim();
-    let target:string;
-    try{target=validateSource(normalizeProductLink(raw)||raw)}
-    catch{
+    const target=orderLinkIn(raw);
+    if(!target){
+      if(!showInvalid)return;
       const words=Boolean(raw)&&!looksLikeLink(raw);
       setError(words?c.notLink:c.invalid);setSearch(words?raw.slice(0,60):'');
       return;
@@ -61,8 +61,7 @@ export function LinkSheet({open,onOpenChange,locale,member}:{open:boolean;onOpen
   function submit(event:FormEvent){event.preventDefault();go(url)}
   function pasted(text:string){
     setUrl(text);setError('');setSearch('');
-    try{validateSource(normalizeProductLink(text.trim())||text.trim())}catch{return}
-    go(text);
+    go(text,false);
   }
   return <Sheet open={open} onOpenChange={change}>
     <SheetContent side="bottom" showCloseButton={false} className="link-sheet" onOpenAutoFocus={event=>{event.preventDefault();leaving.current=false;input.current?.focus({preventScroll:true})}}

@@ -58,7 +58,12 @@ function dimensions(item: AxisVariant): Map<string, string> {
   const size = clean(item.size);
   if (size && ![...out.values()].includes(size)) {
     const name = clean(item.sizeLabel) || 'Size';
-    out.set(out.has(name) && out.get(name) !== size ? `${name} ` : name, size);
+    // Shopify also supplies a combined display label such as "S / Lined".
+    // Keep its native Size and Style axes when they already express that combination.
+    const parts = name.split(' / ');
+    const represented = parts.length > 1 && parts.every(part => out.has(part))
+      && parts.map(part => out.get(part)).join(' / ') === size;
+    if (!represented) out.set(out.has(name) && out.get(name) !== size ? `${name} ` : name, size);
   }
   dimensionCache.set(item, out);
   return out;

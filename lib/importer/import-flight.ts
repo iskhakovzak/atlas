@@ -3,6 +3,8 @@ import {EbayListingUnavailableError} from './ebay.ts';
 import type {Extracted} from './extract.ts';
 
 export type ImportOutcome = {ok: true; data: Extracted} | {ok: false; error: unknown};
+type ImportCheck = {outcome: ImportOutcome; checkedAt: number};
+type InFlight = {promise: Promise<ImportCheck>; started: number};
 
 /** Store answers worth repeating for a short while: a wall or a page without the product data. */
 const negativeReasons = new Set(['blocked', 'incomplete']);
@@ -23,10 +25,10 @@ export const freshRetryGapMs = 15_000;
  *   (`recentFailure(key, withinMs)` lets a fresh import through sooner, see freshRetryGapMs).
  * Nothing here is shared between isolates or persisted; D1 keeps the positive cache.
  */
-export function createImportFlights({followerWaitMs = 26_000, negativeTtlMs = 90_000, maxNegative = 500, maxInFlight = 200, clock = Date.now}: {followerWaitMs?: number; negativeTtlMs?: number; maxNegative?: number; maxInFlight?: number; clock?: () => number} = {}) {
+export function createImportFlights({followerWaitMs = 26_000, negativeTtlMs = 90_000, maxNegative = 500, maxInFlight = 200, clock = () => Date.now()}: {followerWaitMs?: number; negativeTtlMs?: number; maxNegative?: number; maxInFlight?: number; clock?: () => number} = {}) {
   // `started` lets a request tell a live fetch from one whose Worker request was cancelled (its promise never settles
   // and its `finally` never runs): an entry older than followerWaitMs is not waited for, and is replaced.
-  const inFlight = new Map<string, {promise: Promise<ImportOutcome>; started: number}>();
+  const inFlight = new Map<string, InFlight>();
   const negative = new Map<string, {at: number; until: number; error: ManualEntryFallbackError}>();
   const remember = (key: string, outcome: ImportOutcome) => {
     if (outcome.ok) {
@@ -42,19 +44,30 @@ export function createImportFlights({followerWaitMs = 26_000, negativeTtlMs = 90
     const at = clock();
     negative.set(key, {at, until: at + negativeTtlMs, error: outcome.error});
   };
-  const settle = (load: () => Promise<Extracted>) => load().then((data): ImportOutcome => ({ok: true, data}), (error): ImportOutcome => ({ok: false, error}));
+  async function settle(load: () => Promise<Extracted>): Promise<ImportOutcome> {
+    try { return {ok: true, data: await load()}; }
+    catch (error) { return {ok: false, error}; }
+  }
   /** This request asks the store itself; later requests for the key wait for it. */
-  const lead = async (key: string, load: () => Promise<Extracted>) => {
+  const lead = async (key: string, load: () => Promise<Extracted>, onChecked?: (check: ImportCheck) => Promise<void>) => {
     if (inFlight.size >= maxInFlight) {
       const now = clock();
       for (const [stored, entry] of inFlight) if (now - entry.started >= followerWaitMs) inFlight.delete(stored);
     }
-    const entry = {promise: settle(load), started: clock()};
+    const started = clock();
+    const entry: InFlight = {started, promise: settle(load).then(async outcome => {
+      const check = {outcome, checkedAt: clock()};
+      // Followers wait for the cache write too. A fetch that finished after
+      // another request took over cannot replace its cache or catalog result.
+      if (inFlight.get(key) === entry) {
+        remember(key, outcome);
+        await onChecked?.(check);
+      }
+      return check;
+    })};
     inFlight.set(key, entry);
     try {
-      const outcome = await entry.promise;
-      if (inFlight.get(key) === entry) remember(key, outcome);
-      return {outcome, leader: true};
+      return {...await entry.promise, leader: true};
     } finally {
       if (inFlight.get(key) === entry) inFlight.delete(key);
     }
@@ -74,17 +87,20 @@ export function createImportFlights({followerWaitMs = 26_000, negativeTtlMs = 90
       }
       return now - entry.at < withinMs ? entry.error : undefined;
     },
-    /** `leader` is true when this call asked the store itself (and so should write the D1 cache). */
-    async run(key: string, load: () => Promise<Extracted>): Promise<{outcome: ImportOutcome; leader: boolean}> {
+    /** Only the current leader calls onChecked. Every follower gets the same observation time. */
+    async run(key: string, load: () => Promise<Extracted>, onChecked?: (check: ImportCheck) => Promise<void>): Promise<ImportCheck & {leader: boolean}> {
       const running = inFlight.get(key);
       const waitMs = running ? followerWaitMs - (clock() - running.started) : 0;
       if (running && waitMs > 0) {
         let timer: number | undefined;
         const waited = await Promise.race([running.promise, new Promise<undefined>(resolve => { timer = setTimeout(resolve, waitMs) as unknown as number; })]);
         clearTimeout(timer);
-        if (waited && (waited.ok || waited.error instanceof EbayListingUnavailableError || waited.error instanceof ManualEntryFallbackError && !['timeout', 'network'].includes(waited.error.reason))) return {outcome: waited, leader: false};
+        if (waited) {
+          const {outcome} = waited;
+          if (outcome.ok || outcome.error instanceof EbayListingUnavailableError || outcome.error instanceof ManualEntryFallbackError && !['timeout', 'network'].includes(outcome.error.reason)) return {...waited, leader: false};
+        }
       }
-      return lead(key, load);
+      return lead(key, load, onChecked);
     },
     /** For tests and diagnostics. */
     size: () => ({inFlight: inFlight.size, negative: negative.size}),

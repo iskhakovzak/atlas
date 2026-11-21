@@ -1,6 +1,6 @@
 import {publicBatchJob} from '@/lib/market/catalog-batch';
 import {publicSaleJob} from '@/lib/market/catalog-sale';
-import {importFailureText,invalidLinkText,readForImport,handOverManual,manualNote,storePageUrl,readStoreHealth,mapMerchantConcurrent,processCatalogBatch} from '@/lib/market/catalog-import-server';
+import {importFailureText,invalidLinkText,readForImport,saveCatalogItem,storePageUrl,readStoreHealth,mapMerchantConcurrent,processCatalogBatch} from '@/lib/market/catalog-import-server';
 import {readBatch,startBatch,controlBatch,claimBatch,finishBatch} from '@/lib/market/catalog-batch-server';
 import {z} from 'zod';
 import {identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing,rateLimit} from '@/lib/market/server';
@@ -62,8 +62,7 @@ export async function POST(request:Request){try{
   sameOrigin(request);const user=await identity();await requirePermission(user,'catalog.manage');
   const payload=z.object({revision:z.number().int().nonnegative(),command:commandSchema}).safeParse(await requestJson(request,200000));
   if(!payload.success)throw new HttpError(400, 'err_30');
-  let {command,revision}=payload.data;
-  let batchClaim:{id:string;claim:string}|undefined;
+  const {command,revision}=payload.data;
   if(command.kind==='batch-start'){
     const {document}=await readCatalog();if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400,'err_33');
     return json({batchJob:publicBatchJob(await startBatch(user.userId,command,{email:user.email,method:user.method}))});
@@ -72,9 +71,10 @@ export async function POST(request:Request){try{
   if(command.kind==='batch-step'){
     const claimed=await claimBatch(user.userId,command.id);
     if(!claimed.claim||!claimed.urls)return json({batchJob:publicBatchJob(claimed.job)});
-    batchClaim={id:command.id,claim:claimed.claim};
-    const {document}=await readCatalog();revision=document.revision;
-    command={kind:'import-batch',urls:claimed.urls,collectionIds:claimed.job.collectionIds,country:claimed.job.country};
+    const {document:initial}=await readCatalog();
+    const {document,results}=await processCatalogBatch(initial,user,{urls:claimed.urls,collectionIds:claimed.job.collectionIds,country:claimed.job.country});
+    const batchJob=await finishBatch(user.userId,command.id,claimed.claim,results);
+    return json({document,results,batchJob:publicBatchJob(batchJob)});
   }
   if(command.kind==='sale-start'||command.kind==='sale-step'||command.kind==='sale-control'){
     await rateLimit(user.userId+':catalog-sale',30,60000);
@@ -133,9 +133,7 @@ export async function POST(request:Request){try{
     // No per-minute cap on the operator (owner, 27 October 2026: a large batch should run through in one go). The stores
     // are protected by the reads themselves: at most two at a time per store and eight in all (mapMerchantConcurrent).
     if(command.kind==='import-batch'){
-      const {results}=await processCatalogBatch(document,raw,user,command);
-      const batchJob=batchClaim?await finishBatch(user.userId,batchClaim.id,batchClaim.claim,results):undefined;
-      return json({document,results,batchJob:publicBatchJob(batchJob)});
+      return json(await processCatalogBatch(document,user,command));
     }
     // A link outside the store list or a malformed line is the operator's input error, not a service failure.
     let sourceUrl:string;
@@ -147,11 +145,9 @@ export async function POST(request:Request){try{
     if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
     const read=await readForImport(sourceUrl,command.collectionIds,command.country);
     if(read.sourceUnavailable&&!read.draft.name&&!read.manual)throw new HttpError(422,read.failureMessage||'Магазин не отдал данные товара.');
-    const outcome=applyAutomaticCatalogImport(document,read.draft,Date.now(),(await pricing()).rates),importedId=outcome.id;
-    if(read.manual){handOverManual(document,importedId);document.revision++;await persistCatalog(document,raw,user,'catalog.import');return json({document,importedId,published:false,importNote:manualNote,manual:true})}
-    document.revision++;
-    await persistCatalog(document,raw,user,'catalog.import');
-    return json({document,importedId,published:outcome.published,importNote:outcome.note,...(read.sourceUnavailable?{importNote:read.failureMessage.slice(0,500),importFailureReason:read.failureReason}:{})});
+    const {document:next,result}=await saveCatalogItem(document,user,read);
+    const {id:importedId,note:importNote,...outcome}=result;
+    return json({document:next,importedId,importNote,...outcome});
   }
   const report=command.kind==='publish'||command.kind==='confirm'?{published:0,skipped:[] as string[]}:undefined;
   let next;try{next=changeCatalog(document,command,Date.now(),await pricing(),report)}catch(error){throw new HttpError(400,(error as Error).message)}

@@ -17,8 +17,8 @@ export async function runOneScheduledBatch(){
   const claimed=await claimBatch(owner,record.job.id);
   if(!claimed.claim||!claimed.urls)continue;
   const user={userId:owner,email:principal.email};
-  const {document,raw}=await readCatalog();
-  const {results}=await processCatalogBatch(document,raw,user,{urls:claimed.urls,collectionIds:claimed.job.collectionIds,country:claimed.job.country});
+  const {document}=await readCatalog();
+  const {results}=await processCatalogBatch(document,user,{urls:claimed.urls,collectionIds:claimed.job.collectionIds,country:claimed.job.country});
   await finishBatch(owner,claimed.job.id,claimed.claim,results);
   return {processed:results.length};
  }

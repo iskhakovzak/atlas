@@ -10,7 +10,7 @@ export const shopifyStoreRoots = [
   'aloyoga.com', 'rarebeauty.com', 'rhodeskin.com', 'glossier.com', 'summerfridays.com', 'fentybeauty.com',
   'kith.com', 'cncpts.com', 'sneakersnstuff.com', 'satechi.com', 'satechi.net', 'spigen.com',
   '3ina.com', 'bluebananabrand.com', 'footdistrict.com', 'nakedcph.com', 'nude-project.com', 'pdpaola.com', 'saigucosmetics.com', 'scalperscompany.com',
-  'representclo.com', 'tower28beauty.com', 'meritbeauty.com', 'goodamerican.com', 'kosas.com', 'fahertybrand.com',
+  'representclo.com', 'us.ohpolly.com', 'tower28beauty.com', 'meritbeauty.com', 'goodamerican.com', 'kosas.com', 'fahertybrand.com',
   'maccosmetics.com', 'morphe.com', 'tartecosmetics.com',
 ] as const;
 
@@ -24,7 +24,7 @@ const categoryByStore: Record<string, ReturnType<typeof inferProductCategory>> =
   'fashionnova.com': 'Одежда', 'bombas.com': 'Одежда', 'gymshark.com': 'Одежда', 'aloyoga.com': 'Одежда',
   'anker.com': 'Электроника', 'satechi.com': 'Электроника', 'satechi.net': 'Электроника', 'spigen.com': 'Электроника',
   'footdistrict.com': 'Обувь', 'nakedcph.com': 'Обувь',
-  'nude-project.com': 'Одежда', 'scalperscompany.com': 'Одежда', 'bluebananabrand.com': 'Одежда', 'representclo.com': 'Одежда', 'goodamerican.com': 'Одежда', 'fahertybrand.com': 'Одежда',
+  'nude-project.com': 'Одежда', 'scalperscompany.com': 'Одежда', 'bluebananabrand.com': 'Одежда', 'representclo.com': 'Одежда', 'us.ohpolly.com': 'Одежда', 'goodamerican.com': 'Одежда', 'fahertybrand.com': 'Одежда',
   '3ina.com': 'Красота и уход', 'saigucosmetics.com': 'Красота и уход', 'tower28beauty.com': 'Красота и уход', 'meritbeauty.com': 'Красота и уход', 'kosas.com': 'Красота и уход',
   'pdpaola.com': 'Аксессуары',
 };
@@ -34,7 +34,7 @@ const countryByStore: Record<string, {code: string; name: string}> = {
   '3ina.com': {code:'ES',name:'Испания'}, 'bluebananabrand.com': {code:'ES',name:'Испания'}, 'footdistrict.com': {code:'ES',name:'Испания'},
   'nude-project.com': {code:'ES',name:'Испания'}, 'pdpaola.com': {code:'ES',name:'Испания'}, 'saigucosmetics.com': {code:'ES',name:'Испания'}, 'scalperscompany.com': {code:'ES',name:'Испания'},
   'nakedcph.com': {code:'DK',name:'Дания'}, 'representclo.com': {code:'GB',name:'Великобритания'},
-  'tower28beauty.com': {code:'US',name:'США'}, 'meritbeauty.com': {code:'US',name:'США'}, 'goodamerican.com': {code:'US',name:'США'}, 'kosas.com': {code:'US',name:'США'}, 'fahertybrand.com': {code:'US',name:'США'},
+  'us.ohpolly.com': {code:'US',name:'США'}, 'tower28beauty.com': {code:'US',name:'США'}, 'meritbeauty.com': {code:'US',name:'США'}, 'goodamerican.com': {code:'US',name:'США'}, 'kosas.com': {code:'US',name:'США'}, 'fahertybrand.com': {code:'US',name:'США'},
   'allbirds.com': {code:'US',name:'США'}, 'kyliecosmetics.com': {code:'US',name:'США'}, 'colourpop.com': {code:'US',name:'США'}, 'fashionnova.com': {code:'US',name:'США'},
   'stevemadden.com': {code:'US',name:'США'}, 'bombas.com': {code:'US',name:'США'}, 'anker.com': {code:'US',name:'США'}, 'gymshark.com': {code:'US',name:'США'},
   'aloyoga.com': {code:'US',name:'США'}, 'rarebeauty.com': {code:'US',name:'США'}, 'rhodeskin.com': {code:'US',name:'США'}, 'glossier.com': {code:'US',name:'США'},

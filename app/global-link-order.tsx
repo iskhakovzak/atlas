@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, ExternalLink, PencilLine, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, PackageCheck, Plus, RotateCcw, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
 import Link from "@/components/site-link";
@@ -45,7 +45,6 @@ import {
   storeDiscount,
   storeShippingReserves,
   unknownStoreShippingUsd,
-  validateSource,
   type CartItem,
   type Product,
 } from "@/lib/market/domain";
@@ -82,7 +81,8 @@ import {
 import { WasPrice } from "./market-ui";
 import { formatKg, formatPriceUsd, formatSum } from "@/lib/market/format";
 import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-copy";
-import { extractSharedLink } from "@/lib/market/shared-link";
+import { orderLinkIn } from "@/lib/market/clipboard-link";
+import { readClipboardAfterTap } from "@/lib/native/bridge";
 import {PasteButton} from '@/components/paste-button';
 import {useClipboardLink} from './use-clipboard-link';
 import { PhotoWait, ProductGallery } from "./product-gallery";
@@ -451,6 +451,19 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   const draftDecided = useRef<string | null>(null);
   // Only the latest request to the store fills the form: an older answer arriving late is dropped.
   const loadSeq = useRef(0);
+  const importController = useRef<AbortController | null>(null);
+  const optionController = useRef<AbortController | null>(null);
+  const replacementAttempt = useRef(0);
+  const resumeEditedLink = useRef("");
+  const cancelImport = useCallback(() => {
+    loadSeq.current += 1;
+    importController.current?.abort();
+    optionController.current?.abort();
+  }, []);
+  useLayoutEffect(() => () => {
+    replacementAttempt.current += 1;
+    cancelImport();
+  }, [autoLoadKey, cancelImport]);
   // Option pages asked for their price (Amazon ASINs), so each is loaded once per link.
   const optionLoads = useRef(new Set<string>());
   const [optionPricing, setOptionPricing] = useState<string[]>([]);
@@ -669,24 +682,30 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   // The option being looked at (or already chosen) has no price on this page but has its own store page: load it,
   // and take its price, stock and sizes into the options on screen. One page at a time, each once per link.
   useEffect(()=>{
-    if(!source||optionPricing.length)return;
+    if(!source||checking||optionPricing.length)return;
     const browsed=variants.find(item=>item.label===variant)??(selectedColor&&selectedSize?variants.find(item=>item.color===selectedColor&&item.size===selectedSize):undefined);
     const ofColor=selectedColor?variants.filter(item=>item.color===selectedColor):[];
     const target=[browsed,...Object.keys(picked).map(label=>variants.find(item=>item.label===label)),!ofColor.some(item=>item.price!==undefined)?ofColor[0]:undefined]
       .find(item=>priceLoadable(item,source)&&!optionLoads.current.has(item!.sourceUrl!));
     if(!target?.sourceUrl)return;
     const url=target.sourceUrl,seq=loadSeq.current;
+    const controller=new AbortController();
+    optionController.current=controller;
     optionLoads.current.add(url);setOptionPricing([url]);
     void (async()=>{
       try{
-        const response=await requestImport({url},{isCancelled:()=>seq!==loadSeq.current,maxWaitMs:30_000});
+        const response=await requestImport({url},{signal:controller.signal,maxWaitMs:30_000});
+        if(seq!==loadSeq.current)return;
         const data=response.ok?await response.json() as {currency?:string;variants?:ProductVariant[]}:undefined;
         if(seq!==loadSeq.current)return;
         if(data&&Array.isArray(data.variants)&&(!data.currency||data.currency===currency))setVariants(current=>mergeLoadedVariants(current,data.variants!));
       }catch{/* The option stays without a price: the add button says so. */}
-      finally{if(seq===loadSeq.current)setOptionPricing([]);}
+      finally{
+        if(optionController.current===controller)optionController.current=null;
+        if(seq===loadSeq.current)setOptionPricing([]);
+      }
     })();
-  },[source,variants,variant,selectedColor,selectedSize,picked,optionPricing.length,currency]);
+  },[source,checking,variants,variant,selectedColor,selectedSize,picked,optionPricing.length,currency]);
   function selectColorway(color:string){
     setFormIssue("");
     const choices=variants.filter(item=>item.color===color);
@@ -767,11 +786,9 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
     // `applyChoices` reads the product just loaded; this runs once per finished load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[loadsDone]);
-  async function load(value = url) {
-    let link: string;
-    try {
-      link = validateSource(value);
-    } catch {
+  async function load(value = url, reuseRecent = false) {
+    const link = orderLinkIn(value);
+    if (!link) {
       setLinkError(invalidLinkText);
       setShowSourceForm(true);
       reapply.current=null;
@@ -784,12 +801,18 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
     const linkFallbackOptions:ProductVariant[]=linkSeed?catalogOrderVariants(linkSeed):linkDealSeed?communityFallbackOptions(linkDealSeed).map(item=>({...item,available:true})):[];
     const linkSeedImages=linkSeed?dedupeSafeImages([linkSeed.image,...(linkSeed.sourceImages??[])],linkSeed.sourceUrl??link):linkDealSeed?.image?[linkDealSeed.image]:[];
     const linkBoxedWeight=catalogLinkWeight(linkSeed)??(linkDealSeed?Math.max(.1,communityEstimatedWeight(linkDealSeed)-.5):undefined);
-    const seq=++loadSeq.current;
+    cancelImport();
+    const seq=loadSeq.current;
+    const controller=new AbortController();
+    importController.current=controller;
+    const snapshot: {media?: NonNullable<Awaited<ReturnType<typeof readImportCachePreview>>>} = {};
     let freshSettled=false;
     setLinkError("");
     setUrl(link);
     setBusy(true);
     setSource(link);
+    optionLoads.current.clear();
+    setOptionPricing([]);
     setManualConfirmed(false);
 
     setSourceCheckStatus('checking');
@@ -824,25 +847,26 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
     setFoundShipping(null);
     setImportProblem(null);
     if (!linkSeed && !linkDealSeed) {
-      void readImportCachePreview(link).then(preview => {
+      void readImportCachePreview(link, undefined, controller.signal).then(preview => {
         if (!preview || freshSettled || seq !== loadSeq.current) return;
         const previewImages=dedupeSafeImages(preview.images,link);
+        snapshot.media={...preview,images:previewImages};
         setName(preview.title ?? "");
         setBrand(preview.brand ?? "");
         setImage(previewImages[0] ?? "");
         setImages(previewImages);
       });
     }
+    let errorMessage=tx("Не удалось загрузить товар. Повторите попытку.", "Tovarni yuklab bo‘lmadi. Qayta urinib ko‘ring.", "Couldn’t load the item. Try again.");
     try {
-      // A product opened for ordering is checked against the merchant now;
-      // the short cache remains for batch imports and repeat browsing only.
+      // The first open may consume a just-finished check for this exact link. An explicit retry always checks again.
       // Walmart may answer "still collecting" (202): the page says so and asks again by itself.
-      const response = await requestImport({ url: link, fresh: true }, {
-        isCancelled: () => seq !== loadSeq.current,
+      const response = await requestImport({ url: link, fresh: true, ...(reuseRecent ? {reuseRecent: true} : {}) }, {
+        signal: controller.signal,
         onPending: (pending) => { if (seq === loadSeq.current && pending.message) setNote(pending.message); },
       });
       freshSettled=true;
-      if (response.status === 202) return;
+      if (seq !== loadSeq.current || response.status === 202) return;
       const data: Extracted & {
         error?: string;
         manualEntryAvailable?: boolean;
@@ -860,6 +884,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
       } = await response.json();
       if (seq !== loadSeq.current) return;
       if (!response.ok && data.manualEntryAvailable) {
+        const media = data.errorKind === 'link' ? undefined : snapshot.media;
         const partialImages=dedupeSafeImages([data.image,...(data.images??[])].filter(Boolean) as string[],link);
         const allPartialGalleries=cleanColorwayGalleries(data.colorwayImages,data.sourceUrl??link);
         const partialGalleries=data.selectedVariantColor
@@ -868,10 +893,10 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
         const partialCountry=canonicalCountry((linkIsCatalogFlow&&linkSeed?linkSeed.country??data.country??inferStorefrontCountry(link,data.currency):data.country??inferStorefrontCountry(link,data.currency))??"Другая страна");
         const partialCurrency=currencies.includes(data.currency??"")?data.currency!:currencyForCountry(partialCountry);
         setSource(data.sourceUrl??link);
-        setName(linkIsCatalogFlow&&linkSeed?linkSeed.name:data.title??linkSeed?.name??linkDealSeed?.title??"");
-        setBrand(data.brand??linkSeed?.brand??linkDealSeed?.store??new URL(link).hostname.replace(/^www\./,''));
-        setImage(partialImages[0]??linkSeed?.image??linkDealSeed?.image??"");
-        setImages(partialImages.length?partialImages:linkSeedImages);
+        setName(linkIsCatalogFlow&&linkSeed?linkSeed.name:data.title??linkSeed?.name??linkDealSeed?.title??media?.title??"");
+        setBrand(data.brand??linkSeed?.brand??linkDealSeed?.store??media?.brand??new URL(link).hostname.replace(/^www\./,''));
+        setImage(partialImages[0]??linkSeed?.image??linkDealSeed?.image??media?.images[0]??"");
+        setImages(partialImages.length?partialImages:(media?.images??linkSeedImages));
         setColorwayImages(partialGalleries);
         setImportReference(typeof data.referencePrice==='number'?data.referencePrice:undefined);
         if(data.price!==undefined&&currencies.includes(data.currency??"")){setAmount(String(data.price));setCurrency(data.currency!)}
@@ -884,7 +909,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
         const partialVariants=variantsForSourceColor(receivedPartialVariants,data.selectedVariantColor,data.sourceUrl??link,data.variantScope);
         const partialSelected=partialVariants.find(item=>item.id&&(item.id===data.selectedVariantId||item.id===data.sku));
         setVariants(partialVariants.filter(isOrderableVariant));
-        setStoreSoldOut(optionStock(partialVariants)==='sold-out');
+        setStoreSoldOut(Boolean(data.variants?.length)&&optionStock(partialVariants)==='sold-out');
         setVariant(partialSelected?.label??(partialVariants.length===1?partialVariants[0].label:""));
         setPicked(partialVariants.length===1?{[partialVariants[0].label]:1}:{});
         const partialColor=selectedImportedColor(data,partialVariants,partialGalleries);
@@ -911,18 +936,23 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
         setShowSourceForm(false);
         return;
       }
-      if (!response.ok)
-        throw Error(data.error ?? tx("Магазин не ответил. Повторите или заполните данные товара вручную.", "Do‘kon javob bermadi. Qayta urining yoki tovar ma’lumotlarini qo‘lda kiriting.", "The store didn’t respond. Try again or fill in the item details manually."));
+      if (!response.ok) {
+        errorMessage=typeof data.error==='string'?data.error:errorMessage;
+        if (data.errorKind === 'link') snapshot.media=undefined;
+        throw Error(errorMessage);
+      }
+      if (typeof data.sourceUrl !== 'string' || !orderLinkIn(data.sourceUrl) || !Array.isArray(data.warnings)) throw Error(errorMessage);
       setSource(data.sourceUrl);
-      setName(linkIsCatalogFlow&&linkSeed?linkSeed.name:data.title ?? linkSeed?.name ?? linkDealSeed?.title ?? "");
-      setBrand(data.brand ?? linkSeed?.brand ?? linkDealSeed?.store ?? new URL(data.sourceUrl).hostname);
-      setImage(data.image ?? linkSeed?.image ?? linkDealSeed?.image ?? "");
+      const loadedName=linkIsCatalogFlow&&linkSeed?linkSeed.name:data.title??linkSeed?.name??linkDealSeed?.title??"";
+      setName(loadedName||snapshot.media?.title||"");
+      setBrand(data.brand ?? linkSeed?.brand ?? linkDealSeed?.store ?? snapshot.media?.brand ?? new URL(data.sourceUrl).hostname);
       const importedImages=dedupeSafeImages([data.image,...(data.images??[])].filter(Boolean) as string[],data.sourceUrl);
-      setImages(importedImages.length?importedImages:linkSeedImages);
+      const displayImages=importedImages.length?importedImages:(snapshot.media?.images??linkSeedImages);
+      setImage(displayImages[0]??"");
+      setImages(displayImages);
       const allImportedColorwayGalleries=cleanColorwayGalleries(data.colorwayImages,data.sourceUrl);
       const importedColorwayGalleries=variantsForSourceColor(allImportedColorwayGalleries,data.selectedVariantColor,data.sourceUrl,data.variantScope);
       setColorwayImages(importedColorwayGalleries);
-      if(importedImages.length&&!data.image)setImage(importedImages[0]);
       const nextCategory = linkIsCatalogFlow&&linkSeed
         ? canonicalCategory(linkSeed.category)
         : canonicalCategory(data.category ?? linkSeed?.category ?? inferProductCategory(data.title ?? "", data.brand ?? ""));
@@ -942,14 +972,14 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
         : receivedVariants.length
           ? receivedVariants
           : linkFallbackOptions;
+      const hasFreshOptions = allImportedVariants === receivedVariants;
       const importedVariants = variantsForSourceColor(allImportedVariants,data.selectedVariantColor,data.sourceUrl,data.variantScope);
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
       
       const selectableVariants=safeVariants.filter(isOrderableVariant).filter(item=>{const value=item.price??(data.variantScope==='group'?undefined:data.price);return typeof value==='number'&&Number.isFinite(value)&&value>0||knownCurrency&&priceLoadable(item,data.sourceUrl);});
-      optionLoads.current=new Set();setOptionPricing([]);
       setVariants(selectableVariants);
       // Every option the store lists at this link is sold out: said as such, not as a price still to come.
-      setStoreSoldOut(optionStock(safeVariants)==='sold-out');
+      setStoreSoldOut(hasFreshOptions&&optionStock(safeVariants)==='sold-out');
       const sourceParams = new URL(data.sourceUrl).searchParams;
       const selectedIds = [data.selectedVariantId, data.sku, sourceParams.get('variant'), sourceParams.get('var')].filter((value): value is string => Boolean(value));
       const selectedVariant = selectableVariants.find(item => item.id && selectedIds.includes(item.id))
@@ -993,12 +1023,11 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
       setImportedAt(data.fetchedAt ?? Date.now());
       setSourceExpiresAt(data.expiresAt);
       const productPriceKnown=typeof data.price==='number'&&Number.isFinite(data.price)&&data.price>0;
-      const sourceHasPrice=knownCurrency&&Boolean(selectableVariants.length)&&(productPriceKnown||selectableVariants.some(v=>typeof v.price==='number'&&v.price>0));
+      const sourceHasPrice=hasFreshOptions&&knownCurrency&&Boolean(selectableVariants.length)&&(productPriceKnown||selectableVariants.some(v=>typeof v.price==='number'&&v.price>0));
       setSourceCheckStatus(sourceHasPrice?'verified':'failed');
       // What Atlas got from the store is locked on the page, the price and its currency always: each option costs its own
       // price or, without one, the product price, exactly as the server checks it (lib/importer/verify.ts).
       setBasePrice(sourceHasPrice&&productPriceKnown?data.price:undefined);
-      const loadedName=linkIsCatalogFlow&&linkSeed?linkSeed.name:data.title??linkSeed?.name??linkDealSeed?.title??"";
       setAtlasLocks(sourceHasPrice?{name:Boolean(loadedName.trim()),price:true,shipping:true,country:nextCountry!=="Другая страна",category:true,weight:true}:null);
       setShowSourceForm(false);
       // Shipping may depend on destination/session; require explicit confirmation even if found.
@@ -1045,14 +1074,16 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
           .filter(Boolean)
           .join(" "),
       );
-    } catch (e) {
+    } catch {
       freshSettled=true;
       if (seq !== loadSeq.current) return;
-      setNote((e as Error).message);
-      setName(linkSeed?.name??linkDealSeed?.title??"");
-      setBrand(linkSeed?.brand??linkDealSeed?.store??new URL(link).hostname.replace(/^www\./,''));
-      setImage(linkSeed?.image??linkDealSeed?.image??"");
-      setImages(linkSeedImages);
+      const media = snapshot.media;
+      setNote(errorMessage);
+      setSource(link);
+      setName(linkSeed?.name??linkDealSeed?.title??media?.title??"");
+      setBrand(linkSeed?.brand??linkDealSeed?.store??media?.brand??new URL(link).hostname.replace(/^www\./,''));
+      setImage(linkSeed?.image??linkDealSeed?.image??media?.images[0]??"");
+      setImages(media?.images??linkSeedImages);
       setAmount(linkSeedPrice?String(linkSeedPrice.amount):linkDealSeed?String(linkDealSeed.price):"");
       setCurrency(linkSeedPrice?.currency??"USD");
       setShipping(String(linkSeed?.sourceShippingUsd??unknownStoreShippingUsd));setShippingCurrency("USD");setShippingEstimated(linkSeed?.sourceShippingEstimated??true);
@@ -1067,51 +1098,77 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
       setShowSourceForm(false);
     } finally {
       freshSettled=true;
+      if (importController.current === controller) importController.current=null;
+      controller.abort();
       if (seq === loadSeq.current) {
         setBusy(false);
         setLoadsDone(count=>count+1);
       }
     }
   }
+  function stopChecking() {
+    cancelImport();
+    setBusy(false);
+    setOptionPricing([]);
+  }
+  function changeLinkInput(value: string) {
+    replacementAttempt.current += 1;
+    resumeEditedLink.current = "";
+    stopChecking();
+    automaticallyLoaded.current = autoLoadKey;
+    setAutoLoadStarted(autoLoadKey);
+    forgetLastDraft(browserStorage());
+    setAdded(null); setResumedFrom(""); setFormIssue(""); setLinkError(""); setUrl(value); setSource("");
+    setSourceCheckStatus("idle"); setNote(""); setImportProblem(null); setShowSourceForm(true);
+  }
   /** A link typed in the form becomes the page address (?url=…), so back, forward and reload keep it; a new link starts clean. */
   function openLink(value = url) {
-    let link: string;
-    try { link = validateSource(value); }
-    catch { setLinkError(invalidLinkText); setShowSourceForm(true); return; }
+    replacementAttempt.current += 1;
+    const link = orderLinkIn(value);
+    if (!link) { setLinkError(invalidLinkText); setShowSourceForm(true); return; }
+    resumeEditedLink.current = "";
     setLinkError("");
+    setUrl(link);
     if (link === requestedUrl) { void load(link); return; }
+    stopChecking();
+    forgetLastDraft(browserStorage());
     removeDraft(browserStorage(), draftKeyFor({ pageUrl: link }));
-    setAdded(null); setResumedFrom("");
+    setAdded(null); setResumedFrom(""); setFormIssue(""); setSource("");
+    setName(""); setBrand(""); setImage(""); setImages([]); setColorwayImages([]);
+    setSourceCheckStatus("idle"); setNote(""); setImportProblem(null);
     // The address change loads it, even when the same link was open before "Next item".
     automaticallyLoaded.current = null;
     window.history.replaceState(window.history.state, "", draftAddress({ pageUrl: link }, window.location.search));
   }
   /** "Изменить ссылку": an empty field for the new link. The product stays below until another link is opened; Esc goes back. */
   function editLink() {
+    replacementAttempt.current += 1;
+    if (checking) {
+      resumeEditedLink.current = requestedUrl || source;
+      stopChecking();
+      automaticallyLoaded.current = autoLoadKey;
+      setAutoLoadStarted(autoLoadKey);
+      setSource(""); setSourceCheckStatus("idle"); setNote(""); setImportProblem(null);
+    }
     // Focused once the field is drawn: after the clipboard read a timer can fire before that.
     focusLinkField.current = true;
     setUrl(""); setLinkError(""); setShowSourceForm(true);
   }
   /** "Заменить ссылку": the link last copied replaces this one. The same link, no link or a refused clipboard open the empty field. */
   async function replaceLink() {
-    let text = "";
-    try { text = (await navigator.clipboard.readText()).trim(); } catch { /* denied or unsupported: paste by hand */ }
-    // A link shared from an app often comes with its title around it.
-    const found = extractSharedLink(text) || text;
-    let link = "";
-    try { link = found ? validateSource(found) : ""; } catch { link = ""; }
+    const attempt = ++replacementAttempt.current;
+    const address = window.location.href;
+    const link = orderLinkIn(await readClipboardAfterTap());
+    if (attempt !== replacementAttempt.current || window.location.href !== address) return;
     // The store may answer with its own address for the product, so the link that was opened counts as the same too.
-    let opened = "";
-    try { opened = requestedUrl ? validateSource(requestedUrl) : ""; } catch { opened = ""; }
+    const opened = orderLinkIn(requestedUrl);
     if (!link || link === source || link === opened) { editLink(); return; }
-    setUrl(link);
     openLink(link);
   }
   /** "Next item" and "Start with a new link": an empty link form at /order-by-link that does not bring this draft back. */
   function startNewLink() {
-    forgetLastDraft(browserStorage());
+    changeLinkInput("");
     automaticallyLoaded.current = null; setAutoLoadStarted("");
-    setAdded(null); setResumedFrom(""); setFormIssue(""); setLinkError(""); setUrl(""); setSource(""); setSourceCheckStatus("idle"); setShowSourceForm(true);
     window.history.replaceState(window.history.state, "", draftAddress({ pageUrl: "" }, window.location.search));
     window.setTimeout(() => document.getElementById("source-url")?.focus(), 0);
   }
@@ -1136,7 +1193,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
     automaticallyLoaded.current = loadKey;
     setUrl(requestedUrl);
     setShowSourceForm(false);
-    void load(requestedUrl);
+    void load(requestedUrl, true);
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestedUrl, catalogContextKey, linkCatalog?.key, draftDecidedFor, draftKey, seedReady, datedCatalog]);
@@ -1225,6 +1282,7 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
   }
   // A guest's "add to cart" is sent once after sign-in, when this product is on screen again (app/pending-cart-add.ts).
   const pendingAdd = usePendingCartAdd(!checking && !adding && Boolean(source) && draftDecidedFor === draftKey, (result: PendingCartAddResult) => {
+    if (result.pending.draftKey !== draftKey || !source) return;
     if (result.status === "added") {
       finishAdd(result.pending.lines, result.pending.units, lc.pending.added(result.pending.units) + (result.speedKept ? " " + lc.pending.speedKept : ""));
       return;
@@ -1540,34 +1598,32 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
           disabled={busy}
           aria-invalid={!!linkError}
           aria-describedby={linkError ? "source-url-error" : undefined}
-          onChange={(e) => {
-            // A new link is being started: opening the page later does not bring the previous draft back.
-            forgetLastDraft(browserStorage());
-            setResumedFrom("");
-            setUrl(e.target.value);
-            setLinkError("");
-            setSource("");
-            setSourceCheckStatus('idle');
-
-            setShowSourceForm(true);
-          }}
+          onChange={(e) => changeLinkInput(e.target.value)}
           // Back to the loaded product when "Изменить ссылку" was opened by mistake and nothing was typed yet.
-          onKeyDown={(e) => { if (e.key === "Escape" && source && !url) { e.preventDefault(); setShowSourceForm(false); } }}
+          onKeyDown={(e) => {
+            if (e.key !== "Escape" || url || (!source && !resumeEditedLink.current)) return;
+            e.preventDefault();
+            const interrupted = resumeEditedLink.current;
+            resumeEditedLink.current = "";
+            setUrl(requestedUrl || source);
+            setShowSourceForm(false);
+            if (interrupted) void load(interrupted);
+          }}
           // A pasted store link starts the calculation at once: no second tap on "Рассчитать", and the store is asked
           // while the customer would still be reaching for the button. Anything else pastes as usual.
           onPaste={(e) => {
-            const text = e.clipboardData.getData('text').trim();
-            try { validateSource(text); } catch { return; }
+            const link = orderLinkIn(e.clipboardData.getData('text'));
+            if (!link) return;
             e.preventDefault();
-            forgetLastDraft(browserStorage()); setResumedFrom(''); setFormIssue(''); setLinkError(''); setUrl(text); setSource(''); setSourceCheckStatus('idle');
-            openLink(text);
+            clip.used();
+            openLink(link);
           }}
           placeholder={lc.placeholder}
         /><PasteButton targetId="source-url" locale={lang} disabled={busy} ready={clip.ready && !source} onPaste={text => {
           clip.used();
-          forgetLastDraft(browserStorage()); setResumedFrom(''); setFormIssue(''); setLinkError(''); setUrl(text); setSource(''); setSourceCheckStatus('idle'); setShowSourceForm(true);
-          // The "Вставить" button is the same intent: a valid store link is opened right away.
-          try { validateSource(text); openLink(text); } catch { /* not a link: it stays in the field */ }
+          const link = orderLinkIn(text);
+          if (link) openLink(link);
+          else changeLinkInput(text);
         }}/></span>
         <button className="btn primary lo-link-submit" disabled={busy}>{busy ? <Loader2 className="spin" size={18} aria-hidden="true" /> : null}{busy ? c.get : lc.calculate}</button>
       </form>}
@@ -1773,7 +1829,13 @@ export function ProductOrder({ mode = "link", product, inSheet = false, chosenVa
                 return;
               }
               setAdding(true);
+              const addSeq = loadSeq.current;
               const ok = await act(action);
+              // The cart write may finish after another link has been opened. Finish its draft without touching the new form.
+              if (addSeq !== loadSeq.current) {
+                if (ok) markDraftDone(browserStorage(), draftKey);
+                return;
+              }
               // The cart keeps what is already there; the customer can add more from this or another link.
               if (ok) {
                 finishAdd(picks.length, units);

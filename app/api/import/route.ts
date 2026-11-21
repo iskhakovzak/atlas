@@ -6,6 +6,8 @@ import { canonicalProductUrl } from '@/lib/importer/source-identity';
 import { isConfirmedEbaySoldOut } from '@/lib/importer/ebay';
 import { desktopStoreUrl, expandShortLink, isShortLink } from '@/lib/importer/short-links';
 import { createImportFlights, freshRetryGapMs } from '@/lib/importer/import-flight';
+import { parseImportSnapshot } from '@/lib/importer/import-snapshot';
+import { dedupeSafeImages } from '@/lib/importer/extract';
 import { database, deferBackground, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
 import { currentUser } from '@/lib/auth/server';
 import { importRateBuckets } from '@/lib/market/import-preview';
@@ -15,7 +17,9 @@ import { classifyImportError } from '@/lib/market/import-monitor';
 import { importMonitorLive, monitorImport } from '@/lib/market/import-monitor-server';
 import { importTimingHeader } from '@/lib/importer/import-timing';
 
-const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional(), warm: z.boolean().optional(), cacheOnly: z.boolean().optional() });
+const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional(), warm: z.boolean().optional(), cacheOnly: z.boolean().optional(), reuseRecent: z.boolean().optional() });
+const recentOpenMs = 15_000;
+const importCacheMs = 10 * 60_000;
 
 // One isolate's in-flight imports and recent walls (lib/importer/import-flight.ts); D1 keeps the positive cache.
 const flights = createImportFlights();
@@ -86,7 +90,8 @@ export async function POST(request: Request) {
     // Answers that ask no store, so they are given before the rate limit: a wall or an incomplete page from the last
     // 90 s — with fresh (the link opened to order, or "Retry automatic import") only from the last 15 s, so a one-off
     // wall does not answer the customer's retry, yet the store gets at most one live attempt per 15 s for the link —
-    // and the stored import unless fresh is asked. Amazon US prices depend on the delivery location and are never cached.
+    // and the stored import. Automatic opens can reuse a just-completed warm check. An explicit retry needs a new
+    // answer. Amazon US prices depend on the delivery location and are never cached.
     const known = async (cacheOnly = false) => {
       const host = new URL(sourceUrl).hostname;
       if (!isSupportedStoreHost(host) || isManualEntryStoreHost(host)) return undefined;
@@ -96,11 +101,22 @@ export async function POST(request: Request) {
         if (sorted) monitorImport(request, user, { host, url: sourceUrl, ...sorted, replay: true });
         return failed(wall);
       }
-      if ((!cacheOnly && fresh) || isAmazonUsUrl(new URL(sourceUrl))) return undefined;
+      const recentOnly = !cacheOnly && fresh;
+      if ((recentOnly && !payload.data.reuseRecent) || isAmazonUsUrl(new URL(sourceUrl))) return undefined;
       try {
+        const lookupAt = Date.now();
         const cached = await db.prepare('SELECT payload,expires_at,updated_at FROM market_import_cache WHERE url=? AND expires_at>?')
-          .bind(sourceUrl, Date.now()).first<{ payload: string; expires_at: number; updated_at: number }>();
-        if (cached) return json({ ...JSON.parse(cached.payload), fetchedAt: cached.updated_at, expiresAt: cached.expires_at, cached: true });
+          .bind(sourceUrl, lookupAt).first<{ payload: string; expires_at: number; updated_at: number }>();
+        if (!cached || cached.updated_at > lookupAt || (recentOnly && cached.updated_at <= lookupAt - recentOpenMs)) return undefined;
+        const data = parseImportSnapshot(cached.payload);
+        if (!data) return undefined;
+        if (cacheOnly) {
+          const title = typeof data.title === 'string' ? data.title.slice(0, 500) : undefined;
+          const brand = typeof data.brand === 'string' ? data.brand.slice(0, 200) : undefined;
+          const images = dedupeSafeImages([data.image, ...(Array.isArray(data.images) ? data.images.slice(0, 12) : [])], sourceUrl);
+          return title || images.length ? json({title, brand, images, cached: true}) : undefined;
+        }
+        return json({ ...data, fetchedAt: cached.updated_at, expiresAt: cached.expires_at, cached: true });
       } catch {
         // A cache fault is a miss. A live import still has to pass its rate limits before contacting the store.
       }
@@ -162,44 +178,38 @@ export async function POST(request: Request) {
       }, 422);
     }
 
-    // The same page asked twice at once (a double tap, two tabs, the operator queue) is fetched once.
+    // A warm request and an open for the same page share the store answer and its cache write.
     const url = sourceUrl;
     timings.lookup = performance.now() - started;
     const merchantStarted = performance.now();
-    const { outcome, leader } = await flights.run(url, () => fetchProduct(url, merchantRequest));
-    timings.merchant = performance.now() - merchantStarted;
-    // Only the request that asked the store is counted; a follower got the same answer.
-    if (leader) {
-      if (outcome.ok) monitorImport(request, user, { host, url, kind: 'ok', quiet: warm });
-      else {
+    const { outcome, checkedAt: fetchedAt } = await flights.run(url, async () => {
+      try { return await fetchProduct(url, merchantRequest); }
+      finally { timings.merchant = performance.now() - merchantStarted; }
+    }, async ({outcome, checkedAt}) => {
+      if (!outcome.ok) {
         const diagnostic = outcome.error instanceof ManualEntryFallbackError ? describeImportDiagnostic(outcome.error.diagnostic) : '';
         const sorted = classifyImportError(outcome.error, diagnostic);
         if (sorted) monitorImport(request, user, { host, url, ...sorted, quiet: warm });
+        if (isConfirmedEbaySoldOut(outcome.error)) {
+          const error = outcome.error;
+          deferBackground(import('@/lib/market/catalog-refresh').then(({ refreshCatalogFromLiveImport }) => refreshCatalogFromLiveImport(url, { error }, checkedAt)), 'Catalog live stock update failed');
+        }
+        return;
       }
-    }
-    if (!outcome.ok) {
-      if (leader && isConfirmedEbaySoldOut(outcome.error)) {
-        const error = outcome.error;
-        deferBackground(import('@/lib/market/catalog-refresh').then(({ refreshCatalogFromLiveImport }) => refreshCatalogFromLiveImport(url, { error })), 'Catalog live stock update failed');
-      }
-      return timed(failed(outcome.error));
-    }
-    const data = outcome.data;
-    const fetchedAt = Date.now();
-    const expiresAt = fetchedAt + 10 * 60_000;
-    // Only the request that asked the store writes the cache; a follower got the same answer.
-    if (leader && !liveLocationRequired) {
+      monitorImport(request, user, { host, url, kind: 'ok', quiet: warm });
+      if (liveLocationRequired) return;
+      const data = outcome.data;
       const cacheStarted = performance.now();
       try {
         // Save before replying so an immediate cart add can reuse the verified snapshot.
         await db.prepare('INSERT INTO market_import_cache (url,payload,expires_at,updated_at) VALUES (?,?,?,?) ON CONFLICT(url) DO UPDATE SET payload=excluded.payload,expires_at=excluded.expires_at,updated_at=excluded.updated_at WHERE excluded.updated_at>=market_import_cache.updated_at')
-          .bind(url, JSON.stringify(data), expiresAt, fetchedAt).run();
-        if (fetchedAt >= nextCacheCleanupAt) {
-          nextCacheCleanupAt = fetchedAt + 60_000;
+          .bind(url, JSON.stringify(data), checkedAt + importCacheMs, checkedAt).run();
+        if (checkedAt >= nextCacheCleanupAt) {
+          nextCacheCleanupAt = checkedAt + 60_000;
           // Cleanup is advisory: reads already exclude expired rows. Yield before running it on the VPS SQLite adapter.
           const cleanup = new Promise<void>(resolve => setTimeout(resolve, 0)).then(() =>
             db.prepare('DELETE FROM market_import_cache WHERE url IN (SELECT url FROM market_import_cache WHERE expires_at < ? ORDER BY expires_at LIMIT 500)')
-              .bind(fetchedAt).run());
+              .bind(checkedAt).run());
           deferBackground(cleanup, 'Import cache expiry cleanup failed');
         }
       } catch (error) {
@@ -207,9 +217,11 @@ export async function POST(request: Request) {
       }
       timings.cacheWrite = performance.now() - cacheStarted;
       // A catalog card of this page takes the fresh price too (at most every 30 minutes), after the answer is sent.
-      deferBackground(import('@/lib/market/catalog-refresh').then(({ refreshCatalogFromLiveImport }) => refreshCatalogFromLiveImport(url, { data }, fetchedAt)), 'Catalog live refresh failed');
-    }
-    return timed(json({ ...data, fetchedAt, expiresAt, cached: false }));
+      deferBackground(import('@/lib/market/catalog-refresh').then(({ refreshCatalogFromLiveImport }) => refreshCatalogFromLiveImport(url, { data }, checkedAt)), 'Catalog live refresh failed');
+    });
+    timings.merchant ??= performance.now() - merchantStarted;
+    if (!outcome.ok) return timed(failed(outcome.error));
+    return timed(json({ ...outcome.data, fetchedAt, expiresAt: fetchedAt + importCacheMs, cached: false }));
   } catch (error) {
     return timed(await failure(error, request));
   }

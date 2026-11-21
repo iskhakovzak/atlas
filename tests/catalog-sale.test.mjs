@@ -38,6 +38,22 @@ test('a slow storefront step remains leased beyond the scheduler timeout',async(
  const job=await runner.start('alice',input),running=runner.step('alice',job.id);await ready;advance();
  await runner.step('alice',job.id);assert.equal(imports,1);finish();await running;
 });
+test('a pause during the storefront final save preserves imported listings and releases the lease',async()=>{
+ const listings=[item(),item('123456789013'),item('123456789014'),item('123456789015')];
+ const {runner,store}=setup({discover:async()=>({items:listings,scanned:4,matched:4,limited:false})});
+ const job=await runner.start('alice',input);
+ const write=store.write;let paused=false;
+ store.write=async(owner,next,previous)=>{
+  if(!paused&&next.processed===3&&next.leaseUntil===0){
+   paused=true;
+   await runner.control(owner,job.id,false);
+  }
+  return write(owner,next,previous);
+ };
+ const done=await runner.step('alice',job.id);
+ assert.equal(done.status,'paused');assert.equal(done.processed,3);assert.equal(done.published,3);
+ assert.equal(done.pending[0].listingId,listings[3].listingId);assert.equal(done.leaseUntil,0);
+});
 test('failed saves retain the item and retry with backoff instead of reporting a false successful import',async()=>{
  let attempts=0;const {runner,advance}=setup({importItem:async()=>{if(++attempts<3)throw Error('database busy');return {published:true}}});
  let job=await runner.start('alice',input);job=await runner.step('alice',job.id);

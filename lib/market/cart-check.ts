@@ -1,5 +1,6 @@
 import { isAmazonUsUrl, ManualEntryFallbackError } from '../importer/fetch.ts';
 import type { Extracted } from '../importer/extract.ts';
+import { parseImportSnapshot } from '../importer/import-snapshot.ts';
 import { manualFallbackAllowed, requiresMerchantSnapshot } from '../importer/manual-fallback.ts';
 import { compareProductSnapshot } from '../importer/verify.ts';
 import { canonicalProductUrl } from '../importer/source-identity.ts';
@@ -115,19 +116,6 @@ export function importCacheKey(url: string) {
   try { return canonicalProductUrl(url); } catch { return url; }
 }
 
-/** Only a payload with the shape fetchProduct returns counts; anything else is fetched live. */
-function storedExtraction(payload: string): Extracted | undefined {
-  let value: unknown;
-  try { value = JSON.parse(payload); } catch { return undefined; }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
-  const record = value as Record<string, unknown>;
-  if (typeof record.sourceUrl !== 'string' || !Array.isArray(record.warnings)) return undefined;
-  if (record.price !== undefined && (typeof record.price !== 'number' || !Number.isFinite(record.price))) return undefined;
-  if (record.currency !== undefined && typeof record.currency !== 'string') return undefined;
-  if (record.variants !== undefined && !Array.isArray(record.variants)) return undefined;
-  return record as Extracted;
-}
-
 /**
  * Cart-add right after the product card was loaded: the store answer the server itself stored in
  * market_import_cache within `freshWithinMs` (the same window a checked cart line counts as checked) is used instead
@@ -144,7 +132,7 @@ export function withRecentImport(fetchSource: (url: string) => Promise<Extracted
     if (!live) {
       let row: RecentImport | undefined;
       try { row = await readRecent(key, now - freshWithinMs); } catch { row = undefined; }
-      const value = row && row.updatedAt > now - freshWithinMs && row.updatedAt <= now ? storedExtraction(row.payload) : undefined;
+      const value = row && row.updatedAt > now - freshWithinMs && row.updatedAt <= now ? parseImportSnapshot(row.payload) : undefined;
       if (value) { fetchedAt.set(value, row!.updatedAt); return value; }
     }
     return fetchSource(key);

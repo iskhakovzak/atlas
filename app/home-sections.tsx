@@ -7,14 +7,15 @@ import {PasteButton} from '@/components/paste-button';
 import {InfoTip} from '@/components/info-tip';
 import {useClipboardLink} from './use-clipboard-link';
 import {useMarket} from '@/lib/market/store';
-import {deliveryPerKgUsdFor,deliverySpeeds,price,validateSource} from '@/lib/market/domain';
+import {deliveryPerKgUsdFor,deliverySpeeds,price} from '@/lib/market/domain';
+import {orderLinkIn} from '@/lib/market/clipboard-link';
 import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
 import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight,packagingKg} from '@/lib/market/world';
 import {homeCopy} from '@/lib/market/home-copy';
 import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits} from '@/lib/market/format';
 import {expressLead,factPrice,speedDaysRange,speedPriceRange,tariffRows} from '@/lib/market/home-facts';
-import {catalogSearchFor,looksLikeLink,normalizeProductLink,storeNamedIn} from '@/lib/market/shared-link';
+import {catalogSearchFor,looksLikeLink,storeNamedIn} from '@/lib/market/shared-link';
 import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
 import {loadChunk} from '@/lib/market/stale-build';
 import {firstProfileAction} from '@/lib/market/profile-strip';
@@ -45,7 +46,7 @@ type LinkHelp={store:StoreBrand|null;search:string};
 
 /**
  * A product link field. A link opens the order by link in place, the button waiting meanwhile: a link inside shared text,
- * a bare "nike.com/t/…" and an http link count too (normalizeProductLink). Anything else shows a hint; plain words get
+ * a bare "nike.com/t/…" and an http link count too. Anything else shows a hint; plain words get
  * their own, with the store they name and a catalog search for the forms that show them (owner's review, 14.10.2026).
  */
 function useLinkSubmit(){
@@ -55,33 +56,34 @@ function useLinkSubmit(){
  const [url,setUrl]=useState('');
  const [error,setError]=useState('');
  const [help,setHelp]=useState<LinkHelp|null>(null);
- const [busy,setBusy]=useState(false);
+ const [pendingTarget,setPendingTarget]=useState('');
+ const busy=Boolean(pendingTarget);
  const prefetched=useRef(false);
  // A navigation that never finishes, or a page brought back from history, leaves the button usable again.
  useEffect(()=>{
-  if(!busy)return;
-  const reset=()=>setBusy(false);
+  if(!pendingTarget)return;
+  const reset=()=>setPendingTarget('');
   const timer=window.setTimeout(reset,15000);
   window.addEventListener('pagehide',reset);
   window.addEventListener('pageshow',reset);
   return ()=>{window.clearTimeout(timer);window.removeEventListener('pagehide',reset);window.removeEventListener('pageshow',reset)};
- },[busy]);
+ },[pendingTarget]);
  function submit(event:FormEvent){
   event.preventDefault();
   open(url);
  }
- function open(value:string){
-  if(busy)return;
+ function open(value:string,showInvalid=true){
   const raw=value.trim();
-  let target:string;
-  try{target=validateSource(normalizeProductLink(raw)||raw)}
-  catch{
+  const target=orderLinkIn(raw);
+  if(!target){
+   if(!showInvalid)return;
    const words=Boolean(raw)&&!looksLikeLink(raw);
    setError(words?c.hero.notLink:c.hero.invalid);
    setHelp(words?{store:storeNamedIn(raw,storeBrands),search:catalogSearchFor(raw,catalogProducts,locale)}:null);
    return;
   }
-  setError('');setHelp(null);setBusy(true);
+  if(target===pendingTarget)return;
+  setError('');setHelp(null);setPendingTarget(target);
   // In place, as SiteLink does: the order page reads ?url= on arrival and starts loading the product (app/global-link-order.tsx).
   startNavigationFeedback();
   router.push('/order-by-link?url='+encodeURIComponent(target));
@@ -90,8 +92,7 @@ function useLinkSubmit(){
  // A pasted store link goes straight to its calculation (the order page starts loading it on arrival); other text just pastes.
  function pasted(value:string){
   change(value);
-  try{validateSource(normalizeProductLink(value.trim())||value.trim())}catch{return}
-  open(value);
+  open(value,false);
  }
  // The order page's code and data are fetched while the link is being pasted.
  const prefetch=useCallback(()=>{
