@@ -1,0 +1,9 @@
+[Unit]
+Description=Check due Atlas catalog stock and prices
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker exec atlas-web node --experimental-strip-types scripts/vps-catalog-stock.mjs
+TimeoutStartSec=110s

@@ -31,6 +31,12 @@ Since 3 November 2026 the VPS build (`ATLAS_DEPLOY_TARGET=vps npm run build`) wr
 
 For rollback, use a previously verified VPS image with the existing data/config mounts. Do not restore the old Sites DNS target as a data rollback: its demo data and secrets were intentionally removed.
 
+## Scheduled catalog stock
+
+`atlas-catalog-stock.timer` runs the stock-only check two minutes after each completed run. The service runs `scripts/vps-catalog-stock.mjs` inside `atlas-web`. The script signs the loopback request using the existing `ATLAS_CATALOG_REFRESH_SECRET` from the mounted runtime configuration. Its journal contains counts and statuses only. Each pass checks a bounded batch of due cards, with at most one listing per merchant. Explicitly sold-out cards leave the public feed but retain their drafts and can return after an available snapshot.
+
+Install the two unit files from this directory after deploying the corresponding image, then run `systemctl daemon-reload`, `systemctl enable --now atlas-catalog-stock.timer` and `systemctl list-timers atlas-catalog-stock.timer --no-pager`. Review results using `journalctl -u atlas-catalog-stock.service --no-pager -n 10`. Disable the timer before rolling back to a build without `/api/internal/catalog-stock`.
+
 ## Backups and verification
 
 `atlas-backup.timer` runs at 02:15 UTC with up to 120 s jitter, retaining seven days in `/opt/atlas/backups`. The backup includes an online SQLite snapshot (integrity checked), private objects and configuration; files are root-private. Object copying is not transactionally synchronized with database writes; pause document writes for a strict point-in-time restore. Off-server backup is not configured.

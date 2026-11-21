@@ -3,6 +3,7 @@ import { describeImportDiagnostic, fetchProduct, isAmazonUsUrl, ManualEntryFallb
 import { isBrowserStoreHost, isManualEntryStoreHost, isSupportedStoreHost } from '@/lib/importer/stores';
 import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { canonicalProductUrl } from '@/lib/importer/source-identity';
+import { isConfirmedEbaySoldOut } from '@/lib/importer/ebay';
 import { desktopStoreUrl, expandShortLink, isShortLink } from '@/lib/importer/short-links';
 import { createImportFlights, freshRetryGapMs } from '@/lib/importer/import-flight';
 import { database, deferBackground, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
@@ -176,7 +177,13 @@ export async function POST(request: Request) {
         if (sorted) monitorImport(request, user, { host, url, ...sorted, quiet: warm });
       }
     }
-    if (!outcome.ok) return timed(failed(outcome.error));
+    if (!outcome.ok) {
+      if (leader && isConfirmedEbaySoldOut(outcome.error)) {
+        const error = outcome.error;
+        deferBackground(import('@/lib/market/catalog-refresh').then(({ refreshCatalogFromLiveImport }) => refreshCatalogFromLiveImport(url, { error })), 'Catalog live stock update failed');
+      }
+      return timed(failed(outcome.error));
+    }
     const data = outcome.data;
     const fetchedAt = Date.now();
     const expiresAt = fetchedAt + 10 * 60_000;
@@ -191,7 +198,7 @@ export async function POST(request: Request) {
       ]);
       timings.cacheWrite = performance.now() - cacheStarted;
       // A catalog card of this page takes the fresh price too (at most every 30 minutes), after the answer is sent.
-      deferBackground(import('@/lib/market/catalog-refresh').then(({ refreshCatalogFromLiveImport }) => refreshCatalogFromLiveImport(url, data, fetchedAt)), 'Catalog live refresh failed');
+      deferBackground(import('@/lib/market/catalog-refresh').then(({ refreshCatalogFromLiveImport }) => refreshCatalogFromLiveImport(url, { data }, fetchedAt)), 'Catalog live refresh failed');
     }
     return timed(json({ ...data, fetchedAt, expiresAt, cached: false }));
   } catch (error) {

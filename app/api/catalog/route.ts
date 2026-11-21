@@ -7,8 +7,9 @@ import {z} from 'zod';
 import {identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing,rateLimit} from '@/lib/market/server';
 import {catalogSaleRunner,validatedSaleSource} from '@/lib/market/catalog-sale-server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
-import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,publicCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
+import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,publicCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize,markCatalogRefreshFailed} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError} from '@/lib/importer/fetch';
+import {isConfirmedEbaySoldOut} from '@/lib/importer/ebay';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
 import {catalogMerchantRequest as merchantRequest} from '@/lib/importer/worker-fetch';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
@@ -87,8 +88,33 @@ export async function POST(request:Request){try{
       pricing(),
     ]);
     const results:string[]=[];
-    for(const [index,{id,entry}] of targets.entries()){if(!entry){results.push(`${id}: товар не найден`);continue}try{const read=fetched[index];if(!read)throw new Error('Нет ссылки на магазин');if('error' in read)throw read.error;const data=read.data,fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());if(entry.autoManaged)applyAutomaticCatalogImport(document,fresh,Date.now(),currentPricing.rates);else entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);entry.draft.importFailureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':undefined;const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
-    document.revision++;await persistCatalog(document,raw,user,'catalog.recheck',{ids:command.ids});return json({document,recheckResults:results});
+    let updated=document;
+    for(const [index,{id}] of targets.entries()){
+      const entry=updated.entries.find(item=>item.id===id);
+      if(!entry){results.push(`${id}: товар не найден`);continue}
+      const now=Date.now();
+      try{
+        const read=fetched[index];
+        if(!read)throw new Error('Нет ссылки на магазин');
+        if('error' in read)throw read.error;
+        const fresh=importDraft(read.data,entry.draft.collectionIds,entry.draft.country,now);
+        if(entry.autoManaged)applyAutomaticCatalogImport(updated,fresh,now,currentPricing.rates);
+        else entry.draft=recheckedDraft(entry.draft,fresh);
+        updated.availabilityReports=updated.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);
+        results.push(`${entry.draft.name}: проверено`);
+      }catch(error){
+        if(isConfirmedEbaySoldOut(error))updated=markCatalogRefreshFailed(updated,id,error,now).document;
+        else{
+          entry.draft.lastCheckError=(error as Error).message.slice(0,500);
+          entry.draft.importFailureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':undefined;
+        }
+        const locale=requestLocale(request);
+        results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`);
+      }
+    }
+    updated.revision++;
+    await persistCatalog(updated,raw,user,'catalog.recheck',{ids:command.ids});
+    return json({document:updated,recheckResults:results});
   }
   if(command.kind==='import'||command.kind==='discover'||command.kind==='import-batch'){
     // No per-minute cap on the operator (owner, 27 October 2026: a large batch should run through in one go). The stores

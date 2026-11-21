@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogLifetime,catalogRefreshInterval,catalogRecheckBatches,catalogRecheckBatchSize,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,isBundledCatalogEntry,manualFallbackCatalogDraft,isManualCatalogSource,manualStoreReviewReason,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogEntriesForLiveSource,catalogIssues,catalogLifetime,catalogRefreshInterval,catalogRecheckBatches,catalogRecheckBatchSize,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,isBundledCatalogEntry,manualFallbackCatalogDraft,isManualCatalogSource,manualStoreReviewReason,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
 import {catalogQueueVerdict} from '../lib/market/catalog-queue-verdict.ts';
-import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
+import {catalogRefreshPath,catalogStockPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
+import {EbayListingUnavailableError} from '../lib/importer/ebay.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
 import {catalogOrderVariants,keepCatalogVisible} from '../lib/market/catalog.ts';
 import {productSchema,tariff} from '../lib/market/domain.ts';
@@ -292,6 +293,28 @@ test('unknown merchant availability never republishes or auto-hides a card',()=>
  assert.equal(result.document.entries[0].refresh.status,'unknown');
  assert.match(result.document.entries[0].refresh.lastError,/не отдал подтверждённую матрицу наличия/);
 });
+test('confirmed eBay stock hides the public card and the next available snapshot restores it',()=>{
+ const sourceUrl='https://www.ebay.com/itm/123456789012';
+ const draft=importDraft({...extracted,sourceUrl},[],'США',1000);
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'ebay',draft,published:structuredClone(draft),publishedAt:1000}]});
+ const partial=new EbayListingUnavailableError(undefined,'item_data',200);
+ assert.ok(markCatalogRefreshFailed(doc,'ebay',partial,1001).document.entries[0].published);
+ assert.equal(catalogEntriesForLiveSource(doc,sourceUrl,1001).length,0);
+ assert.equal(catalogEntriesForLiveSource(doc,sourceUrl,1001,true).length,1);
+ assert.equal(catalogEntriesForLiveSource(doc,sourceUrl,999,true).length,0);
+ const confirmed=new EbayListingUnavailableError(undefined,'variation_group',200,true);
+ const hidden=markCatalogRefreshFailed(doc,'ebay',confirmed,1001);
+ assert.equal(hidden.outcome,'sold-out');
+ assert.equal(publicCatalog(hidden.document,tariff,1001).products.length,0);
+ const saved=hidden.document.entries[0];
+ assert.equal(saved.draft.name,draft.name);
+ assert.equal(saved.draft.variants[0].available,false);
+ assert.equal(saved.refresh.nextCheckAt,1001+catalogRefreshInterval);
+ assert.deepEqual(dueCatalogEntries(hidden.document,1001+catalogRefreshInterval).map(entry=>entry.id),['ebay']);
+ const restored=applyScheduledCatalogRefresh(hidden.document,'ebay',draft,1001+catalogRefreshInterval);
+ assert.equal(restored.outcome,'available');
+ assert.ok(restored.document.entries[0].published);
+});
 test('the internal refresh endpoint signature expires and cannot be replayed as another path',async()=>{
  const secret='test-secret',now=Date.UTC(2026,8,19,12),timestamp=String(now),signature=await signCatalogRefreshRequest(secret,timestamp);
  const request=new Request(`https://atlas.test${catalogRefreshPath}`,{method:'POST',headers:{'x-atlas-refresh-timestamp':timestamp,'x-atlas-refresh-signature':signature}});
@@ -299,6 +322,12 @@ test('the internal refresh endpoint signature expires and cannot be replayed as 
  assert(!(await isAuthorizedCatalogRefresh(request,secret,now+6*60*1000)));
  const wrongPath=new Request('https://atlas.test/api/catalog',{method:'POST',headers:request.headers});
  assert(!(await isAuthorizedCatalogRefresh(wrongPath,secret,now)));
+ const stockHeaders=new Headers(request.headers);
+ stockHeaders.set('x-atlas-refresh-signature',await signCatalogRefreshRequest(secret,timestamp,catalogStockPath));
+ const stock=new Request(`https://atlas.test${catalogStockPath}`,{method:'POST',headers:stockHeaders});
+ assert(await isAuthorizedCatalogRefresh(stock,secret,now,catalogStockPath));
+ const swapped=new Request(request.url,{method:'POST',headers:stockHeaders});
+ assert(!(await isAuthorizedCatalogRefresh(swapped,secret,now)));
 });
 test('imported drafts keep the store’s own before-discount price and the public feed shows it as a discount',()=>{
  const draft=importDraft({...extracted,price:35,referencePrice:50},[],'США',1000);

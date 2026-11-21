@@ -1,27 +1,38 @@
 import {fetchProduct,type MerchantFetch} from '../importer/fetch.ts';
+import {isConfirmedEbaySoldOut} from '../importer/ebay.ts';
 import {
   applyScheduledCatalogRefresh,
   catalogEntriesForLiveSource,
   dueCatalogEntries,
   importDraft,
+  isWatchedCatalogEntry,
   markCatalogRefreshFailed,
   type CatalogDocument,
   type ScheduledRefreshOutcome,
 } from './catalog-editor.ts';
 import {readCatalog,persistCatalog} from './catalog-server.ts';
-import {HttpError,pricing} from './server.ts';
+import {database,HttpError,pricing} from './server.ts';
 import {tariff} from './domain.ts';
 
 const refreshActor={userId:'system:catalog-refresh',email:'system@atlas.invalid'};
 const maxParallelFetches=2;
 
-type SourceCheck={id:string;sourceUrl:string;data?:Awaited<ReturnType<typeof fetchProduct>>;error?:unknown};
+type SourceObservation={data?:Awaited<ReturnType<typeof fetchProduct>>;error?:unknown};
+type SourceCheck=SourceObservation&{id:string;sourceUrl:string};
 export type CatalogRefreshResult={
   selected:number;checked:number;available:number;soldOut:number;unknown:number;failed:number;skipped:number;
 };
 
 function blankResult(selected=0):CatalogRefreshResult{
   return {selected,checked:0,available:0,soldOut:0,unknown:0,failed:0,skipped:0};
+}
+
+export async function acquireCatalogRefreshLease(){
+  const now=Date.now(),expiresAt=now+120000,db=database(),key='atlas:catalog-refresh:lease';
+  await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
+  const lease=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO NOTHING RETURNING key').bind(key,expiresAt).first<{key:string}>();
+  if(!lease)throw new HttpError(409,'Проверка каталога уже выполняется.');
+  return async()=>{await db.prepare('DELETE FROM market_rate_limits WHERE key=? AND expires_at=?').bind(key,expiresAt).run()};
 }
 
 async function mapWithConcurrency<T,R>(items:T[],limit:number,task:(item:T)=>Promise<R>){
@@ -62,7 +73,7 @@ export async function refreshDueCatalog(now=Date.now(),fetcher:MerchantFetch=fet
     const latest=await readCatalog();let document=latest.document;
     for(const check of checks){
       const entry=document.entries.find(item=>item.id===check.id);
-      if(!entry||entry.draft.sourceUrl!==check.sourceUrl){summary.skipped++;continue}
+      if(!entry||!isWatchedCatalogEntry(entry)||entry.draft.sourceUrl!==check.sourceUrl||(entry.refresh?.lastAttemptAt??entry.draft.checkedAt)>now){summary.skipped++;continue}
       const applied=applyResult(document,check,now,currentPricing.rates);document=applied.document;
       if(applied.outcome==='skipped'){summary.skipped++;continue}
       summary.checked++;
@@ -82,16 +93,17 @@ export async function refreshDueCatalog(now=Date.now(),fetcher:MerchantFetch=fet
 }
 
 /**
- * A customer's live import of a catalog page updates that card at once, so the catalog does not keep quoting an older
- * price than the store (or the cart) shows. Runs after the answer is sent; an editor's concurrent change wins.
+ * A live import updates the price or hides a listing with confirmed no stock. Runs after the answer is sent.
  */
-export async function refreshCatalogFromLiveImport(sourceUrl:string,data:Awaited<ReturnType<typeof fetchProduct>>,now=Date.now()){
+export async function refreshCatalogFromLiveImport(sourceUrl:string,observation:SourceObservation,now=Date.now()){
+  const soldOut=isConfirmedEbaySoldOut(observation.error);
+  if(!soldOut&&!observation.data)return 0;
   const latest=await readCatalog();
-  const entries=catalogEntriesForLiveSource(latest.document,sourceUrl,now);
+  const entries=catalogEntriesForLiveSource(latest.document,sourceUrl,now,soldOut);
   if(!entries.length)return 0;
-  const rates=(await pricing()).rates;
+  const rates=soldOut?tariff.rates:(await pricing()).rates;
   let document=latest.document;
-  for(const entry of entries)document=applyResult(document,{id:entry.id,sourceUrl:entry.draft.sourceUrl,data},now,rates).document;
+  for(const entry of entries)document=applyResult(document,{id:entry.id,sourceUrl:entry.draft.sourceUrl,...observation},now,rates).document;
   if(document.revision===latest.document.revision)return 0;
   try{await persistCatalog(document,latest.raw,refreshActor,'catalog.refresh.live-import',{sourceUrl})}
   catch(error){if(error instanceof HttpError&&error.status===409)return 0;throw error}
